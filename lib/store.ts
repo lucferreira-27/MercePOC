@@ -111,3 +111,9 @@ export function revise(p: Project, params: Params, label: string) {
   });
   p.cursor = p.revisions.length - 1;
 }
+
+export function seek(p: Project, cursor: number) {
+  if (!Number.isInteger(cursor) || cursor < 0 || cursor >= p.revisions.length)
+    throw new Error('Versão inválida.');
+  p.cursor = cursor;
+}
