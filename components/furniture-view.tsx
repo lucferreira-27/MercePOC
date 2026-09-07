@@ -2,7 +2,23 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { materials, type Params, type Part } from '@/lib/furniture';
+import type { Params, Part } from '@/lib/furniture';
+import { FurnitureMotion, ease, TRANSITION_MS } from '@/lib/furniture-motion';
+type CameraMove = {
+  from: THREE.Vector3;
+  to: THREE.Vector3;
+  targetFrom: THREE.Vector3;
+  targetTo: THREE.Vector3;
+  started: number;
+};
+type Runtime = {
+  motion: FurnitureMotion;
+  camera: THREE.PerspectiveCamera;
+  controls: OrbitControls;
+  reduced: MediaQueryList;
+  move?: CameraMove;
+  view?: { height: number; width: number; front: boolean };
+};
 export default function FurnitureView({
   params,
   parts,
@@ -19,12 +35,12 @@ export default function FurnitureView({
   front: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null),
-    callback = useRef(onSelect);
-  const meshList = useRef<THREE.Mesh[]>([]);
+    callback = useRef(onSelect),
+    runtime = useRef<Runtime | null>(null);
+  const [error, setError] = useState(false);
   useEffect(() => {
     callback.current = onSelect;
   }, [onSelect]);
-  const [error, setError] = useState(false);
   useEffect(() => {
     if (!host.current) return;
     const el = host.current;
@@ -40,20 +56,23 @@ export default function FurnitureView({
     renderer.shadowMap.type = THREE.PCFShadowMap;
     el.appendChild(renderer.domElement);
     const scene = new THREE.Scene(),
-      camera = new THREE.PerspectiveCamera(34, 1, 1, 20000);
-    const scale = Math.max(params.height, params.width * 1.5);
-    camera.position.set(
-      front ? 0 : scale * 1.05,
-      params.height * 0.7,
-      scale * 2.15,
-    );
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, params.height / 2, 0);
+      camera = new THREE.PerspectiveCamera(34, 1, 1, 20000),
+      controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.minDistance = 400;
     controls.maxDistance = 8000;
     controls.maxPolarAngle = Math.PI * 0.88;
-    controls.update();
+    const motion = new FurnitureMotion(scene);
+    const state: Runtime = {
+      motion,
+      camera,
+      controls,
+      reduced: window.matchMedia('(prefers-reduced-motion: reduce)'),
+    };
+    runtime.current = state;
+    controls.addEventListener('start', () => {
+      state.move = undefined;
+    });
     scene.add(new THREE.HemisphereLight(0xffffff, 0x828794, 2.4));
     const sun = new THREE.DirectionalLight(0xffffff, 3.4);
     sun.position.set(-1600, 3200, 2200);
@@ -68,41 +87,6 @@ export default function FurnitureView({
     });
     sun.shadow.bias = -0.0003;
     scene.add(sun);
-    const meshes: THREE.Mesh[] = [];
-    meshList.current = meshes;
-    const color = materials.find((m) => m.id === params.materialId)!.color;
-    for (const p of parts) {
-      const geo = new THREE.BoxGeometry(...p.size),
-        mat = new THREE.MeshStandardMaterial({
-          color,
-          roughness: 0.72,
-          metalness: 0,
-        });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(...p.position);
-      if (exploded) {
-        mesh.position.x *= 1.35;
-        mesh.position.y =
-          (mesh.position.y - params.height / 2) * 1.3 + params.height / 2;
-        if (p.id === 'back') mesh.position.z -= 280;
-        else if (p.id.startsWith('shelf')) mesh.position.z += 180;
-      }
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      mesh.userData.id = p.id;
-      meshes.push(mesh);
-      scene.add(mesh);
-      mesh.add(
-        new THREE.LineSegments(
-          new THREE.EdgesGeometry(geo),
-          new THREE.LineBasicMaterial({
-            color: '#302b24',
-            transparent: true,
-            opacity: 0.25,
-          }),
-        ),
-      );
-    }
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(20000, 20000),
       new THREE.ShadowMaterial({ opacity: 0.14 }),
@@ -130,7 +114,8 @@ export default function FurnitureView({
         camera,
       );
       callback.current(
-        ray.intersectObjects(meshes)[0]?.object.userData.id ?? null,
+        ray.intersectObjects(motion.pickable(), false)[0]?.object.userData.id ??
+          null,
       );
     };
     renderer.domElement.addEventListener('pointerdown', start);
@@ -144,35 +129,88 @@ export default function FurnitureView({
     });
     resize.observe(el);
     let frame = 0;
-    const draw = () => {
+    const draw = (now: number) => {
+      motion.tick(now, state.reduced.matches);
+      if (state.move) {
+        const m = state.move,
+          t = state.reduced.matches
+            ? 1
+            : ease((now - m.started) / TRANSITION_MS);
+        camera.position.lerpVectors(m.from, m.to, t);
+        controls.target.lerpVectors(m.targetFrom, m.targetTo, t);
+        if (t === 1) state.move = undefined;
+      }
       controls.update();
       renderer.render(scene, camera);
       frame = requestAnimationFrame(draw);
     };
-    draw();
+    frame = requestAnimationFrame(draw);
     return () => {
       cancelAnimationFrame(frame);
       resize.disconnect();
       controls.dispose();
-      scene.traverse((o) => {
-        if (o instanceof THREE.Mesh || o instanceof THREE.LineSegments) {
-          o.geometry.dispose();
-          const ms = Array.isArray(o.material) ? o.material : [o.material];
-          ms.forEach((m) => m.dispose());
-        }
-      });
+      motion.dispose();
+      floor.geometry.dispose();
+      floor.material.dispose();
+      grid.geometry.dispose();
+      const mats = Array.isArray(grid.material)
+        ? grid.material
+        : [grid.material];
+      mats.forEach((m) => m.dispose());
+      sun.shadow.dispose();
       renderer.dispose();
       renderer.domElement.remove();
+      runtime.current = null;
     };
-  }, [params, parts, exploded, front]);
+  }, []);
   useEffect(() => {
-    const color = materials.find((m) => m.id === params.materialId)!.color;
-    for (const mesh of meshList.current) {
-      (mesh.material as THREE.MeshStandardMaterial).color.set(
-        mesh.userData.id === selected ? '#c8f57c' : color,
+    const state = runtime.current;
+    if (state)
+      state.motion.update(
+        parts,
+        params,
+        exploded,
+        selected,
+        performance.now(),
+        state.reduced.matches,
       );
+  }, [parts, params, exploded, selected]);
+  useEffect(() => {
+    const s = runtime.current;
+    if (!s) return;
+    const scale = Math.max(params.height, params.width * 1.5),
+      target = new THREE.Vector3(0, params.height / 2, 0);
+    let to: THREE.Vector3;
+    if (!s.view || s.view.front !== front) {
+      to = new THREE.Vector3(
+        front ? 0 : scale * 1.05,
+        params.height * 0.7,
+        scale * 2.15,
+      );
+    } else {
+      const previousScale = Math.max(s.view.height, s.view.width * 1.5);
+      to = s.camera.position
+        .clone()
+        .sub(s.controls.target)
+        .multiplyScalar(scale / previousScale)
+        .add(target);
     }
-  }, [selected, params, parts, exploded, front]);
+    if (!s.view || s.reduced.matches) {
+      s.camera.position.copy(to);
+      s.controls.target.copy(target);
+      s.controls.update();
+      s.move = undefined;
+    } else {
+      s.move = {
+        from: s.camera.position.clone(),
+        to,
+        targetFrom: s.controls.target.clone(),
+        targetTo: target,
+        started: performance.now(),
+      };
+    }
+    s.view = { height: params.height, width: params.width, front };
+  }, [params.height, params.width, front]);
   return (
     <div
       ref={host}
