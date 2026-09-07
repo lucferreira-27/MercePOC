@@ -1,7 +1,11 @@
 /* oxlint-disable react/react-compiler -- Analyzer internal invariant on Base UI callbacks; React Compiler is not enabled. */
+/* oxlint-disable next/no-img-element -- Uploaded references are local, normalized WebP assets. */
 'use client';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { ChatProgress } from '@/components/chat-progress';
+import { readEvents } from '@/lib/sse';
+import type { Progress } from '@/lib/progress';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUp,
   Box,
@@ -9,6 +13,7 @@ import {
   ChevronDown,
   Download,
   Layers,
+  ImagePlus,
   Plus,
   Redo2,
   Sparkles,
@@ -17,8 +22,11 @@ import {
 } from 'lucide-react';
 import { useProjectTools } from '@/hooks/use-project-tools';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
+import type { ImageRef } from '@/lib/images';
 import FurnitureView from '@/components/furniture-view';
 import {
+  generate,
   materials,
   cutCSV,
   cortecloud,
@@ -62,6 +70,8 @@ export default function Home() {
     [projects, setProjects] = useState<{ id: string; name: string }[]>([]),
     [text, setText] = useState(''),
     [pending, setPending] = useState(''),
+    [progress, setProgress] = useState<Progress[]>([]),
+    [started, setStarted] = useState(0),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [selected, setSelected] = useState<string | null>(null),
@@ -71,9 +81,17 @@ export default function Home() {
     [exportOpen, setExportOpen] = useState(false),
     [draft, setDraft] = useState<Params | null>(null),
     [online, setOnline] = useState(false);
+  const [attachment, setAttachment] = useState<ImageRef | null>(null);
+  const [pendingImage, setPendingImage] = useState<ImageRef | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [historyPreview, setHistoryPreview] = useState<number | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const visualParams = p?.revisions[historyPreview ?? p.cursor].params;
+  const visualParts = useMemo(() => visualParams ? generate(visualParams).parts : [], [visualParams]);
   const messages = useRef<HTMLDivElement>(null);
   const accept = (d: State) => {
     setP(d);
+    setHistoryPreview(null);
     setDraft(d.params);
     setSelected((s) => (d.parts.some((v) => v.id === s) ? s : null));
   };
@@ -100,9 +118,9 @@ export default function Home() {
   useEffect(() => {
     messages.current?.scrollTo({
       top: messages.current.scrollHeight,
-      behavior: 'smooth',
+      behavior: pending ? 'instant' : 'smooth',
     });
-  }, [p?.messages.length, pending]);
+  }, [p?.messages.length, pending, progress.length]);
   async function action(action: string, extra: object = {}) {
     if (busy) return;
     setBusy(true);
@@ -121,28 +139,82 @@ export default function Home() {
       setError((e as Error).message);
     } finally {
       setBusy(false);
+      setHistoryPreview(null);
     }
   }
+  async function upload(file?: File) {
+    if (!file || busy) return;
+    setBusy(true); setUploading(true); setError('');
+    try {
+      if (file.size > 10 * 1024 * 1024) throw new Error('A imagem deve ter até 10 MB.');
+      const body = new FormData(); body.append('image', file);
+      const response = await fetch('/api/images', { method: 'POST', body });
+      const result = await response.json() as ImageRef & { error?: string };
+      if (!response.ok) throw new Error(result.error || 'Não foi possível anexar a imagem.');
+      setAttachment(result);
+    } catch (e) { setError((e as Error).message); }
+    finally { setBusy(false); setUploading(false); }
+  }
+  function seekVersion(cursor: number) {
+    if (!p || busy) return;
+    if (cursor === p.cursor) { setHistoryPreview(null); return; }
+    void action('seek', { cursor });
+  }
   async function send(value = text) {
-    if (!value.trim() || !p || busy) return;
+    if ((!value.trim() && !attachment) || !p || busy) return;
+    const sentImage = attachment;
+    value = value.trim() || 'Use esta imagem como referência para a estante.';
+    setPendingImage(sentImage);
+    setAttachment(null);
     setBusy(true);
     setError('');
     setPending(value);
+    setProgress([]);
+    setStarted(Date.now());
     setText('');
     try {
-      accept(
-        await api('/api/chat', {
+      const r = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'text/event-stream',
+          'X-Chat-Preview': 'hidden',
+        },
+        body: JSON.stringify({
           id: p.id,
           version: p.version,
           message: value,
+          imageId: sentImage?.id,
           selected,
         }),
-      );
+      });
+      if (!r.ok || !r.body) {
+        const d = (await r.json().catch(() => ({}))) as { error?: string };
+        throw new Error(d.error || 'Não foi possível concluir.');
+      }
+      let completed = false;
+      await readEvents(r, ({ event, data }) => {
+        if (event === 'progress') {
+          const update = JSON.parse(data) as Progress;
+          setProgress((previous) => [...previous, update]);
+        } else if (event === 'done') {
+          accept(JSON.parse(data) as State);
+          completed = true;
+        } else if (event === 'error')
+          throw new Error((JSON.parse(data) as { error: string }).error);
+      });
+      if (!completed)
+        throw new Error(
+          'A conexão terminou antes da confirmação. Recarregue o projeto para conferir a última versão.',
+        );
     } catch (e) {
       setError((e as Error).message);
       setText(value);
+      setAttachment(sentImage);
     } finally {
       setPending('');
+      setPendingImage(null);
+      setProgress([]);
       setBusy(false);
     }
   }
@@ -309,19 +381,48 @@ export default function Home() {
                     <Sparkles size={14} />
                   </span>
                 )}
-                <div>{m.content}</div>
+                <div>
+                  {m.image && <img className="chat-image" src={m.image.url} alt={m.image.name} loading="lazy" />}
+                  {m.content}
+                  {m.report && (
+                    <details className="change-report">
+                      <summary>
+                        {m.report.outcome === 'updated'
+                          ? 'Alterações aplicadas'
+                          : m.report.outcome === 'clarification'
+                            ? 'Aguardando sua resposta'
+                            : m.report.outcome === 'rejected'
+                              ? 'Projeto preservado'
+                              : 'Sem alteração nas medidas'}{' '}
+                        · {(m.report.durationMs / 1000).toFixed(1)}s
+                      </summary>
+                      {m.report.approach && (
+                        <div className="saved-approach">
+                          <strong>Abordagem proposta pela IA</strong>
+                          <p>{m.report.approach}</p>
+                        </div>
+                      )}
+                      {m.report.changes.length > 0 ? (
+                        <ul>
+                          {m.report.changes.map((change) => (
+                            <li key={change}>{change}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>Nenhuma medida foi alterada.</p>
+                      )}
+                    </details>
+                  )}
+                </div>
               </div>
             ))}
             {!p && !error && <p>Carregando seu estúdio…</p>}
             {pending && (
               <>
                 <div className="message user">
-                  <div>{pending}</div>
+                  <div>{pendingImage && <img className="chat-image" src={pendingImage.url} alt={pendingImage.name} />}{pending}</div>
                 </div>
-                <div className="thinking">
-                  <span />
-                  Ajustando seu projeto…
-                </div>
+                <ChatProgress events={progress} started={started} />
               </>
             )}
             {p?.messages.length === 1 && (
@@ -366,12 +467,19 @@ export default function Home() {
                 void send();
               }}
             >
+              <input ref={fileInput} type="file" hidden accept="image/jpeg,image/png,image/webp" onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ''; }} />
+              {attachment && <div className="attachment-preview"><img src={attachment.url} alt={attachment.name} /><span>{attachment.name}</span><button type="button" disabled={busy} aria-label="Remover imagem" onClick={() => setAttachment(null)}><X size={16} /></button></div>}
+              {uploading && <output className="upload-status">Preparando imagem…</output>}
               <textarea
                 aria-label="Mensagem para o assistente"
                 placeholder="Descreva seu móvel ou uma alteração…"
                 value={text}
                 maxLength={4000}
                 onChange={(e) => setText(e.target.value)}
+                onPaste={(e) => {
+                  const file = Array.from(e.clipboardData.items).find((item) => item.type.startsWith('image/'))?.getAsFile();
+                  if (file) { e.preventDefault(); void upload(file); }
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -380,12 +488,12 @@ export default function Home() {
                 }}
               />
               <div>
-                <span>Enter para enviar</span>
+                <Button type="button" variant="ghost" size="icon" disabled={busy || !p} title="Anexar imagem (JPG, PNG ou WebP, até 10 MB)" aria-label="Anexar imagem" onClick={() => fileInput.current?.click()}><ImagePlus /></Button><span>Imagem ou texto · Enter para enviar</span>
                 <Button
                   type="submit"
                   size="icon"
                   aria-label="Enviar mensagem"
-                  disabled={busy || !p || !text.trim()}
+                  disabled={busy || !p || (!text.trim() && !attachment)}
                 >
                   <ArrowUp />
                 </Button>
@@ -403,12 +511,12 @@ export default function Home() {
               <span className="eyebrow">ESTANTE ABERTA</span>
               <h2>{p?.name || 'Minha estante'}</h2>
             </div>
-            <span className="revision">Versão {p ? p.cursor + 1 : 1}</span>
+            <span className="revision">Versão {p ? (historyPreview ?? p.cursor) + 1 : 1}{historyPreview !== null ? ' · Prévia' : ''}</span>
           </div>
           {p && (
             <FurnitureView
-              params={p.params}
-              parts={p.parts}
+              params={visualParams!}
+              parts={visualParts}
               selected={selected}
               onSelect={setSelected}
               exploded={exploded}
@@ -439,9 +547,11 @@ export default function Home() {
             </button>
           </div>
           <div className="scene-bottom">
-            <span>
-              Arraste para girar · Role para aproximar · Clique em uma peça
-            </span>
+            {p && <div className="history-timeline">
+              <div className="timeline-label"><strong>Histórico</strong><span>{(historyPreview ?? p.cursor) + 1} / {p.revisions.length}</span></div>
+              <Slider aria-label="Versão do projeto" min={0} max={Math.max(1, p.revisions.length - 1)} step={1} value={[historyPreview ?? p.cursor]} disabled={busy || p.revisions.length < 2} onValueChange={(value) => setHistoryPreview(Array.isArray(value) ? value[0] : value)} onValueCommitted={(value) => seekVersion(Array.isArray(value) ? value[0] : value)} />
+              <small title={p.revisions[historyPreview ?? p.cursor].label}>{p.revisions[historyPreview ?? p.cursor].label}</small>
+            </div>}
             <div>
               <Button
                 variant="outline"
@@ -466,17 +576,17 @@ export default function Home() {
           {p && (
             <div className="dimension-summary">
               <span>
-                {p.params.width / 10}
+                {visualParams!.width / 10}
                 <small>largura</small>
               </span>
               <b>×</b>
               <span>
-                {p.params.height / 10}
+                {visualParams!.height / 10}
                 <small>altura</small>
               </span>
               <b>×</b>
               <span>
-                {p.params.depth / 10}
+                {visualParams!.depth / 10}
                 <small>profundidade</small>
               </span>
               <i>cm</i>
@@ -668,7 +778,9 @@ export default function Home() {
                 <>
                   <div className="section-label">VERSÕES SALVAS</div>
                   {p.revisions.map((r, i) => (
-                    <div
+                    <button
+                      disabled={busy}
+                      onClick={() => seekVersion(i)}
                       className={
                         'history-row ' + (i === p.cursor ? 'current' : '')
                       }
@@ -680,10 +792,10 @@ export default function Home() {
                         <small>{new Date(r.at).toLocaleString('pt-BR')}</small>
                         {i === p.cursor && <em>Versão atual</em>}
                       </div>
-                    </div>
+                    </button>
                   ))}
                   <p className="warning">
-                    Use desfazer e refazer para navegar. Uma nova edição
+                    Arraste o slider ou clique numa versão para voltar. Uma nova edição
                     substitui o caminho desfeito.
                   </p>
                 </>

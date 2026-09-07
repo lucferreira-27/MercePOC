@@ -3,7 +3,12 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { defaults, generate, type Params } from './furniture';
-export type Message = { role: 'user' | 'assistant'; content: string };
+export type Message = {
+  role: 'user' | 'assistant';
+  content: string;
+  image?: import('./images').ImageRef;
+  report?: import('./progress').ChatReport;
+};
 export type Revision = {
   number: number;
   params: Params;
@@ -111,7 +116,6 @@ export function revise(p: Project, params: Params, label: string) {
   });
   p.cursor = p.revisions.length - 1;
 }
-
 export function seek(p: Project, cursor: number) {
   if (!Number.isInteger(cursor) || cursor < 0 || cursor >= p.revisions.length)
     throw new Error('Versão inválida.');
