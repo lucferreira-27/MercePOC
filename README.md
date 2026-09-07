@@ -27,9 +27,9 @@ MERGE_GATEWAY_BASE_URL=https://api-gateway.merge.dev/v1
 MERGE_GATEWAY_MODEL=zai/glm-5.3-flash
 ```
 
-As chamadas saem exclusivamente do servidor para Merge Gateway. O modelo usa chamadas de ferramenta, com validação Zod do nome, operação e parâmetros. Se receber uma resposta malformada, há até duas novas tentativas de formatação, sempre com o mesmo modelo. Nenhuma resposta inválida é aplicada. Não há fallback para outro modelo nem respostas simuladas. Timeout de cada chamada: 60 segundos. Erros de rede preservam o estado e deixam o texto disponível para reenviar.
+As chamadas saem exclusivamente do servidor para Merge Gateway. O modelo transmite uma decisão JSON como texto, com validação Zod da operação e dos parâmetros. Se receber uma resposta malformada, há até duas novas tentativas de formatação, sempre com o mesmo modelo. Nenhuma resposta inválida é aplicada. Não há fallback para outro modelo nem respostas simuladas. Timeout de cada chamada: 60 segundos. Erros de rede preservam o estado e deixam o texto disponível para reenviar.
 
-A rota de JSON garantido de GLM estava indisponível no gateway durante a implementação. Por isso o contrato usa tool calling e validação local em vez de depender de `response_format`. A rota de execução fica sob o roteamento do Merge Gateway.
+A rota de JSON garantido de GLM estava indisponível no gateway durante a implementação. Por isso o contrato usa JSON validado localmente em vez de depender de `response_format`. A rota de execução fica sob o roteamento do Merge Gateway.
 
 ## Usar
 
@@ -37,8 +37,10 @@ A rota de JSON garantido de GLM estava indisponível no gateway durante a implem
 2. Peça, por exemplo, “Aumente a largura para um metro”, “Deixe branca” ou “Vão inferior livre de 45 cm”.
 3. Arraste o 3D para orbitar, use a roda para zoom, selecione uma peça por clique ou na aba Peças.
 4. Ajuste campos em milímetros e clique em Aplicar medidas. Materiais são aplicados imediatamente.
-5. Desfaça/refaça pela barra do modelo ou pelo chat. Uma edição depois de desfazer cria um novo caminho e remove o trecho futuro.
-6. Exporte no menu superior. O projeto e suas revisões são salvos automaticamente no SQLite local. Escolha projetos salvos no seletor superior. O nome pode ser alterado no painel de ajustes.
+5. Use o botão de imagem para anexar uma foto de referência (JPG, PNG ou WebP até 10 MB). Também é possível colar uma imagem no campo de mensagem. A imagem é normalizada para WebP, aparece no histórico e é enviada ao GLM como referência visual. Ela não substitui as medidas exatas do projeto.
+6. Arraste o slider Histórico na base do modelo, ou clique em uma versão no painel Histórico, para pré-visualizar e restaurar uma revisão. Soltar o slider salva apenas a posição do cursor; uma nova edição depois de voltar cria um novo caminho e remove o trecho futuro.
+7. Desfaça/refaça pela barra do modelo ou pelo chat.
+8. Exporte no menu superior. O projeto e suas revisões são salvos automaticamente no SQLite local. Escolha projetos salvos no seletor superior. O nome pode ser alterado no painel de ajustes.
 
 ## Saídas
 
@@ -65,6 +67,7 @@ Template `open_bookcase_v1`, medidas externas L × A × P, todas em mm. Chapa de
 - `lib/gateway.ts`: integração Merge Gateway e contrato de decisões.
 - `lib/store.ts`: SQLite, revisões e controle otimista de concorrência.
 - `app/api/projects/route.ts`: leitura, criação, edição, nome e desfazer/refazer.
+- `app/api/images/route.ts` e `lib/images.ts`: normalização, armazenamento local e entrega das referências visuais.
 - `app/api/chat/route.ts`: interpretação e aplicação atômica de decisões.
 - `components/furniture-view.tsx`: Three.js, câmera, seleção e vista explodida.
 - `app/page.tsx`: interface React.
@@ -106,3 +109,17 @@ Lint cobre código da aplicação, sem alterar componentes gerados não utilizad
 - Releitura do SQLite, rejeição de versão desatualizada, origem externa e parâmetros inválidos passaram.
 - Varredura do bundle público não encontrou a chave de API.
 - Importação numa conta Cortecloud e QA visual automatizado continuam não verificados.
+
+## Acompanhamento do chat
+
+Por padrão, a interface não exibe texto parcial nem o resumo da abordagem durante a espera. Mostra a etapa atual, tempo decorrido e uma animação discreta de atividade, sem inventar uma porcentagem. O botão “Ver etapas” expande o histórico de processamento. A resposta aparece inteira quando a validação e o salvamento terminam; o resumo da abordagem e as diferenças ficam recolhidos nos detalhes da mensagem.
+
+A interface envia `X-Chat-Preview: hidden`, e o servidor suprime os eventos de texto parcial. O SSE permanece para progresso e conclusão. Outros clientes podem receber texto omitindo esse cabeçalho. Erros de conexão não são tratados como sucesso, e o bloqueio de pedidos simultâneos permanece até a conclusão ou cancelamento.
+
+## Transições do modelo 3D
+
+A cena Three.js permanece montada entre edições. Cada peça mantém sua identidade e interpola tamanho, posição e cor durante 750 ms com aceleração/desaceleração suaves. Novas prateleiras entram gradualmente, as removidas desaparecem, e a vista explodida também anima. Edições durante uma transição partem da posição visual corrente. As medidas do projeto e os arquivos de exportação continuam exatos; a interpolação é apenas visual.
+
+A câmera preserva a orientação durante mudanças de material e seleção e ajusta o enquadramento suavemente quando as dimensões mudam. Uma interação manual interrompe a animação da câmera. `prefers-reduced-motion` desativa os movimentos da cena e as animações decorativas.
+
+`lib/furniture-motion.ts` concentra as transições. Os testes verificam reutilização de objetos, estados intermediários, valores finais, edições interrompidas, entrada/saída de peças, liberação de recursos e movimento reduzido. A suíte agora tem 20 testes. Não foi feita QA visual automatizada em navegador.
