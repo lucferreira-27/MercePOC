@@ -52,7 +52,7 @@ void test('text previews arrive before structured response completes and contain
     const result = interpretStream(
       defaults,
       [{ role: 'user', content: 'Largura 1 metro' }],
-      null,
+      [],
       () => {},
       0,
       undefined,

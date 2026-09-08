@@ -30,7 +30,7 @@ export default function FurnitureView({
 }: {
   params: Params;
   parts: Part[];
-  selected: string | null;
+  selected: string[];
   onSelect: (id: string | null) => void;
   exploded: boolean;
   front: boolean;

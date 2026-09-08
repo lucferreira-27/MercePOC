@@ -22,7 +22,7 @@ export async function POST(req: Request) {
         version: z.number().int(),
         message: z.string().trim().max(4000),
         imageId: z.uuid().optional(),
-        selected: z.string().max(100).nullable().optional(),
+        selected: z.array(z.string().max(100)).max(20).optional(),
       })
       .parse(await req.json());
     if (!b.message && !b.imageId) throw new Error('Escreva uma mensagem ou anexe uma imagem.');
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       const d = await interpretStream(
         before,
         p.messages,
-        b.selected ?? null,
+        b.selected ?? [],
         progress,
         0,
         signal,

@@ -82,7 +82,7 @@ export default function Home() {
     [started, setStarted] = useState(0),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
-    [selected, setSelected] = useState<string | null>(null),
+    [selected, setSelected] = useState<string[]>([]),
     [exploded, setExploded] = useState(false),
     [front, setFront] = useState(false),
     [tab, setTab] = useState('params'),
@@ -122,8 +122,10 @@ export default function Home() {
     setP(d);
     setHistoryPreview(null);
     setDraft(d.params);
-    setSelected((s) => (d.parts.some((v) => v.id === s) ? s : null));
+    setSelected((s) => s.filter((id) => d.parts.some((v) => v.id === id)));
   };
+  const toggleSelected = (id: string) =>
+    setSelected((s) => (s.includes(id) ? s.filter((v) => v !== id) : [...s, id]));
   const refresh = async () =>
     setProjects(await api<{ id: string; name: string }[]>('/api/projects'));
   useEffect(() => {
@@ -286,7 +288,7 @@ export default function Home() {
       }
     },
   );
-  const part = p?.parts.find((v) => v.id === selected);
+  const selectedNames = selected.map((id) => p?.parts.find((v) => v.id === id)?.name ?? id);
   return (
     <main className="studio">
       <header className="topbar">
@@ -480,12 +482,14 @@ export default function Home() {
             )}
           </div>
           <div className="composer-wrap">
-            {selected && (
+            {selected.length > 0 && (
               <div className="selection-chip">
-                Selecionado: {part?.name}
+                {selected.length === 1
+                  ? `Selecionado: ${selectedNames[0]}`
+                  : `${selected.length} peças selecionadas: ${selectedNames.join(', ')}`}
                 <button
                   aria-label="Limpar seleção"
-                  onClick={() => setSelected(null)}
+                  onClick={() => setSelected([])}
                 >
                   <X size={12} />
                 </button>
@@ -558,7 +562,7 @@ export default function Home() {
               parts={visualParts}
               scrub={scrubbing}
               selected={selected}
-              onSelect={setSelected}
+              onSelect={(id) => (id === null ? setSelected([]) : toggleSelected(id))}
               exploded={exploded}
               front={front}
             />
@@ -888,17 +892,20 @@ export default function Home() {
               {tab === 'parts' && (
                 <>
                   <div className="section-label">
-                    {p.parts.length} PEÇAS <span>C × L × E · mm</span>
+                    PEÇAS{selected.length > 0 ? ` · ${selected.length} selecionada${selected.length > 1 ? 's' : ''}` : ''}
+                    {selected.length > 0 && (
+                      <button type="button" className="link-button" onClick={() => setSelected([])}>
+                        limpar
+                      </button>
+                    )}
                   </div>
                   {p.parts.map((v) => (
                     <button
                       className={
-                        'part-row ' + (selected === v.id ? 'selected' : '')
+                        'part-row ' + (selected.includes(v.id) ? 'selected' : '')
                       }
                       key={v.id}
-                      onClick={() =>
-                        setSelected(selected === v.id ? null : v.id)
-                      }
+                      onClick={() => toggleSelected(v.id)}
                     >
                       <span>
                         <strong>{v.name}</strong>

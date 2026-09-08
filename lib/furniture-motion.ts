@@ -47,7 +47,7 @@ export class FurnitureMotion {
     parts: Part[],
     params: Params,
     exploded: boolean,
-    selected: string | null,
+    selected: readonly string[],
     now: number,
     reduced = false,
     duration: number = TRANSITION_MS,
@@ -59,7 +59,7 @@ export class FurnitureMotion {
       const target: Pose = {
         position: visualPosition(part, params.height, exploded),
         size: new THREE.Vector3(...part.size),
-        color: new THREE.Color(part.id === selected ? '#c8f57c' : color),
+        color: new THREE.Color(selected.includes(part.id) ? '#c8f57c' : color),
         opacity: 1,
       };
       let entry = this.entries.get(part.id);
