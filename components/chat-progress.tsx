@@ -23,7 +23,7 @@ export function ChatProgress({
       <div className="progress-heading">
         <LoaderCircle className="progress-spinner" size={16} />
         <output>{current?.label ?? 'Enviando seu pedido'}</output>
-        <time>{elapsed}s</time>
+        <time dateTime={`PT${elapsed}S`}>{elapsed}s</time>
       </div>
       <p>{current?.detail ?? 'Preparando os parâmetros do projeto.'}</p>
       <div className="message-progress-track" aria-hidden="true">
