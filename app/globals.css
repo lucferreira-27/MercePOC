@@ -711,6 +711,9 @@ button svg {
 .shelf-row input,.shelf-row select{flex:1;min-width:0;padding:7px 8px;border:1px solid #d9e5cb;border-radius:8px;font-size:12px;background:#fff}
 .shelf-hint{font-size:12px;color:#68735f;margin:6px 0}
 .shelf-note{font-size:11px;color:#98a08f;margin:7px 0 0}
+.gap-dims{position:absolute;right:12px;top:12px;z-index:5;list-style:none;margin:0;padding:8px;display:grid;gap:4px;background:rgba(255,255,255,.92);border:1px solid #d9e5cb;border-radius:10px;max-height:calc(100% - 24px);overflow:auto}
+.gap-dims li{font-size:11px;font-variant-numeric:tabular-nums;color:#68735f;padding:3px 8px;border-radius:6px;white-space:nowrap}
+.gap-dims li.hot{background:#e8f3d8;color:#2f4a24;font-weight:600}
 .history-row {
   display: flex;
   gap: 12px;

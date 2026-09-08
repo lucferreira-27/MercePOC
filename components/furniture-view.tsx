@@ -5,6 +5,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { Part } from '@/lib/furniture';
 import type { Design } from '@/lib/design';
 import { FurnitureMotion, ease, SCRUB_MS, TRANSITION_MS } from '@/lib/furniture-motion';
+import { gapsOf, shelfInfos } from '@/lib/design';
 type CameraMove = {
   from: THREE.Vector3;
   to: THREE.Vector3;
@@ -30,6 +31,7 @@ export default function FurnitureView({
   view,
   spin = false,
   scrub = false,
+  dims = false,
 }: {
   params: Design;
   parts: Part[];
@@ -39,6 +41,7 @@ export default function FurnitureView({
   view: ViewMode;
   spin?: boolean;
   scrub?: boolean;
+  dims?: boolean;
 }) {
   const [hover, setHover] = useState<{ id: string; x: number; y: number; flip: boolean } | null>(null);
   const host = useRef<HTMLDivElement>(null),
@@ -262,6 +265,9 @@ export default function FurnitureView({
     s.view = { height: params.height, width: params.width, mode: view };
   }, [params.height, params.width, view, scrub]);
   const hoveredPart = hover ? parts.find((v) => v.id === hover.id) : undefined;
+  const infos = shelfInfos(params);
+  const selectedShelves = new Set(selected.filter((id) => infos.some((s) => s.id === id)));
+  const gaps = gapsOf(params);
   return (
     <div
       ref={host}
@@ -286,6 +292,21 @@ export default function FurnitureView({
           </span>
           <small>{hoveredPart.material}</small>
         </div>
+      )}
+      {dims && (
+        <ol className="gap-dims" aria-label="Alturas livres dos vãos em milímetros">
+          {gaps.map((g, i) => {
+            const below = i === 0 ? null : infos[i - 1].id;
+            const above = i === gaps.length - 1 ? null : infos[i].id;
+            const hot = (below && selectedShelves.has(below)) || (above && selectedShelves.has(above));
+            const label = i === 0 ? 'base' : i === gaps.length - 1 ? 'tampo' : `${infos[i - 1].label} ↔ ${infos[i].label}`;
+            return (
+              <li key={i} className={hot ? 'hot' : ''} title={`Vão ${i + 1}: ${label}`}>
+                {Math.round(g)} mm
+              </li>
+            );
+          })}
+        </ol>
       )}
     </div>
   );

@@ -95,6 +95,7 @@ export default function Home() {
     [exportOpen, setExportOpen] = useState(false),
     [draft, setDraft] = useState<Design | null>(null),
     [online, setOnline] = useState(false),
+    [showDims, setShowDims] = useState(true),
     [shelfDelta, setShelfDelta] = useState('50'),
     [gapTarget, setGapTarget] = useState(''),
     [gapPick, setGapPick] = useState('0'),
@@ -626,7 +627,6 @@ export default function Home() {
                             : m.report.outcome === 'rejected'
                               ? 'Projeto preservado'
                               : 'Sem alteração nas medidas'}{' '}
-                        · {(m.report.durationMs / 1000).toFixed(1)}s
                       </summary>
                       {m.report.approach && (
                         <div className="saved-approach">
@@ -752,6 +752,7 @@ export default function Home() {
               params={visualParams!}
               parts={visualParts}
               scrub={scrubbing}
+              dims={showDims}
               selected={selected}
               onSelect={(id) => (id === null ? setSelected([]) : toggleSelected(id))}
               exploded={exploded}
@@ -804,6 +805,13 @@ export default function Home() {
                 >
                   <Orbit size={16} />
                   Girar
+                </button>
+                <button
+                  className={showDims ? 'active' : ''}
+                  onClick={() => setShowDims(!showDims)}
+                >
+                  <ArrowUp size={16} />
+                  Cotas
                 </button>
               </div>
             </div>
