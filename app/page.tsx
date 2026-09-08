@@ -647,6 +647,7 @@ export default function Home() {
                             : m.report.outcome === 'rejected'
                               ? 'Projeto preservado'
                               : 'Sem alteração nas medidas'}{' '}
+                        · v{m.revision ?? '?'} · {(m.report.durationMs / 1000).toFixed(1)}s
                       </summary>
                       {m.report.approach && (
                         <div className="saved-approach">

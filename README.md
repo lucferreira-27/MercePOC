@@ -51,33 +51,38 @@ A rota de JSON garantido de GLM estava indisponível no gateway durante a implem
 
 ## Modelo construtivo e limites
 
-Template `open_bookcase_v1`, medidas externas L × A × P, todas em mm. Chapa de 18 mm, fundo sobreposto de 6 mm, laterais inteiras, tampo/base entre laterais. Corpo tem profundidade externa menos fundo. Prateleiras têm folga lateral total de 2 mm e recuo traseiro de 10 mm. O primeiro shelf é o inferior. Na ausência de vão inferior explícito, todos os vãos livres são iguais.
+Template `open_bookcase_v1`, medidas externas L × A × P, todas em mm. Chapa de 18 mm, fundo sobreposto de 6 mm, laterais inteiras, tampo/base entre laterais. Corpo tem profundidade externa menos fundo. Prateleiras têm folga lateral total de 2 mm e recuo traseiro de 10 mm.
+
+Desde o schema v2 cada prateleira interna tem id estável (`sh-N`) e elevação própria (piso até a face inferior). A quantidade deriva da coleção; o rótulo “Prateleira 1, 2…” é a ordem vertical e muda após mover/adicionar/remover. Vãos livres são calculados das faces das peças, com espessuras descontadas. Modelo 3D, cotas, lista de peças, CSV e Cortecloud derivam da mesma representação; o chat e o Three.js não guardam posições paralelas.
+
+Revisões antigas (schema v1) são convertidas de forma determinística e idempotente na leitura: a geometria é gerada com as regras antigas e cada `shelf-N` vira `sh-N` na mesma elevação. Destaques antigos `shelf-N` continuam resolvendo para `sh-N`.
 
 - Largura 300..1200, altura 400..2400, profundidade 200..600.
 - 0..8 prateleiras internas. Cada vão livre precisa de pelo menos 100 mm.
+- Operações de prateleira (chat e painel Peças usam a mesma camada `lib/design.ts`): mover com deslocamento preservando distâncias; definir vão abaixo; distribuir igualmente; inserir no centro de um vão; remover internas; redimensionar (na altura, os vãos mantêm a proporção do espaço livre total, descontadas as espessuras).
+- Toda operação é atômica e validada (sem interpenetração, ordem ou saída do corpo; base/tampo/laterais/fundo nunca se movem). Pedidos inválidos explicam o impedimento com medidas; operações sem efeito não criam revisão.
+- A IA propõe operações estruturadas (`move/gap/distribute/add/remove/resize`); nunca envia coordenadas de mesh, peças de corte ou CSV. O servidor resolve a geometria e valida.
+- Cada mensagem do chat registra a revisão vigente (`vN` no relatório). Alternativas (“Criar alternativa desta versão”) copiam o histórico até a revisão exibida — inclusive prévia — com id próprio, nome editável e vínculo de origem; só mensagens vinculadas até ela são copiadas, e o original é preservado.
+- O overlay “Cotas” mostra as alturas livres dos vãos (mm), destacando os dois vãos adjacentes à prateleira selecionada. É derivado da revisão exibida, sem medidas interpoladas durante animações.
+- A exportação Cortecloud continua sendo lista de peças: não comunica posições de montagem nem furação. Mudar só a altura de uma prateleira não altera suas dimensões de corte. O JSON do projeto identifica `schemaVersion: 2`.
 - Três acabamentos de MDF: branco, carvalho e grafite. A visualização usa cores, sem textura fotográfica.
-- Vão interno acima de 800 mm gera aviso para revisão de carga/flecha.
-- Esses limites são escolhas demonstrativas, não homologação de engenharia. Fixações, ferragens, resistência, estabilidade/ancoragem, tolerâncias de fabricação e desconto de fita precisam de validação por marceneiro.
-- Sem portas, gavetas, alteração de espessura, orçamento, nesting/plano de aproveitamento, envio de pedidos, arquivos SKP ou usinagem/CNC.
-- A lista de peças não é um plano de corte otimizado.
 
-## Código
-
-- `lib/furniture.ts`: schema, geração determinística de peças e exportadores.
-- `lib/gateway.ts`: integração Merge Gateway e contrato de decisões.
-- `lib/store.ts`: SQLite, revisões e controle otimista de concorrência.
-- `app/api/projects/route.ts`: leitura, criação, edição, nome e desfazer/refazer.
+- `lib/furniture.ts`: materiais, peças canônicas e regras legadas v1 (migração).
+- `lib/design.ts`: schema v2, migração, operações de prateleira e exportadores.
+- `lib/gateway.ts`: integração Merge Gateway e contrato de operações.
+- `lib/store.ts`: SQLite, revisões, vínculo mensagem↔revisão, alternativa e concorrência otimista.
+- `app/api/projects/route.ts`: leitura, criação, ops (`op`), alternativa (`fork`), nome e desfazer/refazer.
 - `app/api/images/route.ts` e `lib/images.ts`: normalização, armazenamento local e entrega das referências visuais.
-- `app/api/chat/route.ts`: interpretação e aplicação atômica de decisões.
-- `components/furniture-view.tsx`: Three.js, câmera, seleção e vista explodida.
-- `app/page.tsx`: interface React.
+- `app/api/chat/route.ts`: interpretação e aplicação atômica de operações.
+- `components/furniture-view.tsx`: Three.js, câmera, seleção, vista explodida e overlay de cotas.
+- `app/page.tsx`: interface React (painel de prateleiras, cotas, histórico e alternativas).
 - `hooks/use-project-tools.ts`: ferramentas WebMCP opcionais, se o navegador suportar. Não verificadas em um contexto WebMCP compatível.
 
 Stack: React 19, TypeScript, Vinext/Vite, Three.js, Zod, SQLite nativo do Node. Adaptado do scaffold Sites para execução Node local, sem publicação ou infraestrutura Cloudflare. A chave e os dados ficam fora do bundle público. O servidor escuta somente em loopback. Esta POC não tem autenticação multiusuário e não deve ser exposta publicamente como está.
 
 ## Dados e backup
 
-Projetos em `data/merce.sqlite`, com WAL. Para copiar o banco, pare o servidor antes, ou use uma ferramenta de backup SQLite. Não apague o diretório `data` para atualizar o código. `MERCE_DATA_DIR` permite selecionar outro diretório no servidor. Os testes unitários usam um diretório temporário isolado.
+Projetos em `data/merce.sqlite`, com WAL. Antes de qualquer migração persistente, faça backup consistente: pare o servidor antes de copiar, ou use `VACUUM INTO`/`sqlite3 .backup` com o servidor parado. Não apague nem recrie o banco. A conversão v1→v2 é preguiçosa e em memória; o banco só passa a conter v2 quando o projeto é salvo novamente. Não apague o diretório `data` para atualizar o código. `MERCE_DATA_DIR` permite selecionar outro diretório no servidor. Os testes unitários usam um diretório temporário isolado.
 
 ## Verificar
 
