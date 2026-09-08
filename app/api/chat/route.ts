@@ -1,8 +1,14 @@
-import { get, save, revise } from '@/lib/store';
+import { applyShelfOp, get, save } from '@/lib/store';
 import { interpretStream } from '@/lib/gateway';
-import { generate, materials, paramsSchema } from '@/lib/furniture';
+import { materials } from '@/lib/furniture';
 import {
-  describeChanges,
+  describeDesignChanges,
+  generateDesign,
+  resolveShelfId,
+  shelfInfos,
+  type ShelfOp,
+} from '@/lib/design';
+import {
   type Progress,
   type ChatReport,
   type TextPreview,
@@ -39,17 +45,21 @@ export async function POST(req: Request) {
     id = b.id;
     busy.add(id);
     const started = Date.now(),
-      before = p.revisions[p.cursor].params;
-    p.messages.push({ role: 'user', content: b.message, ...(image ? { image } : {}) });
+      before = p.revisions[p.cursor].params,
+      userRevision = p.revisions[p.cursor].number;
+    p.messages.push({ role: 'user', content: b.message, ...(image ? { image } : {}), revision: userRevision });
     const run = async (
       progress: (event: Progress) => void,
       signal: AbortSignal,
       text: (preview: TextPreview) => void = () => {},
     ) => {
+      const selected = (b.selected ?? [])
+        .map((id) => resolveShelfId(id, before) ?? id)
+        .filter((id, i, all) => all.indexOf(id) === i);
       const d = await interpretStream(
         before,
         p.messages,
-        b.selected ?? [],
+        selected,
         progress,
         0,
         signal,
@@ -67,16 +77,21 @@ export async function POST(req: Request) {
       let message = d.message,
         outcome: ChatReport['outcome'] =
           d.action === 'clarify' ? 'clarification' : 'unchanged';
+      const ops = d.ops as ShelfOp[];
       try {
         if (d.action === 'update') {
-          if (!Object.keys(d.changes).length && !d.select.length)
-            throw new Error('Nenhum parâmetro foi especificado.');
-          if (Object.keys(d.changes).length)
-            revise(
-              p,
-              paramsSchema.parse({ ...before, ...d.changes }),
-              b.message.slice(0, 90),
-            );
+          if (!ops.length && !d.select.length)
+            throw new Error('Nenhuma operação foi especificada.');
+          let noop = true;
+          for (const op of ops) {
+            if (applyShelfOp(p, op, b.message.slice(0, 90))) continue;
+            noop = false;
+          }
+          if (!ops.length) noop = false;
+          if (noop) {
+            outcome = 'unchanged';
+            message = `${d.message} (sem mudança nas medidas)`;
+          }
         }
         if (d.action === 'undo') {
           if (p.cursor === 0) message = 'Você já está na primeira versão.';
@@ -91,7 +106,7 @@ export async function POST(req: Request) {
         outcome = 'rejected';
         message = `Não apliquei a alteração: ${(e as Error).message}`;
       }
-      const changes = describeChanges(before, p.revisions[p.cursor].params);
+      const changes = describeDesignChanges(before, p.revisions[p.cursor].params);
       if (changes.length) outcome = 'updated';
       progress({
         stage: 'saving',
@@ -100,15 +115,17 @@ export async function POST(req: Request) {
           ? 'Registrando a versão e preparando o modelo 3D.'
           : 'Salvando a resposta. As medidas foram preservadas.',
       });
-      const parts = generate(p.revisions[p.cursor].params).parts;
-      const color =
-        materials.find((m) => m.id === p.revisions[p.cursor].params.materialId)?.color ?? '#999';
+      const design = p.revisions[p.cursor].params;
+      const parts = generateDesign(design).parts;
+      const infos = new Map(shelfInfos(design).map((s) => [s.id, s]));
+      const color = materials.find((m) => m.id === design.materialId)?.color ?? '#999';
       const showcase = d.select
+        .map((id) => resolveShelfId(id, design) ?? id)
         .map((id) => parts.find((part) => part.id === id))
         .filter((v) => v !== undefined)
         .map((v) => ({
           id: v.id,
-          name: v.name,
+          name: infos.get(v.id)?.label ?? v.name,
           dims: `${v.c} × ${v.l} × ${v.thickness} mm`,
           material: v.material,
           size: v.size,
@@ -117,6 +134,7 @@ export async function POST(req: Request) {
       p.messages.push({
         role: 'assistant',
         content: message,
+        revision: p.revisions[p.cursor].number,
         report: {
           durationMs: Date.now() - started,
           outcome,

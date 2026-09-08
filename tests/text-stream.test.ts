@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readStringField } from '../lib/partial-json';
 import { interpretStream } from '../lib/gateway';
-import { defaults } from '../lib/furniture';
+import { migrateParams } from '../lib/design';
 import type { TextPreview } from '../lib/progress';
 void test('partial JSON extracts only requested public top-level strings', () => {
   assert.equal(
@@ -50,7 +50,7 @@ void test('text previews arrive before structured response completes and contain
     );
   try {
     const result = interpretStream(
-      defaults,
+      migrateParams({ width: 800, height: 1800, depth: 350, shelfCount: 4, materialId: 'oak', bottomOpening: null }),
       [{ role: 'user', content: 'Largura 1 metro' }],
       [],
       () => {},
@@ -70,10 +70,10 @@ void test('text previews arrive before structured response completes and contain
     await new Promise((r) => setTimeout(r, 0));
     assert.equal(finished, false);
     assert.equal(snapshots.at(-1)?.answer, 'Proponho 1000 mm');
-    send('.","changes":{"width":1000}}');
+    send('.","ops":[{"kind":"resize","width":1000}]}');
     controller.close();
     const value = await result;
-    assert.equal(value.changes.width, 1000);
+    assert.equal(value.ops[0]?.kind, 'resize');
     assert.ok(snapshots.length >= 4);
     assert.equal(JSON.stringify(snapshots).includes('PRIVATE_TOKEN'), false);
   } finally {

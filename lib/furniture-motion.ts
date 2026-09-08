@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { materials, type Params, type Part } from './furniture';
+import { materials, type Part } from './furniture';
+import type { Design } from './design';
 export const TRANSITION_MS = 750;
 export const SCRUB_MS = 140;
 export const ease = (value: number) => {
@@ -27,7 +28,7 @@ export function visualPosition(part: Part, height: number, exploded: boolean) {
     p.x *= 1.35;
     p.y = (p.y - height / 2) * 1.3 + height / 2;
     if (part.id === 'back') p.z -= 280;
-    else if (part.id.startsWith('shelf')) p.z += 180;
+    else if (part.kind === 'shelf') p.z += 180;
   }
   return p;
 }
@@ -49,7 +50,7 @@ export class FurnitureMotion {
   }
   update(
     parts: Part[],
-    params: Params,
+    params: Design,
     exploded: boolean,
     selected: readonly string[],
     now: number,

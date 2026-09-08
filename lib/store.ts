@@ -2,16 +2,31 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { defaults, generate, type Params } from './furniture';
+import { defaults, type Params } from './furniture';
+import {
+  designSchema,
+  distributeShelves,
+  addShelf,
+  applyOp,
+  generateDesign,
+  isDesign,
+  migrateParams,
+  resizeDesign,
+  setGapBelow,
+  type Design,
+  type ShelfOp,
+} from './design';
 export type Message = {
   role: 'user' | 'assistant';
   content: string;
   image?: import('./images').ImageRef;
   report?: import('./progress').ChatReport;
+  /** Número da revisão (1-based) vigente ao salvar a mensagem. */
+  revision?: number;
 };
 export type Revision = {
   number: number;
-  params: Params;
+  params: Design;
   label: string;
   at: string;
 };
@@ -22,6 +37,7 @@ export type Project = {
   cursor: number;
   revisions: Revision[];
   messages: Message[];
+  origin?: { fromId: string; revision: number; at: string };
 };
 let db: DatabaseSync;
 function database() {
@@ -50,7 +66,16 @@ export function get(id: string) {
     .prepare('SELECT body FROM projects WHERE id=?')
     .get(id) as { body: string } | undefined;
   if (!r) throw new Error('Projeto não encontrado.');
-  return JSON.parse(r.body) as Project;
+  const p = JSON.parse(r.body) as Project;
+  // Migração preguiçosa: revisões v1 viram design v2 só em memória.
+  // O banco nunca é reescrito aqui; a conversão é determinística e idempotente.
+  for (const rev of p.revisions) {
+    const raw = rev.params as unknown;
+    rev.params = isDesign(raw)
+      ? designSchema.parse(raw)
+      : migrateParams(raw as Params);
+  }
+  return p;
 }
 export function create() {
   const p: Project = {
@@ -61,7 +86,7 @@ export function create() {
     revisions: [
       {
         number: 1,
-        params: { ...defaults },
+        params: migrateParams(defaults),
         label: 'Estante inicial',
         at: new Date().toISOString(),
       },
@@ -85,52 +110,52 @@ export function createDemo() {
     new Date(now - (total - 1 - i) * 90000).toISOString();
   const steps: {
     label: string;
-    changes: Partial<Params>;
+    op: (d: Design) => Design;
     user: string;
     reply: string;
   }[] = [
     {
       label: 'Largura para 100 cm',
-      changes: { width: 1000 },
+      op: (d) => resizeDesign(d, { width: 1000 }),
       user: 'Aumente a largura para 1 metro.',
       reply: 'Largura ajustada para 100 cm. As demais medidas foram preservadas.',
     },
     {
       label: 'Altura para 200 cm',
-      changes: { height: 2000 },
+      op: (d) => resizeDesign(d, { height: 2000 }),
       user: 'Deixe com 2 metros de altura.',
       reply: 'Altura ajustada para 200 cm. Os vãos foram redistribuídos.',
     },
     {
       label: 'Material grafite',
-      changes: { materialId: 'graphite' },
+      op: (d) => resizeDesign(d, { materialId: 'graphite' }),
       user: 'Mude o material para grafite.',
       reply: 'Material trocado para grafite. As medidas continuam as mesmas.',
     },
     {
       label: 'Cinco prateleiras',
-      changes: { shelfCount: 5 },
+      op: (d) => distributeShelves(addShelf(d, 2)),
       user: 'Quero cinco prateleiras.',
       reply: 'Prateleiras ajustadas para cinco, com distribuição igual.',
     },
     {
       label: 'Vão inferior de 450 mm',
-      changes: { bottomOpening: 450 },
+      op: (d) => setGapBelow(d, 'sh-1', 450),
       user: 'Deixe o vão de baixo com 45 cm.',
-      reply: 'Vão inferior definido em 450 mm. As demais seguem distribuídas.',
+      reply: 'Vão inferior definido em 450 mm. As demais prateleiras foram preservadas.',
     },
   ];
   const revisions: Revision[] = [
     {
       number: 1,
-      params: { ...defaults },
+      params: migrateParams(defaults),
       label: 'Estante inicial',
       at: at(0, steps.length + 1),
     },
   ];
   for (const [i, step] of steps.entries()) {
-    const params = { ...revisions[i].params, ...step.changes };
-    generate(params);
+    const params = step.op(revisions[i].params);
+    generateDesign(params);
     revisions.push({
       number: i + 2,
       params,
@@ -185,11 +210,11 @@ export function view(p: Project) {
   return {
     ...p,
     params: p.revisions[p.cursor].params,
-    ...generate(p.revisions[p.cursor].params),
+    ...generateDesign(p.revisions[p.cursor].params),
   };
 }
-export function revise(p: Project, params: Params, label: string) {
-  generate(params);
+export function revise(p: Project, params: Design, label: string) {
+  generateDesign(params);
   p.revisions = p.revisions.slice(0, p.cursor + 1);
   p.revisions.push({
     number: p.revisions.length + 1,
@@ -203,4 +228,45 @@ export function seek(p: Project, cursor: number) {
   if (!Number.isInteger(cursor) || cursor < 0 || cursor >= p.revisions.length)
     throw new Error('Versão inválida.');
   p.cursor = cursor;
+}
+/**
+ * Cria uma alternativa a partir da revisão indicada (snapshot consistente).
+ * Copia o histórico até a revisão e só as mensagens vinculadas até ela;
+ * conversas antigas sem vínculo ficam no original e a alternativa começa
+ * com uma mensagem explicando a origem. Originais e futuros preservados.
+ */
+export function fork(id: string, cursor: number, name: string) {
+  const src = get(id);
+  if (!Number.isInteger(cursor) || cursor < 0 || cursor >= src.revisions.length)
+    throw new Error('Versão inválida.');
+  const revision = src.revisions[cursor].number;
+  const clean = name.trim().slice(0, 80);
+  if (!clean) throw new Error('Dê um nome para a alternativa.');
+  const p: Project = {
+    id: randomUUID(),
+    name: clean,
+    version: 0,
+    cursor,
+    revisions: src.revisions.slice(0, cursor + 1),
+    messages: src.messages.filter(
+      (m) => m.revision !== undefined && m.revision <= revision,
+    ),
+    origin: { fromId: src.id, revision, at: new Date().toISOString() },
+  };
+  p.messages.push({
+    role: 'assistant',
+    content: `Alternativa criada a partir da versão ${revision} de "${src.name}". Continue editando à vontade: o projeto original foi preservado.`,
+    revision,
+  });
+  database()
+    .prepare('INSERT INTO projects VALUES (?, ?, ?, ?)')
+    .run(p.id, JSON.stringify(p), 0, new Date().toISOString());
+  return view(p);
+}
+export function applyShelfOp(p: Project, op: ShelfOp, label: string) {
+  const before = p.revisions[p.cursor].params;
+  const after = applyOp(before, op);
+  if (JSON.stringify(after) === JSON.stringify(before)) return true;
+  revise(p, after, label);
+  return false;
 }

@@ -41,17 +41,22 @@ export function useProjectTools(
       {
         name: 'update_furniture_parameters',
         description:
-          'Altera parâmetros da estante aberta, valida e salva uma revisão.',
+          'Aplica uma operação de prateleira ou redimensionamento na estante aberta, valida e salva uma revisão.',
         inputSchema: {
           type: 'object',
           properties: {
+            kind: { type: 'string', enum: ['move', 'gap', 'distribute', 'add', 'remove', 'resize'] },
+            ids: { type: 'array', items: { type: 'string' } },
+            id: { type: 'string' },
+            deltaMm: { type: 'number' },
+            gapMm: { type: 'number' },
+            gap: { type: 'integer' },
             width: { type: 'number', minimum: 300, maximum: 1200 },
             height: { type: 'number', minimum: 400, maximum: 2400 },
             depth: { type: 'number', minimum: 200, maximum: 600 },
-            shelfCount: { type: 'integer', minimum: 0, maximum: 8 },
             materialId: { type: 'string', enum: ['white', 'oak', 'graphite'] },
-            bottomOpening: { type: ['number', 'null'] },
           },
+          required: ['kind'],
           additionalProperties: false,
         },
         annotations: { readOnlyHint: false },

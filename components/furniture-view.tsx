@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import type { Params, Part } from '@/lib/furniture';
+import type { Part } from '@/lib/furniture';
+import type { Design } from '@/lib/design';
 import { FurnitureMotion, ease, SCRUB_MS, TRANSITION_MS } from '@/lib/furniture-motion';
 type CameraMove = {
   from: THREE.Vector3;
@@ -30,7 +31,7 @@ export default function FurnitureView({
   spin = false,
   scrub = false,
 }: {
-  params: Params;
+  params: Design;
   parts: Part[];
   selected: string[];
   onSelect: (id: string | null) => void;

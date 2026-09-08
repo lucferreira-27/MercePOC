@@ -344,8 +344,10 @@ export function applyOp(d: Design, op: ShelfOp): Design {
       return addShelf(d, op.gap);
     case 'remove':
       return removeShelves(d, op.ids);
-    case 'resize':
-      return resizeDesign(d, op);
+    case 'resize': {
+      const { kind: _kind, ...patch } = op;
+      return resizeDesign(d, patch);
+    }
   }
 }
 
@@ -430,3 +432,56 @@ export function generateDesign(input: Design) {
     openings,
   });
 }
+export function cutCSV(d: Design) {
+  const quote = (v: unknown) => `"${String(v).replaceAll('"', '""')}"`;
+  const rows = generateDesign(d).parts.map((v) => [
+    v.id,
+    v.name,
+    1,
+    v.c,
+    v.l,
+    v.thickness,
+    v.material,
+    v.edges.c1 ?? '',
+    v.edges.c2 ?? '',
+    v.edges.l1 ?? '',
+    v.edges.l2 ?? '',
+  ]);
+  return (
+    '\uFEFF' +
+    [
+      [
+        'ID',
+        'Peça',
+        'Quantidade',
+        'C (mm)',
+        'L (mm)',
+        'Espessura (mm)',
+        'Material',
+        'C1',
+        'C2',
+        'L1',
+        'L2',
+      ],
+      ...rows,
+    ]
+      .map((r) => r.map(quote).join(';'))
+      .join('\r\n')
+  );
+}
+export function cortecloud(d: Design) {
+  return {
+    parts: generateDesign(d).parts.map((v) => ({
+      quantity: 1,
+      c: v.c,
+      l: v.l,
+      function: v.name,
+      complement: 'Merce - Estante',
+      ...v.edges,
+      material: v.material,
+      machining: null,
+    })),
+  };
+}
+/** Nome histórico usado pelo chat e pela timeline. */
+export const describeChanges = describeDesignChanges;

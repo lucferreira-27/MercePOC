@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { ChatProgress } from '@/components/chat-progress';
 import { readEvents } from '@/lib/sse';
-import { describeChanges, type Progress } from '@/lib/progress';
+import { type Progress } from '@/lib/progress';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown,
@@ -33,17 +33,18 @@ import type { ImageRef } from '@/lib/images';
 import { renderPartThumb, thumbKey } from '@/lib/part-thumb';
 import FurnitureView, { type ViewMode } from '@/components/furniture-view';
 import {
-  generate,
-  materials,
-  cutCSV,
   cortecloud,
-  type Params,
-  type Part,
-  paramsSchema,
-} from '@/lib/furniture';
+  cutCSV,
+  describeChanges,
+  opSchema,
+  generateDesign,
+  type Design,
+  type ShelfOp,
+} from '@/lib/design';
+import { materials, type Part } from '@/lib/furniture';
 import type { Project } from '@/lib/store';
 type State = Project & {
-  params: Params;
+  params: Design;
   parts: Part[];
   openings: number[];
   warnings: string[];
@@ -91,7 +92,7 @@ export default function Home() {
     [spin, setSpin] = useState(false),
     [tab, setTab] = useState('params'),
     [exportOpen, setExportOpen] = useState(false),
-    [draft, setDraft] = useState<Params | null>(null),
+    [draft, setDraft] = useState<Design | null>(null),
     [online, setOnline] = useState(false);
   const [attachment, setAttachment] = useState<ImageRef | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
@@ -135,13 +136,17 @@ export default function Home() {
   const changed = useMemo(
     () =>
       new Set(
-        (Object.keys(p?.revisions[p.cursor].params ?? {}) as (keyof Params)[]).filter(
+        (['width', 'height', 'depth', 'materialId'] as const).filter(
           (key) => p && visualParams && p.revisions[p.cursor].params[key] !== visualParams[key],
         ),
       ),
     [p, visualParams],
   );
-  const visualParts = useMemo(() => visualParams ? generate(visualParams).parts : [], [visualParams]);
+  const visualParts = useMemo(() => {
+    if (!p) return [];
+    const rev = p.revisions[historyPreview ?? p.cursor];
+    return historyPreview === null || historyPreview === p.cursor ? p.parts : generateDesign(rev.params).parts;
+  }, [p, historyPreview]);
   const historyCount = p?.revisions.length ?? 0;
   const historyMax = Math.max(1, historyCount - 1);
   const historyView = historyPreview ?? p?.cursor ?? 0;
@@ -221,6 +226,20 @@ export default function Home() {
           ...extra,
         }),
       );
+      await refresh();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+      setHistoryPreview(null);
+    }
+  }
+  async function op(operation: ShelfOp, label: string) {
+    if (busy || !p) return;
+    setBusy(true);
+    setError('');
+    try {
+      accept(await api('/api/projects', { id: p.id, version: p.version, action: 'op', op: operation, label }));
       await refresh();
     } catch (e) {
       setError((e as Error).message);
@@ -316,16 +335,14 @@ export default function Home() {
         : null,
     async (input) => {
       if (!p || busy) throw new Error('Aguarde o projeto.');
-      const changes = paramsSchema.partial().parse(input);
-      if (!Object.keys(changes).length)
-        throw new Error('Informe um parâmetro.');
+      const op = opSchema.parse(input);
       setBusy(true);
       try {
         const updated = await api('/api/projects', {
           id: p.id,
           version: p.version,
-          action: 'update',
-          changes,
+          action: 'op',
+          op,
         });
         accept(updated);
         return {
@@ -865,7 +882,7 @@ export default function Home() {
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
-                      void action('update', { changes: draft });
+                      void op({ kind: 'resize', width: draft.width, height: draft.height, depth: draft.depth }, 'Ajuste de medidas');
                     }}
                   >
                     <div className="fields">
@@ -874,7 +891,6 @@ export default function Home() {
                           ['width', 'Largura', 300, 1200],
                           ['height', 'Altura', 400, 2400],
                           ['depth', 'Profundidade', 200, 600],
-                          ['shelfCount', 'Prateleiras', 0, 8],
                         ] as const
                       ).map(([key, label, min, max]) => (
                         <label key={key}>
@@ -891,34 +907,12 @@ export default function Home() {
                               setDraft({
                                 ...draft,
                                 [key]: Number(e.target.value),
-                                ...(key === 'shelfCount'
-                                  ? { bottomOpening: null }
-                                  : {}),
                               })
                             }
                           />
                         </label>
                       ))}
                     </div>
-                    <label className="wide-field">
-                      Vão inferior livre (mm)
-                      <input
-                        type="number"
-                        min="100"
-                        max="1500"
-                        placeholder="Distribuir igualmente"
-                        value={draft.bottomOpening ?? ''}
-                        disabled={busy}
-                        onChange={(e) =>
-                          setDraft({
-                            ...draft,
-                            bottomOpening: e.target.value
-                              ? Number(e.target.value)
-                              : null,
-                          })
-                        }
-                      />
-                    </label>
                     <Button
                       type="submit"
                       variant="outline"
@@ -941,7 +935,7 @@ export default function Home() {
                         className={p.params.materialId === m.id ? 'chosen' : ''}
                         disabled={busy}
                         onClick={() =>
-                          action('update', { changes: { materialId: m.id } })
+                          op({ kind: 'resize', materialId: m.id }, 'Troca de material')
                         }
                       >
                         <span style={{ background: m.color }} />

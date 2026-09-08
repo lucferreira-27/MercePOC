@@ -4,12 +4,22 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readEvents } from '../lib/sse';
-import { describeChanges } from '../lib/progress';
+import { describeChanges } from '../lib/design';
 import { defaults } from '../lib/furniture';
+import { migrateParams, resizeDesign } from '../lib/design';
 import { create, get, view } from '../lib/store';
 import { decisionSchema } from '../lib/gateway';
 import { POST } from '../app/api/chat/route';
 process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-progress-'));
+const request = (id: string, version = 0, stream = true) =>
+  new Request('http://127.0.0.1:4310/api/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(stream ? { Accept: 'text/event-stream' } : {}),
+    },
+    body: JSON.stringify({ id, version, message: 'Largura de 1 metro' }),
+  });
 process.env.MERGE_GATEWAY_API_KEY = 'test-key';
 function response(text: string) {
   const bytes = new TextEncoder().encode(text);
@@ -27,19 +37,10 @@ const decision = {
   action: 'update',
   approach: 'Proponho ampliar a largura e verificar as peças dependentes.',
   message: 'Largura atualizada.',
-  changes: { width: 1000 },
+  ops: [{ kind: 'resize', width: 1000 }],
 };
 const wire = (name = 'submit_design_decision') =>
   `data: ${JSON.stringify({ choices: [{ delta: { reasoning_content: 'PRIVATE_INTERNAL_TEXT', tool_calls: [{ index: 0, function: { name, arguments: JSON.stringify(decision) } }] } }] })}\n\ndata: [DONE]\n\n`;
-const request = (id: string, version = 0, stream = true) =>
-  new Request('http://127.0.0.1:4310/api/chat', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(stream ? { Accept: 'text/event-stream' } : {}),
-    },
-    body: JSON.stringify({ id, version, message: 'Largura de 1 metro' }),
-  });
 void test('SSE handles split UTF-8, CRLF, comments, multiline data and final frame', async () => {
   const events: { event: string; data: string }[] = [];
   await readEvents(
@@ -54,15 +55,12 @@ void test('SSE handles split UTF-8, CRLF, comments, multiline data and final fra
   ]);
 });
 void test('change summaries are derived from committed parameters', () => {
+  const before = migrateParams(defaults);
   assert.deepEqual(
-    describeChanges(defaults, {
-      ...defaults,
-      width: 1000,
-      materialId: 'white',
-    }),
+    describeChanges(before, resizeDesign(resizeDesign(before, { width: 1000 }), { materialId: 'white' })),
     ['Largura: 800 mm → 1000 mm', 'Material: Carvalho natural → Branco fosco'],
   );
-  assert.deepEqual(describeChanges(defaults, defaults), []);
+  assert.deepEqual(describeChanges(before, before), []);
 });
 void test('live progress precedes completion, holds lock, persists report, omits private tokens', async () => {
   const realFetch = globalThis.fetch;
@@ -106,7 +104,7 @@ void test('live progress precedes completion, holds lock, persists report, omits
     assert.equal(saved.params.width, 1000);
     assert.deepEqual(
       saved.messages.at(-1)?.report?.changes,
-      describeChanges(before, { ...before, width: 1000 }),
+      describeChanges(before, resizeDesign(before, { width: 1000 })),
     );
     const json = await POST(request(p.id, saved.version, false));
     assert.equal(json.status, 200);
@@ -163,13 +161,13 @@ void test('hidden preview mode sends progress and final answer without text upda
 void test('assistant highlight list defaults to empty and passes through', () => {
   assert.deepEqual(decisionSchema.parse(decision).select, []);
   assert.deepEqual(
-    decisionSchema.parse({ ...decision, select: ['shelf-1'] }).select,
-    ['shelf-1'],
+    decisionSchema.parse({ ...decision, select: ['sh-1'] }).select,
+    ['sh-1'],
   );
 });
 void test('assistant highlight returns only existing part ids', async () => {
   const original = globalThis.fetch;
-  const payload = { ...decision, select: ['shelf-2', 'ghost'] };
+  const payload = { ...decision, select: ['sh-2', 'ghost'] };
   const body =
     `data: ${JSON.stringify({ choices: [{ delta: { tool_calls: [{ index: 0, function: { name: 'submit_design_decision', arguments: JSON.stringify(payload) } }] } }] })}\n\ndata: [DONE]\n\n`;
   globalThis.fetch = async () => response(body);
@@ -178,7 +176,23 @@ void test('assistant highlight returns only existing part ids', async () => {
     const events: { event: string; data: string }[] = [];
     await readEvents(await POST(request(p.id)), (e) => events.push(e));
     assert.equal(events.at(-1)?.event, 'done');
-    assert.deepEqual(JSON.parse(events.at(-1)!.data).selected, ['shelf-2']);
+    assert.deepEqual(JSON.parse(events.at(-1)!.data).selected, ['sh-2']);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+void test('legacy shelf ids resolve to stable ids', async () => {
+  const original = globalThis.fetch;
+  const payload = { ...decision, ops: [], select: ['shelf-2'] };
+  const body =
+    `data: ${JSON.stringify({ choices: [{ delta: { tool_calls: [{ index: 0, function: { name: 'submit_design_decision', arguments: JSON.stringify(payload) } }] } }] })}\n\ndata: [DONE]\n\n`;
+  globalThis.fetch = async () => response(body);
+  try {
+    const p = create();
+    const events: { event: string; data: string }[] = [];
+    await readEvents(await POST(request(p.id)), (e) => events.push(e));
+    assert.equal(events.at(-1)?.event, 'done');
+    assert.deepEqual(JSON.parse(events.at(-1)!.data).selected, ['sh-2']);
   } finally {
     globalThis.fetch = original;
   }
@@ -189,7 +203,7 @@ void test('highlight-only answers keep the model message without new revisions',
     action: 'update',
     approach: 'Destacar o tampo.',
     message: 'Tampo destacado no modelo.',
-    changes: {},
+    ops: [],
     select: ['top'],
   };
   const body =
