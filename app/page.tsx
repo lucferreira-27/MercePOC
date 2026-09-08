@@ -99,6 +99,7 @@ export default function Home() {
     [shelfDelta, setShelfDelta] = useState('50'),
     [gapTarget, setGapTarget] = useState(''),
     [gapPick, setGapPick] = useState('0'),
+    [forkName, setForkName] = useState(''),
     [attachment, setAttachment] = useState<ImageRef | null>(null),
     [thumbs, setThumbs] = useState<Record<string, string>>({}),
     [pendingImage, setPendingImage] = useState<ImageRef | null>(null);
@@ -245,6 +246,25 @@ export default function Home() {
     setError('');
     try {
       accept(await api('/api/projects', { id: p.id, version: p.version, action: 'op', op: operation, label }));
+      await refresh();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+      setHistoryPreview(null);
+    }
+  }
+  async function forkFrom(cursor: number) {
+    if (busy || !p) return;
+    const shown = historyPreview ?? p.cursor;
+    const target = cursor === -1 ? shown : cursor;
+    const name = (forkName.trim() || `${p.name} · alternativa`).slice(0, 80);
+    setBusy(true);
+    setError('');
+    try {
+      const created = await api<State>('/api/projects', { id: p.id, version: p.version, action: 'fork', cursor: target, name });
+      setForkName('');
+      accept(created);
       await refresh();
     } catch (e) {
       setError((e as Error).message);
@@ -1139,9 +1159,32 @@ export default function Home() {
                         <strong>{r.label}</strong>
                         <small>{new Date(r.at).toLocaleString('pt-BR')}</small>
                         {i === p.cursor && <em>Versão atual</em>}
+                        {(historyPreview ?? p.cursor) === i && historyPreview !== null && historyPreview !== p.cursor && <em>Prévia exibida</em>}
                       </div>
                     </button>
                   ))}
+                  {p.origin && (
+                    <p className="warning">
+                      Alternativa criada da versão {p.origin.revision}. Original preservado.
+                    </p>
+                  )}
+                  <div className="fork-box">
+                    <div className="section-label">CRIAR ALTERNATIVA</div>
+                    <p className="shelf-hint">
+                      Usa a versão {(historyPreview ?? p?.cursor ?? 0) + 1} atualmente exibida{(historyPreview !== null && historyPreview !== p?.cursor) ? ' (prévia)' : ''}; o original e as versões futuras são preservados.
+                    </p>
+                    <input
+                      aria-label="Nome da alternativa"
+                      placeholder={`${p?.name} · alternativa`}
+                      value={forkName}
+                      maxLength={80}
+                      disabled={busy}
+                      onChange={(e) => setForkName(e.target.value)}
+                    />
+                    <Button variant="outline" disabled={busy || !p} onClick={() => void forkFrom(-1)}>
+                      Criar alternativa desta versão
+                    </Button>
+                  </div>
                   <p className="warning">
                     Arraste o slider ou clique numa versão para voltar. Uma nova edição
                     substitui o caminho desfeito.
