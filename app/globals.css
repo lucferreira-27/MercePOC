@@ -925,11 +925,11 @@ button svg {
 .history-track{position:relative;flex:1;min-width:0;padding-top:24px}
 .history-tip{position:absolute;top:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:500;color:#3d4a40;background:#fff;border:1px solid #e0e5df;border-radius:999px;padding:2px 10px;pointer-events:none;box-shadow:0 2px 6px #30402014}
 .history-track [data-slot=slider-track]{position:relative;background:#d9ded8;height:6px}
-.history-track [data-slot=slider-range]{background:#58883c;height:100%;transition:width .12s ease-out}
+.history-track [data-slot=slider-range]{background:#58883c;height:100%}
 .history-slider-wrap{position:relative;height:24px}
 .history-slider-wrap [data-slot=slider]{display:flex;height:100%;width:100%}
 .history-slider-wrap [data-slot=slider]>*{height:100%}
-.history-slider-wrap [data-slot=slider-thumb]{width:20px;height:20px;border:none;background:#58883c;box-shadow:0 1px 3px #1d2b1a66;z-index:2;transition:inset-inline-start .12s ease-out,left .12s ease-out}
+.history-slider-wrap [data-slot=slider-thumb]{width:20px;height:20px;border:none;background:#58883c;box-shadow:0 1px 3px #1d2b1a66;z-index:2}
 .history-dots{position:absolute;inset:0;pointer-events:none}
 .history-dot{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#fff;border:2px solid #b6c1b1}
 .history-ends{position:relative;height:14px;font-size:10px;color:#7b8474}
@@ -942,4 +942,4 @@ button svg {
 .dimension-summary span.changed{color:#3e5e30}
 .dimension-summary span.changed small{color:#58883c;font-weight:600}
 @keyframes chip-in{from{opacity:0;transform:translateY(2px)}to{opacity:1;transform:translateY(0)}}
-@media(prefers-reduced-motion:reduce){.preview-chip{animation:none}.history-scrub [data-slot=slider-thumb]{transition:none}.history-track [data-slot=slider-range]{transition:none}}
+@media(prefers-reduced-motion:reduce){.preview-chip{animation:none}}

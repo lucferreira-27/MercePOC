@@ -93,7 +93,29 @@ export default function Home() {
   const [historyPreview, setHistoryPreview] = useState<number | null>(null);
   const [scrubbing, setScrubbing] = useState(false);
   const scrubCancelled = useRef(false);
-  const previewTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const previewFrame = useRef(0);
+  const previewFallback = useRef<number | undefined>(undefined);
+  const pendingPreview = useRef<number | null>(null);
+  const applyPendingPreview = () => {
+    cancelAnimationFrame(previewFrame.current);
+    clearTimeout(previewFallback.current);
+    previewFrame.current = 0;
+    const next = pendingPreview.current;
+    pendingPreview.current = null;
+    if (next !== null) setHistoryPreview(next);
+  };
+  const cancelPreview = () => {
+    cancelAnimationFrame(previewFrame.current);
+    clearTimeout(previewFallback.current);
+    previewFrame.current = 0;
+    pendingPreview.current = null;
+  };
+  const queuePreview = (v: number) => {
+    pendingPreview.current = v;
+    if (previewFrame.current) return;
+    previewFrame.current = requestAnimationFrame(applyPendingPreview);
+    previewFallback.current = window.setTimeout(applyPendingPreview, 60);
+  };
   const fileInput = useRef<HTMLInputElement>(null);
   const visualParams = p?.revisions[historyPreview ?? p.cursor].params;
   const previewChanges = useMemo(
@@ -145,15 +167,13 @@ export default function Home() {
       }
     })();
   }, []);
+  useEffect(() => cancelPreview, []);
   useEffect(() => {
     if (!scrubbing) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         scrubCancelled.current = true;
-        if (previewTimer.current) {
-          clearTimeout(previewTimer.current);
-          previewTimer.current = undefined;
-        }
+        cancelPreview();
         setHistoryPreview(null);
         setScrubbing(false);
       }
@@ -636,15 +656,11 @@ export default function Home() {
                       onValueChange={(value) => {
                         const v = Array.isArray(value) ? value[0] : value;
                         setScrubbing(true);
-                        clearTimeout(previewTimer.current);
-                        previewTimer.current = setTimeout(() => setHistoryPreview(v), 70);
+                        queuePreview(v);
                       }}
                       onValueCommitted={(value) => {
                         setScrubbing(false);
-                        if (previewTimer.current) {
-                          clearTimeout(previewTimer.current);
-                          previewTimer.current = undefined;
-                        }
+                        cancelPreview();
                         if (scrubCancelled.current) {
                           scrubCancelled.current = false;
                           setHistoryPreview(null);
@@ -697,7 +713,7 @@ export default function Home() {
                   <button
                     type="button"
                     className="preview-cancel"
-                    onClick={() => { scrubCancelled.current = true; clearTimeout(previewTimer.current); previewTimer.current = undefined; setHistoryPreview(null); setScrubbing(false); }}
+                    onClick={() => { scrubCancelled.current = true; cancelPreview(); setHistoryPreview(null); setScrubbing(false); }}
                   >
                     <X size={12} /> Cancelar (Esc)
                   </button>
