@@ -7,6 +7,7 @@ import { readEvents } from '../lib/sse';
 import { describeChanges } from '../lib/progress';
 import { defaults } from '../lib/furniture';
 import { create, get, view } from '../lib/store';
+import { decisionSchema } from '../lib/gateway';
 import { POST } from '../app/api/chat/route';
 process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-progress-'));
 process.env.MERGE_GATEWAY_API_KEY = 'test-key';
@@ -155,6 +156,29 @@ void test('hidden preview mode sends progress and final answer without text upda
     );
     assert.equal(events.at(-1)?.event, 'done');
     assert.equal(view(get(p.id)).params.width, 1000);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+void test('assistant highlight list defaults to empty and passes through', () => {
+  assert.deepEqual(decisionSchema.parse(decision).select, []);
+  assert.deepEqual(
+    decisionSchema.parse({ ...decision, select: ['shelf-1'] }).select,
+    ['shelf-1'],
+  );
+});
+void test('assistant highlight returns only existing part ids', async () => {
+  const original = globalThis.fetch;
+  const payload = { ...decision, select: ['shelf-2', 'ghost'] };
+  const body =
+    `data: ${JSON.stringify({ choices: [{ delta: { tool_calls: [{ index: 0, function: { name: 'submit_design_decision', arguments: JSON.stringify(payload) } }] } }] })}\n\ndata: [DONE]\n\n`;
+  globalThis.fetch = async () => response(body);
+  try {
+    const p = create();
+    const events: { event: string; data: string }[] = [];
+    await readEvents(await POST(request(p.id)), (e) => events.push(e));
+    assert.equal(events.at(-1)?.event, 'done');
+    assert.deepEqual(JSON.parse(events.at(-1)!.data).selected, ['shelf-2']);
   } finally {
     globalThis.fetch = original;
   }

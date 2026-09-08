@@ -110,7 +110,11 @@ export async function POST(req: Request) {
           approach: d.approach,
         },
       });
-      return save(p, b.version);
+      const state = save(p, b.version);
+      const selected = d.select.filter((id) =>
+        state.parts.some((v) => v.id === id),
+      );
+      return { ...state, selected };
     };
     if (!req.headers.get('accept')?.includes('text/event-stream')) {
       try {

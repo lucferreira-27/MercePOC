@@ -47,6 +47,7 @@ type State = Project & {
   openings: number[];
   warnings: string[];
   area: number;
+  selected?: string[];
 };
 function dotLeft(i: number, max: number) {
   return `${((i / Math.max(1, max)) * 100).toFixed(2)}%`;
@@ -147,7 +148,9 @@ export default function Home() {
     setP(d);
     setHistoryPreview(null);
     setDraft(d.params);
-    setSelected((s) => s.filter((id) => d.parts.some((v) => v.id === id)));
+    if (d.selected?.length)
+      setSelected(d.selected.filter((id) => d.parts.some((v) => v.id === id)));
+    else setSelected((s) => s.filter((id) => d.parts.some((v) => v.id === id)));
   };
   const toggleSelected = (id: string) =>
     setSelected((s) => (s.includes(id) ? s.filter((v) => v !== id) : [...s, id]));
