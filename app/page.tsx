@@ -46,9 +46,7 @@ type State = Project & {
   area: number;
 };
 function dotLeft(i: number, max: number) {
-  if (max <= 0) return '50%';
-  const f = i / max;
-  return `calc(${(f * 100).toFixed(2)}% + ${(10 - f * 20).toFixed(2)}px)`;
+  return `${((i / Math.max(1, max)) * 100).toFixed(2)}%`;
 }
 async function api<T = State>(path: string, body?: unknown): Promise<T> {
   const r = await fetch(
@@ -95,6 +93,7 @@ export default function Home() {
   const [historyPreview, setHistoryPreview] = useState<number | null>(null);
   const [scrubbing, setScrubbing] = useState(false);
   const scrubCancelled = useRef(false);
+  const previewTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const fileInput = useRef<HTMLInputElement>(null);
   const visualParams = p?.revisions[historyPreview ?? p.cursor].params;
   const previewChanges = useMemo(
@@ -151,6 +150,10 @@ export default function Home() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         scrubCancelled.current = true;
+        if (previewTimer.current) {
+          clearTimeout(previewTimer.current);
+          previewTimer.current = undefined;
+        }
         setHistoryPreview(null);
         setScrubbing(false);
       }
@@ -632,11 +635,16 @@ export default function Home() {
                       disabled={busy || historyCount < 2}
                       onValueChange={(value) => {
                         const v = Array.isArray(value) ? value[0] : value;
-                        setHistoryPreview(v);
                         setScrubbing(true);
+                        clearTimeout(previewTimer.current);
+                        previewTimer.current = setTimeout(() => setHistoryPreview(v), 70);
                       }}
                       onValueCommitted={(value) => {
                         setScrubbing(false);
+                        if (previewTimer.current) {
+                          clearTimeout(previewTimer.current);
+                          previewTimer.current = undefined;
+                        }
                         if (scrubCancelled.current) {
                           scrubCancelled.current = false;
                           setHistoryPreview(null);
@@ -689,7 +697,7 @@ export default function Home() {
                   <button
                     type="button"
                     className="preview-cancel"
-                    onClick={() => { scrubCancelled.current = true; setHistoryPreview(null); setScrubbing(false); }}
+                    onClick={() => { scrubCancelled.current = true; clearTimeout(previewTimer.current); previewTimer.current = undefined; setHistoryPreview(null); setScrubbing(false); }}
                   >
                     <X size={12} /> Cancelar (Esc)
                   </button>

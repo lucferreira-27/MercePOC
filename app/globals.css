@@ -448,8 +448,8 @@ button svg {
 }
 .scene-bottom .viewport-controls{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
 .control-label{font-size:11px;color:#8a928d;white-space:nowrap}
-.scene-bottom .control-buttons{display:flex;gap:8px}
-.control-buttons button{border:1px solid #e3e8dc;background:#fff;font-size:12px;display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;color:#6f7b72;white-space:nowrap}
+.scene-bottom .control-buttons{display:flex;gap:6px}
+.control-buttons button{border:1px solid #e3e8dc;background:#fff;font-size:12px;display:flex;align-items:center;gap:6px;padding:7px 11px;border-radius:10px;color:#6f7b72;white-space:nowrap}
 .control-buttons button.active{background:#edf2e7;border-color:#d9e5cb;color:#3b5232}
 .control-divider{width:1px;align-self:stretch;background:#e4e9e0;margin:4px 2px;flex-shrink:0}
 .history-actions{align-self:flex-end;margin-bottom:20px}
@@ -929,7 +929,7 @@ button svg {
 .history-slider-wrap{position:relative;height:24px}
 .history-slider-wrap [data-slot=slider]{display:flex;height:100%;width:100%}
 .history-slider-wrap [data-slot=slider]>*{height:100%}
-.history-slider-wrap [data-slot=slider-thumb]{width:20px;height:20px;border:none;background:#58883c;box-shadow:0 1px 3px #1d2b1a66;z-index:2;transition:inset-inline-start .12s ease-out}
+.history-slider-wrap [data-slot=slider-thumb]{width:20px;height:20px;border:none;background:#58883c;box-shadow:0 1px 3px #1d2b1a66;z-index:2;transition:inset-inline-start .12s ease-out,left .12s ease-out}
 .history-dots{position:absolute;inset:0;pointer-events:none}
 .history-dot{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#fff;border:2px solid #b6c1b1}
 .history-ends{position:relative;height:14px;font-size:10px;color:#7b8474}
