@@ -53,26 +53,82 @@ export function get(id: string) {
   return JSON.parse(r.body) as Project;
 }
 export function create() {
+  const now = Date.now();
+  const at = (i: number, total: number) =>
+    new Date(now - (total - 1 - i) * 90000).toISOString();
+  const steps: {
+    label: string;
+    changes: Partial<Params>;
+    user: string;
+    reply: string;
+  }[] = [
+    {
+      label: 'Largura para 100 cm',
+      changes: { width: 1000 },
+      user: 'Aumente a largura para 1 metro.',
+      reply: 'Largura ajustada para 100 cm. As demais medidas foram preservadas.',
+    },
+    {
+      label: 'Altura para 200 cm',
+      changes: { height: 2000 },
+      user: 'Deixe com 2 metros de altura.',
+      reply: 'Altura ajustada para 200 cm. Os vãos foram redistribuídos.',
+    },
+    {
+      label: 'Material grafite',
+      changes: { materialId: 'graphite' },
+      user: 'Mude o material para grafite.',
+      reply: 'Material trocado para grafite. As medidas continuam as mesmas.',
+    },
+    {
+      label: 'Cinco prateleiras',
+      changes: { shelfCount: 5 },
+      user: 'Quero cinco prateleiras.',
+      reply: 'Prateleiras ajustadas para cinco, com distribuição igual.',
+    },
+    {
+      label: 'Vão inferior de 450 mm',
+      changes: { bottomOpening: 450 },
+      user: 'Deixe o vão de baixo com 45 cm.',
+      reply: 'Vão inferior definido em 450 mm. As demais seguem distribuídas.',
+    },
+  ];
+  const revisions: Revision[] = [
+    {
+      number: 1,
+      params: { ...defaults },
+      label: 'Estante inicial',
+      at: at(0, steps.length + 1),
+    },
+  ];
+  for (const [i, step] of steps.entries()) {
+    const params = { ...revisions[i].params, ...step.changes };
+    generate(params);
+    revisions.push({
+      number: i + 2,
+      params,
+      label: step.label,
+      at: at(i + 1, steps.length + 1),
+    });
+  }
+  const messages: Message[] = [
+    {
+      role: 'assistant',
+      content:
+        'Vamos criar sua estante. Comecei com 80 × 180 × 35 cm, quatro prateleiras e carvalho. Descreva o que você quer mudar.',
+    },
+  ];
+  for (const step of steps) {
+    messages.push({ role: 'user', content: step.user });
+    messages.push({ role: 'assistant', content: step.reply });
+  }
   const p: Project = {
     id: randomUUID(),
     name: 'Minha estante',
     version: 0,
-    cursor: 0,
-    revisions: [
-      {
-        number: 1,
-        params: { ...defaults },
-        label: 'Estante inicial',
-        at: new Date().toISOString(),
-      },
-    ],
-    messages: [
-      {
-        role: 'assistant',
-        content:
-          'Vamos criar sua estante. Comecei com 80 × 180 × 35 cm, quatro prateleiras e carvalho. Descreva o que você quer mudar.',
-      },
-    ],
+    cursor: revisions.length - 1,
+    revisions,
+    messages,
   };
   database()
     .prepare('INSERT INTO projects VALUES (?, ?, ?, ?)')

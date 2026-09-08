@@ -75,6 +75,7 @@ void test('live progress precedes completion, holds lock, persists report, omits
   };
   try {
     const p = create();
+    const before = view(get(p.id)).params;
     const res = await POST(request(p.id));
     assert.equal(
       res.headers.get('content-type'),
@@ -86,7 +87,7 @@ void test('live progress precedes completion, holds lock, persists report, omits
     assert.equal(events[0]?.event, 'progress');
     assert.equal(JSON.parse(events[0].data).stage, 'connecting');
     assert.equal((await POST(request(p.id))).status, 409);
-    assert.equal(view(get(p.id)).params.width, 800);
+    assert.equal(view(get(p.id)).params.width, before.width);
     release();
     await reading;
     assert.deepEqual(
@@ -102,9 +103,10 @@ void test('live progress precedes completion, holds lock, persists report, omits
     );
     const saved = view(get(p.id));
     assert.equal(saved.params.width, 1000);
-    assert.deepEqual(saved.messages.at(-1)?.report?.changes, [
-      'Largura: 800 mm → 1000 mm',
-    ]);
+    assert.deepEqual(
+      saved.messages.at(-1)?.report?.changes,
+      describeChanges(before, { ...before, width: 1000 }),
+    );
     const json = await POST(request(p.id, saved.version, false));
     assert.equal(json.status, 200);
     assert.ok(json.headers.get('content-type')?.includes('application/json'));

@@ -120,6 +120,8 @@ void test('deterministic repeated generation', () =>
 void test('persistence, undo/redo, branching and optimistic locking', () => {
   const p = create();
   let raw = get(p.id);
+  const seedWidth = raw.revisions[raw.cursor].params.width;
+  const firstWidth = raw.revisions[0].params.width;
   revise(raw, { ...defaults, width: 1000 }, 'Resize');
   save(raw, 0);
   assert.equal(get(p.id).version, 1);
@@ -128,7 +130,7 @@ void test('persistence, undo/redo, branching and optimistic locking', () => {
   raw = get(p.id);
   raw.cursor--;
   save(raw, 1);
-  assert.equal(view(get(p.id)).params.width, 800);
+  assert.equal(view(get(p.id)).params.width, seedWidth);
   raw = get(p.id);
   raw.cursor++;
   save(raw, 2);
@@ -138,6 +140,6 @@ void test('persistence, undo/redo, branching and optimistic locking', () => {
   revise(raw, { ...defaults, depth: 450 }, 'Branch');
   save(raw, 3);
   assert.equal(get(p.id).revisions.length, 2);
-  assert.equal(view(get(p.id)).params.width, 800);
+  assert.equal(view(get(p.id)).params.width, firstWidth);
   assert.equal(view(get(p.id)).params.depth, 450);
 });
