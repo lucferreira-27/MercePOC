@@ -662,9 +662,9 @@ export default function Home() {
                     style={{
                       left: dotLeft(historyView, historyMax),
                       transform:
-                        historyView <= 0
+                        historyView <= 1
                           ? 'translateX(0)'
-                          : historyView >= historyMax
+                          : historyView >= historyMax - 1
                             ? 'translateX(-100%)'
                             : 'translateX(-50%)',
                     }}
