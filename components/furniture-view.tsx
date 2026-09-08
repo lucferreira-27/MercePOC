@@ -11,13 +11,14 @@ type CameraMove = {
   targetTo: THREE.Vector3;
   started: number;
 };
+export type ViewMode = 'perspective' | 'front' | 'side' | 'top';
 type Runtime = {
   motion: FurnitureMotion;
   camera: THREE.PerspectiveCamera;
   controls: OrbitControls;
   reduced: MediaQueryList;
   move?: CameraMove;
-  view?: { height: number; width: number; front: boolean };
+  view?: { height: number; width: number; mode: ViewMode };
 };
 export default function FurnitureView({
   params,
@@ -25,7 +26,8 @@ export default function FurnitureView({
   selected,
   onSelect,
   exploded,
-  front,
+  view,
+  spin = false,
   scrub = false,
 }: {
   params: Params;
@@ -33,7 +35,8 @@ export default function FurnitureView({
   selected: string[];
   onSelect: (id: string | null) => void;
   exploded: boolean;
-  front: boolean;
+  view: ViewMode;
+  spin?: boolean;
   scrub?: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null),
@@ -179,17 +182,28 @@ export default function FurnitureView({
       );
   }, [parts, params, exploded, selected, scrub]);
   useEffect(() => {
+    const state = runtime.current;
+    if (state) state.controls.autoRotate = spin && !state.reduced.matches;
+  }, [spin]);
+  useEffect(() => {
     const s = runtime.current;
     if (!s) return;
     const scale = Math.max(params.height, params.width * 1.5),
       target = new THREE.Vector3(0, params.height / 2, 0);
     let to: THREE.Vector3;
-    if (!s.view || s.view.front !== front) {
-      to = new THREE.Vector3(
-        front ? 0 : scale * 1.05,
-        params.height * 0.7,
-        scale * 2.15,
-      );
+    if (!s.view || s.view.mode !== view) {
+      if (view === 'front')
+        to = new THREE.Vector3(0, params.height * 0.7, scale * 2.15);
+      else if (view === 'side')
+        to = new THREE.Vector3(scale * 2.15, params.height * 0.7, 0);
+      else if (view === 'top')
+        to = new THREE.Vector3(0, params.height / 2 + scale * 2.2, 0.02);
+      else
+        to = new THREE.Vector3(
+          scale * 1.05,
+          params.height * 0.7,
+          scale * 2.15,
+        );
     } else {
       const previousScale = Math.max(s.view.height, s.view.width * 1.5);
       to = s.camera.position
@@ -212,8 +226,8 @@ export default function FurnitureView({
         started: performance.now(),
       };
     }
-    s.view = { height: params.height, width: params.width, front };
-  }, [params.height, params.width, front, scrub]);
+    s.view = { height: params.height, width: params.width, mode: view };
+  }, [params.height, params.width, view, scrub]);
   return (
     <div
       ref={host}

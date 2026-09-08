@@ -7,6 +7,7 @@ import { readEvents } from '@/lib/sse';
 import { describeChanges, type Progress } from '@/lib/progress';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ArrowDown,
   ArrowUp,
   Box,
   Check,
@@ -14,8 +15,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  FlipHorizontal2,
   ImagePlus,
   Layers,
+  Orbit,
   Plus,
   Redo2,
   Sparkles,
@@ -27,7 +30,7 @@ import { useProjectTools } from '@/hooks/use-project-tools';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import type { ImageRef } from '@/lib/images';
-import FurnitureView from '@/components/furniture-view';
+import FurnitureView, { type ViewMode } from '@/components/furniture-view';
 import {
   generate,
   materials,
@@ -82,7 +85,8 @@ export default function Home() {
     [error, setError] = useState(''),
     [selected, setSelected] = useState<string[]>([]),
     [exploded, setExploded] = useState(false),
-    [front, setFront] = useState(false),
+    [view, setView] = useState<ViewMode>('perspective'),
+    [spin, setSpin] = useState(false),
     [tab, setTab] = useState('params'),
     [exportOpen, setExportOpen] = useState(false),
     [draft, setDraft] = useState<Params | null>(null),
@@ -587,7 +591,8 @@ export default function Home() {
               selected={selected}
               onSelect={(id) => (id === null ? setSelected([]) : toggleSelected(id))}
               exploded={exploded}
-              front={front}
+              view={view}
+              spin={spin}
             />
           )}
           <div className="scene-bottom">
@@ -595,18 +600,32 @@ export default function Home() {
               <span className="control-label">Vista</span>
               <div className="control-buttons">
                 <button
-                  className={!front ? 'active' : ''}
-                  onClick={() => setFront(false)}
+                  className={view === 'perspective' ? 'active' : ''}
+                  onClick={() => setView('perspective')}
                 >
                   <Box size={16} />
                   Perspectiva
                 </button>
                 <button
-                  className={front ? 'active' : ''}
-                  onClick={() => setFront(true)}
+                  className={view === 'front' ? 'active' : ''}
+                  onClick={() => setView('front')}
                 >
                   <Square size={16} />
                   Frontal
+                </button>
+                <button
+                  className={view === 'side' ? 'active' : ''}
+                  onClick={() => setView('side')}
+                >
+                  <FlipHorizontal2 size={16} />
+                  Lateral
+                </button>
+                <button
+                  className={view === 'top' ? 'active' : ''}
+                  onClick={() => setView('top')}
+                >
+                  <ArrowDown size={16} />
+                  Topo
                 </button>
                 <button
                   className={exploded ? 'active' : ''}
@@ -614,6 +633,13 @@ export default function Home() {
                 >
                   <Layers size={16} />
                   Explodir
+                </button>
+                <button
+                  className={spin ? 'active' : ''}
+                  onClick={() => setSpin(!spin)}
+                >
+                  <Orbit size={16} />
+                  Girar
                 </button>
               </div>
             </div>
@@ -705,11 +731,11 @@ export default function Home() {
                   <ChevronRight size={14} />
                 </button>
               </div>
-              <output className="preview-chips">
-                {previewChanges.map((change) => (
-                  <span className="preview-chip" key={change}>{change}</span>
-                ))}
-                {previewChanges.length > 0 && (
+              {previewChanges.length > 0 && (
+                <output className="preview-chips">
+                  {previewChanges.map((change) => (
+                    <span className="preview-chip" key={change}>{change}</span>
+                  ))}
                   <button
                     type="button"
                     className="preview-cancel"
@@ -717,8 +743,8 @@ export default function Home() {
                   >
                     <X size={12} /> Cancelar (Esc)
                   </button>
-                )}
-              </output>
+                </output>
+              )}
             </div>}
 
             <div className="history-actions">
