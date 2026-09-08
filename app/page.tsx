@@ -46,7 +46,7 @@ type State = Project & {
 function dotLeft(i: number, max: number) {
   if (max <= 0) return '50%';
   const f = i / max;
-  return `calc(${(f * 100).toFixed(2)}% + ${(6 - f * 12).toFixed(2)}px)`;
+  return `calc(${(f * 100).toFixed(2)}% + ${(7 - f * 14).toFixed(2)}px)`;
 }
 async function api<T = State>(path: string, body?: unknown): Promise<T> {
   const r = await fetch(
@@ -561,37 +561,34 @@ export default function Home() {
               front={front}
             />
           )}
-          <div className="scene-toolbar">
-            <button
-              className={!front ? 'active' : ''}
-              onClick={() => setFront(false)}
-            >
-              <Box size={16} />
-              Perspectiva
-            </button>
-            <button
-              className={front ? 'active' : ''}
-              onClick={() => setFront(true)}
-            >
-              Frontal
-            </button>
-            <span />
-            <button
-              className={exploded ? 'active' : ''}
-              onClick={() => setExploded(!exploded)}
-            >
-              Explodir
-            </button>
-          </div>
           <div className="scene-bottom">
-            {p && <div className="history-timeline">
-              <div className="timeline-label">
-                <strong>Histórico</strong>
-                <span>
-                  {(historyPreview ?? p.cursor) + 1} / {p.revisions.length}
-                  {historyPreview !== null && historyPreview !== p.cursor && ' · prévia'}
-                </span>
+            <div className="viewport-controls">
+              <span className="control-label">Vista</span>
+              <div className="control-buttons">
+                <button
+                  className={!front ? 'active' : ''}
+                  onClick={() => setFront(false)}
+                >
+                  <Box size={16} />
+                  Perspectiva
+                </button>
+                <button
+                  className={front ? 'active' : ''}
+                  onClick={() => setFront(true)}
+                >
+                  Frontal
+                </button>
+                <button
+                  className={exploded ? 'active' : ''}
+                  onClick={() => setExploded(!exploded)}
+                >
+                  Explodir
+                </button>
               </div>
+            </div>
+            <div className="control-divider" />
+            {p && <div className="history-timeline">
+              <span className="control-label">Histórico</span>
               <div className="history-scrub">
                 <button
                   type="button"
@@ -687,7 +684,7 @@ export default function Home() {
               )}
             </div>}
 
-            <div>
+            <div className="history-actions">
               <Button
                 variant="outline"
                 size="icon"
