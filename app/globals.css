@@ -446,6 +446,11 @@ button svg {
 .scene-error {
   margin: 150px 30px;
 }
+.part-tip{position:absolute;z-index:5;pointer-events:none;transform:translate(14px,18px);max-width:210px;background:#fffffff2;border:1px solid #e0e5df;border-radius:10px;padding:8px 11px;box-shadow:0 6px 18px #30402026;display:flex;flex-direction:column;gap:2px}
+.part-tip.flip{transform:translate(calc(-100% - 14px),18px)}
+.part-tip strong{font-size:12px;color:#2c3a2a}
+.part-tip span{font-size:12px;color:#43563c;font-variant-numeric:tabular-nums}
+.part-tip small{font-size:10px;color:#7b8474}
 .scene-bottom .viewport-controls{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
 .control-label{font-size:11px;color:#8a928d;white-space:nowrap}
 .scene-bottom .control-buttons{display:grid;grid-template-columns:repeat(3,auto);gap:6px}

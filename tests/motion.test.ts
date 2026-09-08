@@ -97,3 +97,20 @@ void test('exploded positions and colors transition; reduced motion applies imme
   );
   motion.dispose();
 });
+void test('hover emphasizes edges without moving geometry', () => {
+  const motion = new FurnitureMotion(new THREE.Scene());
+  motion.update(generate(defaults).parts, defaults, false, [], 0);
+  motion.tick(TRANSITION_MS);
+  const base = motion.entries.get('base')!;
+  const x = base.mesh.scale.x;
+  motion.setHover('base');
+  motion.tick(TRANSITION_MS);
+  assert.equal(base.mesh.scale.x, x);
+  assert.equal(base.edge.material.opacity, 0.9);
+  assert.equal(base.edge.material.color.getHexString(), '5ea336');
+  motion.setHover(null);
+  motion.tick(TRANSITION_MS);
+  assert.equal(base.edge.material.opacity, 0.25);
+  assert.equal(base.edge.material.color.getHexString(), '302b24');
+  motion.dispose();
+});

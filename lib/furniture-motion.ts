@@ -32,9 +32,13 @@ export function visualPosition(part: Part, height: number, exploded: boolean) {
   return p;
 }
 export class FurnitureMotion {
+  private hovered: string | null = null;
+  setHover(id: string | null) {
+    this.hovered = id;
+  }
+  constructor(private scene: THREE.Scene) {}
   readonly entries = new Map<string, AnimatedPart>();
   private initialized = false;
-  constructor(private scene: THREE.Scene) {}
   private read(entry: AnimatedPart): Pose {
     return {
       position: entry.mesh.position.clone(),
@@ -141,7 +145,9 @@ export class FurnitureMotion {
         e.mesh.material.needsUpdate = true;
       }
       e.mesh.material.depthWrite = !transparent;
-      e.edge.material.opacity = 0.25 * e.mesh.material.opacity;
+      const hot = id === this.hovered;
+      e.edge.material.color.set(hot ? '#5ea336' : '#302b24');
+      e.edge.material.opacity = (hot ? 0.9 : 0.25) * e.mesh.material.opacity;
       if (t === 1 && e.exiting) {
         this.disposeEntry(e);
         this.entries.delete(id);

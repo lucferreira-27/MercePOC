@@ -39,6 +39,7 @@ export default function FurnitureView({
   spin?: boolean;
   scrub?: boolean;
 }) {
+  const [hover, setHover] = useState<{ id: string; x: number; y: number; flip: boolean } | null>(null);
   const host = useRef<HTMLDivElement>(null),
     callback = useRef(onSelect),
     runtime = useRef<Runtime | null>(null);
@@ -125,6 +126,32 @@ export default function FurnitureView({
     };
     renderer.domElement.addEventListener('pointerdown', start);
     renderer.domElement.addEventListener('pointerup', pick);
+    const hover = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse' || e.buttons !== 0) {
+        setHover(null);
+        return;
+      }
+      const r = renderer.domElement.getBoundingClientRect();
+      ray.setFromCamera(
+        new THREE.Vector2(
+          ((e.clientX - r.left) / r.width) * 2 - 1,
+          (-(e.clientY - r.top) / r.height) * 2 + 1,
+        ),
+        camera,
+      );
+      const id =
+        ray.intersectObjects(motion.pickable(), false)[0]?.object.userData.id ??
+        null;
+      if (!id) {
+        setHover(null);
+        return;
+      }
+      const box = el.getBoundingClientRect();
+      const x = e.clientX - box.left;
+      setHover({ id, x, y: e.clientY - box.top, flip: x > box.width - 230 });
+    };
+    renderer.domElement.addEventListener('pointermove', hover);
+    renderer.domElement.addEventListener('pointerleave', () => setHover(null));
     const resize = new ResizeObserver(() => {
       const w = el.clientWidth,
         h = el.clientHeight;
@@ -183,6 +210,11 @@ export default function FurnitureView({
   }, [parts, params, exploded, selected, scrub]);
   useEffect(() => {
     const state = runtime.current;
+    if (state) state.motion.setHover(hover?.id ?? null);
+    if (host.current) host.current.style.cursor = hover ? 'pointer' : '';
+  }, [hover]);
+  useEffect(() => {
+    const state = runtime.current;
     if (state) state.controls.autoRotate = spin && !state.reduced.matches;
   }, [spin]);
   useEffect(() => {
@@ -228,6 +260,7 @@ export default function FurnitureView({
     }
     s.view = { height: params.height, width: params.width, mode: view };
   }, [params.height, params.width, view, scrub]);
+  const hoveredPart = hover ? parts.find((v) => v.id === hover.id) : undefined;
   return (
     <div
       ref={host}
@@ -240,6 +273,18 @@ export default function FurnitureView({
           Seu navegador não disponibilizou WebGL. Você pode continuar pelo chat
           e pela lista de peças.
         </p>
+      )}
+      {hoveredPart && hover && (
+        <div
+          className={'part-tip' + (hover.flip ? ' flip' : '')}
+          style={{ left: hover.x, top: hover.y }}
+        >
+          <strong>{hoveredPart.name}</strong>
+          <span>
+            {hoveredPart.c} × {hoveredPart.l} × {hoveredPart.thickness} mm
+          </span>
+          <small>{hoveredPart.material}</small>
+        </div>
       )}
     </div>
   );
