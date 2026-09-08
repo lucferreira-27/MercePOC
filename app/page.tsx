@@ -95,7 +95,6 @@ export default function Home() {
     [exportOpen, setExportOpen] = useState(false),
     [draft, setDraft] = useState<Design | null>(null),
     [online, setOnline] = useState(false),
-    [showDims, setShowDims] = useState(true),
     [shelfDelta, setShelfDelta] = useState('50'),
     [gapTarget, setGapTarget] = useState(''),
     [gapPick, setGapPick] = useState('0'),
@@ -282,7 +281,7 @@ export default function Home() {
     const delta = Number(shelfDelta);
     return (
       <div className="shelf-panel">
-        <div className="section-label">PRATELEIRAS · EDIÇÃO INDIVIDUAL</div>
+        <div className="section-label">PRATELEIRAS</div>
         {single ? (
           <div className="shelf-card">
             <strong>{single.label}</strong>
@@ -294,16 +293,14 @@ export default function Home() {
             <div className="shelf-row">
               <input
                 type="number"
-                aria-label="Deslocamento em milímetros"
+                aria-label="Deslocamento em milímetros (negativo desce)"
+                placeholder="± mm"
                 value={shelfDelta}
                 onChange={(e) => setShelfDelta(e.target.value)}
                 disabled={busy}
               />
               <Button variant="outline" disabled={busy || !Number.isFinite(delta) || delta === 0} onClick={() => void op({ kind: 'move', ids: [single.id], deltaMm: delta }, `${single.label}: deslocar ${delta} mm`)}>
-                Mover (mm)
-              </Button>
-              <Button variant="outline" disabled={busy} onClick={() => void op({ kind: 'move', ids: [single.id], deltaMm: -delta }, `${single.label}: descer ${delta} mm`)}>
-                Descer
+                Mover
               </Button>
             </div>
             <div className="shelf-row">
@@ -318,56 +315,63 @@ export default function Home() {
               <Button variant="outline" disabled={busy || !Number.isFinite(Number(gapTarget))} onClick={() => void op({ kind: 'gap', id: single.id, gapMm: Number(gapTarget) }, `${single.label}: vão de ${gapTarget} mm`)}>
                 Definir vão
               </Button>
+            </div>
+            <div className="shelf-row">
               <Button variant="outline" disabled={busy} onClick={() => void op({ kind: 'remove', ids: [single.id] }, `Remover ${single.label}`)}>
-                Remover
+                Remover {single.label.toLowerCase()}
               </Button>
             </div>
           </div>
         ) : (
           <p className="shelf-hint">
             {selectedShelves.length > 1
-              ? `${selectedShelves.length} prateleiras selecionadas: use o deslocamento conjunto ou a remoção conjunta abaixo.`
-              : 'Selecione uma prateleira no 3D, na lista ou num card da conversa para ver posição e vãos.'}
+              ? `${selectedShelves.length} prateleiras selecionadas.`
+              : 'Selecione uma prateleira no 3D, na lista ou num card da conversa.'}
           </p>
         )}
         {selectedShelves.length > 1 && (
-          <div className="shelf-row">
-            <input
-              type="number"
-              aria-label="Deslocamento conjunto em milímetros"
-              value={shelfDelta}
-              onChange={(e) => setShelfDelta(e.target.value)}
-              disabled={busy}
-            />
-            <Button variant="outline" disabled={busy || !Number.isFinite(delta) || delta === 0} onClick={() => void op({ kind: 'move', ids: shelfIds, deltaMm: delta }, `Mover ${shelfIds.length} prateleiras ${delta} mm`)}>
-              Mover juntas
-            </Button>
-            <Button variant="outline" disabled={busy} onClick={() => void op({ kind: 'remove', ids: shelfIds }, `Remover ${shelfIds.length} prateleiras`)}>
-              Remover juntas
-            </Button>
-          </div>
+          <>
+            <div className="shelf-row">
+              <input
+                type="number"
+                aria-label="Deslocamento conjunto em milímetros"
+                placeholder="± mm"
+                value={shelfDelta}
+                onChange={(e) => setShelfDelta(e.target.value)}
+                disabled={busy}
+              />
+              <Button variant="outline" disabled={busy || !Number.isFinite(delta) || delta === 0} onClick={() => void op({ kind: 'move', ids: shelfIds, deltaMm: delta }, `Mover ${shelfIds.length} prateleiras ${delta} mm`)}>
+                Mover juntas
+              </Button>
+            </div>
+            <div className="shelf-row">
+              <Button variant="outline" disabled={busy} onClick={() => void op({ kind: 'remove', ids: shelfIds }, `Remover ${shelfIds.length} prateleiras`)}>
+                Remover selecionadas
+              </Button>
+            </div>
+          </>
         )}
         <div className="shelf-row">
           <select aria-label="Vão para nova prateleira" value={gapPick} onChange={(e) => setGapPick(e.target.value)} disabled={busy}>
-            {infos.length ? infos.map((s, i) => (
-              <option key={s.id} value={String(i + 1)}>Acima de {s.label} ({Math.round(s.gapAbove)} mm)</option>
-            )) : null}
-            <option value="0">Abaixo de {infos[0]?.label ?? 'todas'} ({infos[0] ? Math.round(infos[0].gapBelow) : 0} mm)</option>
+            <option value="0">Vão 1 · abaixo ({infos[0] ? Math.round(infos[0].gapBelow) : 0} mm)</option>
+            {infos.map((s, i) => (
+              <option key={s.id} value={String(i + 1)}>Vão {i + 2} · acima {s.label} ({Math.round(s.gapAbove)} mm)</option>
+            ))}
           </select>
+        </div>
+        <div className="shelf-row">
           <Button variant="outline" disabled={busy || !infos.length} onClick={() => void op({ kind: 'add', gap: Number(gapPick) }, 'Adicionar prateleira no vão')}>
             Inserir no vão
           </Button>
           <Button variant="outline" disabled={busy || !infos.length} onClick={() => void op({ kind: 'distribute' }, 'Distribuir prateleiras igualmente')}>
-            Distribuir todas
+            Distribuir
           </Button>
         </div>
-        <p className="shelf-note">Distribuir afeta todas as prateleiras. Inserir divide o vão escolhido ao centro (mínimo 100 mm por vão).</p>
       </div>
     );
   }
   async function upload(file?: File) {
     if (!file || busy) return;
-    setBusy(true); setUploading(true); setError('');
     try {
       if (file.size > 10 * 1024 * 1024) throw new Error('A imagem deve ter até 10 MB.');
       const body = new FormData(); body.append('image', file);
@@ -640,14 +644,17 @@ export default function Home() {
                   {m.report && (
                     <details className="change-report">
                       <summary>
-                        {m.report.outcome === 'updated'
+                        {m.report.outcome === 'applied'
                           ? 'Alterações aplicadas'
                           : m.report.outcome === 'clarification'
                             ? 'Aguardando sua resposta'
                             : m.report.outcome === 'rejected'
                               ? 'Projeto preservado'
-                              : 'Sem alteração nas medidas'}{' '}
-                        · v{m.revision ?? '?'} · {(m.report.durationMs / 1000).toFixed(1)}s
+                              : m.report.outcome === 'highlighted'
+                                ? 'Peças destacadas'
+                                : m.report.outcome === 'answered'
+                                  ? 'Resposta'
+                                  : 'Sem alteração nas medidas'}{' '}
                       </summary>
                       {m.report.approach && (
                         <div className="saved-approach">
@@ -773,7 +780,7 @@ export default function Home() {
               params={visualParams!}
               parts={visualParts}
               scrub={scrubbing}
-              dims={showDims}
+              dims={false}
               selected={selected}
               onSelect={(id) => (id === null ? setSelected([]) : toggleSelected(id))}
               exploded={exploded}
@@ -826,13 +833,6 @@ export default function Home() {
                 >
                   <Orbit size={16} />
                   Girar
-                </button>
-                <button
-                  className={showDims ? 'active' : ''}
-                  onClick={() => setShowDims(!showDims)}
-                >
-                  <ArrowUp size={16} />
-                  Cotas
                 </button>
               </div>
             </div>

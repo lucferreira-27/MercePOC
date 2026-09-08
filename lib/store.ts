@@ -16,15 +16,49 @@ import {
   type Design,
   type ShelfOp,
 } from './design';
+export type TurnContext = {
+  requestId: string;
+  baseRevisionId: string;
+  selectedPartIds: string[];
+  referencedPartIds: string[];
+};
+export type TurnResult = {
+  outcome: import('./progress').TurnOutcome;
+  resultRevisionId: string;
+  appliedOperations: import('./design').ShelfOp[];
+  changes: string[];
+};
+export type ClarificationOption = {
+  id: string;
+  label: string;
+  partIds: string[];
+};
+export type Clarification = {
+  id: string;
+  question: string;
+  baseRevisionId: string;
+  options: ClarificationOption[];
+  /** Intenção original preservada: ops com lacuna + texto do pedido. */
+  pendingOps?: import('./design').ShelfOp[];
+  pendingMessage?: string;
+};
 export type Message = {
   role: 'user' | 'assistant';
   content: string;
+  id: string;
   image?: import('./images').ImageRef;
   report?: import('./progress').ChatReport;
-  /** Número da revisão (1-based) vigente ao salvar a mensagem. */
+  /** Id imutável da revisão vigente ao salvar a mensagem. */
+  revisionId?: string;
+  /** Número legado (1-based); pode repetir após branching — só exibição. */
   revision?: number;
+  context?: TurnContext;
+  result?: TurnResult;
+  clarification?: Clarification;
+  error?: string;
 };
 export type Revision = {
+  id: string;
   number: number;
   params: Design;
   label: string;
@@ -67,13 +101,19 @@ export function get(id: string) {
     .get(id) as { body: string } | undefined;
   if (!r) throw new Error('Projeto não encontrado.');
   const p = JSON.parse(r.body) as Project;
-  // Migração preguiçosa: revisões v1 viram design v2 só em memória.
+  // Migração preguiçosa: revisões v1 viram design v2 só em memória, e
+  // registros antigos ganham ids sem inventar vínculos (marcados 'legacy').
   // O banco nunca é reescrito aqui; a conversão é determinística e idempotente.
   for (const rev of p.revisions) {
     const raw = rev.params as unknown;
     rev.params = isDesign(raw)
       ? designSchema.parse(raw)
       : migrateParams(raw as Params);
+    if (!rev.id) rev.id = `legacy-${rev.number}`;
+  }
+  for (const m of p.messages) {
+    if (!m.id) m.id = `legacy-${randomUUID()}`;
+    if (m.revision !== undefined && !m.revisionId) m.revisionId = `legacy-${m.revision}`;
   }
   return p;
 }
@@ -85,6 +125,7 @@ export function create() {
     cursor: 0,
     revisions: [
       {
+        id: randomUUID(),
         number: 1,
         params: migrateParams(defaults),
         label: 'Estante inicial',
@@ -93,6 +134,7 @@ export function create() {
     ],
     messages: [
       {
+        id: randomUUID(),
         role: 'assistant',
         content:
           'Vamos criar sua estante. Comecei com 80 × 180 × 35 cm, quatro prateleiras e carvalho. Descreva o que você quer mudar.',
@@ -147,6 +189,7 @@ export function createDemo() {
   ];
   const revisions: Revision[] = [
     {
+      id: randomUUID(),
       number: 1,
       params: migrateParams(defaults),
       label: 'Estante inicial',
@@ -157,6 +200,7 @@ export function createDemo() {
     const params = step.op(revisions[i].params);
     generateDesign(params);
     revisions.push({
+      id: randomUUID(),
       number: i + 2,
       params,
       label: step.label,
@@ -165,14 +209,18 @@ export function createDemo() {
   }
   const messages: Message[] = [
     {
+      id: randomUUID(),
       role: 'assistant',
       content:
         'Vamos criar sua estante. Comecei com 80 × 180 × 35 cm, quatro prateleiras e carvalho. Descreva o que você quer mudar.',
+      revisionId: revisions[0].id,
+      revision: 1,
     },
   ];
-  for (const step of steps) {
-    messages.push({ role: 'user', content: step.user });
-    messages.push({ role: 'assistant', content: step.reply });
+  for (const [i, step] of steps.entries()) {
+    const rev = revisions[i + 1];
+    messages.push({ id: randomUUID(), role: 'user', content: step.user, revisionId: rev.id, revision: rev.number });
+    messages.push({ id: randomUUID(), role: 'assistant', content: step.reply, revisionId: rev.id, revision: rev.number });
   }
   const p: Project = {
     id: randomUUID(),
@@ -217,6 +265,7 @@ export function revise(p: Project, params: Design, label: string) {
   generateDesign(params);
   p.revisions = p.revisions.slice(0, p.cursor + 1);
   p.revisions.push({
+    id: randomUUID(),
     number: p.revisions.length + 1,
     params,
     label,
@@ -231,7 +280,7 @@ export function seek(p: Project, cursor: number) {
 }
 /**
  * Cria uma alternativa a partir da revisão indicada (snapshot consistente).
- * Copia o histórico até a revisão e só as mensagens vinculadas até ela;
+ * Copia o histórico até a revisão e só as mensagens vinculadas por id;
  * conversas antigas sem vínculo ficam no original e a alternativa começa
  * com uma mensagem explicando a origem. Originais e futuros preservados.
  */
@@ -239,9 +288,10 @@ export function fork(id: string, cursor: number, name: string) {
   const src = get(id);
   if (!Number.isInteger(cursor) || cursor < 0 || cursor >= src.revisions.length)
     throw new Error('Versão inválida.');
-  const revision = src.revisions[cursor].number;
+  const base = src.revisions[cursor];
   const clean = name.trim().slice(0, 80);
   if (!clean) throw new Error('Dê um nome para a alternativa.');
+  const keep = new Set(src.revisions.slice(0, cursor + 1).map((r) => r.id));
   const p: Project = {
     id: randomUUID(),
     name: clean,
@@ -249,14 +299,16 @@ export function fork(id: string, cursor: number, name: string) {
     cursor,
     revisions: src.revisions.slice(0, cursor + 1),
     messages: src.messages.filter(
-      (m) => m.revision !== undefined && m.revision <= revision,
+      (m) => m.revisionId !== undefined && keep.has(m.revisionId),
     ),
-    origin: { fromId: src.id, revision, at: new Date().toISOString() },
+    origin: { fromId: src.id, revision: base.number, at: new Date().toISOString() },
   };
   p.messages.push({
+    id: randomUUID(),
     role: 'assistant',
-    content: `Alternativa criada a partir da versão ${revision} de "${src.name}". Continue editando à vontade: o projeto original foi preservado.`,
-    revision,
+    content: `Alternativa criada a partir da versão ${base.number} de "${src.name}". Continue editando à vontade: o projeto original foi preservado.`,
+    revisionId: base.id,
+    revision: base.number,
   });
   database()
     .prepare('INSERT INTO projects VALUES (?, ?, ?, ?)')
@@ -269,4 +321,20 @@ export function applyShelfOp(p: Project, op: ShelfOp, label: string) {
   if (JSON.stringify(after) === JSON.stringify(before)) return true;
   revise(p, after, label);
   return false;
+}
+/** Resultado de um turno aplicado de forma atômica sobre uma cópia. */
+export function applyRequest(p: Project, ops: ShelfOp[], label: string) {
+  const before = p.revisions[p.cursor].params;
+  let current = before;
+  for (const op of ops) {
+    try {
+      current = applyOp(current, op);
+    } catch (e) {
+      return { ok: false as const, error: (e as Error).message };
+    }
+  }
+  if (JSON.stringify(current) === JSON.stringify(before))
+    return { ok: true as const, noop: true as const, design: current };
+  revise(p, current, label);
+  return { ok: true as const, noop: false as const, design: current };
 }

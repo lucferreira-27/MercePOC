@@ -12,9 +12,16 @@ export type SelectedPart = {
   size?: [number, number, number];
   color?: string;
 };
+export type TurnOutcome =
+  | 'applied'
+  | 'clarification'
+  | 'answered'
+  | 'highlighted'
+  | 'unchanged'
+  | 'rejected';
 export type ChatReport = {
   durationMs: number;
-  outcome: 'updated' | 'clarification' | 'unchanged' | 'rejected';
+  outcome: TurnOutcome;
   changes: string[];
   approach?: string;
   selected?: SelectedPart[];

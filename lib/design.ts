@@ -350,6 +350,25 @@ export function applyOp(d: Design, op: ShelfOp): Design {
     }
   }
 }
+export type RequestResult =
+  | { ok: true; design: Design }
+  | { ok: false; error: string };
+/**
+ * Executa um pedido inteiro sobre uma cópia: cada operação valida contra o
+ * resultado da anterior; qualquer falha descarta tudo. Retorna o design
+ * final sem salvar — o chamador decide criar uma única revisão.
+ */
+export function executeRequest(base: Design, ops: ShelfOp[]): RequestResult {
+  let current = base;
+  for (const op of ops) {
+    try {
+      current = applyOp(current, op);
+    } catch (e) {
+      return { ok: false, error: (e as Error).message };
+    }
+  }
+  return { ok: true, design: current };
+}
 
 const MATERIAL_NAMES: Record<MaterialId, string> = {
   white: 'Branco fosco',

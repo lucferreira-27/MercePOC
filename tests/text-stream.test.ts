@@ -49,10 +49,14 @@ void test('text previews arrive before structured response completes and contain
       ),
     );
   try {
+    const design = migrateParams({ width: 800, height: 1800, depth: 350, shelfCount: 4, materialId: 'oak', bottomOpening: null });
     const result = interpretStream(
-      migrateParams({ width: 800, height: 1800, depth: 350, shelfCount: 4, materialId: 'oak', bottomOpening: null }),
-      [{ role: 'user', content: 'Largura 1 metro' }],
+      design,
+      'rev-1',
+      1,
+      [{ id: 'm1', role: 'user', content: 'Largura 1 metro' }],
       [],
+      { requestId: 'r1', baseRevisionId: 'rev-1', selectedPartIds: [], referencedPartIds: [] },
       () => {},
       0,
       undefined,
