@@ -474,13 +474,19 @@ button svg {
 }
 .dimension-summary {
   position: absolute;
-  bottom: 170px;
+  top: 84px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 15px;
+  padding: 8px 18px;
+  background: #fff;
+  border: 1px solid #e3e8dc;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px #30402014;
   pointer-events: none;
+  white-space: nowrap;
 }
 .dimension-summary > span {
   font-size: 18px;
@@ -787,7 +793,7 @@ button svg {
     max-width: 140px;
   }
   .dimension-summary {
-    bottom: 100px;
+    top: 78px;
   }
   .scene-bottom {
     flex-wrap: wrap;
@@ -909,8 +915,8 @@ button svg {
 .composer .attachment-preview{display:flex;gap:10px;align-items:center;padding:8px;background:#f4f7f0;border-radius:8px;margin:8px}
 .attachment-preview img{width:52px;height:52px;object-fit:cover;border-radius:6px}.attachment-preview span{flex:1;overflow:hidden;text-overflow:ellipsis;font-size:12px}.upload-status{font-size:12px;padding:8px;color:#637456}
 .scene-bottom{background:rgba(255,255,255,.9);border:1px solid #e3e8dc;border-radius:14px;padding:12px 16px;gap:16px;backdrop-filter:blur(10px)}
-.scene-bottom .history-timeline{display:flex;flex:1;min-width:0;flex-direction:column;gap:6px}.dimension-summary{bottom:180px}.history-row{width:100%;text-align:left;cursor:pointer}.history-row:hover{background:#f1f5eb}.history-row:disabled{cursor:wait}
-@media(max-width:540px){.scene-bottom{left:12px;right:12px;padding:10px}.dimension-summary{bottom:170px}}
+.scene-bottom .history-timeline{display:flex;flex:1;min-width:0;flex-direction:column;gap:6px}.history-row{width:100%;text-align:left;cursor:pointer}.history-row:hover{background:#f1f5eb}.history-row:disabled{cursor:wait}
+@media(max-width:540px){.scene-bottom{left:12px;right:12px;padding:10px}}
 .history-scrub{position:relative;flex:1;display:flex;align-items:center;gap:8px;min-height:20px}
 .history-step{display:grid;place-items:center;width:26px;height:26px;flex-shrink:0;border-radius:50%;border:1px solid #e0e5df;background:#fff;color:#637456;padding:0;align-self:flex-end;margin-bottom:13px}
 .history-step:hover:not(:disabled){border-color:#58883c;color:#3e5e30}
@@ -919,13 +925,17 @@ button svg {
 .history-tip{position:absolute;top:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:500;color:#3d4a40;background:#fff;border:1px solid #e0e5df;border-radius:999px;padding:2px 10px;pointer-events:none;box-shadow:0 2px 6px #30402014}
 .history-track [data-slot=slider-track]{position:relative;background:#d9ded8;height:6px}
 .history-track [data-slot=slider-range]{background:#58883c;height:100%;transition:width .12s ease-out}
+.history-slider-wrap{position:relative;height:24px}
+.history-slider-wrap [data-slot=slider]{display:flex;height:100%;width:100%}
+.history-slider-wrap [data-slot=slider]>*{height:100%}
 .history-slider-wrap [data-slot=slider-thumb]{width:20px;height:20px;border:none;background:#58883c;box-shadow:0 1px 3px #1d2b1a66;z-index:2;transition:inset-inline-start .12s ease-out}
 .history-dots{position:absolute;inset:0;pointer-events:none}
 .history-dot{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#fff;border:2px solid #b6c1b1}
 .history-ends{position:relative;height:14px;font-size:10px;color:#7b8474}
 .history-ends span{position:absolute;top:0;transform:translateX(-50%)}
-.preview-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:2px}
-.preview-chip{font-size:11px;font-weight:500;color:#2f4a24;background:#e4efd8;border:1px solid #c4d9ae;border-radius:999px;padding:2px 9px;animation:chip-in .18s ease-out}
+.preview-chips{display:flex;flex-wrap:nowrap;gap:6px;align-items:center;margin-top:2px;min-height:26px;overflow-x:auto;scrollbar-width:none}
+.preview-chips::-webkit-scrollbar{display:none}
+.preview-chip{flex-shrink:0;font-size:11px;font-weight:500;color:#2f4a24;background:#e4efd8;border:1px solid #c4d9ae;border-radius:999px;padding:2px 9px;animation:chip-in .18s ease-out}
 .preview-cancel{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#7b8b70;background:none;border:none;padding:2px 6px;border-radius:999px}
 .preview-cancel:hover{color:#3e5e30;background:#eef3e8}
 .dimension-summary span.changed{color:#3e5e30}

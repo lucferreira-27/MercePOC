@@ -657,8 +657,13 @@ export default function Home() {
                   </div>
                   {historyCount > 1 && (
                     <div className="history-ends" aria-hidden="true">
-                      <span style={{ left: dotLeft(0, historyMax) }}>1</span>
-                      <span style={{ left: dotLeft(historyMax, historyMax) }}>{historyCount}</span>
+                      {p.revisions.map((r, i) =>
+                        historyCount <= 8 || i === 0 || i === historyCount - 1 ? (
+                          <span key={i} style={{ left: dotLeft(i, historyMax) }}>
+                            {i + 1}
+                          </span>
+                        ) : null,
+                      )}
                     </div>
                   )}
                 </div>
@@ -672,11 +677,11 @@ export default function Home() {
                   <ChevronRight size={14} />
                 </button>
               </div>
-              {previewChanges.length > 0 && (
-                <output className="preview-chips">
-                  {previewChanges.map((change) => (
-                    <span className="preview-chip" key={change}>{change}</span>
-                  ))}
+              <output className="preview-chips">
+                {previewChanges.map((change) => (
+                  <span className="preview-chip" key={change}>{change}</span>
+                ))}
+                {previewChanges.length > 0 && (
                   <button
                     type="button"
                     className="preview-cancel"
@@ -684,8 +689,8 @@ export default function Home() {
                   >
                     <X size={12} /> Cancelar (Esc)
                   </button>
-                </output>
-              )}
+                )}
+              </output>
             </div>}
 
             <div className="history-actions">
