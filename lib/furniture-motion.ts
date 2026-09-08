@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { materials, type Params, type Part } from './furniture';
 export const TRANSITION_MS = 750;
+export const SCRUB_MS = 140;
 export const ease = (value: number) => {
   const t = Math.max(0, Math.min(1, value));
   return t * t * (3 - 2 * t);
@@ -49,6 +50,7 @@ export class FurnitureMotion {
     selected: string | null,
     now: number,
     reduced = false,
+    duration: number = TRANSITION_MS,
   ) {
     this.tick(now, reduced);
     const present = new Set(parts.map((p) => p.id));
@@ -102,7 +104,7 @@ export class FurnitureMotion {
       entry.from = this.read(entry);
       entry.to = target;
       entry.started = now;
-      entry.duration = this.initialized && !reduced ? TRANSITION_MS : 0;
+      entry.duration = this.initialized && !reduced ? duration : 0;
       entry.exiting = false;
     }
     for (const [id, entry] of this.entries) {
@@ -115,7 +117,7 @@ export class FurnitureMotion {
         opacity: 0,
       };
       entry.started = now;
-      entry.duration = reduced ? 0 : TRANSITION_MS;
+      entry.duration = reduced ? 0 : duration;
       entry.exiting = true;
     }
     this.initialized = true;

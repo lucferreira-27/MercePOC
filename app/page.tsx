@@ -4,15 +4,16 @@
 import Link from 'next/link';
 import { ChatProgress } from '@/components/chat-progress';
 import { readEvents } from '@/lib/sse';
-import type { Progress } from '@/lib/progress';
+import { describeChanges, type Progress } from '@/lib/progress';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUp,
   Box,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Download,
-  Layers,
   ImagePlus,
   Plus,
   Redo2,
@@ -42,6 +43,11 @@ type State = Project & {
   warnings: string[];
   area: number;
 };
+function dotLeft(i: number, max: number) {
+  if (max <= 0) return '50%';
+  const f = i / max;
+  return `calc(${(f * 100).toFixed(2)}% + ${(6 - f * 12).toFixed(2)}px)`;
+}
 async function api<T = State>(path: string, body?: unknown): Promise<T> {
   const r = await fetch(
     path,
@@ -85,9 +91,30 @@ export default function Home() {
   const [pendingImage, setPendingImage] = useState<ImageRef | null>(null);
   const [uploading, setUploading] = useState(false);
   const [historyPreview, setHistoryPreview] = useState<number | null>(null);
+  const [scrubbing, setScrubbing] = useState(false);
+  const scrubCancelled = useRef(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const visualParams = p?.revisions[historyPreview ?? p.cursor].params;
+  const previewChanges = useMemo(
+    () =>
+      p && visualParams
+        ? describeChanges(p.revisions[p.cursor].params, visualParams)
+        : [],
+    [p, visualParams],
+  );
+  const changed = useMemo(
+    () =>
+      new Set(
+        (Object.keys(p?.revisions[p.cursor].params ?? {}) as (keyof Params)[]).filter(
+          (key) => p && visualParams && p.revisions[p.cursor].params[key] !== visualParams[key],
+        ),
+      ),
+    [p, visualParams],
+  );
   const visualParts = useMemo(() => visualParams ? generate(visualParams).parts : [], [visualParams]);
+  const historyCount = p?.revisions.length ?? 0;
+  const historyMax = Math.max(1, historyCount - 1);
+  const historyView = historyPreview ?? p?.cursor ?? 0;
   const messages = useRef<HTMLDivElement>(null);
   const accept = (d: State) => {
     setP(d);
@@ -116,11 +143,17 @@ export default function Home() {
     })();
   }, []);
   useEffect(() => {
-    messages.current?.scrollTo({
-      top: messages.current.scrollHeight,
-      behavior: pending ? 'instant' : 'smooth',
-    });
-  }, [p?.messages.length, pending, progress.length]);
+    if (!scrubbing) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        scrubCancelled.current = true;
+        setHistoryPreview(null);
+        setScrubbing(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [scrubbing]);
   async function action(action: string, extra: object = {}) {
     if (busy) return;
     setBusy(true);
@@ -159,6 +192,10 @@ export default function Home() {
     if (!p || busy) return;
     if (cursor === p.cursor) { setHistoryPreview(null); return; }
     void action('seek', { cursor });
+  }
+  function stepVersion(delta: number) {
+    if (!p || busy) return;
+    seekVersion(Math.min(p.revisions.length - 1, Math.max(0, (historyPreview ?? p.cursor) + delta)));
   }
   async function send(value = text) {
     if ((!value.trim() && !attachment) || !p || busy) return;
@@ -511,12 +548,13 @@ export default function Home() {
               <span className="eyebrow">ESTANTE ABERTA</span>
               <h2>{p?.name || 'Minha estante'}</h2>
             </div>
-            <span className="revision">Versão {p ? (historyPreview ?? p.cursor) + 1 : 1}{historyPreview !== null ? ' · Prévia' : ''}</span>
+            <span className="revision">Versão {p ? (historyPreview ?? p.cursor) + 1 : 1}{historyPreview !== null && p && historyPreview !== p.cursor ? ' · Prévia' : ''}</span>
           </div>
           {p && (
             <FurnitureView
               params={visualParams!}
               parts={visualParts}
+              scrub={scrubbing}
               selected={selected}
               onSelect={setSelected}
               exploded={exploded}
@@ -542,16 +580,113 @@ export default function Home() {
               className={exploded ? 'active' : ''}
               onClick={() => setExploded(!exploded)}
             >
-              <Layers size={16} />
               Explodir
             </button>
           </div>
           <div className="scene-bottom">
             {p && <div className="history-timeline">
-              <div className="timeline-label"><strong>Histórico</strong><span>{(historyPreview ?? p.cursor) + 1} / {p.revisions.length}</span></div>
-              <Slider aria-label="Versão do projeto" min={0} max={Math.max(1, p.revisions.length - 1)} step={1} value={[historyPreview ?? p.cursor]} disabled={busy || p.revisions.length < 2} onValueChange={(value) => setHistoryPreview(Array.isArray(value) ? value[0] : value)} onValueCommitted={(value) => seekVersion(Array.isArray(value) ? value[0] : value)} />
-              <small title={p.revisions[historyPreview ?? p.cursor].label}>{p.revisions[historyPreview ?? p.cursor].label}</small>
+              <div className="timeline-label">
+                <strong>Histórico</strong>
+                <span>
+                  {(historyPreview ?? p.cursor) + 1} / {p.revisions.length}
+                  {historyPreview !== null && historyPreview !== p.cursor && ' · prévia'}
+                </span>
+              </div>
+              <div className="history-scrub">
+                <button
+                  type="button"
+                  className="history-step"
+                  disabled={busy || historyView <= 0}
+                  onClick={() => stepVersion(-1)}
+                  aria-label="Versão anterior"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <div className="history-track">
+                  <output
+                    className="history-tip"
+                    style={{
+                      left: dotLeft(historyView, historyMax),
+                      transform:
+                        historyView <= 0
+                          ? 'translateX(0)'
+                          : historyView >= historyMax
+                            ? 'translateX(-100%)'
+                            : 'translateX(-50%)',
+                    }}
+                  >
+                    {p.revisions[historyView].label}
+                  </output>
+                  <div className="history-slider-wrap">
+                    <Slider
+                      aria-label="Versão do projeto"
+                      min={0}
+                      max={historyMax}
+                      step={1}
+                      value={[historyView]}
+                      disabled={busy || historyCount < 2}
+                      onValueChange={(value) => {
+                        const v = Array.isArray(value) ? value[0] : value;
+                        setHistoryPreview(v);
+                        setScrubbing(true);
+                      }}
+                      onValueCommitted={(value) => {
+                        setScrubbing(false);
+                        if (scrubCancelled.current) {
+                          scrubCancelled.current = false;
+                          setHistoryPreview(null);
+                          return;
+                        }
+                        seekVersion(Array.isArray(value) ? value[0] : value);
+                      }}
+                    />
+                    <div className="history-dots" aria-hidden="true">
+                      {p.revisions.map((r, i) => (
+                        <i
+                          key={i}
+                          className={
+                            'history-dot' +
+                            (i === p.cursor ? ' current' : '') +
+                            (i === historyPreview ? ' previewed' : '')
+                          }
+                          style={{ left: dotLeft(i, historyMax) }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  {historyCount > 1 && (
+                    <div className="history-ends" aria-hidden="true">
+                      <span style={{ left: dotLeft(0, historyMax) }}>1</span>
+                      <span style={{ left: dotLeft(historyMax, historyMax) }}>{historyCount}</span>
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="history-step"
+                  disabled={busy || historyView >= historyCount - 1}
+                  onClick={() => stepVersion(1)}
+                  aria-label="Próxima versão"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+              {previewChanges.length > 0 && (
+                <output className="preview-chips">
+                  {previewChanges.map((change) => (
+                    <span className="preview-chip" key={change}>{change}</span>
+                  ))}
+                  <button
+                    type="button"
+                    className="preview-cancel"
+                    onClick={() => { scrubCancelled.current = true; setHistoryPreview(null); setScrubbing(false); }}
+                  >
+                    <X size={12} /> Cancelar (Esc)
+                  </button>
+                </output>
+              )}
             </div>}
+
             <div>
               <Button
                 variant="outline"
@@ -575,17 +710,17 @@ export default function Home() {
           </div>
           {p && (
             <div className="dimension-summary">
-              <span>
+              <span className={changed.has('width') ? 'changed' : ''}>
                 {visualParams!.width / 10}
                 <small>largura</small>
               </span>
               <b>×</b>
-              <span>
+              <span className={changed.has('height') ? 'changed' : ''}>
                 {visualParams!.height / 10}
                 <small>altura</small>
               </span>
               <b>×</b>
-              <span>
+              <span className={changed.has('depth') ? 'changed' : ''}>
                 {visualParams!.depth / 10}
                 <small>profundidade</small>
               </span>

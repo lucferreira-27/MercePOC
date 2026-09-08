@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { Params, Part } from '@/lib/furniture';
-import { FurnitureMotion, ease, TRANSITION_MS } from '@/lib/furniture-motion';
+import { FurnitureMotion, ease, SCRUB_MS, TRANSITION_MS } from '@/lib/furniture-motion';
 type CameraMove = {
   from: THREE.Vector3;
   to: THREE.Vector3;
@@ -26,6 +26,7 @@ export default function FurnitureView({
   onSelect,
   exploded,
   front,
+  scrub = false,
 }: {
   params: Params;
   parts: Part[];
@@ -33,6 +34,7 @@ export default function FurnitureView({
   onSelect: (id: string | null) => void;
   exploded: boolean;
   front: boolean;
+  scrub?: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null),
     callback = useRef(onSelect),
@@ -173,8 +175,9 @@ export default function FurnitureView({
         selected,
         performance.now(),
         state.reduced.matches,
+        scrub ? SCRUB_MS : TRANSITION_MS,
       );
-  }, [parts, params, exploded, selected]);
+  }, [parts, params, exploded, selected, scrub]);
   useEffect(() => {
     const s = runtime.current;
     if (!s) return;
@@ -195,7 +198,7 @@ export default function FurnitureView({
         .multiplyScalar(scale / previousScale)
         .add(target);
     }
-    if (!s.view || s.reduced.matches) {
+    if (!s.view || s.reduced.matches || scrub) {
       s.camera.position.copy(to);
       s.controls.target.copy(target);
       s.controls.update();
@@ -210,7 +213,7 @@ export default function FurnitureView({
       };
     }
     s.view = { height: params.height, width: params.width, front };
-  }, [params.height, params.width, front]);
+  }, [params.height, params.width, front, scrub]);
   return (
     <div
       ref={host}
