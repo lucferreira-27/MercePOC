@@ -15,9 +15,11 @@ import {
   ChevronRight,
   Download,
   ImagePlus,
+  Layers,
   Plus,
   Redo2,
   Sparkles,
+  Square,
   Undo2,
   X,
 } from 'lucide-react';
@@ -46,7 +48,7 @@ type State = Project & {
 function dotLeft(i: number, max: number) {
   if (max <= 0) return '50%';
   const f = i / max;
-  return `calc(${(f * 100).toFixed(2)}% + ${(7 - f * 14).toFixed(2)}px)`;
+  return `calc(${(f * 100).toFixed(2)}% + ${(8 - f * 16).toFixed(2)}px)`;
 }
 async function api<T = State>(path: string, body?: unknown): Promise<T> {
   const r = await fetch(
@@ -576,12 +578,14 @@ export default function Home() {
                   className={front ? 'active' : ''}
                   onClick={() => setFront(true)}
                 >
+                  <Square size={16} />
                   Frontal
                 </button>
                 <button
                   className={exploded ? 'active' : ''}
                   onClick={() => setExploded(!exploded)}
                 >
+                  <Layers size={16} />
                   Explodir
                 </button>
               </div>

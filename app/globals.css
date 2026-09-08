@@ -448,9 +448,9 @@ button svg {
 }
 .scene-bottom .viewport-controls{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
 .control-label{font-size:11px;color:#8a928d;white-space:nowrap}
-.scene-bottom .control-buttons{display:flex;gap:2px}
-.control-buttons button{border:0;background:none;font-size:12px;display:flex;align-items:center;gap:6px;padding:9px;border-radius:7px;color:#6f7b72;white-space:nowrap}
-.control-buttons button.active{background:#edf2e7;color:#3b5232}
+.scene-bottom .control-buttons{display:flex;gap:8px}
+.control-buttons button{border:1px solid #e3e8dc;background:#fff;font-size:12px;display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;color:#6f7b72;white-space:nowrap}
+.control-buttons button.active{background:#edf2e7;border-color:#d9e5cb;color:#3b5232}
 .control-divider{width:1px;align-self:stretch;background:#e4e9e0;margin:4px 2px;flex-shrink:0}
 .history-actions{align-self:flex-end;margin-bottom:18px}
 .scene-bottom {
@@ -912,8 +912,8 @@ button svg {
 .scene-bottom .history-timeline{display:flex;flex:1;min-width:0;flex-direction:column;gap:6px}.dimension-summary{bottom:180px}.history-row{width:100%;text-align:left;cursor:pointer}.history-row:hover{background:#f1f5eb}.history-row:disabled{cursor:wait}
 @media(max-width:540px){.scene-bottom{left:12px;right:12px;padding:10px}.dimension-summary{bottom:170px}}
 .history-scrub{position:relative;flex:1;display:flex;align-items:center;gap:8px;min-height:20px}
-.history-step{display:grid;place-items:center;width:22px;height:22px;flex-shrink:0;border:none;background:none;color:#8a928d;padding:0;align-self:flex-end;margin-bottom:12px}
-.history-step:hover:not(:disabled){color:#3e5e30}
+.history-step{display:grid;place-items:center;width:26px;height:26px;flex-shrink:0;border-radius:50%;border:1px solid #e0e5df;background:#fff;color:#637456;padding:0;align-self:flex-end;margin-bottom:10px}
+.history-step:hover:not(:disabled){border-color:#58883c;color:#3e5e30}
 .history-step:disabled{opacity:.35;cursor:default}
 .history-track{position:relative;flex:1;min-width:0;padding-top:24px}
 .history-tip{position:absolute;top:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:500;color:#3d4a40;background:#fff;border:1px solid #e0e5df;border-radius:999px;padding:2px 10px;pointer-events:none;box-shadow:0 2px 6px #30402014}
@@ -921,9 +921,9 @@ button svg {
 .history-track [data-slot=slider-range]{background:#58883c;height:100%}
 .history-slider-wrap [data-slot=slider]{display:flex;height:100%;width:100%}
 .history-slider-wrap [data-slot=slider]>*{height:100%}
-.history-slider-wrap [data-slot=slider-thumb]{width:14px;height:14px;border:none;background:#58883c;box-shadow:0 1px 3px #1d2b1a66;z-index:2}
+.history-slider-wrap [data-slot=slider-thumb]{width:16px;height:16px;border:none;background:#58883c;box-shadow:0 1px 3px #1d2b1a66;z-index:2}
 .history-dots{position:absolute;inset:0;pointer-events:none}
-.history-dot{position:absolute;top:50%;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;border-radius:50%;background:#fff;border:1.5px solid #b6c1b1}
+.history-dot{position:absolute;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:#fff;border:1.5px solid #b6c1b1}
 .history-ends{position:relative;height:14px;font-size:10px;color:#7b8474}
 .history-ends span{position:absolute;top:0;transform:translateX(-50%)}
 .preview-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:2px}
