@@ -183,3 +183,31 @@ void test('assistant highlight returns only existing part ids', async () => {
     globalThis.fetch = original;
   }
 });
+void test('highlight-only answers keep the model message without new revisions', async () => {
+  const original = globalThis.fetch;
+  const payload = {
+    action: 'update',
+    approach: 'Destacar o tampo.',
+    message: 'Tampo destacado no modelo.',
+    changes: {},
+    select: ['top'],
+  };
+  const body =
+    `data: ${JSON.stringify({ choices: [{ delta: { tool_calls: [{ index: 0, function: { name: 'submit_design_decision', arguments: JSON.stringify(payload) } }] } }] })}\n\ndata: [DONE]\n\n`;
+  globalThis.fetch = async () => response(body);
+  try {
+    const p = create();
+    const before = get(p.id);
+    const events: { event: string; data: string }[] = [];
+    await readEvents(await POST(request(p.id)), (e) => events.push(e));
+    assert.equal(events.at(-1)?.event, 'done');
+    const done = JSON.parse(events.at(-1)!.data);
+    assert.deepEqual(done.selected, ['top']);
+    assert.equal(done.revisions.length, before.revisions.length);
+    const saved = view(get(p.id));
+    assert.equal(saved.messages.at(-1)?.content, 'Tampo destacado no modelo.');
+    assert.equal(saved.messages.at(-1)?.report?.outcome, 'unchanged');
+  } finally {
+    globalThis.fetch = original;
+  }
+});

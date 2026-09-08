@@ -69,13 +69,14 @@ export async function POST(req: Request) {
           d.action === 'clarify' ? 'clarification' : 'unchanged';
       try {
         if (d.action === 'update') {
-          if (!Object.keys(d.changes).length)
+          if (!Object.keys(d.changes).length && !d.select.length)
             throw new Error('Nenhum parâmetro foi especificado.');
-          revise(
-            p,
-            paramsSchema.parse({ ...before, ...d.changes }),
-            b.message.slice(0, 90),
-          );
+          if (Object.keys(d.changes).length)
+            revise(
+              p,
+              paramsSchema.parse({ ...before, ...d.changes }),
+              b.message.slice(0, 90),
+            );
         }
         if (d.action === 'undo') {
           if (p.cursor === 0) message = 'Você já está na primeira versão.';
