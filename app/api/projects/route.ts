@@ -1,4 +1,4 @@
-import { create, list, get, view, save, revise, seek } from '@/lib/store';
+import { create, createDemo, list, get, view, save, revise, seek } from '@/lib/store';
 import { paramsSchema } from '@/lib/furniture';
 import { z } from 'zod';
 export async function GET(req: Request) {
@@ -15,8 +15,9 @@ export async function POST(req: Request) {
     if (origin && origin !== new URL(req.url).origin)
       return Response.json({ error: 'Origem inválida' }, { status: 403 });
     const body = await req.json();
-    if (z.object({ action: z.literal('create') }).safeParse(body).success)
-      return Response.json(create());
+    const setup = z.object({ action: z.enum(['create', 'demo']) }).safeParse(body);
+    if (setup.success)
+      return Response.json(setup.data.action === 'demo' ? createDemo() : create());
     const b = z
       .object({
         id: z.uuid(),

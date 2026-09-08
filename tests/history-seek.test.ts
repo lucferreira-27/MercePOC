@@ -4,7 +4,7 @@ import { mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { defaults } from '../lib/furniture';
-import { create, get, revise, save, seek, view } from '../lib/store';
+import { create, createDemo, get, revise, save, seek, view } from '../lib/store';
 
 process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-history-'));
 
@@ -23,7 +23,7 @@ void test('history seek changes the active revision without deleting future vers
   assert.throws(() => seek(get(created.id), 99));
 });
 void test('new projects start with a demo walkthrough at the latest revision', () => {
-  const raw = get(create().id);
+  const raw = get(createDemo().id);
   assert.equal(raw.revisions.length, 6);
   assert.equal(raw.cursor, raw.revisions.length - 1);
   assert.equal(raw.revisions[0].label, 'Estante inicial');

@@ -53,6 +53,33 @@ export function get(id: string) {
   return JSON.parse(r.body) as Project;
 }
 export function create() {
+  const p: Project = {
+    id: randomUUID(),
+    name: 'Minha estante',
+    version: 0,
+    cursor: 0,
+    revisions: [
+      {
+        number: 1,
+        params: { ...defaults },
+        label: 'Estante inicial',
+        at: new Date().toISOString(),
+      },
+    ],
+    messages: [
+      {
+        role: 'assistant',
+        content:
+          'Vamos criar sua estante. Comecei com 80 × 180 × 35 cm, quatro prateleiras e carvalho. Descreva o que você quer mudar.',
+      },
+    ],
+  };
+  database()
+    .prepare('INSERT INTO projects VALUES (?, ?, ?, ?)')
+    .run(p.id, JSON.stringify(p), 0, new Date().toISOString());
+  return view(p);
+}
+export function createDemo() {
   const now = Date.now();
   const at = (i: number, total: number) =>
     new Date(now - (total - 1 - i) * 90000).toISOString();

@@ -134,7 +134,7 @@ export default function Home() {
         accept(
           all.length
             ? await api('/api/projects?id=' + all[0].id)
-            : await api('/api/projects', { action: 'create' }),
+            : await api('/api/projects', { action: 'demo' }),
         );
         await refresh();
         const h = await api<{ configured: boolean }>('/api/health');
