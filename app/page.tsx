@@ -482,6 +482,29 @@ export default function Home() {
                       ) : (
                         <p>Nenhuma medida foi alterada.</p>
                       )}
+                      {m.report.selected && m.report.selected.length > 0 && (
+                        <div className="part-showcase">
+                          <strong>Peças em destaque</strong>
+                          <div>
+                            {m.report.selected.map((s) => (
+                              <button
+                                key={s.id}
+                                type="button"
+                                className="part-chip"
+                                title={p?.parts.some((v) => v.id === s.id) ? 'Alternar seleção' : 'Peça de uma versão anterior'}
+                                onClick={() => {
+                                  if (p?.parts.some((v) => v.id === s.id)) toggleSelected(s.id);
+                                }}
+                              >
+                                <strong>{s.name}</strong>
+                                <small>
+                                  {s.dims} · {s.material}
+                                </small>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </details>
                   )}
                 </div>

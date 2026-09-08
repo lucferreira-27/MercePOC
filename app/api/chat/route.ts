@@ -1,6 +1,6 @@
 import { get, save, revise } from '@/lib/store';
 import { interpretStream } from '@/lib/gateway';
-import { paramsSchema } from '@/lib/furniture';
+import { generate, paramsSchema } from '@/lib/furniture';
 import {
   describeChanges,
   type Progress,
@@ -100,7 +100,16 @@ export async function POST(req: Request) {
           ? 'Registrando a versão e preparando o modelo 3D.'
           : 'Salvando a resposta. As medidas foram preservadas.',
       });
-      signal.throwIfAborted();
+      const parts = generate(p.revisions[p.cursor].params).parts;
+      const showcase = d.select
+        .map((id) => parts.find((part) => part.id === id))
+        .filter((v) => v !== undefined)
+        .map((v) => ({
+          id: v.id,
+          name: v.name,
+          dims: `${v.c} × ${v.l} × ${v.thickness} mm`,
+          material: v.material,
+        }));
       p.messages.push({
         role: 'assistant',
         content: message,
@@ -109,13 +118,11 @@ export async function POST(req: Request) {
           outcome,
           changes,
           approach: d.approach,
+          selected: showcase,
         },
       });
       const state = save(p, b.version);
-      const selected = d.select.filter((id) =>
-        state.parts.some((v) => v.id === id),
-      );
-      return { ...state, selected };
+      return { ...state, selected: showcase.map((v) => v.id) };
     };
     if (!req.headers.get('accept')?.includes('text/event-stream')) {
       try {

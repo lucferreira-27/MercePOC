@@ -197,16 +197,23 @@ void test('highlight-only answers keep the model message without new revisions',
   globalThis.fetch = async () => response(body);
   try {
     const p = create();
-    const before = get(p.id);
+    const startRevisions = get(p.id).revisions.length;
     const events: { event: string; data: string }[] = [];
     await readEvents(await POST(request(p.id)), (e) => events.push(e));
     assert.equal(events.at(-1)?.event, 'done');
-    const done = JSON.parse(events.at(-1)!.data);
-    assert.deepEqual(done.selected, ['top']);
-    assert.equal(done.revisions.length, before.revisions.length);
+    assert.deepEqual(JSON.parse(events.at(-1)!.data).selected, ['top']);
+    assert.equal(get(p.id).revisions.length, startRevisions);
     const saved = view(get(p.id));
     assert.equal(saved.messages.at(-1)?.content, 'Tampo destacado no modelo.');
     assert.equal(saved.messages.at(-1)?.report?.outcome, 'unchanged');
+    assert.deepEqual(saved.messages.at(-1)?.report?.selected, [
+      {
+        id: 'top',
+        name: 'Tampo',
+        dims: '764 × 344 × 18 mm',
+        material: 'Carvalho natural 18',
+      },
+    ]);
   } finally {
     globalThis.fetch = original;
   }

@@ -5,11 +5,18 @@ export type Progress = {
   detail: string;
   attempt?: number;
 };
+export type SelectedPart = {
+  id: string;
+  name: string;
+  dims: string;
+  material: string;
+};
 export type ChatReport = {
   durationMs: number;
   outcome: 'updated' | 'clarification' | 'unchanged' | 'rejected';
   changes: string[];
   approach?: string;
+  selected?: SelectedPart[];
 };
 export type TextPreview = { approach: string; answer: string; attempt: number };
 export function describeChanges(before: Params, after: Params) {
