@@ -11,7 +11,6 @@ import {
 } from '@/lib/design';
 import {
   type Progress,
-  type ChatReport,
   type TextPreview,
   type TurnOutcome,
 } from '@/lib/progress';
@@ -132,7 +131,7 @@ export async function POST(req: Request) {
     const referencedShelves = resolved.filter((rid) => shelfIds.includes(rid));
     // Peça removida nunca é substituída silenciosamente.
     const dangling = (lastRefs.length ? lastRefs : explicitShelves).filter(
-      (rid) => !shelfIds.includes(rid) && /^sh-/.test(rid),
+      (rid) => !shelfIds.includes(rid) && rid.startsWith('sh-'),
     );
     const pendingClarification = [...p.messages]
       .reverse()
@@ -397,7 +396,8 @@ export async function POST(req: Request) {
         });
         const state = save(p, b.version);
         confirmed.set(requestId, { projectId: p.id, index: p.messages.length - 1 });
-        return { ...state, selected: affected.size ? [...affected] : showcase.map((v) => v.id) };
+        const echo = explicit.filter((sid) => shelfIds.includes(sid) || !sid.startsWith('sh-'));
+        return { ...state, selected: affected.size ? [...affected] : echo.length ? echo : showcase.map((v) => v.id) };
       }
       function finishClarify(user: Message, question: string, decision: { approach: string } | null) {
         const options = infos.map((s) => ({ id: s.id, label: s.label, partIds: [s.id] }));

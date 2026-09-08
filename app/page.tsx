@@ -43,7 +43,7 @@ import {
   type ShelfOp,
 } from '@/lib/design';
 import { materials, type Part } from '@/lib/furniture';
-import type { Project } from '@/lib/store';
+import type { Project, Message } from '@/lib/store';
 type State = Project & {
   params: Design;
   parts: Part[];
@@ -98,13 +98,14 @@ export default function Home() {
     [shelfDelta, setShelfDelta] = useState('50'),
     [gapTarget, setGapTarget] = useState(''),
     [gapPick, setGapPick] = useState('0'),
-    [forkName, setForkName] = useState(''),
     [attachment, setAttachment] = useState<ImageRef | null>(null),
     [thumbs, setThumbs] = useState<Record<string, string>>({}),
-    [pendingImage, setPendingImage] = useState<ImageRef | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [historyPreview, setHistoryPreview] = useState<number | null>(null);
-  const [scrubbing, setScrubbing] = useState(false);
+    [pendingImage, setPendingImage] = useState<ImageRef | null>(null),
+    [failedTurn, setFailedTurn] = useState<{ text: string; image: ImageRef | null; error: string; requestId: string } | null>(null),
+    [forkName, setForkName] = useState(''),
+    [uploading, setUploading] = useState(false),
+    [historyPreview, setHistoryPreview] = useState<number | null>(null),
+    [scrubbing, setScrubbing] = useState(false);
   const scrubCancelled = useRef(false);
   const previewFrame = useRef(0);
   const previewFallback = useRef<number | undefined>(undefined);
@@ -156,6 +157,30 @@ export default function Home() {
   const historyMax = Math.max(1, historyCount - 1);
   const historyView = historyPreview ?? p?.cursor ?? 0;
   const messages = useRef<HTMLDivElement>(null);
+  const [pinnedToBottom, setPinnedToBottom] = useState(true);
+  const [newMessageFlag, setNewMessageFlag] = useState(false);
+  const onScroll = () => {
+    const el = messages.current;
+    if (!el) return;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+    setPinnedToBottom(nearBottom);
+    if (nearBottom) setNewMessageFlag(false);
+  };
+  useEffect(() => {
+    const el = messages.current;
+    if (!el || !pinnedToBottom) return;
+    el.scrollTop = el.scrollHeight;
+  }, [p?.messages.length, pending, progress.length, pinnedToBottom]);
+  useEffect(() => {
+    if (!pinnedToBottom && p?.messages.length) setNewMessageFlag(true);
+  }, [p?.messages.length, pinnedToBottom]);
+  /** Revisão de uma mensagem: disponível, descartada ou indisponível. */
+  const revisionState = (m: Message) => {
+    if (!p || !m.revisionId) return { status: 'unknown' as const };
+    const idx = p.revisions.findIndex((r) => r.id === m.revisionId);
+    if (idx < 0) return { status: 'dropped' as const };
+    return { status: 'found' as const, cursor: idx, revision: p.revisions[idx] };
+  };
   const accept = (d: State) => {
     setP(d);
     setHistoryPreview(null);
@@ -391,15 +416,25 @@ export default function Home() {
     if (!p || busy) return;
     seekVersion(Math.min(p.revisions.length - 1, Math.max(0, (historyPreview ?? p.cursor) + delta)));
   }
-  async function send(value = text) {
-    if ((!value.trim() && !attachment) || !p || busy) return;
-    const sentImage = attachment;
-    value = value.trim() || 'Use esta imagem como referência para a estante.';
+  const draftDuringWait = useRef('');
+  async function send(
+    value = text,
+    replyTo?: { clarificationId: string; optionId: string },
+    retry?: { text: string; image: ImageRef | null; requestId: string },
+  ) {
+    if (!p || busy) return;
+    const sentImage = retry?.image ?? attachment;
+    const sentText = (retry?.text ?? value).trim();
+    if (!sentText && !sentImage && !replyTo) return;
+    const requestId = retry?.requestId ?? (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`);
+    const message = sentText || 'Use esta imagem como referência para a estante.';
+    draftDuringWait.current = text;
     setPendingImage(sentImage);
     setAttachment(null);
     setBusy(true);
     setError('');
-    setPending(value);
+    setFailedTurn(null);
+    setPending(replyTo ? `${message} (escolha: ${p.messages.find((m) => m.clarification?.id === replyTo.clarificationId)?.clarification?.options.find((o) => o.id === replyTo.optionId)?.label ?? ''})` : message);
     setProgress([]);
     setStarted(Date.now());
     setText('');
@@ -414,9 +449,11 @@ export default function Home() {
         body: JSON.stringify({
           id: p.id,
           version: p.version,
-          message: value,
+          message,
           imageId: sentImage?.id,
           selected,
+          requestId,
+          ...(replyTo ? replyTo : {}),
         }),
       });
       if (!r.ok || !r.body) {
@@ -436,17 +473,20 @@ export default function Home() {
       });
       if (!completed)
         throw new Error(
-          'A conexão terminou antes da confirmação. Recarregue o projeto para conferir a última versão.',
+          'A conexão terminou antes da confirmação. Use “Tentar novamente” — se a resposta já foi salva, ela reaparece sem aplicar duas vezes.',
         );
     } catch (e) {
       setError((e as Error).message);
-      setText(value);
-      setAttachment(sentImage);
+      // O rascunho em edição nunca é sobrescrito pela falha.
+      setFailedTurn({ text: message, image: sentImage, error: (e as Error).message, requestId });
+      if (!draftDuringWait.current) setText(message);
+      if (sentImage) setAttachment(sentImage);
     } finally {
       setPending('');
       setPendingImage(null);
       setProgress([]);
       setBusy(false);
+      draftDuringWait.current = '';
     }
   }
   useProjectTools(
@@ -594,7 +634,7 @@ export default function Home() {
             </span>
             <span className="live-dot" />
           </div>
-          <div className="chat-messages" ref={messages}>
+          <div className="chat-messages" ref={messages} onScroll={onScroll}>
             <div className="intro">
               <span className="eyebrow">DA IDEIA ÀS PEÇAS</span>
               <h1>
@@ -603,8 +643,11 @@ export default function Home() {
               </h1>
               <p>Converse, ajuste e veja sua estante ganhar forma.</p>
             </div>
-            {p?.messages.map((m, i) => (
-              <div className={'message ' + m.role} key={i}>
+            {p?.messages.map((m, i) => {
+              const rev = revisionState(m);
+              const clar = m.clarification;
+              return (
+              <div className={'message ' + m.role} key={m.id ?? i}>
                 {m.role === 'assistant' && (
                   <span className="avatar">
                     <Sparkles size={14} />
@@ -613,31 +656,59 @@ export default function Home() {
                 <div>
                   {m.image && <img className="chat-image" src={m.image.url} alt={m.image.name} loading="lazy" />}
                   {m.content}
+                  {m.error && <div className="turn-error" role="alert">{m.error}</div>}
+                  {clar && !m.result && (
+                    <div className="clarify-card">
+                      <p>{clar.question}</p>
+                      <div>
+                        {clar.options.map((o) => {
+                          const alive = o.partIds.some((pid) => p?.parts.some((v) => v.id === pid));
+                          return (
+                          <button
+                            key={o.id}
+                            type="button"
+                            disabled={busy || !alive}
+                            title={alive ? o.label : 'Peça não existe mais nesta versão'}
+                            onClick={() => void send(m.content, { clarificationId: clar.id, optionId: o.id })}
+                          >
+                            {o.label}
+                          </button>
+                          );
+                        })}
+                      </div>
+                      <small>As opções são revalidadas antes de aplicar.</small>
+                    </div>
+                  )}
                   {m.report?.selected && m.report.selected.length > 0 && (
                     <div className="part-showcase">
-                      <strong>Peças em destaque</strong>
+                      <strong>{m.result?.outcome === 'applied' ? 'Peças afetadas' : 'Peças mencionadas'}</strong>
                       <div>
-                        {m.report.selected.map((s) => (
+                        {m.report.selected.map((s) => {
+                          const alive = p?.parts.some((v) => v.id === s.id);
+                          const chipRev = m.revisionId ? p?.revisions.find((r) => r.id === m.revisionId) : undefined;
+                          const stale = !alive && !!chipRev;
+                          return (
                           <button
                             key={s.id}
                             type="button"
-                            className="part-chip"
-                            title={p?.parts.some((v) => v.id === s.id) ? 'Alternar seleção' : 'Peça de uma versão anterior'}
+                            className={'part-chip' + (stale ? ' stale' : '')}
+                            title={alive ? 'Alternar seleção' : stale ? `Peça removida ou de versão anterior (${chipRev!.label})` : 'Peça de uma versão anterior'}
                             onClick={() => {
-                              if (p?.parts.some((v) => v.id === s.id)) toggleSelected(s.id);
+                              if (alive) toggleSelected(s.id);
                             }}
                           >
                             {s.size && s.color && thumbs[thumbKey(s.size, s.color)] && (
                               <img src={thumbs[thumbKey(s.size, s.color)]} alt="" loading="lazy" />
                             )}
                             <span className="part-meta">
-                              <strong>{s.name}</strong>
+                              <strong>{s.name}{stale ? ' · removida' : ''}</strong>
                               <small>
                                 {s.dims} · {s.material}
                               </small>
                             </span>
                           </button>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -655,6 +726,7 @@ export default function Home() {
                                 : m.report.outcome === 'answered'
                                   ? 'Resposta'
                                   : 'Sem alteração nas medidas'}{' '}
+                        · {rev.status === 'found' ? `v${rev.revision.number}` : rev.status === 'dropped' ? 'versão descartada' : 'sem versão'} · {(m.report.durationMs / 1000).toFixed(1)}s
                       </summary>
                       {m.report.approach && (
                         <div className="saved-approach">
@@ -673,9 +745,23 @@ export default function Home() {
                       )}
                     </details>
                   )}
+                  {m.role === 'assistant' && rev.status === 'found' && (
+                    <button
+                      type="button"
+                      className="link-button view-rev"
+                      disabled={busy}
+                      onClick={() => seekVersion(rev.cursor)}
+                    >
+                      Ver versão {rev.revision.number}
+                    </button>
+                  )}
+                  {m.role === 'assistant' && rev.status === 'dropped' && (
+                    <small className="view-rev dropped">Versão original descartada neste caminho.</small>
+                  )}
                 </div>
               </div>
-            ))}
+              );
+            })}
             {!p && !error && <p>Carregando seu estúdio…</p>}
             {pending && (
               <>
@@ -685,14 +771,53 @@ export default function Home() {
                 <ChatProgress events={progress} started={started} />
               </>
             )}
-            {p?.messages.length === 1 && (
+            {failedTurn && (
+              <div className="failed-turn" role="alert">
+                <p><strong>Não enviado:</strong> {failedTurn.text}</p>
+                <small>{failedTurn.error}</small>
+                <div>
+                  <Button variant="outline" disabled={busy} onClick={() => void send(failedTurn.text, undefined, { text: failedTurn.text, image: failedTurn.image, requestId: failedTurn.requestId })}>
+                    Tentar novamente
+                  </Button>
+                  <Button variant="ghost" disabled={busy} onClick={() => setFailedTurn(null)}>
+                    Descartar
+                  </Button>
+                </div>
+              </div>
+            )}
+            {newMessageFlag && (
+              <button
+                type="button"
+                className="new-message-jump"
+                onClick={() => {
+                  setPinnedToBottom(true);
+                  setNewMessageFlag(false);
+                  const el = messages.current;
+                  if (el) el.scrollTop = el.scrollHeight;
+                }}
+              >
+                Nova mensagem <ArrowUp size={12} />
+              </button>
+            )}
+            {error && (
+              <div className="error" role="alert">
+                {error}
+                {/mudou|desatualizado|Recarregue/i.test(error) && (
+                  <button onClick={() => window.location.reload()}>
+                    Recarregar projeto
+                  </button>
+                )}
+              </div>
+            )}
+            {p && (
               <div className="suggestions">
-                {[
-                  'Quero ela branca',
-                  'Aumente a largura para 1 metro',
-                  'Deixe o vão de baixo com 45 cm',
-                ].map((v) => (
-                  <button key={v} disabled={busy} onClick={() => send(v)}>
+                {(selected.length > 1
+                  ? ['Mover juntas 50 mm', 'Remover selecionadas']
+                  : selected.length === 1
+                    ? ['Suba esta 5 cm', 'Quero 40 cm livres abaixo desta', 'Remova esta prateleira']
+                    : ['Aumente a largura para 1 metro', 'Distribua as prateleiras igualmente', 'Deixe o vão de baixo com 45 cm']
+                ).map((v) => (
+                  <button key={v} disabled={busy} onClick={() => { setText(v); }}>
                     {v}
                     <ArrowUp size={14} />
                   </button>
@@ -773,7 +898,7 @@ export default function Home() {
               <span className="eyebrow">ESTANTE ABERTA</span>
               <h2>{p?.name || 'Minha estante'}</h2>
             </div>
-            <span className="revision">Versão {p ? (historyPreview ?? p.cursor) + 1 : 1}{historyPreview !== null && p && historyPreview !== p.cursor ? ' · Prévia' : ''}</span>
+            <span className="revision">Versão {p ? (historyPreview ?? p.cursor) + 1 : 1}{historyPreview !== null && p && historyPreview !== p.cursor ? ' · Prévia' : ''}{p && historyPreview === null && p.cursor < p.revisions.length - 1 ? ` · Editando a versão ${p.cursor + 1} (${p.revisions.length} salvas)` : ''}</span>
           </div>
           {p && (
             <FurnitureView
