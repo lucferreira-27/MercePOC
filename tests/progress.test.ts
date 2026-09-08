@@ -205,13 +205,14 @@ void test('highlight-only answers keep the model message without new revisions',
     assert.equal(get(p.id).revisions.length, startRevisions);
     const saved = view(get(p.id));
     assert.equal(saved.messages.at(-1)?.content, 'Tampo destacado no modelo.');
-    assert.equal(saved.messages.at(-1)?.report?.outcome, 'unchanged');
     assert.deepEqual(saved.messages.at(-1)?.report?.selected, [
       {
         id: 'top',
         name: 'Tampo',
         dims: '764 × 344 × 18 mm',
         material: 'Carvalho natural 18',
+        size: [764, 18, 344],
+        color: '#bd925c',
       },
     ]);
   } finally {

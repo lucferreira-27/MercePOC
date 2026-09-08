@@ -10,6 +10,8 @@ export type SelectedPart = {
   name: string;
   dims: string;
   material: string;
+  size?: [number, number, number];
+  color?: string;
 };
 export type ChatReport = {
   durationMs: number;

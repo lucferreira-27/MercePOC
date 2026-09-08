@@ -1,6 +1,6 @@
 import { get, save, revise } from '@/lib/store';
 import { interpretStream } from '@/lib/gateway';
-import { generate, paramsSchema } from '@/lib/furniture';
+import { generate, materials, paramsSchema } from '@/lib/furniture';
 import {
   describeChanges,
   type Progress,
@@ -101,6 +101,8 @@ export async function POST(req: Request) {
           : 'Salvando a resposta. As medidas foram preservadas.',
       });
       const parts = generate(p.revisions[p.cursor].params).parts;
+      const color =
+        materials.find((m) => m.id === p.revisions[p.cursor].params.materialId)?.color ?? '#999';
       const showcase = d.select
         .map((id) => parts.find((part) => part.id === id))
         .filter((v) => v !== undefined)
@@ -109,6 +111,8 @@ export async function POST(req: Request) {
           name: v.name,
           dims: `${v.c} × ${v.l} × ${v.thickness} mm`,
           material: v.material,
+          size: v.size,
+          color,
         }));
       p.messages.push({
         role: 'assistant',

@@ -30,6 +30,7 @@ import { useProjectTools } from '@/hooks/use-project-tools';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import type { ImageRef } from '@/lib/images';
+import { renderPartThumb, thumbKey } from '@/lib/part-thumb';
 import FurnitureView, { type ViewMode } from '@/components/furniture-view';
 import {
   generate,
@@ -93,6 +94,7 @@ export default function Home() {
     [draft, setDraft] = useState<Params | null>(null),
     [online, setOnline] = useState(false);
   const [attachment, setAttachment] = useState<ImageRef | null>(null);
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [pendingImage, setPendingImage] = useState<ImageRef | null>(null);
   const [uploading, setUploading] = useState(false);
   const [historyPreview, setHistoryPreview] = useState<number | null>(null);
@@ -175,6 +177,24 @@ export default function Home() {
     })();
   }, []);
   useEffect(() => cancelPreview, []);
+  useEffect(() => {
+    if (!p) return;
+    const jobs: { key: string; size: [number, number, number]; color: string }[] = [];
+    for (const m of p.messages)
+      for (const s of m.report?.selected ?? []) {
+        if (!s.size || !s.color) continue;
+        const key = thumbKey(s.size, s.color);
+        if (!thumbs[key] && !jobs.some((j) => j.key === key))
+          jobs.push({ key, size: s.size, color: s.color });
+      }
+    if (!jobs.length) return;
+    const next: Record<string, string> = {};
+    for (const job of jobs) {
+      const url = renderPartThumb(job.size, job.color);
+      if (url) next[job.key] = url;
+    }
+    if (Object.keys(next).length) setThumbs((prev) => ({ ...prev, ...next }));
+  }, [p, thumbs]);
   useEffect(() => {
     if (!scrubbing) return;
     const onKey = (e: KeyboardEvent) => {
@@ -455,6 +475,34 @@ export default function Home() {
                 <div>
                   {m.image && <img className="chat-image" src={m.image.url} alt={m.image.name} loading="lazy" />}
                   {m.content}
+                  {m.report?.selected && m.report.selected.length > 0 && (
+                    <div className="part-showcase">
+                      <strong>Peças em destaque</strong>
+                      <div>
+                        {m.report.selected.map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            className="part-chip"
+                            title={p?.parts.some((v) => v.id === s.id) ? 'Alternar seleção' : 'Peça de uma versão anterior'}
+                            onClick={() => {
+                              if (p?.parts.some((v) => v.id === s.id)) toggleSelected(s.id);
+                            }}
+                          >
+                            {s.size && s.color && thumbs[thumbKey(s.size, s.color)] && (
+                              <img src={thumbs[thumbKey(s.size, s.color)]} alt="" loading="lazy" />
+                            )}
+                            <span className="part-meta">
+                              <strong>{s.name}</strong>
+                              <small>
+                                {s.dims} · {s.material}
+                              </small>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {m.report && (
                     <details className="change-report">
                       <summary>
@@ -481,29 +529,6 @@ export default function Home() {
                         </ul>
                       ) : (
                         <p>Nenhuma medida foi alterada.</p>
-                      )}
-                      {m.report.selected && m.report.selected.length > 0 && (
-                        <div className="part-showcase">
-                          <strong>Peças em destaque</strong>
-                          <div>
-                            {m.report.selected.map((s) => (
-                              <button
-                                key={s.id}
-                                type="button"
-                                className="part-chip"
-                                title={p?.parts.some((v) => v.id === s.id) ? 'Alternar seleção' : 'Peça de uma versão anterior'}
-                                onClick={() => {
-                                  if (p?.parts.some((v) => v.id === s.id)) toggleSelected(s.id);
-                                }}
-                              >
-                                <strong>{s.name}</strong>
-                                <small>
-                                  {s.dims} · {s.material}
-                                </small>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
                       )}
                     </details>
                   )}
