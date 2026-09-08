@@ -703,6 +703,14 @@ button svg {
   font-size: 12px;
   color: #68735f;
 }
+.shelf-panel{margin-bottom:10px;padding:11px;border:1px solid #d9e5cb;border-radius:10px;background:#f6f9f2}
+.shelf-card strong{font-size:13px;color:#2f4a24}
+.shelf-measures{display:flex;gap:10px;flex-wrap:wrap;margin:7px 0;font-size:12px;color:#68735f}
+.shelf-measures b{color:#2f4a24;font-variant-numeric:tabular-nums}
+.shelf-row{display:flex;gap:6px;margin-top:6px}
+.shelf-row input,.shelf-row select{flex:1;min-width:0;padding:7px 8px;border:1px solid #d9e5cb;border-radius:8px;font-size:12px;background:#fff}
+.shelf-hint{font-size:12px;color:#68735f;margin:6px 0}
+.shelf-note{font-size:11px;color:#98a08f;margin:7px 0 0}
 .history-row {
   display: flex;
   gap: 12px;

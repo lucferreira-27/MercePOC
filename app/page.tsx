@@ -38,6 +38,7 @@ import {
   describeChanges,
   opSchema,
   generateDesign,
+  shelfInfos,
   type Design,
   type ShelfOp,
 } from '@/lib/design';
@@ -93,10 +94,13 @@ export default function Home() {
     [tab, setTab] = useState('params'),
     [exportOpen, setExportOpen] = useState(false),
     [draft, setDraft] = useState<Design | null>(null),
-    [online, setOnline] = useState(false);
-  const [attachment, setAttachment] = useState<ImageRef | null>(null);
-  const [thumbs, setThumbs] = useState<Record<string, string>>({});
-  const [pendingImage, setPendingImage] = useState<ImageRef | null>(null);
+    [online, setOnline] = useState(false),
+    [shelfDelta, setShelfDelta] = useState('50'),
+    [gapTarget, setGapTarget] = useState(''),
+    [gapPick, setGapPick] = useState('0'),
+    [attachment, setAttachment] = useState<ImageRef | null>(null),
+    [thumbs, setThumbs] = useState<Record<string, string>>({}),
+    [pendingImage, setPendingImage] = useState<ImageRef | null>(null);
   const [uploading, setUploading] = useState(false);
   const [historyPreview, setHistoryPreview] = useState<number | null>(null);
   const [scrubbing, setScrubbing] = useState(false);
@@ -247,6 +251,98 @@ export default function Home() {
       setBusy(false);
       setHistoryPreview(null);
     }
+  }
+  function ShelfPanel() {
+    if (!p) return null;
+    const infos = shelfInfos(p.params);
+    const selectedShelves = infos.filter((s) => selected.includes(s.id));
+    const single = selectedShelves.length === 1 ? selectedShelves[0] : null;
+    const shelfIds = selected.filter((id) => infos.some((s) => s.id === id));
+    const delta = Number(shelfDelta);
+    return (
+      <div className="shelf-panel">
+        <div className="section-label">PRATELEIRAS · EDIÇÃO INDIVIDUAL</div>
+        {single ? (
+          <div className="shelf-card">
+            <strong>{single.label}</strong>
+            <div className="shelf-measures">
+              <span>Posição <b>{Math.round(single.elevation)} mm</b></span>
+              <span>Vão abaixo <b>{Math.round(single.gapBelow)} mm</b></span>
+              <span>Vão acima <b>{Math.round(single.gapAbove)} mm</b></span>
+            </div>
+            <div className="shelf-row">
+              <input
+                type="number"
+                aria-label="Deslocamento em milímetros"
+                value={shelfDelta}
+                onChange={(e) => setShelfDelta(e.target.value)}
+                disabled={busy}
+              />
+              <Button variant="outline" disabled={busy || !Number.isFinite(delta) || delta === 0} onClick={() => void op({ kind: 'move', ids: [single.id], deltaMm: delta }, `${single.label}: deslocar ${delta} mm`)}>
+                Mover (mm)
+              </Button>
+              <Button variant="outline" disabled={busy} onClick={() => void op({ kind: 'move', ids: [single.id], deltaMm: -delta }, `${single.label}: descer ${delta} mm`)}>
+                Descer
+              </Button>
+            </div>
+            <div className="shelf-row">
+              <input
+                type="number"
+                aria-label="Vão livre abaixo em milímetros"
+                placeholder="Vão abaixo (mm)"
+                value={gapTarget}
+                onChange={(e) => setGapTarget(e.target.value)}
+                disabled={busy}
+              />
+              <Button variant="outline" disabled={busy || !Number.isFinite(Number(gapTarget))} onClick={() => void op({ kind: 'gap', id: single.id, gapMm: Number(gapTarget) }, `${single.label}: vão de ${gapTarget} mm`)}>
+                Definir vão
+              </Button>
+              <Button variant="outline" disabled={busy} onClick={() => void op({ kind: 'remove', ids: [single.id] }, `Remover ${single.label}`)}>
+                Remover
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <p className="shelf-hint">
+            {selectedShelves.length > 1
+              ? `${selectedShelves.length} prateleiras selecionadas: use o deslocamento conjunto ou a remoção conjunta abaixo.`
+              : 'Selecione uma prateleira no 3D, na lista ou num card da conversa para ver posição e vãos.'}
+          </p>
+        )}
+        {selectedShelves.length > 1 && (
+          <div className="shelf-row">
+            <input
+              type="number"
+              aria-label="Deslocamento conjunto em milímetros"
+              value={shelfDelta}
+              onChange={(e) => setShelfDelta(e.target.value)}
+              disabled={busy}
+            />
+            <Button variant="outline" disabled={busy || !Number.isFinite(delta) || delta === 0} onClick={() => void op({ kind: 'move', ids: shelfIds, deltaMm: delta }, `Mover ${shelfIds.length} prateleiras ${delta} mm`)}>
+              Mover juntas
+            </Button>
+            <Button variant="outline" disabled={busy} onClick={() => void op({ kind: 'remove', ids: shelfIds }, `Remover ${shelfIds.length} prateleiras`)}>
+              Remover juntas
+            </Button>
+          </div>
+        )}
+        <div className="shelf-row">
+          <select aria-label="Vão para nova prateleira" value={gapPick} onChange={(e) => setGapPick(e.target.value)} disabled={busy}>
+            {infos.length ? infos.map((s, i) => (
+              <option key={s.id} value={String(i + 1)}>Acima de {s.label} ({Math.round(s.gapAbove)} mm)</option>
+            )) : null}
+            <option value="0">Abaixo de {infos[0]?.label ?? 'todas'} ({infos[0] ? Math.round(infos[0].gapBelow) : 0} mm)</option>
+          </select>
+          <Button variant="outline" disabled={busy || !infos.length} onClick={() => void op({ kind: 'add', gap: Number(gapPick) }, 'Adicionar prateleira no vão')}>
+            Inserir no vão
+          </Button>
+          <Button variant="outline" disabled={busy || !infos.length} onClick={() => void op({ kind: 'distribute' }, 'Distribuir prateleiras igualmente')}>
+            Distribuir todas
+          </Button>
+        </div>
+        <p className="shelf-note">Distribuir afeta todas as prateleiras. Inserir divide o vão escolhido ao centro (mínimo 100 mm por vão).</p>
+      </div>
+    );
   }
   async function upload(file?: File) {
     if (!file || busy) return;
@@ -984,7 +1080,7 @@ export default function Home() {
                   </label>
                 </>
               )}
-              {tab === 'parts' && (
+              {tab === 'parts' && p && (
                 <>
                   <div className="section-label">
                     PEÇAS{selected.length > 0 ? ` · ${selected.length} selecionada${selected.length > 1 ? 's' : ''}` : ''}
@@ -994,6 +1090,7 @@ export default function Home() {
                       </button>
                     )}
                   </div>
+                  <ShelfPanel />
                   {p.parts.map((v) => (
                     <button
                       className={
@@ -1013,7 +1110,7 @@ export default function Home() {
                   ))}
                   <p className="warning">
                     Medidas nominais. O CSV não é um plano de aproveitamento de
-                    chapas.
+                    chapas. A exportação Cortecloud lista peças; posições de montagem e furação não estão incluídas.
                   </p>
                 </>
               )}
@@ -1065,7 +1162,7 @@ export default function Home() {
                 stroke="black"
               />
               {p.parts
-                .filter((v) => v.id.startsWith('shelf'))
+                .filter((v) => v.kind === 'shelf')
                 .map((v) => (
                   <line
                     key={v.id}
