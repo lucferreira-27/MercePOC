@@ -4,10 +4,17 @@ import * as THREE from 'three';
 import {
   FurnitureMotion,
   TRANSITION_MS,
+  moduleCentres,
   visualPosition,
 } from '../lib/furniture-motion';
 import { defaults, generate } from '../lib/furniture';
 import { addShelf, generateDesign, migrateParams, resizeDesign } from '../lib/design';
+import {
+  PROFILE,
+  applyModularOp,
+  generateComposition,
+  preset,
+} from '../lib/composition';
 void test('resizing reuses meshes, interpolates, and reaches exact canonical geometry', () => {
   const scene = new THREE.Scene(),
     motion = new FurnitureMotion(scene),
@@ -75,23 +82,94 @@ void test('shelves enter and exit gradually, can reappear mid-exit, and dispose 
   assert.equal(motion.entries.has(id), false);
   motion.dispose();
 });
+void test('exploded view separates every part from its own module centre', () => {
+  const design = migrateParams(defaults);
+  const parts = generateDesign(design).parts;
+  const centres = moduleCentres(parts);
+  const centreOf = (part: (typeof parts)[number]) =>
+    centres.get((part as { owners?: string[] }).owners?.[0] ?? 'módulo')!;
+  const distance = (part: (typeof parts)[number], exploded: boolean) =>
+    visualPosition(part, centreOf(part), exploded).sub(centreOf(part)).length();
+  // Nenhuma peça fica presa: todas se afastam do centro do seu módulo.
+  for (const part of parts)
+    assert.ok(
+      distance(part, true) > distance(part, false),
+      `${part.id} não se afastou`,
+    );
+  // As prateleiras se afastam: os vãos entre elas crescem.
+  const shelfYs = (exploded: boolean) =>
+    parts
+      .filter((p) => p.kind === 'shelf')
+      .map((p) => visualPosition(p, centreOf(p), exploded).y)
+      .sort((a, b) => a - b);
+  const gaps = (ys: number[]) =>
+    ys.slice(1).map((y, i) => Math.round(y - ys[i]));
+  const closedGaps = gaps(shelfYs(false)),
+    openGaps = gaps(shelfYs(true));
+  assert.equal(openGaps.length, closedGaps.length);
+  for (const [i, gap] of openGaps.entries())
+    assert.ok(
+      gap > closedGaps[i],
+      `vão ${i} não cresceu (${closedGaps[i]} → ${gap})`,
+    );
+});
+void test('exploding one module does not drag its neighbours sideways', () => {
+  // Dois módulos lado a lado: separar as peças de um não pode deslocar o
+  // outro em bloco, que era o efeito de explodir em torno da origem.
+  const d = applyModularOp(
+    { schemaVersion: 3, profile: PROFILE, modules: [preset('shelf', 'a')], connections: [] },
+    { kind: 'module.add', id: 'b', preset: 'shelf' },
+  );
+  const parts = generateComposition(d).parts;
+  const centres = moduleCentres(parts);
+  assert.equal(centres.size, 2);
+  const aCentre = centres.get('a')!,
+    bCentre = centres.get('b')!;
+  const drift = (moduleId: string) => {
+    const own = parts.filter(
+      (p) => (p as { owners?: string[] }).owners?.[0] === moduleId,
+    );
+    const centre = centres.get(moduleId)!;
+    const mean = (exploded: boolean) =>
+      own.reduce(
+        (sum, p) => sum.add(visualPosition(p, centre, exploded)),
+        new THREE.Vector3(),
+      ).divideScalar(own.length);
+    return mean(true).sub(mean(false));
+  };
+  // O deslocamento médio de um módulo é o simétrico do outro em X.
+  const a = drift('a'),
+    b = drift('b');
+  assert.ok(Math.abs(a.x - b.x) < 300, `deslocamento de a=${a.x}, b=${b.x}`);
+  assert.ok(bCentre.x > aCentre.x);
+  assert.equal(d.modules.length, 2);
+});
 void test('exploded positions and colors transition; reduced motion applies immediately', () => {
   const motion = new FurnitureMotion(new THREE.Scene());
   const design = migrateParams(defaults);
   motion.update(generateDesign(design).parts, design, false, [], 0);
   const before = motion.entries.get('back')!.mesh.position.z,
-    parts = generateDesign(design).parts;
+    parts = generateDesign(design).parts,
+    centre = moduleCentres(parts).get(
+      (parts.find((p) => p.id === 'back') as { owners?: string[] }).owners?.[0] ??
+        'módulo',
+    )!,
+    target = visualPosition(
+      parts.find((p) => p.id === 'back')!,
+      centre,
+      true,
+    );
   motion.update(parts, design, true, ['back'], 100);
   motion.tick(100 + TRANSITION_MS / 2);
-  assert.equal(motion.entries.get('back')!.mesh.position.z, before - 140);
+  // O ponto médio é a interpolação suave entre fechado e explodido.
+  assert.ok(
+    motion.entries.get('back')!.mesh.position.z < before &&
+      motion.entries.get('back')!.mesh.position.z > target.z,
+  );
   motion.tick(100 + TRANSITION_MS);
   assert.deepEqual(
     motion.entries.get('back')!.mesh.position.toArray(),
-    visualPosition(
-      parts.find((p) => p.id === 'back')!,
-      defaults.height,
-      true,
-    ).toArray(),
+    target.toArray(),
   );
   motion.update(parts, design, false, [], 1000, true);
   assert.equal(motion.entries.get('back')!.mesh.position.z, before);

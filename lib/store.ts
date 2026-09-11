@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { defaults, type Params } from './furniture';
@@ -15,7 +15,8 @@ import {
   setGapBelow,
   type Design,
   type ShelfOp,
-} from './design';
+} from './studio';
+import { canonical, normalize, executeRequest } from './studio';
 export type TurnContext = {
   requestId: string;
   baseRevisionId: string;
@@ -25,8 +26,9 @@ export type TurnContext = {
 export type TurnResult = {
   outcome: import('./progress').TurnOutcome;
   resultRevisionId: string;
-  appliedOperations: import('./design').ShelfOp[];
+  appliedOperations: import('./studio').ShelfOp[];
   changes: string[];
+  attemptedOperations?: import('./studio').ShelfOp[];
 };
 export type ClarificationOption = {
   id: string;
@@ -39,7 +41,7 @@ export type Clarification = {
   baseRevisionId: string;
   options: ClarificationOption[];
   /** Intenção original preservada: ops com lacuna + texto do pedido. */
-  pendingOps?: import('./design').ShelfOp[];
+  pendingOps?: import('./studio').ShelfOp[];
   pendingMessage?: string;
 };
 export type Message = {
@@ -82,18 +84,42 @@ function database() {
     db.exec(
       'PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, body TEXT NOT NULL, version INTEGER NOT NULL, updated TEXT NOT NULL)',
     );
+    const legacyRows = db
+      .prepare(
+        "SELECT count(*) AS n FROM projects WHERE EXISTS (SELECT 1 FROM json_each(body, '$.revisions') r WHERE json_extract(r.value, '$.params.schemaVersion') IS NOT 3)",
+      )
+      .get() as { n: number };
+    if (legacyRows.n && !existsSync(join(dir, 'merce-before-modules.sqlite'))) {
+      const backup = join(dir, 'merce-before-modules.sqlite').replaceAll(
+        "'",
+        "''",
+      );
+      db.exec(`VACUUM INTO '${backup}'`);
+    }
   }
   return db;
 }
 export function list() {
   return (
     database()
-      .prepare('SELECT body FROM projects ORDER BY updated DESC')
-      .all() as { body: string }[]
+      .prepare('SELECT body, updated FROM projects ORDER BY updated DESC')
+      .all() as { body: string; updated: string }[]
   ).map((r) => {
     const p = JSON.parse(r.body) as Project;
-    return { id: p.id, name: p.name };
+    return {
+      id: p.id,
+      name: p.name,
+      updated: r.updated,
+      revisions: p.revisions.length,
+      version: p.cursor + 1,
+    };
   });
+}
+/** Apaga o projeto e o histórico dele. Não há lixeira: a ação é definitiva. */
+export function remove(id: string) {
+  const r = database().prepare('DELETE FROM projects WHERE id=?').run(id);
+  if (!r.changes) throw new Error('Projeto não encontrado.');
+  return { ok: true as const, removed: id };
 }
 export function get(id: string) {
   const r = database()
@@ -111,9 +137,13 @@ export function get(id: string) {
       : migrateParams(raw as Params);
     if (!rev.id) rev.id = `legacy-${rev.number}`;
   }
-  for (const m of p.messages) {
-    if (!m.id) m.id = `legacy-${randomUUID()}`;
-    if (m.revision !== undefined && !m.revisionId) m.revisionId = `legacy-${m.revision}`;
+  for (const [index, m] of p.messages.entries()) {
+    if (!m.id) m.id = `legacy-message-${index}`;
+    if (m.revision !== undefined && !m.revisionId) {
+      const matches = p.revisions.filter((r) => r.number === m.revision);
+      m.revisionId =
+        matches.length === 1 ? matches[0].id : `legacy-${m.revision}`;
+    }
   }
   return p;
 }
@@ -143,7 +173,7 @@ export function create() {
   };
   database()
     .prepare('INSERT INTO projects VALUES (?, ?, ?, ?)')
-    .run(p.id, JSON.stringify(p), 0, new Date().toISOString());
+    .run(p.id, encode(p), 0, new Date().toISOString());
   return view(p);
 }
 export function createDemo() {
@@ -160,7 +190,8 @@ export function createDemo() {
       label: 'Largura para 100 cm',
       op: (d) => resizeDesign(d, { width: 1000 }),
       user: 'Aumente a largura para 1 metro.',
-      reply: 'Largura ajustada para 100 cm. As demais medidas foram preservadas.',
+      reply:
+        'Largura ajustada para 100 cm. As demais medidas foram preservadas.',
     },
     {
       label: 'Altura para 200 cm',
@@ -184,7 +215,8 @@ export function createDemo() {
       label: 'Vão inferior de 450 mm',
       op: (d) => setGapBelow(d, 'sh-1', 450),
       user: 'Deixe o vão de baixo com 45 cm.',
-      reply: 'Vão inferior definido em 450 mm. As demais prateleiras foram preservadas.',
+      reply:
+        'Vão inferior definido em 450 mm. As demais prateleiras foram preservadas.',
     },
   ];
   const revisions: Revision[] = [
@@ -219,8 +251,20 @@ export function createDemo() {
   ];
   for (const [i, step] of steps.entries()) {
     const rev = revisions[i + 1];
-    messages.push({ id: randomUUID(), role: 'user', content: step.user, revisionId: rev.id, revision: rev.number });
-    messages.push({ id: randomUUID(), role: 'assistant', content: step.reply, revisionId: rev.id, revision: rev.number });
+    messages.push({
+      id: randomUUID(),
+      role: 'user',
+      content: step.user,
+      revisionId: rev.id,
+      revision: rev.number,
+    });
+    messages.push({
+      id: randomUUID(),
+      role: 'assistant',
+      content: step.reply,
+      revisionId: rev.id,
+      revision: rev.number,
+    });
   }
   const p: Project = {
     id: randomUUID(),
@@ -232,7 +276,7 @@ export function createDemo() {
   };
   database()
     .prepare('INSERT INTO projects VALUES (?, ?, ?, ?)')
-    .run(p.id, JSON.stringify(p), 0, new Date().toISOString());
+    .run(p.id, encode(p), 0, new Date().toISOString());
   return view(p);
 }
 export function save(p: Project, expected: number) {
@@ -241,13 +285,7 @@ export function save(p: Project, expected: number) {
     .prepare(
       'UPDATE projects SET body=?, version=?, updated=? WHERE id=? AND version=?',
     )
-    .run(
-      JSON.stringify(p),
-      p.version,
-      new Date().toISOString(),
-      p.id,
-      expected,
-    );
+    .run(encode(p), p.version, new Date().toISOString(), p.id, expected);
   if (!r.changes)
     throw new Error(
       'O projeto mudou em outra janela. Recarregue antes de editar.',
@@ -264,11 +302,17 @@ export function view(p: Project) {
 export function revise(p: Project, params: Design, label: string) {
   generateDesign(params);
   p.revisions = p.revisions.slice(0, p.cursor + 1);
+  // Dois rótulos iguais na lista de versões são indistinguíveis ("Adicionar
+  // módulo" duas vezes). O sufixo mantém cada linha identificável.
+  const base = label.trim().slice(0, 90) || 'Ajuste de parâmetros';
+  const taken = new Set(p.revisions.map((r) => r.label));
+  let name = base;
+  for (let i = 2; taken.has(name); i++) name = `${base} (${i})`;
   p.revisions.push({
     id: randomUUID(),
     number: p.revisions.length + 1,
     params,
-    label,
+    label: name,
     at: new Date().toISOString(),
   });
   p.cursor = p.revisions.length - 1;
@@ -301,7 +345,11 @@ export function fork(id: string, cursor: number, name: string) {
     messages: src.messages.filter(
       (m) => m.revisionId !== undefined && keep.has(m.revisionId),
     ),
-    origin: { fromId: src.id, revision: base.number, at: new Date().toISOString() },
+    origin: {
+      fromId: src.id,
+      revision: base.number,
+      at: new Date().toISOString(),
+    },
   };
   p.messages.push({
     id: randomUUID(),
@@ -312,7 +360,7 @@ export function fork(id: string, cursor: number, name: string) {
   });
   database()
     .prepare('INSERT INTO projects VALUES (?, ?, ?, ?)')
-    .run(p.id, JSON.stringify(p), 0, new Date().toISOString());
+    .run(p.id, encode(p), 0, new Date().toISOString());
   return view(p);
 }
 export function applyShelfOp(p: Project, op: ShelfOp, label: string) {
@@ -322,17 +370,21 @@ export function applyShelfOp(p: Project, op: ShelfOp, label: string) {
   revise(p, after, label);
   return false;
 }
+function encode(p: Project) {
+  return JSON.stringify({
+    ...p,
+    revisions: p.revisions.map((r) => ({
+      ...r,
+      params: canonical(normalize(r.params)),
+    })),
+  });
+}
 /** Resultado de um turno aplicado de forma atômica sobre uma cópia. */
 export function applyRequest(p: Project, ops: ShelfOp[], label: string) {
   const before = p.revisions[p.cursor].params;
-  let current = before;
-  for (const op of ops) {
-    try {
-      current = applyOp(current, op);
-    } catch (e) {
-      return { ok: false as const, error: (e as Error).message };
-    }
-  }
+  const result = executeRequest(before, ops);
+  if (!result.ok) return result;
+  const current = result.design;
   if (JSON.stringify(current) === JSON.stringify(before))
     return { ok: true as const, noop: true as const, design: current };
   revise(p, current, label);

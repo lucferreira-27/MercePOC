@@ -1,3 +1,4 @@
+import { resizeDesign as resizeStudio } from '../lib/studio';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -125,7 +126,7 @@ void test('persistence, undo/redo, branching and optimistic locking', () => {
   let raw = get(p.id);
   const seedWidth = raw.revisions[raw.cursor].params.width;
   const firstWidth = raw.revisions[0].params.width;
-  revise(raw, resizeDesign(raw.revisions[raw.cursor].params, { width: 1000 }), 'Resize');
+  revise(raw, resizeStudio(raw.revisions[raw.cursor].params, { width: 1000 }), 'Resize');
   save(raw, 0);
   assert.equal(get(p.id).version, 1);
   assert.equal(view(get(p.id)).params.width, 1000);
@@ -140,7 +141,7 @@ void test('persistence, undo/redo, branching and optimistic locking', () => {
   assert.equal(view(get(p.id)).params.width, 1000);
   raw = get(p.id);
   raw.cursor = 0;
-  revise(raw, resizeDesign(raw.revisions[raw.cursor].params, { depth: 450 }), 'Branch');
+  revise(raw, resizeStudio(raw.revisions[raw.cursor].params, { depth: 450 }), 'Branch');
   save(raw, 3);
   assert.equal(get(p.id).revisions.length, 2);
   assert.equal(view(get(p.id)).params.width, firstWidth);

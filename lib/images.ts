@@ -10,6 +10,7 @@ type SharpSource = {
   metadata(): Promise<{ format?: string; pages?: number }>;
   rotate(): SharpSource;
   resize(options: { width: number; height: number; fit: 'inside'; withoutEnlargement: boolean }): SharpSource;
+  jpeg(options?: { quality?: number }): SharpSource;
   webp(options: { quality: number }): SharpSource;
   toBuffer(): Promise<Buffer>;
 };
@@ -50,4 +51,9 @@ export async function getImage(id: string): Promise<ImageRef> {
     throw new Error('Imagem não encontrada.');
   }
 }
-export async function imageDataUrl(id: string) { return 'data:image/webp;base64,' + (await imageBytes(id)).toString('base64'); }
+export async function imageDataUrl(id: string, format: 'webp' | 'jpeg' = 'webp') {
+  if (format === 'webp')
+    return 'data:image/webp;base64,' + (await imageBytes(id)).toString('base64');
+  const jpeg = await sharp(await imageBytes(id)).jpeg({ quality: 85 }).toBuffer();
+  return 'data:image/jpeg;base64,' + jpeg.toString('base64');
+}

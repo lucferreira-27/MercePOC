@@ -3,9 +3,15 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { Part } from '@/lib/furniture';
-import type { Design } from '@/lib/design';
-import { FurnitureMotion, ease, SCRUB_MS, TRANSITION_MS } from '@/lib/furniture-motion';
-import { gapsOf, shelfInfos } from '@/lib/design';
+import type { Design } from '@/lib/studio';
+import { generateComposition } from '@/lib/composition';
+import {
+  FurnitureMotion,
+  SPREAD_MM,
+  ease,
+  SCRUB_MS,
+  TRANSITION_MS,
+} from '@/lib/furniture-motion';
 type CameraMove = {
   from: THREE.Vector3;
   to: THREE.Vector3;
@@ -20,7 +26,7 @@ type Runtime = {
   controls: OrbitControls;
   reduced: MediaQueryList;
   move?: CameraMove;
-  view?: { height: number; width: number; mode: ViewMode };
+  view?: { height: number; width: number; depth: number; mode: ViewMode };
 };
 export default function FurnitureView({
   params,
@@ -31,7 +37,6 @@ export default function FurnitureView({
   view,
   spin = false,
   scrub = false,
-  dims = false,
 }: {
   params: Design;
   parts: Part[];
@@ -43,7 +48,12 @@ export default function FurnitureView({
   scrub?: boolean;
   dims?: boolean;
 }) {
-  const [hover, setHover] = useState<{ id: string; x: number; y: number; flip: boolean } | null>(null);
+  const [hover, setHover] = useState<{
+    id: string;
+    x: number;
+    y: number;
+    flip: boolean;
+  } | null>(null);
   const host = useRef<HTMLDivElement>(null),
     callback = useRef(onSelect),
     runtime = useRef<Runtime | null>(null);
@@ -224,8 +234,22 @@ export default function FurnitureView({
   useEffect(() => {
     const s = runtime.current;
     if (!s) return;
-    const scale = Math.max(params.height, params.width * 1.5),
-      target = new THREE.Vector3(0, params.height / 2, 0);
+    const box = generateComposition(params).bounds;
+    // O explodido afasta cada peça do centro do seu módulo: enquadrar pelo
+    // tamanho canônico deixava o tampo fora do quadro e sob o selo de medidas.
+    // O peso extra no eixo vertical evita que a peça de baixo fique atrás da
+    // barra de controles flutuante.
+    const growth = exploded ? SPREAD_MM * 2 : 0;
+    const scale = Math.max(
+        params.height + growth * 1.5,
+        (params.width + growth) * 1.5,
+        (params.depth + growth) * 1.5,
+      ),
+      target = new THREE.Vector3(
+        (box.min[0] + box.max[0]) / 2,
+        params.height / 2,
+        (box.min[2] + box.max[2]) / 2,
+      );
     let to: THREE.Vector3;
     if (!s.view || s.view.mode !== view) {
       if (view === 'front')
@@ -235,18 +259,22 @@ export default function FurnitureView({
       else if (view === 'top')
         to = new THREE.Vector3(0, params.height / 2 + scale * 2.2, 0.02);
       else
-        to = new THREE.Vector3(
-          scale * 1.05,
-          params.height * 0.7,
-          scale * 2.15,
-        );
+        to = new THREE.Vector3(scale * 1.05, params.height * 0.7, scale * 2.15);
     } else {
-      const previousScale = Math.max(s.view.height, s.view.width * 1.5);
+      const previousScale = Math.max(
+        s.view.height,
+        s.view.width * 1.5,
+        s.view.depth * 1.5,
+      );
       to = s.camera.position
         .clone()
         .sub(s.controls.target)
         .multiplyScalar(scale / previousScale)
         .add(target);
+    }
+    if (!s.view || s.view.mode !== view) {
+      to.x += target.x;
+      to.z += target.z;
     }
     if (!s.view || s.reduced.matches || scrub) {
       s.camera.position.copy(to);
@@ -262,12 +290,14 @@ export default function FurnitureView({
         started: performance.now(),
       };
     }
-    s.view = { height: params.height, width: params.width, mode: view };
-  }, [params.height, params.width, view, scrub]);
+    s.view = {
+      height: params.height,
+      width: params.width,
+      depth: params.depth,
+      mode: view,
+    };
+  }, [params, view, scrub, exploded]);
   const hoveredPart = hover ? parts.find((v) => v.id === hover.id) : undefined;
-  const infos = shelfInfos(params);
-  const selectedShelves = new Set(selected.filter((id) => infos.some((s) => s.id === id)));
-  const gaps = gapsOf(params);
   return (
     <div
       ref={host}
@@ -292,21 +322,6 @@ export default function FurnitureView({
           </span>
           <small>{hoveredPart.material}</small>
         </div>
-      )}
-      {dims && (
-        <ol className="gap-dims" aria-label="Alturas livres dos vãos em milímetros">
-          {gaps.map((g, i) => {
-            const below = i === 0 ? null : infos[i - 1].id;
-            const above = i === gaps.length - 1 ? null : infos[i].id;
-            const hot = (below && selectedShelves.has(below)) || (above && selectedShelves.has(above));
-            const label = i === 0 ? 'base' : i === gaps.length - 1 ? 'tampo' : `${infos[i - 1].label} ↔ ${infos[i].label}`;
-            return (
-              <li key={i} className={hot ? 'hot' : ''} title={`Vão ${i + 1}: ${label}`}>
-                {Math.round(g)} mm
-              </li>
-            );
-          })}
-        </ol>
       )}
     </div>
   );

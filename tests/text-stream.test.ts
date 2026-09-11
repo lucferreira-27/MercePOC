@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readStringField } from '../lib/partial-json';
 import { interpretStream } from '../lib/gateway';
-import { migrateParams } from '../lib/design';
+import { migrateParams } from '../lib/studio';
 import type { TextPreview } from '../lib/progress';
 void test('partial JSON extracts only requested public top-level strings', () => {
   assert.equal(

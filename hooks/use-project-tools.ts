@@ -1,5 +1,7 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import { z } from 'zod';
+import { opSchema } from '@/lib/studio';
 type Context = {
   registerTool: (
     tool: {
@@ -41,24 +43,8 @@ export function useProjectTools(
       {
         name: 'update_furniture_parameters',
         description:
-          'Aplica uma operação de prateleira ou redimensionamento na estante aberta, valida e salva uma revisão.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            kind: { type: 'string', enum: ['move', 'gap', 'distribute', 'add', 'remove', 'resize'] },
-            ids: { type: 'array', items: { type: 'string' } },
-            id: { type: 'string' },
-            deltaMm: { type: 'number' },
-            gapMm: { type: 'number' },
-            gap: { type: 'integer' },
-            width: { type: 'number', minimum: 300, maximum: 1200 },
-            height: { type: 'number', minimum: 400, maximum: 2400 },
-            depth: { type: 'number', minimum: 200, maximum: 600 },
-            materialId: { type: 'string', enum: ['white', 'oak', 'graphite'] },
-          },
-          required: ['kind'],
-          additionalProperties: false,
-        },
+          'Edita módulos, compartimentos, frentes e conexões, valida e salva uma revisão.',
+        inputSchema: z.toJSONSchema(opSchema),
         annotations: { readOnlyHint: false },
         execute: (input: unknown) => callbacks.current.edit(input),
       },

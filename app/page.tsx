@@ -11,7 +11,6 @@ import {
   ArrowUp,
   Box,
   Check,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -25,6 +24,7 @@ import {
   Square,
   Undo2,
   X,
+  Zap,
 } from 'lucide-react';
 import { useProjectTools } from '@/hooks/use-project-tools';
 import { Button } from '@/components/ui/button';
@@ -41,9 +41,13 @@ import {
   shelfInfos,
   type Design,
   type ShelfOp,
-} from '@/lib/design';
-import { materials, type Part } from '@/lib/furniture';
+} from '@/lib/studio';
+import { type Part } from '@/lib/furniture';
 import type { Project, Message } from '@/lib/store';
+import { ModularEditor } from '@/components/modular-editor';
+import { ProjectPicker, type ProjectSummary } from '@/components/project-picker';
+import { entityIds, canonical, selectedPartIds } from '@/lib/studio';
+import { openingLimit, openingPose, type ModularPart } from '@/lib/composition';
 type State = Project & {
   params: Design;
   parts: Part[];
@@ -51,6 +55,7 @@ type State = Project & {
   warnings: string[];
   area: number;
   selected?: string[];
+  viewAction?:{ids:string[];open:boolean};
 };
 function dotLeft(i: number, max: number) {
   return `${((i / Math.max(1, max)) * 100).toFixed(2)}%`;
@@ -78,9 +83,76 @@ function download(name: string, content: string, type = 'application/json') {
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+/** Centímetros com no máximo uma casa, sem zeros à direita: 80 ou 158.2. */
+function cm(millimetres: number) {
+  return String(Number((millimetres / 10).toFixed(1)));
+}
+/**
+ * Milímetros para exibição: a divisão de um vão pode dar 185.33333 mm e a
+ * tabela não deve mostrar a dízima inteira. Duas casas bastam para cortar.
+ */
+function mm(millimetres: number) {
+  return String(Math.round(millimetres * 100) / 100);
+}
+/**
+ * Agrupa peças idênticas para a folha impressa: quatro prateleiras iguais são
+ * uma linha com quantidade 4, não quatro linhas com quantidade 1.
+ */
+function groupParts(parts: Part[]) {
+  const rows = new Map<
+    string,
+    {
+      key: string;
+      name: string;
+      count: number;
+      duplicates: number;
+      c: number;
+      l: number;
+      thickness: number;
+      material: string;
+      area: number;
+    }
+  >();
+  for (const part of parts) {
+    const key = [part.name, part.c, part.l, part.thickness, part.material].join(
+      '|',
+    );
+    const row = rows.get(key);
+    if (row) {
+      row.count += 1;
+      row.duplicates += 1;
+      row.area += (part.c * part.l) / 1_000_000;
+    } else
+      rows.set(key, {
+        key,
+        name: part.name,
+        count: 1,
+        duplicates: 1,
+        c: part.c,
+        l: part.l,
+        thickness: part.thickness,
+        material: part.material,
+        area: (part.c * part.l) / 1_000_000,
+      });
+  }
+  return [...rows.values()];
+}
+/**
+ * Falhas de rede chegam como TypeError ("Failed to fetch") ou "network error"
+ * do motor do navegador. A interface é em português: traduzir na fronteira.
+ */
+function friendlyError(e: unknown) {
+  const message = e instanceof Error ? e.message : String(e);
+  if (/failed to fetch|network error|load failed|fetch failed|err_/i.test(message))
+    return 'Sem conexão com o estúdio local. Verifique se o servidor está rodando e tente novamente.';
+  if (/aborted|abort/i.test(message) && !/timeout/i.test(message))
+    return 'A conexão foi interrompida antes da resposta. Tente novamente.';
+  return message || 'Não foi possível concluir.';
+}
 export default function Home() {
+  const [opened,setOpened] = useState<Record<string,number>>({});
   const [p, setP] = useState<State | null>(null),
-    [projects, setProjects] = useState<{ id: string; name: string }[]>([]),
+    [projects, setProjects] = useState<ProjectSummary[]>([]),
     [text, setText] = useState(''),
     [pending, setPending] = useState(''),
     [progress, setProgress] = useState<Progress[]>([]),
@@ -93,7 +165,6 @@ export default function Home() {
     [spin, setSpin] = useState(false),
     [tab, setTab] = useState('params'),
     [exportOpen, setExportOpen] = useState(false),
-    [draft, setDraft] = useState<Design | null>(null),
     [online, setOnline] = useState(false),
     [shelfDelta, setShelfDelta] = useState('50'),
     [gapTarget, setGapTarget] = useState(''),
@@ -105,7 +176,8 @@ export default function Home() {
     [forkName, setForkName] = useState(''),
     [uploading, setUploading] = useState(false),
     [historyPreview, setHistoryPreview] = useState<number | null>(null),
-    [scrubbing, setScrubbing] = useState(false);
+    [scrubbing, setScrubbing] = useState(false),
+    [fast, setFast] = useState(false);
   const scrubCancelled = useRef(false);
   const previewFrame = useRef(0);
   const previewFallback = useRef<number | undefined>(undefined);
@@ -131,6 +203,58 @@ export default function Home() {
     previewFallback.current = window.setTimeout(applyPendingPreview, 60);
   };
   const fileInput = useRef<HTMLInputElement>(null);
+  const composer = useRef<HTMLTextAreaElement>(null);
+  const exportWrap = useRef<HTMLDivElement>(null);
+  /** Um clique fora fecha o menu; sem isso ele cobria as abas do inspetor. */
+  useEffect(() => {
+    if (!exportOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (!exportWrap.current?.contains(e.target as Node)) setExportOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setExportOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [exportOpen]);
+  async function openProject(id: string) {
+    setBusy(true);
+    setError('');
+    setExportOpen(false);
+    try {
+      accept(await api('/api/projects?id=' + id));
+      setSelected([]);
+    } catch (e) {
+      setError(friendlyError(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function removeProject(id: string) {
+    setBusy(true);
+    setError('');
+    try {
+      await api('/api/projects', { id, version: 0, action: 'delete' });
+      const left = await api<ProjectSummary[]>('/api/projects');
+      setProjects(left);
+      // Apagar o projeto aberto cai no vizinho; apagar o último cria um novo.
+      if (id === p?.id)
+        accept(
+          left.length
+            ? await api('/api/projects?id=' + left[0].id)
+            : await api('/api/projects', { action: 'create' }),
+        );
+      await refresh();
+    } catch (e) {
+      setError(friendlyError(e));
+    } finally {
+      setBusy(false);
+    }
+  }
   const visualParams = p?.revisions[historyPreview ?? p.cursor].params;
   const previewChanges = useMemo(
     () =>
@@ -154,7 +278,18 @@ export default function Home() {
     return historyPreview === null || historyPreview === p.cursor ? p.parts : generateDesign(rev.params).parts;
   }, [p, historyPreview]);
   const historyCount = p?.revisions.length ?? 0;
-  const historyMax = Math.max(1, historyCount - 1);
+  const displayParts=useMemo(()=>visualParts.map(part=>openingPose(part as ModularPart,historyPreview!==null?0:opened[(part as ModularPart).motion?.id??'']??0)),[visualParts,opened,historyPreview]);
+  const displaySelected=visualParams?selectedPartIds(visualParams,selected):[];
+  const [viewNotice,setViewNotice]=useState('');
+  const historyMax=Math.max(0,historyCount-1);
+  function toggleOpening(id:string){
+    if(historyPreview!==null)return;
+    setViewNotice('');
+    if(opened[id]){const fraction=openingLimit(visualParts as ModularPart[],id,opened,opened[id],0);setOpened(prev=>({...prev,[id]:fraction}));if(fraction>0)setViewNotice('Fechamento limitado por outra peça aberta. Feche-a primeiro.');return;}
+    const fraction=openingLimit(visualParts as ModularPart[],id,opened);
+    setOpened(prev=>({...prev,[id]:fraction}));
+    if(fraction<1)setViewNotice(fraction===0?'Abertura bloqueada por outra peça.':'Abertura limitada para evitar colisão com outra peça.');
+  }
   const historyView = historyPreview ?? p?.cursor ?? 0;
   const messages = useRef<HTMLDivElement>(null);
   const [pinnedToBottom, setPinnedToBottom] = useState(true);
@@ -181,22 +316,31 @@ export default function Home() {
     if (idx < 0) return { status: 'dropped' as const };
     return { status: 'found' as const, cursor: idx, revision: p.revisions[idx] };
   };
+  const acceptedState=useRef({p,opened});
+  useEffect(()=>{acceptedState.current={p,opened};},[p,opened]);
   const accept = (d: State) => {
     setP(d);
     setHistoryPreview(null);
-    setDraft(d.params);
+
+    const previous=acceptedState.current;
+    const sameRevision=previous.p?.id===d.id&&previous.p.revisions[previous.p.cursor].id===d.revisions[d.cursor].id;
+    const nextOpen:Record<string,number>=sameRevision?{...previous.opened}:{};
+    let blocked=false;
+    if(d.viewAction){const all=d.parts as ModularPart[];const action=d.viewAction;const resolvedParts=selectedPartIds(d.params,action.ids);const groups=new Set(all.filter(part=>part.motion&&(resolvedParts.includes(part.id)||action.ids.includes(part.motion.id))).map(part=>part.motion!.id));for(const group of groups){const target=action.open?1:0;nextOpen[group]=openingLimit(all,group,nextOpen,nextOpen[group]??0,target);if(Math.abs(nextOpen[group]-target)>1e-5)blocked=true;}}
+    setOpened(nextOpen);
+    setViewNotice(blocked?'Alguns movimentos foram limitados para evitar colisões.':'');
     if (d.selected?.length)
-      setSelected(d.selected.filter((id) => d.parts.some((v) => v.id === id)));
-    else setSelected((s) => s.filter((id) => d.parts.some((v) => v.id === id)));
+      setSelected(d.selected.filter((id) => entityIds(d.params).includes(id)));
+    else setSelected((s) => s.filter((id) => entityIds(d.params).includes(id)));
   };
   const toggleSelected = (id: string) =>
     setSelected((s) => (s.includes(id) ? s.filter((v) => v !== id) : [...s, id]));
   const refresh = async () =>
-    setProjects(await api<{ id: string; name: string }[]>('/api/projects'));
+    setProjects(await api<ProjectSummary[]>('/api/projects'));
   useEffect(() => {
     void (async () => {
       try {
-        const all = await api<{ id: string; name: string }[]>('/api/projects');
+        const all = await api<ProjectSummary[]>('/api/projects');
         setProjects(all);
         accept(
           all.length
@@ -207,7 +351,7 @@ export default function Home() {
         const h = await api<{ configured: boolean }>('/api/health');
         setOnline(h.configured);
       } catch (e) {
-        setError((e as Error).message);
+        setError(friendlyError(e));
       }
     })();
   }, []);
@@ -243,6 +387,35 @@ export default function Home() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [scrubbing]);
+  /** Ctrl/Cmd+Z e Shift+Z: os botões existiam, o atalho não. */
+  const undoRedo = useRef({ undo: () => {}, redo: () => {} });
+  // Sem lista de dependências: o ref sempre aponta para o estado do render
+  // atual, e o listener é registrado uma única vez.
+  useEffect(() => {
+    undoRedo.current = {
+      undo: () => {
+        if (!busy && p && p.cursor > 0) void action('undo');
+      },
+      redo: () => {
+        if (!busy && p && p.cursor < p.revisions.length - 1) void action('redo');
+      },
+    };
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      const key = e.key.toLowerCase();
+      if (key !== 'z' && key !== 'y') return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA'))
+        return;
+      e.preventDefault();
+      if (key === 'y' || e.shiftKey) undoRedo.current.redo();
+      else undoRedo.current.undo();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   async function action(action: string, extra: object = {}) {
     if (busy) return;
     setBusy(true);
@@ -258,7 +431,7 @@ export default function Home() {
       );
       await refresh();
     } catch (e) {
-      setError((e as Error).message);
+      setError(friendlyError(e));
     } finally {
       setBusy(false);
       setHistoryPreview(null);
@@ -268,11 +441,19 @@ export default function Home() {
     if (busy || !p) return;
     setBusy(true);
     setError('');
+    const before = p.params.modules.map((m) => m.id);
     try {
-      accept(await api('/api/projects', { id: p.id, version: p.version, action: 'op', op: operation, label }));
+      const next = await api<State>('/api/projects', { id: p.id, version: p.version, action: 'op', op: operation, label });
+      accept(next);
+      // Um módulo novo passa a ser a seleção: sem isso o painel continuava
+      // mostrando o módulo anterior e o recém-criado parecia inexistente.
+      if (operation.kind === 'module.add' || operation.kind === 'module.duplicate') {
+        const added = next.params.modules.map((m) => m.id).filter((id) => !before.includes(id));
+        if (added.length) setSelected(added);
+      }
       await refresh();
     } catch (e) {
-      setError((e as Error).message);
+      setError(friendlyError(e));
     } finally {
       setBusy(false);
       setHistoryPreview(null);
@@ -291,7 +472,7 @@ export default function Home() {
       accept(created);
       await refresh();
     } catch (e) {
-      setError((e as Error).message);
+      setError(friendlyError(e));
     } finally {
       setBusy(false);
       setHistoryPreview(null);
@@ -404,7 +585,7 @@ export default function Home() {
       const result = await response.json() as ImageRef & { error?: string };
       if (!response.ok) throw new Error(result.error || 'Não foi possível anexar a imagem.');
       setAttachment(result);
-    } catch (e) { setError((e as Error).message); }
+    } catch (e) { setError(friendlyError(e)); }
     finally { setBusy(false); setUploading(false); }
   }
   function seekVersion(cursor: number) {
@@ -453,7 +634,7 @@ export default function Home() {
           imageId: sentImage?.id,
           selected,
           requestId,
-          ...(replyTo ? replyTo : {}),
+          fast,
         }),
       });
       if (!r.ok || !r.body) {
@@ -476,10 +657,14 @@ export default function Home() {
           'A conexão terminou antes da confirmação. Use “Tentar novamente” — se a resposta já foi salva, ela reaparece sem aplicar duas vezes.',
         );
     } catch (e) {
-      setError((e as Error).message);
-      // O rascunho em edição nunca é sobrescrito pela falha.
-      setFailedTurn({ text: message, image: sentImage, error: (e as Error).message, requestId });
-      if (!draftDuringWait.current) setText(message);
+      // Uma única superfície de erro para o turno: o cartão com "Tentar
+      // novamente". O aviso global fica para as ações de painel.
+      setFailedTurn({ text: message, image: sentImage, error: friendlyError(e), requestId });
+      if (draftDuringWait.current) {
+        setText(draftDuringWait.current);
+      } else if (!retry) {
+        setText(message);
+      }
       if (sentImage) setAttachment(sentImage);
     } finally {
       setPending('');
@@ -516,7 +701,20 @@ export default function Home() {
       }
     },
   );
-  const selectedNames = selected.map((id) => p?.parts.find((v) => v.id === id)?.name ?? id);
+  const selectedNames = selected.map((id) => p?.parts.find((v) => v.id === id)?.name ?? p?.params.modules.find(m=>m.id===id)?.name ?? (p ? generateDesign(p.params).cells.find(c=>c.id===id)?.label : null) ?? id);
+  const sheetRows = groupParts(p?.parts ?? []);
+  const areaM2 = sheetRows
+    .reduce((total, row) => total + row.area, 0)
+    .toFixed(2)
+    .replace('.', ',');
+  const targetPart=p?.parts.find(part=>part.id===selected[0]);
+  const targetCell=p?generateDesign(p.params).cells.find(c=>c.id===selected[0]||c.id===targetPart?.cellId):undefined;
+  const suggestions=selected.length>1?['Descreva os itens selecionados','Abra as frentes selecionadas']
+    :targetCell?.node.front||targetPart?.kind==='door'||targetPart?.kind==='drawer'?['Abra esta frente','Feche esta frente','Troque esta frente para grafite']
+    :p?.params.modules.some(m=>m.id===selected[0])?['Duplique este módulo','Gire este módulo em 90 graus','Mude este módulo para branco']
+    :targetCell&&!targetCell.node.split?['Divida este compartimento em duas colunas','Coloque duas portas neste compartimento','Coloque três gavetas neste compartimento']
+    :selected.length?['Distribua as divisões deste compartimento','Deixe 400 mm livres antes desta divisória']
+    :['Adicione um nicho à direita','Crie um gaveteiro de 80 × 90 × 45 cm','Descreva os módulos do projeto'];
   return (
     <main className="studio">
       <header className="topbar">
@@ -528,30 +726,13 @@ export default function Home() {
         </Link>
         <span className="divider" />
         <span className="workspace-label">Estúdio de móveis</span>
-        <div className="project-picker">
-          <select
-            aria-label="Projeto atual"
-            value={p?.id || ''}
-            disabled={busy}
-            onChange={async (e) => {
-              setBusy(true);
-              try {
-                accept(await api('/api/projects?id=' + e.target.value));
-              } catch (e) {
-                setError((e as Error).message);
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            {projects.map((v) => (
-              <option value={v.id} key={v.id}>
-                {v.name}
-              </option>
-            ))}
-          </select>
-          <ChevronDown size={14} />
-        </div>
+        <ProjectPicker
+          projects={projects}
+          current={p?.id}
+          disabled={busy}
+          onSelect={(id) => void openProject(id)}
+          onDelete={removeProject}
+        />
         <span className="saved">
           <Check size={14} /> Salvo neste computador
         </span>
@@ -563,9 +744,10 @@ export default function Home() {
           <Plus />
           Novo
         </Button>
-        <div className="export-wrap">
+        <div className="export-wrap" ref={exportWrap}>
           <Button
             className="export-button"
+            aria-expanded={exportOpen}
             onClick={() => setExportOpen(!exportOpen)}
             disabled={!p}
           >
@@ -575,37 +757,40 @@ export default function Home() {
           {exportOpen && p && (
             <div className="export-menu">
               <button
-                onClick={() =>
+                onClick={() => {
+                  setExportOpen(false);
                   download(
                     'merce-pecas.csv',
                     cutCSV(p.params),
                     'text/csv;charset=utf-8',
-                  )
-                }
+                  );
+                }}
               >
                 Lista de peças · CSV
               </button>
               <button
-                onClick={() =>
+                onClick={() => {
+                  setExportOpen(false);
                   download(
                     'merce-cortecloud.json',
                     JSON.stringify(cortecloud(p.params), null, 2),
-                  )
-                }
+                  );
+                }}
               >
                 Cortecloud · JSON
               </button>
               <button
-                onClick={() =>
+                onClick={() => {
+                  setExportOpen(false);
                   download(
                     'merce-projeto.json',
                     JSON.stringify(
-                      { schemaVersion: 1, template: 'open_bookcase_v1', ...p },
+                      { ...p, schemaVersion: 3, params:canonical(p.params), revisions:p.revisions.map(r=>({...r,params:canonical(r.params)})) },
                       null,
                       2,
                     ),
-                  )
-                }
+                  );
+                }}
               >
                 Projeto completo · JSON
               </button>
@@ -619,7 +804,7 @@ export default function Home() {
               </button>
               <small>
                 Arquivo Cortecloud experimental. Confira materiais e bordas na
-                importação.
+                importação. Não inclui ferragens, furação, instruções de montagem ou certificação de estabilidade.
               </small>
             </div>
           )}
@@ -799,25 +984,18 @@ export default function Home() {
                 Nova mensagem <ArrowUp size={12} />
               </button>
             )}
-            {error && (
-              <div className="error" role="alert">
-                {error}
-                {/mudou|desatualizado|Recarregue/i.test(error) && (
-                  <button onClick={() => window.location.reload()}>
-                    Recarregar projeto
-                  </button>
-                )}
-              </div>
-            )}
             {p && (
               <div className="suggestions">
-                {(selected.length > 1
-                  ? ['Mover juntas 50 mm', 'Remover selecionadas']
-                  : selected.length === 1
-                    ? ['Suba esta 5 cm', 'Quero 40 cm livres abaixo desta', 'Remova esta prateleira']
-                    : ['Aumente a largura para 1 metro', 'Distribua as prateleiras igualmente', 'Deixe o vão de baixo com 45 cm']
-                ).map((v) => (
-                  <button key={v} disabled={busy} onClick={() => { setText(v); }}>
+                {suggestions.map((v) => (
+                  <button
+                    key={v}
+                    disabled={busy}
+                    title="Escreve no campo abaixo; revise e envie"
+                    onClick={() => {
+                      setText(v);
+                      composer.current?.focus();
+                    }}
+                  >
                     {v}
                     <ArrowUp size={14} />
                   </button>
@@ -826,6 +1004,7 @@ export default function Home() {
             )}
           </div>
           <div className="composer-wrap">
+            {viewNotice&&<output className="opening-notice">{viewNotice}</output>}
             {selected.length > 0 && (
               <div className="selection-chip">
                 {selected.length === 1
@@ -840,11 +1019,18 @@ export default function Home() {
               </div>
             )}
             {error && (
-              <div className="error" role="alert">
-                {error}
-                <button onClick={() => window.location.reload()}>
-                  Recarregar projeto
-                </button>
+              <div className="error error-panel" role="alert">
+                <span>{error}</span>
+                <span className="error-actions">
+                  {/mudou|desatualizado|Recarregue/i.test(error) && (
+                    <button onClick={() => window.location.reload()}>
+                      Recarregar projeto
+                    </button>
+                  )}
+                  <button aria-label="Fechar aviso" onClick={() => setError('')}>
+                    <X size={13} />
+                  </button>
+                </span>
               </div>
             )}
             <form
@@ -858,6 +1044,7 @@ export default function Home() {
               {attachment && <div className="attachment-preview"><img src={attachment.url} alt={attachment.name} /><span>{attachment.name}</span><button type="button" disabled={busy} aria-label="Remover imagem" onClick={() => setAttachment(null)}><X size={16} /></button></div>}
               {uploading && <output className="upload-status">Preparando imagem…</output>}
               <textarea
+                ref={composer}
                 aria-label="Mensagem para o assistente"
                 placeholder="Descreva seu móvel ou uma alteração…"
                 value={text}
@@ -875,7 +1062,19 @@ export default function Home() {
                 }}
               />
               <div>
-                <Button type="button" variant="ghost" size="icon" disabled={busy || !p} title="Anexar imagem (JPG, PNG ou WebP, até 10 MB)" aria-label="Anexar imagem" onClick={() => fileInput.current?.click()}><ImagePlus /></Button><span>Imagem ou texto · Enter para enviar</span>
+                <Button type="button" variant="ghost" size="icon" disabled={busy || !p} title="Anexar imagem (JPG, PNG ou WebP, até 10 MB)" aria-label="Anexar imagem" onClick={() => fileInput.current?.click()}><ImagePlus /></Button>
+                <button
+                  type="button"
+                  className={'fast-toggle' + (fast ? ' on' : '')}
+                  disabled={busy}
+                  aria-pressed={fast}
+                  title={fast ? 'Modo rápido ativado (Qwen 3.8 27B via Cerebras)' : 'Ativar modo rápido (Qwen 3.8 27B via Cerebras)'}
+                  onClick={() => setFast((v) => !v)}
+                >
+                  <Zap size={14} />
+                  Rápido
+                </button>
+                <span>Imagem ou texto · Enter para enviar</span>
                 <Button
                   type="submit"
                   size="icon"
@@ -888,14 +1087,14 @@ export default function Home() {
             </form>
             <div className="model-label">
               <span className={online ? 'live-dot' : 'offline-dot'} />
-              GLM 5.3 Flash <span>via Merge Gateway</span>
+              {fast ? 'Qwen 3.8 27B' : 'GLM 5.3 Flash'} <span>{fast ? 'via Cerebras · modo rápido' : 'via Merge Gateway'}</span>
             </div>
           </div>
         </aside>
         <section className="viewport">
           <div className="viewport-heading">
             <div>
-              <span className="eyebrow">ESTANTE ABERTA</span>
+              <span className="eyebrow">COMPOSIÇÃO MODULAR</span>
               <h2>{p?.name || 'Minha estante'}</h2>
             </div>
             <span className="revision">Versão {p ? (historyPreview ?? p.cursor) + 1 : 1}{historyPreview !== null && p && historyPreview !== p.cursor ? ' · Prévia' : ''}{p && historyPreview === null && p.cursor < p.revisions.length - 1 ? ` · Editando a versão ${p.cursor + 1} (${p.revisions.length} salvas)` : ''}</span>
@@ -903,10 +1102,10 @@ export default function Home() {
           {p && (
             <FurnitureView
               params={visualParams!}
-              parts={visualParts}
+              parts={displayParts}
               scrub={scrubbing}
               dims={false}
-              selected={selected}
+              selected={displaySelected}
               onSelect={(id) => (id === null ? setSelected([]) : toggleSelected(id))}
               exploded={exploded}
               view={view}
@@ -953,7 +1152,13 @@ export default function Home() {
                   Explodir
                 </button>
                 <button
-                  className={spin ? 'active' : ''}
+                  className={spin ? 'rotating' : ''}
+                  aria-pressed={spin}
+                  title={
+                    spin
+                      ? 'Girar o modelo: ativo. Clique para parar.'
+                      : 'Girar o modelo continuamente'
+                  }
                   onClick={() => setSpin(!spin)}
                 >
                   <Orbit size={16} />
@@ -1089,17 +1294,17 @@ export default function Home() {
           {p && (
             <div className="dimension-summary">
               <span className={changed.has('width') ? 'changed' : ''}>
-                {visualParams!.width / 10}
+                {cm(visualParams!.width)}
                 <small>largura</small>
               </span>
               <b>×</b>
               <span className={changed.has('height') ? 'changed' : ''}>
-                {visualParams!.height / 10}
+                {cm(visualParams!.height)}
                 <small>altura</small>
               </span>
               <b>×</b>
               <span className={changed.has('depth') ? 'changed' : ''}>
-                {visualParams!.depth / 10}
+                {cm(visualParams!.depth)}
                 <small>profundidade</small>
               </span>
               <i>cm</i>
@@ -1122,118 +1327,9 @@ export default function Home() {
               </button>
             ))}
           </nav>
-          {p && draft && (
+          {p && (
             <div className="inspector-content">
-              {tab === 'params' && (
-                <>
-                  <div className="section-label">
-                    DIMENSÕES <span>milímetros</span>
-                  </div>
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      void op({ kind: 'resize', width: draft.width, height: draft.height, depth: draft.depth }, 'Ajuste de medidas');
-                    }}
-                  >
-                    <div className="fields">
-                      {(
-                        [
-                          ['width', 'Largura', 300, 1200],
-                          ['height', 'Altura', 400, 2400],
-                          ['depth', 'Profundidade', 200, 600],
-                        ] as const
-                      ).map(([key, label, min, max]) => (
-                        <label key={key}>
-                          {label}
-                          <input
-                            type="number"
-                            min={min}
-                            max={max}
-                            step={1}
-                            required
-                            value={draft[key]}
-                            disabled={busy}
-                            onChange={(e) =>
-                              setDraft({
-                                ...draft,
-                                [key]: Number(e.target.value),
-                              })
-                            }
-                          />
-                        </label>
-                      ))}
-                    </div>
-                    <Button
-                      type="submit"
-                      variant="outline"
-                      className="apply"
-                      disabled={
-                        busy ||
-                        JSON.stringify(draft) === JSON.stringify(p.params)
-                      }
-                    >
-                      Aplicar medidas
-                    </Button>
-                  </form>
-                  <div className="section-label">
-                    MATERIAL <span>MDF · 18 mm</span>
-                  </div>
-                  <div className="materials">
-                    {materials.map((m) => (
-                      <button
-                        key={m.id}
-                        className={p.params.materialId === m.id ? 'chosen' : ''}
-                        disabled={busy}
-                        onClick={() =>
-                          op({ kind: 'resize', materialId: m.id }, 'Troca de material')
-                        }
-                      >
-                        <span style={{ background: m.color }} />
-                        {m.name}
-                        {p.params.materialId === m.id && <Check size={14} />}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="section-label">RESUMO DO PROJETO</div>
-                  <div className="stats">
-                    <div>
-                      <strong>{p.parts.length}</strong>
-                      <span>peças</span>
-                    </div>
-                    <div>
-                      <strong>{p.area.toFixed(2).replace('.', ',')}</strong>
-                      <span>m² de peças</span>
-                    </div>
-                  </div>
-                  <div className="construction">
-                    <strong>Construção do modelo</strong>
-                    <p>
-                      Laterais inteiras · Fundo sobreposto de 6 mm · Prateleiras
-                      com 2 mm de folga lateral total.
-                    </p>
-                  </div>
-                  {p.warnings.map((w) => (
-                    <p className="warning" key={w}>
-                      {w}
-                    </p>
-                  ))}
-                  <label className="wide-field">
-                    Nome do projeto
-                    <input
-                      key={p.id + p.name}
-                      defaultValue={p.name}
-                      maxLength={80}
-                      disabled={busy}
-                      onBlur={(e) => {
-                        if (e.target.value.trim() && e.target.value !== p.name)
-                          void action('rename', {
-                            name: e.target.value.trim(),
-                          });
-                      }}
-                    />
-                  </label>
-                </>
-              )}
+              {tab === 'params' && <><ModularEditor design={visualParams!} selected={selected} onSelect={setSelected} onOp={op} busy={busy||historyPreview!==null} onOpen={toggleOpening} opened={opened}/><label className="wide-field">Nome do projeto<input key={p.id+p.name} defaultValue={p.name} maxLength={80} disabled={busy} onBlur={e=>{if(e.target.value.trim()&&e.target.value!==p.name)void action('rename',{name:e.target.value.trim()});}}/></label></>}
               {tab === 'parts' && p && (
                 <>
                   <div className="section-label">
@@ -1244,7 +1340,16 @@ export default function Home() {
                       </button>
                     )}
                   </div>
-                  <ShelfPanel />
+                  {p.params.modules.length===1 && p.params.modules[0].legacyIds ? (
+                    <ShelfPanel />
+                  ) : (
+                    <p className="shelf-hint">
+                      As ferramentas de prateleira desta versão valem para a
+                      estante única original. Neste projeto, use os comandos do
+                      compartimento em Ajustes: Dividir ↕ cria uma prateleira e
+                      Distribuir iguala os vãos.
+                    </p>
+                  )}
                   {p.parts.map((v) => (
                     <button
                       className={
@@ -1258,7 +1363,7 @@ export default function Home() {
                         <small>{v.material}</small>
                       </span>
                       <code>
-                        {v.c} × {v.l} × {v.thickness}
+                        {mm(v.c)} × {mm(v.l)} × {mm(v.thickness)}
                       </code>
                     </button>
                   ))}
@@ -1325,35 +1430,12 @@ export default function Home() {
         <section className="print-sheet">
           <h1>{p.name}</h1>
           <p>
-            Estante aberta · {p.params.width} × {p.params.height} ×{' '}
+            Composição modular · {p.params.width} × {p.params.height} ×{' '}
             {p.params.depth} mm · Versão {p.cursor + 1}
           </p>
-          <svg viewBox="0 0 600 500" width="600" height="500">
-            <g transform="translate(100,30)">
-              <rect
-                x="0"
-                y="0"
-                width={(p.params.width / p.params.height) * 400}
-                height="400"
-                fill="none"
-                stroke="black"
-              />
-              {p.parts
-                .filter((v) => v.kind === 'shelf')
-                .map((v) => (
-                  <line
-                    key={v.id}
-                    x1="0"
-                    x2={(p.params.width / p.params.height) * 400}
-                    y1={400 - (v.position[1] / p.params.height) * 400}
-                    y2={400 - (v.position[1] / p.params.height) * 400}
-                    stroke="black"
-                  />
-                ))}
-              <text x="0" y="430">
-                Largura {p.params.width} mm · Altura {p.params.height} mm
-              </text>
-            </g>
+          <p>Vista superior, frentes fechadas.</p>
+          <svg viewBox={`${generateDesign(p.params).bounds.min[0]-30} ${generateDesign(p.params).bounds.min[2]-30} ${p.params.width+60} ${p.params.depth+60}`} width="600" height="300">
+            {p.parts.map(part=><rect key={part.id} x={-part.size[0]/2} y={-part.size[2]/2} width={part.size[0]} height={part.size[2]} transform={`translate(${part.position[0]},${part.position[2]}) rotate(${-(part.rotation??0)*180/Math.PI})`} fill="white" stroke="black" strokeWidth={2}/>) }
           </svg>
           <table>
             <thead>
@@ -1365,17 +1447,30 @@ export default function Home() {
               </tr>
             </thead>
             <tbody>
-              {p.parts.map((v) => (
-                <tr key={v.id}>
-                  <td>{v.name}</td>
-                  <td>1</td>
+              {sheetRows.map((row) => (
+                <tr key={row.key}>
                   <td>
-                    {v.c} × {v.l} × {v.thickness}
+                    {row.name}
+                    {row.duplicates > 1 && (
+                      <small className="sheet-note">{row.duplicates} posições</small>
+                    )}
                   </td>
-                  <td>{v.material}</td>
+                  <td>{row.count}</td>
+                  <td>
+                    {mm(row.c)} × {mm(row.l)} × {mm(row.thickness)}
+                  </td>
+                  <td>{row.material}</td>
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr>
+                <th>{sheetRows.length} itens distintos</th>
+                <th>{p.parts.length} peças</th>
+                <th>{areaM2} m² de chapa</th>
+                <th>Revisão {p.cursor + 1}</th>
+              </tr>
+            </tfoot>
           </table>
           <p>
             Desenho de revisão. Sem furação ou fixações. Conferir medidas,

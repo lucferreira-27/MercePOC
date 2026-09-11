@@ -4,9 +4,9 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readEvents } from '../lib/sse';
-import { describeChanges } from '../lib/design';
+import { describeChanges } from '../lib/studio';
 import { defaults } from '../lib/furniture';
-import { migrateParams, resizeDesign } from '../lib/design';
+import { migrateParams, resizeDesign } from '../lib/studio';
 import { create, get, view } from '../lib/store';
 import { decisionSchema } from '../lib/gateway';
 import { POST } from '../app/api/chat/route';
@@ -138,6 +138,107 @@ void test('invalid tool call reports retries and failure without changing projec
   }
 });
 
+void test('the stream limit is inactivity, not total duration', async () => {
+  // Regressão: o limite era de duração total (60 s) e cortava pedidos longos
+  // que chegavam em fluxo contínuo. Com a janela reduzida a 250 ms e três
+  // eventos espaçados de 120 ms, o turno dura mais que a janela (360 ms) mas
+  // nunca fica mudo por 250 ms: só um limite de inatividade o conclui.
+  // O atraso é real de propósito: o que está sob teste é justamente um vigia
+  // de relógio de parede, e um relógio falso não exercita o mesmo caminho.
+  const realFetch = globalThis.fetch;
+  process.env.MERCE_AI_TIMEOUT_MS = '250';
+  const frame = (payload: string) => `data: ${payload}\n\n`;
+  const frames = [
+    frame(
+      JSON.stringify({
+        choices: [
+          {
+            delta: {
+              tool_calls: [
+                {
+                  index: 0,
+                  function: { name: 'submit_design_decision', arguments: '' },
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    ),
+    frame(
+      JSON.stringify({
+        choices: [
+          {
+            delta: {
+              tool_calls: [
+                {
+                  index: 0,
+                  function: { arguments: JSON.stringify(decision) },
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    ),
+    frame('[DONE]'),
+  ];
+  globalThis.fetch = async () => {
+    const bytes = new TextEncoder();
+    return new Response(
+      new ReadableStream({
+        async start(c) {
+          for (const text of frames) {
+            const { promise, resolve } = Promise.withResolvers<void>();
+            setTimeout(resolve, 120);
+            await promise;
+            c.enqueue(bytes.encode(text));
+          }
+          c.close();
+        },
+      }),
+    );
+  };
+  try {
+    const p = create();
+    const events: { event: string; data: string }[] = [];
+    await readEvents(await POST(request(p.id)), (e) => events.push(e));
+    assert.equal(events.at(-1)?.event, 'done');
+    assert.equal(view(get(p.id)).params.width, 1000);
+  } finally {
+    delete process.env.MERCE_AI_TIMEOUT_MS;
+    globalThis.fetch = realFetch;
+  }
+});
+void test('a silent provider aborts and preserves the project', async () => {
+  // Também depende de relógio real: o vigia deve disparar sozinho. O stream
+  // abaixo abre e nunca envia nada, e respeita o sinal para reproduzir o
+  // comportamento de um fetch real interrompido.
+  const realFetch = globalThis.fetch;
+  process.env.MERCE_AI_TIMEOUT_MS = '120';
+  globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
+    const signal = init?.signal as AbortSignal | undefined;
+    return new Response(
+      new ReadableStream({
+        start(c) {
+          signal?.addEventListener('abort', () =>
+            c.error(new Error('aborted')),
+          );
+        },
+      }),
+    );
+  }) as typeof fetch;
+  try {
+    const p = create();
+    const events: { event: string; data: string }[] = [];
+    await readEvents(await POST(request(p.id)), (e) => events.push(e));
+    assert.equal(events.at(-1)?.event, 'error');
+    assert.equal(get(p.id).version, 0);
+  } finally {
+    delete process.env.MERCE_AI_TIMEOUT_MS;
+    globalThis.fetch = realFetch;
+  }
+});
 void test('hidden preview mode sends progress and final answer without text updates', async () => {
   const original = globalThis.fetch;
   globalThis.fetch = async () => response(wire());

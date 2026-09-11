@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { materials, type Part } from './furniture';
-import type { Design } from './design';
 export const TRANSITION_MS = 750;
 export const SCRUB_MS = 140;
 export const ease = (value: number) => {
@@ -8,12 +7,14 @@ export const ease = (value: number) => {
   return t * t * (3 - 2 * t);
 };
 type Pose = {
+  rotation: number;
   position: THREE.Vector3;
   size: THREE.Vector3;
   color: THREE.Color;
   opacity: number;
 };
 type AnimatedPart = {
+  pivot?: THREE.Vector3;
   mesh: THREE.Mesh<THREE.BoxGeometry, THREE.MeshStandardMaterial>;
   edge: THREE.LineSegments<THREE.EdgesGeometry, THREE.LineBasicMaterial>;
   from: Pose;
@@ -22,16 +23,59 @@ type AnimatedPart = {
   duration: number;
   exiting: boolean;
 };
-export function visualPosition(part: Part, height: number, exploded: boolean) {
-  const p = new THREE.Vector3(...part.position);
-  if (exploded) {
-    p.x *= 1.35;
-    p.y = (p.y - height / 2) * 1.3 + height / 2;
-    if (part.id === 'back') p.z -= 280;
-    else if (part.kind === 'shelf') p.z += 180;
+/**
+ * Centro geométrico de cada módulo. Explodir em torno do centro do próprio
+ * módulo é o que separa as peças umas das outras: em torno da origem do
+ * projeto, módulos distantes só deslizavam para o lado sem se abrir.
+ */
+export function moduleCentres(parts: readonly Part[]) {
+  const boxes = new Map<string, { min: number[]; max: number[] }>();
+  for (const part of parts) {
+    const key = (part as { owners?: string[] }).owners?.[0] ?? 'módulo';
+    const half = [part.size[0] / 2, part.size[1] / 2, part.size[2] / 2];
+    const box = boxes.get(key);
+    if (box)
+      for (const axis of [0, 1, 2]) {
+        box.min[axis] = Math.min(box.min[axis], part.position[axis] - half[axis]);
+        box.max[axis] = Math.max(box.max[axis], part.position[axis] + half[axis]);
+      }
+    else
+      boxes.set(key, {
+        min: [0, 1, 2].map((axis) => part.position[axis] - half[axis]),
+        max: [0, 1, 2].map((axis) => part.position[axis] + half[axis]),
+      });
   }
-  return p;
+  return new Map(
+    [...boxes].map(([key, box]) => [
+      key,
+      new THREE.Vector3(
+        ...([0, 1, 2].map((axis) => (box.min[axis] + box.max[axis]) / 2) as [
+          number,
+          number,
+          number,
+        ]),
+      ),
+    ]),
+  );
 }
+/**
+ * Cada peça se afasta do centro do seu módulo na própria direção: laterais
+ * para os lados, tampo para cima, fundo para trás e prateleiras para cima e
+ * para baixo. Nenhuma peça fica presa dentro das outras.
+ */
+export function visualPosition(
+  part: Part,
+  centre: THREE.Vector3,
+  exploded: boolean,
+) {
+  const p = new THREE.Vector3(...part.position);
+  if (!exploded) return p;
+  const direction = p.clone().sub(centre);
+  if (direction.lengthSq() < 1) direction.set(0, 1, 0);
+  return p.add(direction.normalize().multiplyScalar(SPREAD_MM));
+}
+/** Afastamento no explodido: suficiente para ver os vãos, sem sair do quadro. */
+export const SPREAD_MM = 190;
 export class FurnitureMotion {
   private hovered: string | null = null;
   setHover(id: string | null) {
@@ -46,11 +90,12 @@ export class FurnitureMotion {
       size: entry.mesh.scale.clone(),
       color: entry.mesh.material.color.clone(),
       opacity: entry.mesh.material.opacity,
+      rotation: entry.mesh.rotation.y,
     };
   }
   update(
     parts: Part[],
-    params: Design,
+    params: { height: number; materialId: string },
     exploded: boolean,
     selected: readonly string[],
     now: number,
@@ -60,12 +105,22 @@ export class FurnitureMotion {
     this.tick(now, reduced);
     const present = new Set(parts.map((p) => p.id));
     const color = materials.find((m) => m.id === params.materialId)!.color;
+    const centres = moduleCentres(parts);
+    const fallbackCentre = new THREE.Vector3(0, params.height / 2, 0);
     for (const part of parts) {
       const target: Pose = {
-        position: visualPosition(part, params.height, exploded),
+        position: visualPosition(
+          part,
+          centres.get((part as { owners?: string[] }).owners?.[0] ?? 'módulo') ??
+            fallbackCentre,
+          exploded,
+        ),
         size: new THREE.Vector3(...part.size),
-        color: new THREE.Color(selected.includes(part.id) ? '#c8f57c' : color),
+        color: new THREE.Color(
+          selected.includes(part.id) ? '#c8f57c' : (part.color ?? color),
+        ),
         opacity: 1,
+        rotation: part.rotation ?? 0,
       };
       let entry = this.entries.get(part.id);
       if (!entry) {
@@ -76,6 +131,7 @@ export class FurnitureMotion {
           });
         const mesh = new THREE.Mesh(geo, material);
         mesh.position.copy(target.position);
+        mesh.rotation.y = target.rotation;
         mesh.scale.copy(target.size);
         mesh.userData.id = part.id;
         mesh.castShadow = true;
@@ -107,6 +163,27 @@ export class FurnitureMotion {
         this.entries.set(part.id, entry);
       }
       entry.from = this.read(entry);
+      const motion = (
+        part as Part & {
+          motion?: { type: string; pivot: [number, number, number] };
+        }
+      ).motion;
+      entry.pivot =
+        !exploded && motion?.type === 'door'
+          ? new THREE.Vector3(...motion.pivot)
+          : undefined;
+      if (entry.pivot) {
+        const expected = entry.from.position
+          .clone()
+          .sub(entry.pivot)
+          .applyAxisAngle(
+            new THREE.Vector3(0, 1, 0),
+            target.rotation - entry.from.rotation,
+          )
+          .add(entry.pivot);
+        if (expected.distanceTo(target.position) > 1e-4)
+          entry.pivot = undefined;
+      }
       entry.to = target;
       entry.started = now;
       entry.duration = this.initialized && !reduced ? duration : 0;
@@ -133,6 +210,22 @@ export class FurnitureMotion {
       const t =
         reduced || !e.duration ? 1 : ease((now - e.started) / e.duration);
       e.mesh.position.lerpVectors(e.from.position, e.to.position, t);
+      e.mesh.rotation.y = THREE.MathUtils.lerp(
+        e.from.rotation,
+        e.to.rotation,
+        t,
+      );
+      if (e.pivot && Math.abs(e.to.rotation - e.from.rotation) > 1e-8) {
+        e.mesh.position
+          .copy(e.from.position)
+          .sub(e.pivot)
+          .applyAxisAngle(
+            new THREE.Vector3(0, 1, 0),
+            e.mesh.rotation.y - e.from.rotation,
+          )
+          .add(e.pivot);
+      }
+      if (t === 1) e.mesh.position.copy(e.to.position);
       e.mesh.scale.lerpVectors(e.from.size, e.to.size, t);
       e.mesh.material.color.copy(e.from.color).lerp(e.to.color, t);
       e.mesh.material.opacity = THREE.MathUtils.lerp(

@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readEvents } from '../lib/sse';
 import { defaults } from '../lib/furniture';
-import { migrateParams, gapsOf } from '../lib/design';
+import { migrateParams, gapsOf } from '../lib/studio';
 import { create, get, save, view } from '../lib/store';
 import { POST } from '../app/api/chat/route';
 

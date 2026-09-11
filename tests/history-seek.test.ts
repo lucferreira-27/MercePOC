@@ -4,7 +4,7 @@ import { mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { defaults } from '../lib/furniture';
-import { migrateParams, resizeDesign } from '../lib/design';
+import { migrateParams, resizeDesign } from '../lib/studio';
 import { create, createDemo, get, revise, save, seek, view } from '../lib/store';
 
 process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-history-'));

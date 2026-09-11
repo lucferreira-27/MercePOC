@@ -1,4 +1,4 @@
-import { applyRequest, get, save, type Clarification, type Message } from '@/lib/store';
+import { applyRequest, get, save, view, revise, type Clarification, type Message } from '@/lib/store';
 import { interpretStream } from '@/lib/gateway';
 import { materials } from '@/lib/furniture';
 import {
@@ -8,7 +8,8 @@ import {
   resolveShelfId,
   shelfInfos,
   type ShelfOp,
-} from '@/lib/design';
+} from '@/lib/studio';
+import { entityIds } from '@/lib/studio';
 import {
   type Progress,
   type TextPreview,
@@ -18,6 +19,8 @@ import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
 import { getImage } from '@/lib/images';
 const busy = new Set<string>();
+/** Dízimas de milímetro (185.33333) não devem aparecer em texto de resposta. */
+const round2 = (value: number) => String(Math.round(value * 100) / 100);
 /** Pedidos já confirmados: requestId → índice da mensagem assistente. */
 const confirmed = new Map<string, { projectId: string; index: number }>();
 
@@ -68,18 +71,19 @@ export async function POST(req: Request) {
         requestId: z.string().trim().min(8).max(64).optional(),
         clarificationId: z.string().trim().min(1).max(64).optional(),
         optionId: z.string().trim().min(1).max(64).optional(),
+        fast: z.boolean().optional(),
       })
       .parse(await req.json());
     if (!b.message && !b.imageId && !b.optionId)
       throw new Error('Escreva uma mensagem ou anexe uma imagem.');
     const requestId = b.requestId ?? randomUUID();
     const hit = confirmed.get(requestId);
-    if (hit) {
+    if (hit && hit.projectId === b.id) {
       try {
         const p = get(hit.projectId);
         const m = p.messages[hit.index];
         if (m?.result) {
-          const state = save(p, p.version);
+          const state = view(p);
           return Response.json({ ...state, selected: m.context?.selectedPartIds ?? [] });
         }
       } catch {}
@@ -93,6 +97,8 @@ export async function POST(req: Request) {
         { status: 409 },
       );
     const p = get(b.id);
+    const replay = p.messages.findLast(m => m.role === 'assistant' && m.context?.requestId === requestId);
+    if (replay) return Response.json(view(p));
     if (p.version !== b.version)
       throw new Error('O projeto mudou. Recarregue e tente novamente.');
     id = b.id;
@@ -106,6 +112,7 @@ export async function POST(req: Request) {
     const before = baseRev.params;
     const infos = shelfInfos(before);
     const shelfIds = infos.map((s) => s.id);
+    const validIds = entityIds(before);
     // Seleção explícita do usuário (só prateleiras válidas + peças fixas).
     const explicit = (b.selected ?? [])
       .map((sid) => resolveShelfId(sid, before) ?? sid)
@@ -113,12 +120,12 @@ export async function POST(req: Request) {
     const explicitShelves = explicit.filter((sid) => shelfIds.includes(sid));
     const lastAssistant = [...p.messages].reverse().find((m) => m.role === 'assistant');
     const lastRefs = lastAssistant?.context?.referencedPartIds.filter((rid) =>
-      shelfIds.includes(rid),
+      validIds.includes(rid),
     ) ?? [];
     // Referência explícita no texto tem precedência sobre a seleção.
     const textRefs = shelfRefIds(b.message, shelfIds);
     const ordered = orderWords(b.message);
-    if (ordered.length && !textRefs.length) {
+    if (ordered.length && !textRefs.length && infos.length && /prateleira/i.test(b.message)) {
       const sorted = [...infos].sort((a, c) => a.elevation - c.elevation);
       if (ordered.includes('top')) textRefs.push(sorted[sorted.length - 1].id);
       else if (ordered.includes('bottom')) textRefs.push(sorted[0].id);
@@ -130,10 +137,7 @@ export async function POST(req: Request) {
     else if (lastRefs.length === 1) resolved = lastRefs;
     const referencedShelves = resolved.filter((rid) => shelfIds.includes(rid));
     // Peça removida nunca é substituída silenciosamente.
-    const dangling = (lastRefs.length ? lastRefs : explicitShelves).filter(
-      (rid) => !shelfIds.includes(rid) && rid.startsWith('sh-'),
-    );
-    const pendingClarification = [...p.messages]
+    const dangling = (explicit.length ? explicit : lastAssistant?.context?.referencedPartIds ?? []).filter(rid=>!validIds.includes(resolveShelfId(rid,before)??rid));    const pendingClarification = [...p.messages]
       .reverse()
       .find((m) => m.clarification && !m.result)?.clarification;
     const run = async (
@@ -143,6 +147,17 @@ export async function POST(req: Request) {
     ) => {
       // Resposta a esclarecimento pendente: valida e executa a intenção guardada.
       if (b.clarificationId && b.optionId) {
+        const clar=p.messages.find(m=>m.clarification?.id===b.clarificationId)?.clarification;
+        const choice=clar?.options.find(o=>o.id===b.optionId);
+        if(!clar||!choice||clar.baseRevisionId!==baseRev.id)throw new Error('Esclarecimento indisponível nesta versão. Descreva novamente o pedido.');
+        if(!choice.partIds.every(id=>validIds.includes(id)))throw new Error('O alvo escolhido já não existe.');
+        if(!clar.pendingOps?.length){
+          explicit.splice(0,explicit.length,...choice.partIds);
+          b.message=`${clar.pendingMessage??b.message}. Alvo escolhido: ${choice.label} (${choice.partIds.join(', ')}).`;
+          b.clarificationId=undefined;b.optionId=undefined;
+        }
+      }
+      if (b.clarificationId && b.optionId) {
         const target = p.messages.find((m) => m.clarification?.id === b.clarificationId);
         const clar = target?.clarification;
         if (!clar)
@@ -151,7 +166,7 @@ export async function POST(req: Request) {
         if (!option) throw new Error('Opção inválida para este esclarecimento.');
         if (clar.baseRevisionId !== baseRev.id)
           throw new Error('O projeto mudou desde a pergunta. Descreva novamente o pedido.');
-        const partIds = option.partIds.filter((pid) => shelfIds.includes(pid));
+        const partIds = option.partIds.filter((pid) => validIds.includes(pid));
         if (!partIds.length)
           throw new Error('As peças desta opção já não existem. Escolha outra ou descreva novamente.');
         const pending = (clar.pendingOps ?? []).map((op) => {
@@ -197,13 +212,13 @@ export async function POST(req: Request) {
         before,
         baseRev.id,
         baseRev.number,
-        p.messages,
+        [...p.messages, {id:requestId,role:'user',content:b.message,...(image?{image}:{})}],
         explicit,
         {
           requestId,
           baseRevisionId: baseRev.id,
           selectedPartIds: explicit,
-          referencedPartIds: referencedShelves,
+          referencedPartIds: explicit.length ? explicit : resolved,
           pendingClarification: pendingClarification?.question ?? null,
           historyNote,
         },
@@ -211,6 +226,7 @@ export async function POST(req: Request) {
         0,
         signal,
         text,
+        Boolean(b.fast),
       );
       signal.throwIfAborted();
       progress({
@@ -232,21 +248,22 @@ export async function POST(req: Request) {
           requestId,
           baseRevisionId: baseRev.id,
           selectedPartIds: explicit,
-          referencedPartIds: referencedShelves,
+          referencedPartIds: explicit.length ? explicit : resolved,
         },
       };
       p.messages.push(userMsg);
+      if(d.refs.length)userMsg.context!.referencedPartIds=d.refs;
       // Peça referenciada sumiu: nunca substituir — pedir esclarecimento.
       if (dangling.length && /suba|desça|mova|remova|vão|cm|mm|esta|essa/i.test(b.message)) {
-        return finishClarify(userMsg, `A peça referenciada (${dangling.join(', ')}) já não existe nesta versão. Qual prateleira você quer usar?`, null);
+        return finishClarify(userMsg, `A peça referenciada (${dangling.join(', ')}) já não existe nesta versão. Qual módulo ou compartimento você quer usar?`, null);
       }
       // "A outra" ambígua: pedir esclarecimento em vez de adivinhar.
-      if (/a outra/i.test(b.message) && shelfIds.length > 2 && !textRefs.length && !explicitShelves.length && lastRefs.length <= 1) {
+      if (/a outra/i.test(b.message) && !/porta|gaveta|módulo|compartimento/i.test(b.message) && shelfIds.length > 2 && !textRefs.length && !explicitShelves.length && lastRefs.length <= 1) {
         return finishClarify(userMsg, 'Qual prateleira você quer mover?', null);
       }
       if (d.action === 'answer') {
         const answer = answerQuestion(b.message, d.message);
-        return finishTurn(userMsg, d.select, [], answer, d);
+        return {...finishTurn(userMsg, d.select, [], answer, d), ...(d.view ? {viewAction:d.view} : {})};
       }
       if (d.action === 'clarify') {
         return finishClarify(userMsg, d.message, d);
@@ -277,7 +294,7 @@ export async function POST(req: Request) {
           revisionId: baseRev.id,
           revision: baseRev.number,
           context: userMsg.context,
-          result: { outcome: 'rejected', resultRevisionId: baseRev.id, appliedOperations: [], changes: [] },
+          result: { outcome: 'rejected', resultRevisionId: baseRev.id, appliedOperations: [], attemptedOperations:ops, changes: [] },
           report: { durationMs: Date.now() - started, outcome: 'rejected', changes: [], approach: d.approach },
         };
         p.messages.push(assistant);
@@ -288,23 +305,7 @@ export async function POST(req: Request) {
       if (JSON.stringify(preview.design) === JSON.stringify(before)) {
         return finishTurn(userMsg, d.select, ops, 'O projeto já está nesse estado; nenhuma medida mudou.', d, false, 'unchanged');
       }
-      const applied = applyRequest(p, ops, b.message.slice(0, 90));
-      if (!applied.ok) {
-        const assistant: Message = {
-          id: randomUUID(),
-          role: 'assistant',
-          content: `Não apliquei a alteração: ${applied.error} O projeto foi preservado na versão ${baseRev.number}.`,
-          revisionId: baseRev.id,
-          revision: baseRev.number,
-          context: userMsg.context,
-          result: { outcome: 'rejected', resultRevisionId: baseRev.id, appliedOperations: [], changes: [] },
-          report: { durationMs: Date.now() - started, outcome: 'rejected', changes: [], approach: d.approach },
-        };
-        p.messages.push(assistant);
-        const state = save(p, b.version);
-        confirmed.set(requestId, { projectId: p.id, index: p.messages.length - 1 });
-        return { ...state, selected: [] };
-      }
+      revise(p, preview.design, b.message.slice(0,90));
       return finishTurn(userMsg, d.select, ops, null, d);
 
       function d_approach() {
@@ -332,7 +333,11 @@ export async function POST(req: Request) {
         } else if (navigated || changes.length) {
           outcome = 'applied';
           const main = changes.join('. ');
-          content = override ?? (main + (decision?.message ? ` ${decision.message}` : ''));
+          // Sem separador, o resumo do diff colava na frase da IA:
+          // "...atualizadas Adicionando um nicho...".
+          content =
+            override ??
+            (decision?.message ? `${main}.\n\n${decision.message}` : main);
         } else if (select.length) {
           outcome = 'highlighted';
           content = override ?? decision?.message ?? 'Peças destacadas no modelo.';
@@ -360,7 +365,7 @@ export async function POST(req: Request) {
           .map((v) => ({
             id: v.id,
             name: afterLabels.get(v.id) ?? labels.get(v.id) ?? v.name,
-            dims: `${v.c} × ${v.l} × ${v.thickness} mm`,
+            dims: `${round2(v.c)} × ${round2(v.l)} × ${round2(v.thickness)} mm`,
             material: v.material,
             size: v.size,
             color,
@@ -397,10 +402,10 @@ export async function POST(req: Request) {
         const state = save(p, b.version);
         confirmed.set(requestId, { projectId: p.id, index: p.messages.length - 1 });
         const echo = explicit.filter((sid) => shelfIds.includes(sid) || !sid.startsWith('sh-'));
-        return { ...state, selected: affected.size ? [...affected] : echo.length ? echo : showcase.map((v) => v.id) };
+        return { ...state, selected: echo.length ? echo : affected.size ? [...affected] : select.map(id=>resolveShelfId(id,design)??id).filter(id=>entityIds(design).includes(id)) };
       }
       function finishClarify(user: Message, question: string, decision: { approach: string } | null) {
-        const options = infos.map((s) => ({ id: s.id, label: s.label, partIds: [s.id] }));
+        const options = (decision as {clarification?:{options:Clarification['options']}} | null)?.clarification?.options ?? infos.map((s) => ({ id: s.id, label: s.label, partIds: [s.id] }));
         const clar: Clarification = {
           id: randomUUID(),
           question,

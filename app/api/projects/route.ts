@@ -1,6 +1,7 @@
-import { applyShelfOp, create, createDemo, fork, list, get, view, save, revise, seek } from '@/lib/store';
-import { designSchema, opSchema } from '@/lib/design';
+import { applyShelfOp, applyRequest, create, createDemo, fork, list, get, view, save, revise, seek, remove } from '@/lib/store';
+import { designSchema, opSchema } from '@/lib/studio';
 import { z } from 'zod';
+import { validationMessage } from '@/lib/composition';
 export async function GET(req: Request) {
   try {
     const id = new URL(req.url).searchParams.get('id');
@@ -22,15 +23,18 @@ export async function POST(req: Request) {
       .object({
         id: z.uuid(),
         version: z.number().int(),
-        action: z.enum(['update', 'undo', 'redo', 'rename', 'seek', 'op', 'fork']),
+        action: z.enum(['update', 'undo', 'redo', 'rename', 'seek', 'op', 'ops', 'fork', 'delete']),
         cursor: z.number().int().optional(),
         op: opSchema.optional(),
+        ops:z.array(opSchema).min(1).max(32).optional(),
         label: z.string().trim().min(1).max(90).optional(),
         name: z.string().trim().min(1).max(80).optional(),
         design: designSchema.optional(),
       })
       .parse(body);
     const p = get(b.id);
+    // Excluir não depende da versão: o projeto deixa de existir.
+    if (b.action === 'delete') return Response.json(remove(b.id));
     if (p.version !== b.version)
       throw new Error('Projeto desatualizado. Recarregue.');
     if (b.action === 'update' && b.design)
@@ -42,6 +46,12 @@ export async function POST(req: Request) {
       } catch (e) {
         return Response.json({ error: (e as Error).message }, { status: 422 });
       }
+    }
+    if(b.action==='ops'){
+      if(!b.ops)throw new Error('Informe as operações do pedido.');
+      const result=applyRequest(p,b.ops,b.label??'Edição de composição');
+      if(!result.ok)return Response.json({error:result.error},{status:422});
+      if(result.noop)return Response.json({...view(p),noop:true});
     }
     if (b.action === 'undo') p.cursor = Math.max(0, p.cursor - 1);
     if (b.action === 'redo')
@@ -56,7 +66,7 @@ export async function POST(req: Request) {
       {
         error:
           e instanceof z.ZodError
-            ? 'Parâmetros fora dos limites permitidos.'
+            ? validationMessage(e)
             : (e as Error).message,
       },
       { status: 400 },
