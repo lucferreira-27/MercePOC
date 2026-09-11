@@ -20,7 +20,7 @@ const request = (id: string, version = 0, stream = true) =>
     },
     body: JSON.stringify({ id, version, message: 'Largura de 1 metro' }),
   });
-process.env.MERGE_GATEWAY_API_KEY = 'test-key';
+process.env.AI_API_KEY = 'test-key';
 function response(text: string) {
   const bytes = new TextEncoder().encode(text);
   return new Response(

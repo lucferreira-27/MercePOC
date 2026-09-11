@@ -1087,7 +1087,7 @@ export default function Home() {
             </form>
             <div className="model-label">
               <span className={online ? 'live-dot' : 'offline-dot'} />
-              {fast ? 'Qwen 3.8 27B' : 'GLM 5.3 Flash'} <span>{fast ? 'via Cerebras · modo rápido' : 'via Merge Gateway'}</span>
+              {fast ? 'Qwen 3.8 27B' : 'DeepSeek V4.1 Flash'} <span>{fast ? 'via Cerebras · modo rápido' : 'via Command Code · esforço baixo'}</span>
             </div>
           </div>
         </aside>

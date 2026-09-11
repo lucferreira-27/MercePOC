@@ -9,12 +9,12 @@ Use `Start-Merce.cmd`, ou `npm install` e `npm run dev` em `G:\MercePOC`. Abra h
 Configure `.env`, ignorado pelo Git:
 
 ```dotenv
-MERGE_GATEWAY_API_KEY=your-key-here
-MERGE_GATEWAY_BASE_URL=https://api-gateway.merge.dev/v1
-MERGE_GATEWAY_MODEL=zai/glm-5.3-flash
+AI_API_KEY=your-key-here
+AI_BASE_URL=https://api.commandcode.ai/provider/v1
+AI_MODEL=deepseek/deepseek-v4.1-flash
 ```
 
-A chave fica somente no servidor. O GLM propõe operações JSON, validadas antes de salvar. Cada chamada ao provedor tem uma janela de inatividade de 120 segundos, reiniciada a cada trecho recebido: uma resposta lenta mas viva termina, e uma conexão muda é encerrada. Formato inválido gera até duas novas tentativas. O teto de tokens é 16000; com 4000 um pedido de várias operações esgota o orçamento em raciocínio e volta truncado. Ajuste com `MERCE_AI_TIMEOUT_MS` e `MERCE_AI_MAX_TOKENS`. Não existe fallback para outro modelo. Erros de rede ou limite do provedor preservam o projeto e permitem reenviar. O cliente mostra progresso e a resposta completa ao terminar, sem expor raciocínio interno.
+A chave fica somente no servidor. O DeepSeek V4.1 Flash via Command Code propõe operações JSON, validadas antes de salvar. Cada chamada envia `reasoning_effort: low`, o piso aceito pelo gateway: lá não existe valor para desligar o raciocínio. Cada chamada ao provedor tem uma janela de inatividade de 120 segundos, reiniciada a cada trecho recebido: uma resposta lenta mas viva termina, e uma conexão muda é encerrada. Formato inválido gera até duas novas tentativas. O teto de tokens é 16000; com 4000 um pedido de várias operações esgota o orçamento em raciocínio e volta truncado. Ajuste com `MERCE_AI_TIMEOUT_MS` e `MERCE_AI_MAX_TOKENS`. O modo rápido opcional usa `AI_FAST_*` e outro provedor. Não existe fallback automático para outro modelo. Erros de rede ou limite do provedor preservam o projeto e permitem reenviar. O cliente mostra progresso e a resposta completa ao terminar, sem expor raciocínio interno.
 
 ## Usar
 

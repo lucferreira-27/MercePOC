@@ -10,7 +10,7 @@ import { create, get, save, view } from '../lib/store';
 import { POST } from '../app/api/chat/route';
 
 process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-turns-'));
-process.env.MERGE_GATEWAY_API_KEY = 'test-key';
+process.env.AI_API_KEY = 'test-key';
 
 function response(payload: unknown) {
   const body =

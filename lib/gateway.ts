@@ -67,29 +67,27 @@ export type GatewayProfile = {
   model: string;
 };
 
-/** Provedor normal vs modo rápido (FAST_GATEWAY_*). */
+/** Provedor padrão (AI_*) vs modo rápido (AI_FAST_*). */
 function profile(fast: boolean): GatewayProfile {
   if (fast) {
-    const key = process.env.FAST_GATEWAY_API_KEY;
+    const key = process.env.AI_FAST_API_KEY;
     if (!key)
       throw new Error(
-        'Configure FAST_GATEWAY_API_KEY no arquivo .env do servidor para usar o modo rápido.',
+        'Configure AI_FAST_API_KEY no arquivo .env do servidor para usar o modo rápido.',
       );
     return {
       key,
-      baseUrl: process.env.FAST_GATEWAY_BASE_URL || 'https://api.cerebras.ai/v1',
-      model: process.env.FAST_GATEWAY_MODEL || 'qwen-3.8-27b',
+      baseUrl: process.env.AI_FAST_BASE_URL || 'https://api.cerebras.ai/v1',
+      model: process.env.AI_FAST_MODEL || 'qwen-3.8-27b',
     };
   }
-  const key = process.env.MERGE_GATEWAY_API_KEY;
+  const key = process.env.AI_API_KEY;
   if (!key)
-    throw new Error(
-      'Configure MERGE_GATEWAY_API_KEY no arquivo .env do servidor.',
-    );
+    throw new Error('Configure AI_API_KEY no arquivo .env do servidor.');
   return {
     key,
-    baseUrl: process.env.MERGE_GATEWAY_BASE_URL || 'https://api-gateway.merge.dev/v1',
-    model: process.env.MERGE_GATEWAY_MODEL || 'zai/glm-5.3-flash',
+    baseUrl: process.env.AI_BASE_URL || 'https://api.commandcode.ai/provider/v1',
+    model: process.env.AI_MODEL || 'deepseek/deepseek-v4.1-flash',
   };
 }
 export async function interpretStream(
@@ -175,6 +173,8 @@ export async function interpretStream(
         signal: AbortSignal.any([idle.signal, ...(signal ? [signal] : [])]),
         body: JSON.stringify({
           model: prof.model,
+          // Esforço mínimo no provedor padrão. O gateway da Command Code valida
+          // low..max e não tem valor para desligar o raciocínio: 'low' é o piso.
           ...(fast ? {} : { reasoning_effort: 'low' }),
           max_tokens: aiMaxTokens(),
           stream: true,
@@ -215,12 +215,12 @@ export async function interpretStream(
         ? payload.error
         : payload?.error?.message;
     throw new Error(
-      `Merge Gateway retornou 429. ${detail ? detail.replaceAll(key, '[credencial]').slice(0, 300) : 'Limite temporário de requisições.'} Tente novamente; o projeto foi preservado.`,
+      `O provedor de IA retornou 429. ${detail ? detail.replaceAll(key, '[credencial]').slice(0, 300) : 'Limite temporário de requisições.'} Tente novamente; o projeto foi preservado.`,
     );
   }
   if (!response.ok || !response.body)
     throw new Error(
-      `Merge Gateway retornou ${response.status}. Tente novamente; o projeto foi preservado.`,
+      `O provedor de IA retornou ${response.status}. Tente novamente; o projeto foi preservado.`,
     );
   let content = '',
     received = false;
