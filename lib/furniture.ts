@@ -25,8 +25,12 @@ export const defaults: Params = {
   bottomOpening: null,
 };
 export type Part = {
+  rotation?: number;
+  color?: string;
+  owners?: string[];
+  cellId?: string;
   id: string;
-  kind: 'side' | 'base' | 'top' | 'back' | 'shelf';
+  kind: 'side' | 'base' | 'top' | 'back' | 'shelf' | 'divider' | 'door' | 'drawer';
   name: string;
   size: [number, number, number];
   position: [number, number, number];
