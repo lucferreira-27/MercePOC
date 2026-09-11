@@ -9,10 +9,10 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "node scripts/start.mjs",
-    "lint": "oxlint app lib components/furniture-view.tsx components/chat-progress.tsx hooks/use-project-tools.ts tests scripts vite.config.ts",
+    "lint": "oxlint app lib components/furniture-view.tsx components/chat-progress.tsx components/modular-editor.tsx hooks/use-project-tools.ts tests scripts vite.config.ts",
     "format": "oxfmt",
     "test": "tsx --test tests/*.test.ts",
-    "test:live": "node scripts/live-smoke.mjs",
+    "test:live": "node scripts/modular-live.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
