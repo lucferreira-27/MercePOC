@@ -4,12 +4,13 @@
 import Link from 'next/link';
 import { ChatProgress } from '@/components/chat-progress';
 import { readEvents } from '@/lib/sse';
-import { type Progress } from '@/lib/progress';
+import { type Progress, type TextPreview } from '@/lib/progress';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown,
   ArrowUp,
   Box,
+  Bug,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -177,7 +178,22 @@ export default function Home() {
     [uploading, setUploading] = useState(false),
     [historyPreview, setHistoryPreview] = useState<number | null>(null),
     [scrubbing, setScrubbing] = useState(false),
-    [fast, setFast] = useState(false);
+    [fast, setFast] = useState(false),
+    [live, setLive] = useState(false),
+    [liveText, setLiveText] = useState<TextPreview | null>(null);
+  // Depuração: a transmissão do texto parcial é opcional e lembrada entre sessões.
+  useEffect(() => {
+    try {
+      setLive(localStorage.getItem('merce-live') === '1');
+    } catch {}
+  }, []);
+  const toggleLive = () =>
+    setLive((v) => {
+      try {
+        localStorage.setItem('merce-live', v ? '0' : '1');
+      } catch {}
+      return !v;
+    });
   const scrubCancelled = useRef(false);
   const previewFrame = useRef(0);
   const previewFallback = useRef<number | undefined>(undefined);
@@ -617,6 +633,7 @@ export default function Home() {
     setFailedTurn(null);
     setPending(replyTo ? `${message} (escolha: ${p.messages.find((m) => m.clarification?.id === replyTo.clarificationId)?.clarification?.options.find((o) => o.id === replyTo.optionId)?.label ?? ''})` : message);
     setProgress([]);
+    setLiveText(null);
     setStarted(Date.now());
     setText('');
     try {
@@ -625,7 +642,8 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'text/event-stream',
-          'X-Chat-Preview': 'hidden',
+          // Depuração: sem este cabeçalho o servidor manda o texto parcial da IA.
+          ...(live ? {} : { 'X-Chat-Preview': 'hidden' }),
         },
         body: JSON.stringify({
           id: p.id,
@@ -646,6 +664,8 @@ export default function Home() {
         if (event === 'progress') {
           const update = JSON.parse(data) as Progress;
           setProgress((previous) => [...previous, update]);
+        } else if (event === 'text') {
+          setLiveText(JSON.parse(data) as { approach: string; answer: string; attempt: number });
         } else if (event === 'done') {
           accept(JSON.parse(data) as State);
           completed = true;
@@ -678,6 +698,7 @@ export default function Home() {
       setPending('');
       setPendingImage(null);
       setProgress([]);
+      setLiveText(null);
       setBusy(false);
       draftDuringWait.current = '';
     }
@@ -962,6 +983,31 @@ export default function Home() {
                   <div>{pendingImage && <img className="chat-image" src={pendingImage.url} alt={pendingImage.name} />}{pending}</div>
                 </div>
                 <ChatProgress events={progress} started={started} />
+                {live && liveText && (
+                  <div className="answer-stream">
+                    <h3>
+                      Resposta ao vivo · tentativa {liveText.attempt}
+                      {liveText.bytes ? ` · ${(liveText.bytes / 1024).toFixed(1)} kB recebidos` : ''}
+                    </h3>
+                    {liveText.approach && <p>{liveText.approach}</p>}
+                    {liveText.answer ? (
+                      <p>
+                        {liveText.answer}
+                        <span className="text-caret" />
+                      </p>
+                    ) : (
+                      <p>
+                        Recebendo do provedor. O raciocínio não é exibido; o
+                        texto aparece quando os campos públicos chegam.
+                        <span className="text-caret" />
+                      </p>
+                    )}
+                    <small>
+                      Texto parcial da IA, ainda não validado nem salvo. Só a
+                      resposta final cria revisão.
+                    </small>
+                  </div>
+                )}
               </>
             )}
             {failedTurn && (
@@ -1081,6 +1127,20 @@ export default function Home() {
                 >
                   <Zap size={14} />
                   Rápido
+                </button>
+                <button
+                  type="button"
+                  className={'fast-toggle' + (live ? ' on' : '')}
+                  aria-pressed={live}
+                  title={
+                    live
+                      ? 'Transmissão em tempo real ativa (depuração): o texto parcial da IA aparece enquanto chega, sem esperar a validação'
+                      : 'Depuração: mostrar o texto parcial da IA em tempo real, antes da validação'
+                  }
+                  onClick={toggleLive}
+                >
+                  <Bug size={14} />
+                  Ao vivo
                 </button>
                 <span>Imagem ou texto · Enter para enviar</span>
                 <Button

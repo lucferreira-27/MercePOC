@@ -259,6 +259,34 @@ void test('hidden preview mode sends progress and final answer without text upda
     globalThis.fetch = original;
   }
 });
+void test('debug streaming sends the partial answer before the final state', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => response(wire());
+  try {
+    const p = create();
+    const events: { event: string; data: string }[] = [];
+    await readEvents(await POST(request(p.id)), (e) => events.push(e));
+    const texts = events.filter((e) => e.event === 'text');
+    assert.ok(texts.length, 'sem eventos de texto parcial');
+    const last = JSON.parse(texts.at(-1)!.data) as {
+      approach: string;
+      answer: string;
+      attempt: number;
+    };
+    assert.equal(last.answer, 'Largura atualizada.');
+    assert.equal(last.attempt, 1);
+    assert.ok(
+      events.indexOf(texts[0]) < events.findIndex((e) => e.event === 'done'),
+      'texto parcial só depois do resultado',
+    );
+    // O raciocínio privado nunca entra na transmissão.
+    assert.equal(JSON.stringify(texts).includes('PRIVATE_INTERNAL_TEXT'), false);
+    assert.equal(events.at(-1)?.event, 'done');
+    assert.equal(view(get(p.id)).params.width, 1000);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
 void test('assistant highlight list defaults to empty and passes through', () => {
   assert.deepEqual(decisionSchema.parse(decision).select, []);
   assert.deepEqual(

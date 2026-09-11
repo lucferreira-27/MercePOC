@@ -26,4 +26,10 @@ export type ChatReport = {
   approach?: string;
   selected?: SelectedPart[];
 };
-export type TextPreview = { approach: string; answer: string; attempt: number };
+export type TextPreview = {
+  approach: string;
+  answer: string;
+  attempt: number;
+  /** Bytes recebidos do provedor neste turno, incluindo raciocínio privado. */
+  bytes?: number;
+};

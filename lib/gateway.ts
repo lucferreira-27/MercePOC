@@ -116,7 +116,7 @@ export async function interpretStream(
       : 'Enviando seu pedido e os parâmetros atuais.',
     attempt: attempt + 1,
   });
-  onText({ approach: '', answer: '', attempt: attempt + 1 });
+  onText({ approach: '', answer: '', attempt: attempt + 1, bytes: 0 });
   const reference = messages.slice(-16).findLast((m) => m.image);
   const recent = messages.slice(-8).map((m) => ({
     role: m.role,
@@ -226,10 +226,16 @@ export async function interpretStream(
     received = false;
   const calls = new Map<number, { name: string; args: string }>();
   let lastApproach = '',
-    lastAnswer = '';
+    lastAnswer = '',
+    lastBytes = 0,
+    streamed = 0;
   await readEvents(response, ({ data }) => {
     // Dado novo chegou: a janela de inatividade reinicia.
     resetIdle();
+    // O provedor gasta a maior parte do fluxo em raciocínio, que não é
+    // exposto. O contador dá sinal de vida para a depuração enquanto os
+    // campos públicos ainda não chegaram.
+    streamed += data.length;
     if (data === '[DONE]') return;
     const event = JSON.parse(data) as {
       error?: unknown;
@@ -278,10 +284,15 @@ export async function interpretStream(
       1200,
     );
     const answer = (readStringField(partial, 'message') ?? '').slice(0, 2000);
-    if (approach !== lastApproach || answer !== lastAnswer) {
+    if (
+      approach !== lastApproach ||
+      answer !== lastAnswer ||
+      streamed - lastBytes >= 1024
+    ) {
       lastApproach = approach;
       lastAnswer = answer;
-      onText({ approach, answer, attempt: attempt + 1 });
+      lastBytes = streamed;
+      onText({ approach, answer, attempt: attempt + 1, bytes: streamed });
     }
   });
   signal?.throwIfAborted();
