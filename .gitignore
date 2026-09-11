@@ -40,3 +40,9 @@ next-env.d.ts
 /data/
 *.tsbuildinfo
 !.env.example
+
+# generated share bundle and capture artifacts
+/merce-poc-share.zip
+/repo/
+/screenshots/
+.turn-*.png
