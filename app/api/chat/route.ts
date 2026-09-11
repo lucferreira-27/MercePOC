@@ -19,6 +19,8 @@ import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
 import { getImage } from '@/lib/images';
 const busy = new Set<string>();
+/** Correções de geometria pedidas à IA antes de recusar o turno. */
+const GEOMETRY_RETRIES = 2;
 /** Dízimas de milímetro (185.33333) não devem aparecer em texto de resposta. */
 const round2 = (value: number) => String(Math.round(value * 100) / 100);
 /** Pedidos já confirmados: requestId → índice da mensagem assistente. */
@@ -208,7 +210,7 @@ export async function POST(req: Request) {
         }
         return finishTurn(userMsg, partIds, pending, null, null);
       }
-      const d = await interpretStream(
+      let d = await interpretStream(
         before,
         baseRev.id,
         baseRev.number,
@@ -280,12 +282,57 @@ export async function POST(req: Request) {
         return finishTurn(userMsg, [], [], null, d, true);
       }
       // update: resolve referências pronominais ("esta/mais 5cm") antes de validar.
-      const ops = resolveOps(d.ops as ShelfOp[], referencedShelves);
+      let ops = resolveOps(d.ops as ShelfOp[], referencedShelves);
       if (!ops.length && d.select.length)
         return finishTurn(userMsg, d.select, [], d.message, d, false, 'highlighted');
       if (!ops.length)
         return finishTurn(userMsg, d.select, [], `${d.message} (sem mudança nas medidas)`, d, false, 'unchanged');
-      const preview = executeRequest(before, ops);
+      let preview = executeRequest(before, ops);
+      // O modelo vê a composição, mas não vê o resultado do próprio lote: um
+      // connect correto no papel pode cair sobre outro módulo. Devolve o erro
+      // de validação e deixa corrigir no mesmo pedido, sem aplicar nada antes.
+      for (let attempt = 1; !preview.ok && attempt <= GEOMETRY_RETRIES; attempt++) {
+        progress({
+          stage: 'retrying',
+          label: 'Corrigindo o posicionamento',
+          detail: `${preview.error} Pedindo uma proposta corrigida.`,
+        });
+        d = await interpretStream(
+          before,
+          baseRev.id,
+          baseRev.number,
+          [...p.messages, { id: requestId, role: 'user', content: b.message, ...(image ? { image } : {}) }],
+          explicit,
+          {
+            requestId,
+            baseRevisionId: baseRev.id,
+            selectedPartIds: explicit,
+            referencedPartIds: explicit.length ? explicit : resolved,
+            pendingClarification: pendingClarification?.question ?? null,
+            historyNote: [
+              historyNote,
+              `A proposta anterior não passou na validação: ${preview.error} A composição não mudou. Reenvie o pedido completo, corrigido, com todas as operações necessárias. Lembre que em connect o side é o lado do próprio módulo pai no referencial dele, não a direção na tela.`,
+            ]
+              .filter(Boolean)
+              .join(' '),
+          },
+          progress,
+          0,
+          signal,
+          text,
+          Boolean(b.fast),
+        );
+        signal.throwIfAborted();
+        if (d.refs.length) userMsg.context!.referencedPartIds = d.refs;
+        if (d.action !== 'update') break;
+        const corrected = resolveOps(d.ops as ShelfOp[], referencedShelves);
+        if (!corrected.length) break;
+        ops = corrected;
+        preview = executeRequest(before, ops);
+      }
+      // Se a correção virou pergunta, ela é a resposta do turno.
+      if (!preview.ok && d.action === 'clarify')
+        return finishClarify(userMsg, d.message, d);
       if (!preview.ok) {
         const assistant: Message = {
           id: randomUUID(),

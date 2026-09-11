@@ -61,7 +61,7 @@ Operações: `module.add`, `module.edit`, `module.duplicate`, `module.remove`, `
 
 O modelo recebe composição/hierarquia, pedido atual, seleção, referências e revisão vigente. Nunca gera meshes, CSV ou lista de corte. Novos módulos podem receber ID explícito; a raiz será `id:root`. Dividir cria `id:low`, `id:high`, `id:divider`, permitindo operações dependentes no mesmo pedido.
 
-`executeRequest` trabalha numa cópia, valida o resultado completo e salva uma revisão única. Alterações relacionadas podem ter um estado intermediário incompatível. Qualquer falha preserva o design. IDs gerados na pré-validação são os mesmos gravados, sem executar novamente ao salvar.
+`executeRequest` trabalha numa cópia, valida o resultado completo e salva uma revisão única. Alterações relacionadas podem ter um estado intermediário incompatível. Qualquer falha preserva o design. IDs gerados na pré-validação são os mesmos gravados, sem executar novamente ao salvar. Quando a validação recusa o lote, o erro volta ao modelo com a composição inalterada e ele pode reenviar o lote corrigido no mesmo pedido, até duas correções, antes de o turno ser recusado.
 
 `POST /api/projects`, ações `op` e `ops`, usa o contrato do chat. `ops` aceita até 32 operações. Versão otimista previne sobrescrita. Chat deduplica requestId por projeto com mensagens persistidas; reenvio confirmado não incrementa versão. Esclarecimentos usam cards de IDs reais e retomam a intenção original. Seleção explícita tem precedência sobre destaques automáticos. IDs removidos não são substituídos silenciosamente. Abertura pelo chat usa `view`, sem operação de design.
 

@@ -214,3 +214,55 @@ void test('esclarecimento caído reaparece no pedido seguinte com o estado atual
     globalThis.fetch = original;
   }
 });
+void test('proposta sobreposta volta para a IA corrigir e o pedido termina aplicado', async () => {
+  const original = globalThis.fetch;
+  const p = create();
+  const rootId = get(p.id).revisions[0].params.modules[0].id;
+  const overlapping = [
+    { kind: 'module.add', id: 'test-a', preset: 'niche', name: 'Nicho A' },
+    { kind: 'module.add', id: 'test-b', preset: 'niche', name: 'Nicho B' },
+    { kind: 'connect', parent: rootId, child: 'test-a', side: 'right', shared: false, align: 'front', offset: 0 },
+    { kind: 'connect', parent: rootId, child: 'test-b', side: 'right', shared: false, align: 'front', offset: 0 },
+  ];
+  const corrected = [
+    { kind: 'module.add', id: 'test-a', preset: 'niche', name: 'Nicho A' },
+    { kind: 'module.add', id: 'test-b', preset: 'niche', name: 'Nicho B' },
+    { kind: 'connect', parent: rootId, child: 'test-a', side: 'right', shared: false, align: 'front', offset: 0 },
+    { kind: 'connect', parent: 'test-a', child: 'test-b', side: 'right', shared: false, align: 'front', offset: 0 },
+  ];
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls++;
+    return response({
+      action: 'update',
+      approach: `tentativa ${calls}`,
+      message: 'm',
+      ops: calls === 1 ? overlapping : corrected,
+    });
+  };
+  try {
+    const start = get(p.id).revisions.length;
+    const events: { event: string; data: string }[] = [];
+    await readEvents(
+      await POST(request(p.id, { message: 'Crie mais móveis e deixe mais complexo' })),
+      (e) => events.push(e),
+    );
+    assert.equal(events.at(-1)?.event, 'done');
+    assert.equal(calls, 2, 'a IA foi chamada de novo com o erro de geometria');
+    const saved = get(p.id);
+    assert.equal(saved.revisions.length, start + 1, 'uma única revisão');
+    const last = saved.messages.at(-1)!;
+    assert.equal(last.result?.outcome, 'applied');
+    const modules = saved.revisions[saved.cursor].params.modules;
+    assert.equal(modules.length, 3);
+    const a = modules.find((m) => m.id === 'test-a')!;
+    const b = modules.find((m) => m.id === 'test-b')!;
+    // Em cadeia: a cópia fica à direita do primeiro, não sobre ele.
+    assert.ok(
+      b.position[0] - a.position[0] >= a.width / 2,
+      `esperava ${b.position[0]} depois de ${a.position[0]}`,
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
+});
