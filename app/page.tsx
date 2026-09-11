@@ -657,6 +657,14 @@ export default function Home() {
           'A conexão terminou antes da confirmação. Use “Tentar novamente” — se a resposta já foi salva, ela reaparece sem aplicar duas vezes.',
         );
     } catch (e) {
+      // O servidor é a fonte da verdade. Se outra aba (ou uma ação de timeline)
+      // salvou enquanto este turno corria, a versão local ficou para trás e
+      // "Tentar novamente" reenviaria a versão velha para sempre. Sincroniza
+      // antes de oferecer o cartão.
+      try {
+        const current = await api<State>('/api/projects?id=' + p.id);
+        if (current.version !== p.version) accept(current);
+      } catch {}
       // Uma única superfície de erro para o turno: o cartão com "Tentar
       // novamente". O aviso global fica para as ações de painel.
       setFailedTurn({ text: message, image: sentImage, error: friendlyError(e), requestId });
