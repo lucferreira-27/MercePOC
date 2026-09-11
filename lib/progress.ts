@@ -32,4 +32,12 @@ export type TextPreview = {
   attempt: number;
   /** Bytes recebidos do provedor neste turno, incluindo raciocínio privado. */
   bytes?: number;
+  /**
+   * Raciocínio novo desde o evento anterior, para depuração. Só é enviado
+   * quando a transmissão ao vivo está ligada, nunca é salvo nem volta ao
+   * modelo.
+   */
+  reasoningDelta?: string;
+  /** Total de raciocínio recebido neste turno, em caracteres. */
+  reasoningTotal?: number;
 };

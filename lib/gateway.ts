@@ -228,7 +228,12 @@ export async function interpretStream(
   let lastApproach = '',
     lastAnswer = '',
     lastBytes = 0,
-    streamed = 0;
+    streamed = 0,
+    reasoningTotal = 0,
+    reasoningSent = 0;
+  // Raciocínio em pedaços: juntar a cada delta seria quadrático num turno que
+  // chega a centenas de kB. Só o que ainda não foi enviado é juntado.
+  const reasoningChunks: string[] = [];
   await readEvents(response, ({ data }) => {
     // Dado novo chegou: a janela de inatividade reinicia.
     resetIdle();
@@ -242,6 +247,9 @@ export async function interpretStream(
       choices?: {
         delta?: {
           content?: string;
+          reasoning_content?: string;
+          /** Campo que o gateway da Command Code envia hoje. */
+          reasoning?: string;
           tool_calls?: {
             index?: number;
             function?: { name?: string; arguments?: string };
@@ -262,7 +270,14 @@ export async function interpretStream(
         attempt: attempt + 1,
       });
     }
-    // Private reasoning fields are intentionally neither forwarded nor stored.
+    // O raciocínio nunca é salvo nem volta ao modelo; ele sai apenas na
+    // transmissão de depuração, em pedaços, conforme chega.
+    // O gateway manda "reasoning"; outros provedores usam "reasoning_content".
+    const incoming = delta.reasoning_content ?? delta.reasoning;
+    if (incoming) {
+      reasoningChunks.push(incoming);
+      reasoningTotal += incoming.length;
+    }
     if (delta.content) content += delta.content;
     for (const call of delta.tool_calls ?? []) {
       const i = call.index ?? 0;
@@ -284,15 +299,26 @@ export async function interpretStream(
       1200,
     );
     const answer = (readStringField(partial, 'message') ?? '').slice(0, 2000);
-    if (
-      approach !== lastApproach ||
-      answer !== lastAnswer ||
-      streamed - lastBytes >= 1024
-    ) {
+    const answerChanged = approach !== lastApproach || answer !== lastAnswer;
+    const unsent = reasoningTotal - reasoningSent;
+    // O raciocínio sai junto de qualquer avanço do turno e, no mínimo, a cada
+    // ~2 kB, para o painel de depuração acompanhar o texto em tempo real.
+    if (answerChanged || streamed - lastBytes >= 4096 || unsent >= 2048) {
       lastApproach = approach;
       lastAnswer = answer;
       lastBytes = streamed;
-      onText({ approach, answer, attempt: attempt + 1, bytes: streamed });
+      const reasoningDelta = reasoningChunks.join('');
+      reasoningChunks.length = 0;
+      reasoningSent = reasoningTotal;
+      onText({
+        approach,
+        answer,
+        attempt: attempt + 1,
+        bytes: streamed,
+        ...(reasoningDelta
+          ? { reasoningDelta, reasoningTotal }
+          : { reasoningTotal: reasoningTotal || undefined }),
+      });
     }
   });
   signal?.throwIfAborted();

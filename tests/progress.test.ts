@@ -9,6 +9,7 @@ import { defaults } from '../lib/furniture';
 import { migrateParams, resizeDesign } from '../lib/studio';
 import { create, get, view } from '../lib/store';
 import { decisionSchema } from '../lib/gateway';
+import type { TextPreview } from '../lib/progress';
 import { POST } from '../app/api/chat/route';
 process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-progress-'));
 const request = (id: string, version = 0, stream = true) =>
@@ -40,7 +41,7 @@ const decision = {
   ops: [{ kind: 'resize', width: 1000 }],
 };
 const wire = (name = 'submit_design_decision') =>
-  `data: ${JSON.stringify({ choices: [{ delta: { reasoning_content: 'PRIVATE_INTERNAL_TEXT', tool_calls: [{ index: 0, function: { name, arguments: JSON.stringify(decision) } }] } }] })}\n\ndata: [DONE]\n\n`;
+  `data: ${JSON.stringify({ choices: [{ delta: { reasoning: 'PRIVATE_INTERNAL_TEXT', tool_calls: [{ index: 0, function: { name, arguments: JSON.stringify(decision) } }] } }] })}\n\ndata: [DONE]\n\n`;
 void test('SSE handles split UTF-8, CRLF, comments, multiline data and final frame', async () => {
   const events: { event: string; data: string }[] = [];
   await readEvents(
@@ -62,7 +63,7 @@ void test('change summaries are derived from committed parameters', () => {
   );
   assert.deepEqual(describeChanges(before, before), []);
 });
-void test('live progress precedes completion, holds lock, persists report, omits private tokens', async () => {
+void test('live progress precedes completion, holds lock, persists report, keeps private tokens out of the saved state', async () => {
   const realFetch = globalThis.fetch;
   let release!: () => void;
   const gate = new Promise<void>((r) => {
@@ -96,8 +97,25 @@ void test('live progress precedes completion, holds lock, persists report, omits
       ['connecting', 'interpreting', 'validating', 'saving'],
     );
     assert.equal(events.at(-1)?.event, 'done');
+    // O raciocínio só pode aparecer no campo de depuração dos eventos de
+    // texto: progresso, resultado e o projeto salvo continuam sem ele.
+    const previews: TextPreview[] = events
+      .filter((e) => e.event === 'text')
+      .map((e) => JSON.parse(e.data));
     assert.equal(
-      JSON.stringify(events).includes('PRIVATE_INTERNAL_TEXT'),
+      previews.some((p) =>
+        `${p.approach} ${p.answer}`.includes('PRIVATE_INTERNAL_TEXT'),
+      ),
+      false,
+    );
+    assert.equal(
+      JSON.stringify(events.filter((e) => e.event !== 'text')).includes(
+        'PRIVATE_INTERNAL_TEXT',
+      ),
+      false,
+    );
+    assert.equal(
+      JSON.stringify(get(p.id)).includes('PRIVATE_INTERNAL_TEXT'),
       false,
     );
     const saved = view(get(p.id));
@@ -279,8 +297,19 @@ void test('debug streaming sends the partial answer before the final state', asy
       events.indexOf(texts[0]) < events.findIndex((e) => e.event === 'done'),
       'texto parcial só depois do resultado',
     );
-    // O raciocínio privado nunca entra na transmissão.
-    assert.equal(JSON.stringify(texts).includes('PRIVATE_INTERNAL_TEXT'), false);
+    // O raciocínio existe só no campo de depuração e nunca é persistido.
+    // O payload é produzido por esta mesma rota no teste, então já tem a
+    // forma de TextPreview.
+    const previews: TextPreview[] = texts.map((t) => JSON.parse(t.data));
+    assert.equal(
+      previews.some((p) => `${p.approach} ${p.answer}`.includes('PRIVATE_INTERNAL_TEXT')),
+      false,
+    );
+    assert.ok(
+      previews.some((p) => p.reasoningDelta?.includes('PRIVATE_INTERNAL_TEXT')),
+      'raciocínio ausente na depuração',
+    );
+    assert.equal(JSON.stringify(get(p.id)).includes('PRIVATE_INTERNAL_TEXT'), false);
     assert.equal(events.at(-1)?.event, 'done');
     assert.equal(view(get(p.id)).params.width, 1000);
   } finally {

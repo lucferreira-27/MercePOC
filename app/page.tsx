@@ -95,6 +95,8 @@ function cm(millimetres: number) {
 function mm(millimetres: number) {
   return String(Math.round(millimetres * 100) / 100);
 }
+/** Raciocínio exibido no painel de depuração: mantém o fim, que é o que importa. */
+const REASONING_VIEW_CAP = 64 * 1024;
 /**
  * Agrupa peças idênticas para a folha impressa: quatro prateleiras iguais são
  * uma linha com quantidade 4, não quatro linhas com quantidade 1.
@@ -181,6 +183,9 @@ export default function Home() {
     [fast, setFast] = useState(false),
     [live, setLive] = useState(false),
     [liveText, setLiveText] = useState<TextPreview | null>(null);
+  // Buffer local do raciocínio exibido: o contrato do evento traz só o pedaço
+  // novo, o painel acumula (mantendo o fim).
+  const [reasoningView, setReasoningView] = useState('');
   // Depuração: a transmissão do texto parcial é opcional e lembrada entre sessões.
   useEffect(() => {
     try {
@@ -195,6 +200,12 @@ export default function Home() {
       return !v;
     });
   const scrubCancelled = useRef(false);
+  const reasoningBox = useRef<HTMLPreElement>(null);
+  // O raciocínio rola junto: o que interessa é o fim, em tempo real.
+  useEffect(() => {
+    const box = reasoningBox.current;
+    if (box) box.scrollTop = box.scrollHeight;
+  }, [reasoningView]);
   const previewFrame = useRef(0);
   const previewFallback = useRef<number | undefined>(undefined);
   const pendingPreview = useRef<number | null>(null);
@@ -634,6 +645,7 @@ export default function Home() {
     setPending(replyTo ? `${message} (escolha: ${p.messages.find((m) => m.clarification?.id === replyTo.clarificationId)?.clarification?.options.find((o) => o.id === replyTo.optionId)?.label ?? ''})` : message);
     setProgress([]);
     setLiveText(null);
+    setReasoningView('');
     setStarted(Date.now());
     setText('');
     try {
@@ -665,7 +677,15 @@ export default function Home() {
           const update = JSON.parse(data) as Progress;
           setProgress((previous) => [...previous, update]);
         } else if (event === 'text') {
-          setLiveText(JSON.parse(data) as { approach: string; answer: string; attempt: number });
+          const preview = JSON.parse(data) as TextPreview;
+          setLiveText((previous) => ({ ...previous, ...preview }));
+          if (preview.reasoningDelta)
+            setReasoningView((previous) => {
+              const buffered = previous + preview.reasoningDelta;
+              return buffered.length > REASONING_VIEW_CAP
+                ? buffered.slice(-REASONING_VIEW_CAP)
+                : buffered;
+            });
         } else if (event === 'done') {
           accept(JSON.parse(data) as State);
           completed = true;
@@ -699,6 +719,7 @@ export default function Home() {
       setPendingImage(null);
       setProgress([]);
       setLiveText(null);
+      setReasoningView('');
       setBusy(false);
       draftDuringWait.current = '';
     }
@@ -997,8 +1018,8 @@ export default function Home() {
                       </p>
                     ) : (
                       <p>
-                        Recebendo do provedor. O raciocínio não é exibido; o
-                        texto aparece quando os campos públicos chegam.
+                        Recebendo do provedor; a resposta pública aparece quando
+                        os campos chegam.
                         <span className="text-caret" />
                       </p>
                     )}
@@ -1006,6 +1027,28 @@ export default function Home() {
                       Texto parcial da IA, ainda não validado nem salvo. Só a
                       resposta final cria revisão.
                     </small>
+                  </div>
+                )}
+                {live && reasoningView && (
+                  <div className="thinking">
+                    <details open>
+                      <summary>
+                        <span className="thinking-dots">
+                          <span />
+                          <span />
+                          <span />
+                        </span>
+                        Raciocínio do modelo ·{' '}
+                        {(liveText?.reasoningTotal ?? 0) < 4096
+                          ? `${liveText?.reasoningTotal ?? 0} caracteres`
+                          : `${((liveText?.reasoningTotal ?? 0) / 1024).toFixed(1)} kB`}{' '}
+                        (só em depuração; não é salvo nem reenviado)
+                        {(liveText?.reasoningTotal ?? 0) > REASONING_VIEW_CAP
+                          ? ' · mostrando o fim'
+                          : ''}
+                      </summary>
+                      <pre ref={reasoningBox}>{reasoningView}</pre>
+                    </details>
                   </div>
                 )}
               </>

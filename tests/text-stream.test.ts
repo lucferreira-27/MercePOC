@@ -45,7 +45,7 @@ void test('text previews arrive before structured response completes and contain
   const send = (args: string) =>
     controller.enqueue(
       enc.encode(
-        `data: ${JSON.stringify({ choices: [{ delta: { reasoning_content: 'PRIVATE_TOKEN', content: args } }] })}\n\n`,
+        `data: ${JSON.stringify({ choices: [{ delta: { reasoning: 'PRIVATE_TOKEN', content: args } }] })}\n\n`,
       ),
     );
   try {
@@ -79,7 +79,18 @@ void test('text previews arrive before structured response completes and contain
     const value = await result;
     assert.equal(value.ops[0]?.kind, 'resize');
     assert.ok(snapshots.length >= 4);
-    assert.equal(JSON.stringify(snapshots).includes('PRIVATE_TOKEN'), false);
+    // O raciocínio só existe no campo de depuração; approach e answer são
+    // sempre texto público.
+    assert.equal(
+      JSON.stringify(snapshots.map((s) => ({ a: s.approach, b: s.answer }))).includes(
+        'PRIVATE_TOKEN',
+      ),
+      false,
+    );
+    assert.ok(
+      snapshots.some((s) => s.reasoningDelta?.includes('PRIVATE_TOKEN')),
+      'raciocínio ausente no campo de depuração',
+    );
   } finally {
     globalThis.fetch = original;
   }
@@ -112,14 +123,23 @@ void test('previews also report streamed bytes so the debug view is never silent
     for (let i = 0; i < 12; i++)
       controller.enqueue(
         enc.encode(
-          `data: ${JSON.stringify({ choices: [{ delta: { reasoning_content: 'PRIVATE_TOKEN_'.repeat(20) } }] })}\n\n`,
+          `data: ${JSON.stringify({ choices: [{ delta: { reasoning: 'PRIVATE_TOKEN_'.repeat(20) } }] })}\n\n`,
         ),
       );
     await new Promise((r) => setTimeout(r, 0));
     const mid = snapshots.at(-1)!;
     assert.ok((mid.bytes ?? 0) > 1024, `bytes=${mid.bytes}`);
     assert.equal(mid.answer, '');
-    assert.equal(JSON.stringify(snapshots).includes('PRIVATE_TOKEN'), false);
+    // O servidor manda o raciocínio só quando ele cresce (ou no primeiro
+    // trecho); o cliente mantém o último recebido entre eventos.
+    assert.ok(
+      snapshots.some((s) => s.reasoningDelta?.includes('PRIVATE_TOKEN')),
+      'raciocínio ausente',
+    );
+    assert.ok(
+      snapshots.some((s) => (s.reasoningTotal ?? 0) > 0),
+      'total de raciocínio ausente',
+    );
     controller.enqueue(
       enc.encode(
         `data: ${JSON.stringify({ choices: [{ delta: { tool_calls: [{ index: 0, function: { name: 'submit_design_decision', arguments: JSON.stringify({ action: 'update', approach: 'a', message: 'Largura atualizada.', ops: [{ kind: 'resize', width: 1000 }] }) } }] } }] })}\n\ndata: [DONE]\n\n`,
