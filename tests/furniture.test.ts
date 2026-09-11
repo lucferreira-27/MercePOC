@@ -1,6 +1,9 @@
 import { resizeDesign as resizeStudio } from '../lib/studio';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   defaults,
   generate,
@@ -18,6 +21,9 @@ import {
 } from '../lib/design';
 import { decisionSchema } from '../lib/gateway';
 import { create, fork, get, revise, save, view } from '../lib/store';
+// O teste de persistência cria projetos: sem diretório isolado ele grava no
+// banco real e a lista do usuário enche de cópias de "Minha estante".
+process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-furniture-'));
 void test('reference cabinet and dimensions', () => {
   const g = generate(defaults);
   assert.equal(g.parts.length, 9);
