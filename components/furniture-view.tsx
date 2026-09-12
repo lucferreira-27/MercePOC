@@ -37,6 +37,7 @@ export default function FurnitureView({
   view,
   spin = false,
   scrub = false,
+  onSpinSuppressed,
 }: {
   params: Design;
   parts: Part[];
@@ -47,6 +48,11 @@ export default function FurnitureView({
   spin?: boolean;
   scrub?: boolean;
   dims?: boolean;
+  /**
+   * Avisa o painel quando o sistema pede menos movimento. Nesse caso a
+   * rotação automática é suprimida e o botão Girar não tem efeito nenhum.
+   */
+  onSpinSuppressed?: (suppressed: boolean) => void;
 }) {
   const [hover, setHover] = useState<{
     id: string;
@@ -61,6 +67,23 @@ export default function FurnitureView({
   useEffect(() => {
     callback.current = onSelect;
   }, [onSelect]);
+  const spinNotice = useRef(onSpinSuppressed);
+  useEffect(() => {
+    spinNotice.current = onSpinSuppressed;
+  }, [onSpinSuppressed]);
+  // O botão Girar precisa saber que a rotação está suprimida, inclusive se a
+  // preferência mudar com a página aberta.
+  useEffect(() => {
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const notify = () => {
+      spinNotice.current?.(query.matches);
+    };
+    notify();
+    query.addEventListener('change', notify);
+    return () => {
+      query.removeEventListener('change', notify);
+    };
+  }, []);
   useEffect(() => {
     if (!host.current) return;
     const el = host.current;

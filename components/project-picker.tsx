@@ -8,6 +8,7 @@ export type ProjectSummary = {
   updated?: string;
   revisions?: number;
   version?: number;
+  modules?: number;
 };
 
 /** Compara ignorando acentos e maiúsculas: "estante" acha "Estante". */
@@ -16,6 +17,30 @@ function fold(value: string) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
+}
+
+/**
+ * Resumo curto do projeto na lista. Dois projetos homônimos só se distinguem
+ * pela hora e pelos números, por isso a data vem com hora.
+ */
+function summarize(v: ProjectSummary) {
+  const parts: string[] = [];
+  if (v.version) parts.push(`Versão ${v.version}`);
+  parts.push(
+    `${v.revisions ?? 1} ${v.revisions === 1 ? 'versão salva' : 'versões salvas'}`,
+  );
+  if (v.modules)
+    parts.push(`${v.modules} ${v.modules === 1 ? 'módulo' : 'módulos'}`);
+  if (v.updated)
+    parts.push(
+      new Date(v.updated).toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    );
+  return parts.join(' · ');
 }
 
 export function ProjectPicker({
@@ -104,9 +129,7 @@ export function ProjectPicker({
             {found.map((v) => (
               <div
                 key={v.id}
-                className={
-                  'project-row' + (v.id === current ? ' current' : '')
-                }
+                className={'project-row' + (v.id === current ? ' current' : '')}
               >
                 {confirming === v.id ? (
                   <div className="project-confirm">
@@ -148,14 +171,7 @@ export function ProjectPicker({
                       }}
                     >
                       <strong>{v.name}</strong>
-                      <small>
-                        {v.version ? `Versão ${v.version} · ` : ''}
-                        {v.revisions ?? 1}{' '}
-                        {v.revisions === 1 ? 'versão salva' : 'versões salvas'}
-                        {v.updated
-                          ? ' · ' + new Date(v.updated).toLocaleDateString('pt-BR')
-                          : ''}
-                      </small>
+                      <small>{summarize(v)}</small>
                     </button>
                     <button
                       type="button"

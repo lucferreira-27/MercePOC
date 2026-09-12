@@ -25,7 +25,8 @@ A chave fica somente no servidor. O DeepSeek V4.1 Flash via Command Code propõe
 5. Selecione compartimentos para dividir, mover/distribuir divisões ou configurar portas/gavetas. Abra e feche pelas ações do painel ou pelo chat. Abertura não cria revisão. As ferramentas de prateleira (inserir no vão, distribuir) valem para a estante única original; em projetos com módulos, use Dividir ↕ e Distribuir do compartimento.
 6. Arraste a timeline para consultar/restaurar versões. Uma edição a partir do passado cria um novo caminho. Use Criar alternativa desta versão para preservar ambos.
 7. Anexe ou cole uma imagem de referência no chat. JPG, PNG ou WebP, até 10 MB. Dimensões precisam ser informadas ou confirmadas.
-8. Exporte CSV, Cortecloud, projeto completo ou impressão/PDF. O nome do projeto permanece editável em Ajustes.
+8. Os chips abaixo da conversa são os próximos passos propostos pela IA para este projeto, com o contexto do último turno (a lista fixa só aparece na primeira mensagem, quando ainda não há resposta dela). Clicar envia o pedido direto, sem passar pelo campo, e o que você digitou continua lá. Quando a IA precisa de uma decisão, o cartão mostra a pergunta, duas respostas sugeridas, as demais opções e um campo para responder do seu jeito; as opções são revalidadas antes de aplicar. Cada resposta abre em "O que o assistente fez" o roteiro do turno: quantas chamadas à IA, o que a validação conferiu e qual ferramenta (operação) mudou o quê, com a medida real.
+9. Exporte CSV, Cortecloud, projeto completo ou impressão/PDF. O nome do projeto permanece editável em Ajustes.
 
 Exemplos: “Divida este compartimento em duas colunas”; “Coloque três gavetas embaixo e duas portas em cima”; “Adicione outro módulo à direita compartilhando a lateral”; “Adicione um módulo perpendicular alinhado pelos fundos”; “Abra as portas deste módulo”.
 

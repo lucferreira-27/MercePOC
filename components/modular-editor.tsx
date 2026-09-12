@@ -9,11 +9,80 @@ import {
   type ModularOp,
   type Module,
 } from '@/lib/composition';
+
+/** Limites do formulário em português: o balão nativo chega em inglês. */
+const sizeHints = [
+  'Largura: 200 a 1200 mm.',
+  'Altura: 200 a 2400 mm.',
+  'Profundidade: 200 a 800 mm.',
+];
+const axisHints = [
+  'X: -20000 a 20000 mm.',
+  'Y: 0 a 20000 mm.',
+  'Z: -20000 a 20000 mm.',
+];
+
+type PanelScope = 'module' | 'actions' | 'cell' | 'front' | 'connect';
+type PanelError = {
+  scope: PanelScope;
+  message: string;
+  /** Limite do próprio campo: o aviso some quando o usuário digita de novo. */
+  limit?: boolean;
+  /** Pedido recusado pelo servidor: guarda a op para repetir em lote. */
+  edit?: Extract<ModularOp, { kind: 'module.edit' }>;
+};
+
+/**
+ * Conectar com painel compartilhado iguala o filho à referência. A regra é a
+ * de `settle`, então o painel mostra antes exatamente o que o servidor faria.
+ */
+function sharedChanges(
+  child: Module,
+  reference: Module,
+  side: 'right' | 'left' | 'top',
+  offset: number,
+) {
+  const changes: string[] = [];
+  const measure = (label: string, from: number, to: number) => {
+    if (from !== to) changes.push(`${label}: ${from} → ${to} mm`);
+  };
+  if (side === 'top') measure('Largura', child.width, reference.width);
+  else measure('Altura', child.height, reference.height);
+  measure('Profundidade', child.depth, reference.depth);
+  if (child.materialId !== reference.materialId) {
+    const from =
+      materials.find((v) => v.id === child.materialId)?.name ?? child.materialId;
+    const to =
+      materials.find((v) => v.id === reference.materialId)?.name ??
+      reference.materialId;
+    changes.push(`Acabamento: ${from} → ${to}`);
+  }
+  if (child.rotation !== reference.rotation)
+    changes.push(`Orientação: ${child.rotation}° → ${reference.rotation}°`);
+  if (offset !== 0) changes.push(`Afastamento: ${offset} → 0 mm`);
+  return changes;
+}
+
+/** O mesmo texto vale para o balão do navegador e para o aviso do painel. */
+function limitHint(message: string, onLimit: (message: string) => void) {
+  return {
+    onInvalid: (e: React.SyntheticEvent<HTMLInputElement>) => {
+      e.currentTarget.setCustomValidity(message);
+      onLimit(message);
+    },
+    onInput: (e: React.SyntheticEvent<HTMLInputElement>) => {
+      e.currentTarget.setCustomValidity('');
+      onLimit('');
+    },
+  };
+}
+
 export function ModularEditor({
   design,
   selected,
   onSelect,
   onOp,
+  onOps,
   busy,
   onOpen,
   opened,
@@ -22,6 +91,8 @@ export function ModularEditor({
   selected: string[];
   onSelect: (ids: string[]) => void;
   onOp: (op: ModularOp, label: string) => Promise<void>;
+  /** Lote atômico: o servidor aceita { action: 'ops', ops: [...] }. */
+  onOps?: (ops: ModularOp[], label: string) => Promise<void>;
   busy: boolean;
   onOpen: (id: string) => void;
   opened: Record<string, number>;
@@ -31,7 +102,14 @@ export function ModularEditor({
     [shared, setShared] = useState(false),
     [align, setAlign] = useState<'front' | 'back'>('front'),
     [offset, setOffset] = useState('0'),
-    [openedSections, setOpenedSections] = useState<Record<string, boolean>>({});
+    [openedSections, setOpenedSections] = useState<Record<string, boolean>>({}),
+    [error, setError] = useState<PanelError | null>(null),
+    [confirmShare, setConfirmShare] = useState<{
+      op: ModularOp;
+      changes: string[];
+    } | null>(null),
+    /** Renova o formulário do módulo: a `key` sobe a cada edição recusada. */
+    [editAttempt, setEditAttempt] = useState(0);
   const g = generateComposition(design),
     target = selected.at(-1);
   const part = g.parts.find((p) => p.id === target);
@@ -48,7 +126,114 @@ export function ModularEditor({
     design.modules.find(
       (m) => m.id === (cell?.moduleId || part?.owners[0] || target),
     ) || design.modules[0];
-  const run = (op: ModularOp, label: string) => void onOp(op, label);
+  /** Erro do módulo em foco: recusa de outro módulo não aparece neste painel. */
+  const moduleError =
+    error?.scope === 'module' && (!error.edit || error.edit.id === m.id)
+      ? error
+      : null;
+  const sayLimit = (scope: PanelScope, message: string) => {
+    setError((prev) =>
+      message
+        ? { scope, message, limit: true }
+        : prev?.limit && prev.scope === scope
+          ? null
+          : prev,
+    );
+  };
+  /** Guarda a recusa do servidor junto do formulário que a originou. */
+  const fail = (scope: PanelScope, e: unknown, ops: ModularOp[]) => {
+    setError({
+      scope,
+      message: e instanceof Error ? e.message : String(e),
+      ...(ops.length === 1 && ops[0].kind === 'module.edit'
+        ? { edit: ops[0] }
+        : {}),
+    });
+    // O formulário renasce dos valores atuais do módulo: um campo recusado não
+    // pode continuar mostrando o que o servidor não aceitou, o que parecia
+    // ter sido aplicado.
+    if (ops.some((op) => op.kind === 'module.edit'))
+      setEditAttempt((n) => n + 1);
+  };
+  /**
+   * O servidor pode recusar (HTTP 422) e rejeitar: a mensagem fica no painel
+   * perto do formulário que a pediu, em vez de sumir sem explicação.
+   */
+  const run = async (
+    op: ModularOp,
+    label: string,
+    scope: PanelScope = 'module',
+  ) => {
+    setError(null);
+    try {
+      await onOp(op, label);
+      setConfirmShare(null);
+    } catch (e) {
+      fail(scope, e, [op]);
+    }
+  };
+  const runBatch = (ops: ModularOp[], label: string) => {
+    const send = onOps;
+    if (!send) return;
+    setError(null);
+    send(ops, label).catch((e: unknown) => fail('module', e, ops));
+  };
+  /** Irmãos de painel compartilhado: qualquer ponta de conexão `shared`. */
+  const sharedSiblings = (id: string) => {
+    const ids: string[] = [];
+    for (const c of design.connections)
+      if (c.shared) {
+        const other = c.parent === id ? c.child : c.child === id ? c.parent : '';
+        if (other && !ids.includes(other)) ids.push(other);
+      }
+    return ids;
+  };
+  /** Repete a edição recusada no módulo e nos irmãos, num lote atômico só. */
+  const alignShared = () => {
+    const edit = moduleError?.edit;
+    if (!edit) return;
+    const ops = [edit.id, ...sharedSiblings(edit.id)].map((id): ModularOp => ({
+      kind: 'module.edit',
+      id,
+      // O irmão fica com o próprio nome: dois módulos homônimos confundem a
+      // árvore e a lista de peças.
+      ...(id === edit.id ? { name: edit.name } : {}),
+      width: edit.width,
+      height: edit.height,
+      depth: edit.depth,
+      materialId: edit.materialId,
+      back: edit.back,
+      rotation: edit.rotation,
+      // Módulo filho não aceita posição: quem manda nela é a conexão.
+      ...(edit.position && !design.connections.some((c) => c.child === id)
+        ? { position: edit.position }
+        : {}),
+    }));
+    runBatch(ops, 'Igualar painel compartilhado');
+  };
+  const requestConnect = () => {
+    if (!parent) return;
+    const offsetMm = Number(offset);
+    // O afastamento vive fora de um formulário, então a validação é aqui.
+    if (!Number.isFinite(offsetMm) || offsetMm < 0 || offsetMm > 5000) {
+      sayLimit('connect', 'Afastamento: 0 a 5000 mm.');
+      return;
+    }
+    const reference = design.modules.find((v) => v.id === parent);
+    const op: ModularOp = {
+      kind: 'connect',
+      parent,
+      child: m.id,
+      side,
+      shared,
+      align,
+      offset: offsetMm,
+    };
+    const changes =
+      shared && reference ? sharedChanges(m, reference, side, offsetMm) : [];
+    if (changes.length) setConfirmShare({ op, changes });
+    else void run(op, 'Conectar módulos', 'connect');
+  };
   const number = (data: FormData, key: string) => Number(data.get(key));
   const presets = ['shelf', 'niche', 'rack', 'drawers'] as const,
     presetNames = ['Estante', 'Nicho', 'Rack', 'Gaveteiro'];
@@ -126,7 +311,9 @@ export function ModularEditor({
         <div className="tree-node">
           <span className="tree-dot" />
           <button
-            className={'tree-item ' + (target === node.id ? 'active' : '')}
+            className={
+              'tree-item touch-target ' + (target === node.id ? 'active' : '')
+            }
             onClick={() => onSelect([node.id])}
           >
             <span className="tree-thumb">{nodeIcon(node)}</span>
@@ -170,7 +357,7 @@ export function ModularEditor({
           return (
             <section className="tree-section" key={mod.id}>
               <button
-                className="tree-header"
+                className="tree-header touch-target"
                 aria-expanded={open}
                 onClick={() =>
                   setOpenedSections((s) => ({ ...s, [mod.id]: !open }))
@@ -189,7 +376,7 @@ export function ModularEditor({
                 </span>
                 <span className="tree-header-name">{mod.name}</span>
                 <svg
-                  className="tree-chevron"
+                  className="tree-chevron touch-target"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -203,6 +390,35 @@ export function ModularEditor({
           );
         })}
       </div>
+      {/* As ações do módulo ficam fora do bloco de propriedades para não
+          sumirem quando um compartimento é o alvo selecionado. */}
+      <div className="modular-actions">
+        <Button
+          className="touch-target"
+          disabled={busy}
+          variant="outline"
+          onClick={() =>
+            run({ kind: 'module.duplicate', id: m.id }, `Duplicar ${m.name}`, 'actions')
+          }
+        >
+          Duplicar
+        </Button>
+        <Button
+          className="touch-target"
+          disabled={busy || design.modules.length === 1}
+          variant="outline"
+          onClick={() =>
+            run({ kind: 'module.remove', id: m.id }, 'Remover módulo', 'actions')
+          }
+        >
+          Remover
+        </Button>
+      </div>
+      {error?.scope === 'actions' && (
+        <p className="field-error" role="alert">
+          {error.message}
+        </p>
+      )}
       <p className="module-breadcrumb">
         Composição / {m.name}
         {cell ? ' / Compartimento' : ''}
@@ -217,7 +433,8 @@ export function ModularEditor({
           .
         </p>
       )}
-      <details key={target ?? m.id} open={!cell}>
+      {/* Um erro do módulo precisa do formulário aberto para ser lido. */}
+      <details key={target ?? m.id} open={!cell || Boolean(moduleError)}>
         <summary>Propriedades de {m.name}</summary>
         <form
           key={
@@ -229,12 +446,13 @@ export function ModularEditor({
             m.rotation +
             m.name +
             m.materialId +
-            m.back
+            m.back +
+            editAttempt
           }
           onSubmit={(e) => {
             e.preventDefault();
             const data = new FormData(e.currentTarget);
-            run(
+            void run(
               {
                 kind: 'module.edit',
                 id: m.id,
@@ -261,7 +479,15 @@ export function ModularEditor({
         >
           <label>
             Nome do módulo
-            <input name="name" defaultValue={m.name} required maxLength={80} />
+            <input
+              name="name"
+              defaultValue={m.name}
+              required
+              maxLength={80}
+              {...limitHint('Nome do módulo: 1 a 80 caracteres.', (message) =>
+                sayLimit('module', message),
+              )}
+            />
           </label>
           <div className="fields">
             {(['width', 'height', 'depth'] as const).map((k, i) => (
@@ -274,6 +500,9 @@ export function ModularEditor({
                   min={200}
                   max={[1200, 2400, 800][i]}
                   required
+                  {...limitHint(sizeHints[i], (message) =>
+                    sayLimit('module', message),
+                  )}
                 />
               </label>
             ))}
@@ -314,40 +543,50 @@ export function ModularEditor({
                     max={20000}
                     defaultValue={m.position[i]}
                     required
+                    {...limitHint(axisHints[i], (message) =>
+                      sayLimit('module', message),
+                    )}
                   />
                 </label>
               ))}
             </div>
           )}
-          <Button disabled={busy} type="submit">
+          {moduleError && (
+            <>
+              <p className="field-error" role="alert">
+                {moduleError.message}
+              </p>
+              {onOps &&
+                moduleError.edit &&
+                sharedSiblings(moduleError.edit.id).length > 0 &&
+                moduleError.message.includes('Painel compartilhado') && (
+                  <Button
+                    className="touch-target"
+                    type="button"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={alignShared}
+                  >
+                    Igualar os dois módulos e aplicar
+                  </Button>
+                )}
+            </>
+          )}
+          <Button className="touch-target" disabled={busy} type="submit">
             Aplicar módulo
           </Button>
         </form>
-        <div className="modular-actions">
-          <Button
-            disabled={busy}
-            variant="outline"
-            onClick={() =>
-              run({ kind: 'module.duplicate', id: m.id }, `Duplicar ${m.name}`)
-            }
-          >
-            Duplicar
-          </Button>
-          <Button
-            disabled={busy || design.modules.length === 1}
-            variant="outline"
-            onClick={() =>
-              run({ kind: 'module.remove', id: m.id }, 'Remover módulo')
-            }
-          >
-            Remover
-          </Button>
-        </div>
         <details>
           <summary>Conectar e alinhar módulos</summary>
           <label>
             Módulo de referência
-            <select value={parent} onChange={(e) => setParent(e.target.value)}>
+            <select
+              value={parent}
+              onChange={(e) => {
+                setParent(e.target.value);
+                setConfirmShare(null);
+              }}
+            >
               <option value="">Escolher</option>
               {design.modules
                 .filter((v) => v.id !== m.id)
@@ -362,7 +601,10 @@ export function ModularEditor({
             Posição
             <select
               value={side}
-              onChange={(e) => setSide(e.target.value as typeof side)}
+              onChange={(e) => {
+                setSide(e.target.value as typeof side);
+                setConfirmShare(null);
+              }}
             >
               <option value="right">À direita</option>
               <option value="left">À esquerda</option>
@@ -373,7 +615,10 @@ export function ModularEditor({
             Alinhamento
             <select
               value={align}
-              onChange={(e) => setAlign(e.target.value as typeof align)}
+              onChange={(e) => {
+                setAlign(e.target.value as typeof align);
+                setConfirmShare(null);
+              }}
             >
               <option value="front">Frentes</option>
               <option value="back">Fundos</option>
@@ -386,71 +631,131 @@ export function ModularEditor({
               min={0}
               max={5000}
               value={offset}
-              onChange={(e) => setOffset(e.target.value)}
+              onChange={(e) => {
+                setOffset(e.target.value);
+                setConfirmShare(null);
+              }}
+              {...limitHint('Afastamento: 0 a 5000 mm.', (message) =>
+                sayLimit('connect', message),
+              )}
             />
           </label>
           <label className="check-label">
             <input
               type="checkbox"
               checked={shared}
-              onChange={(e) => setShared(e.target.checked)}
+              onChange={(e) => {
+                setShared(e.target.checked);
+                setConfirmShare(null);
+              }}
             />{' '}
             Compartilhar painel
           </label>
           <Button
+            className="touch-target"
             disabled={busy || !parent}
-            onClick={() =>
-              run(
-                {
-                  kind: 'connect',
-                  parent,
-                  child: m.id,
-                  side,
-                  shared,
-                  align,
-                  offset: Number(offset),
-                },
-                'Conectar módulos',
-              )
-            }
+            onClick={requestConnect}
           >
             Conectar
           </Button>
           <Button
+            className="touch-target"
             variant="outline"
             disabled={busy || !design.connections.some((c) => c.child === m.id)}
             onClick={() =>
-              run({ kind: 'disconnect', child: m.id }, 'Separar módulos')
+              run({ kind: 'disconnect', child: m.id }, 'Separar módulos', 'connect')
             }
           >
             Separar módulos
           </Button>
+          {/* Compartilhar painel reescreve medidas do filho: nada acontece sem
+              esta confirmação, e o bloco lista cada número alterado. */}
+          {confirmShare &&
+            confirmShare.op.kind === 'connect' &&
+            confirmShare.op.child === m.id && (
+              <div className="shared-preview">
+                <p>
+                  Compartilhar painel iguala {m.name} à referência. Ao conectar,
+                  estas medidas mudam:
+                </p>
+                <ul>
+                  {confirmShare.changes.map((change) => (
+                    <li key={change}>{change}</li>
+                  ))}
+                </ul>
+                <div className="modular-actions">
+                  <Button
+                    className="touch-target"
+                    disabled={busy}
+                    onClick={() => {
+                      const pending = confirmShare.op;
+                      setConfirmShare(null);
+                      void run(pending, 'Conectar módulos', 'connect');
+                    }}
+                  >
+                    Confirmar e conectar
+                  </Button>
+                  <Button
+                    className="touch-target"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => setConfirmShare(null)}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            )}
+          {error?.scope === 'connect' && (
+            <p className="field-error" role="alert">
+              {error.message}
+            </p>
+          )}
         </details>
       </details>
       {cell && (
         <section className="cell-editor">
           <div className="section-label">COMPARTIMENTO SELECIONADO</div>
-          {!cell.node.split && !cell.node.front && (
+          {error?.scope === 'cell' && (
+            <p className="field-error" role="alert">
+              {error.message}
+            </p>
+          )}
+          {!cell.node.split && (
             <div className="modular-actions">
               <Button
-                disabled={busy}
+                className="touch-target"
+                disabled={busy || Boolean(cell.node.front)}
                 variant="outline"
+                title={
+                  cell.node.front
+                    ? 'Remova a porta ou as gavetas deste compartimento para dividir'
+                    : 'Dividir este compartimento em colunas'
+                }
                 onClick={() =>
-                  run(
+                  void run(
                     { kind: 'cell.split', id: cell.id, axis: 'x' },
                     'Dividir em colunas',
+                    'cell',
                   )
                 }
               >
                 Dividir ↔
               </Button>
               <Button
-                disabled={busy}
+                className="touch-target"
+                disabled={busy || Boolean(cell.node.front)}
                 variant="outline"
+                title={
+                  cell.node.front
+                    ? 'Remova a porta ou as gavetas deste compartimento para dividir'
+                    : 'Adicionar uma prateleira neste compartimento'
+                }
                 onClick={() =>
-                  run(
+                  void run(
                     { kind: 'cell.split', id: cell.id, axis: 'y' },
                     'Adicionar prateleira',
+                    'cell',
                   )
                 }
               >
@@ -458,19 +763,26 @@ export function ModularEditor({
               </Button>
             </div>
           )}
+          {!cell.node.split && cell.node.front && (
+            <p className="warning">
+              Para dividir este compartimento, remova a porta ou as gavetas
+              (deixe a Frente como Aberto no formulário abaixo).
+            </p>
+          )}
           {cell.node.split && (
             <>
               <form
                 key={cell.id + cell.node.split.ratio}
                 onSubmit={(e) => {
                   e.preventDefault();
-                  run(
+                  void run(
                     {
                       kind: 'cell.move',
                       id: cell.id,
                       gapMm: number(new FormData(e.currentTarget), 'gap'),
                     },
                     'Mover divisória',
+                    'cell',
                   );
                 }}
               >
@@ -488,30 +800,39 @@ export function ModularEditor({
                         cell.node.split.ratio,
                     )}
                     required
+                    {...limitHint('Vão: pelo menos 100 mm.', (message) =>
+                      sayLimit('cell', message),
+                    )}
                   />
                 </label>
-                <Button disabled={busy}>Aplicar vão</Button>
+                <Button className="touch-target" type="submit" disabled={busy}>
+                  Aplicar vão
+                </Button>
               </form>
               <div className="modular-actions">
                 <Button
+                  className="touch-target"
                   disabled={busy}
                   variant="outline"
                   onClick={() =>
                     run(
                       { kind: 'cell.distribute', id: cell.id },
                       'Distribuir divisões',
+                      'cell',
                     )
                   }
                 >
                   Distribuir
                 </Button>
                 <Button
+                  className="touch-target"
                   disabled={busy}
                   variant="outline"
                   onClick={() =>
                     run(
                       { kind: 'cell.merge', id: cell.id },
                       'Mesclar compartimentos',
+                      'cell',
                     )
                   }
                 >
@@ -526,7 +847,9 @@ export function ModularEditor({
               cell={cell.node}
               module={m}
               busy={busy}
-              run={run}
+              run={(op, label) => void run(op, label, 'front')}
+              error={error?.scope === 'front' ? error.message : ''}
+              onLimit={(message) => sayLimit('front', message)}
             />
           )}{' '}
           {cell.node.front?.type === 'drawers' && (
@@ -534,7 +857,7 @@ export function ModularEditor({
               onSubmit={(e) => {
                 e.preventDefault();
                 const data = new FormData(e.currentTarget);
-                run(
+                void run(
                   {
                     kind: 'drawer.height',
                     id: cell.id,
@@ -542,6 +865,7 @@ export function ModularEditor({
                     height: number(data, 'height'),
                   },
                   'Ajustar altura da frente',
+                  'cell',
                 );
               }}
             >
@@ -557,9 +881,19 @@ export function ModularEditor({
               </label>
               <label>
                 Altura da frente (mm)
-                <input name="height" type="number" min={80} required />
+                <input
+                  name="height"
+                  type="number"
+                  min={80}
+                  required
+                  {...limitHint('Altura da frente: pelo menos 80 mm.', (message) =>
+                    sayLimit('cell', message),
+                  )}
+                />
               </label>
-              <Button disabled={busy}>Redistribuir frentes</Button>
+              <Button className="touch-target" type="submit" disabled={busy}>
+                Redistribuir frentes
+              </Button>
             </form>
           )}
           {[
@@ -570,7 +904,7 @@ export function ModularEditor({
             ),
           ].map((id, i) => (
             <Button
-              className="opening-button"
+              className="opening-button touch-target"
               key={id}
               variant="outline"
               onClick={() => onOpen(id)}
@@ -593,11 +927,15 @@ function FrontControls({
   module,
   busy,
   run,
+  error,
+  onLimit,
 }: {
   cell: Cell;
   module: Module;
   busy: boolean;
   run: (op: ModularOp, label: string) => void;
+  error: string;
+  onLimit: (message: string) => void;
 }) {
   const [type, setType] = useState<'none' | 'single' | 'double' | 'drawers'>(
     cell.front?.type ?? 'none',
@@ -663,6 +1001,7 @@ function FrontControls({
               cell.front?.type === 'drawers' ? cell.front.heights.length : 3
             }
             required
+            {...limitHint('Quantidade de gavetas: 1 a 6.', onLimit)}
           />
         </label>
       )}
@@ -681,7 +1020,12 @@ function FrontControls({
           </select>
         </label>
       )}
-      <Button type="submit" disabled={busy}>
+      {error && (
+        <p className="field-error" role="alert">
+          {error}
+        </p>
+      )}
+      <Button className="touch-target" type="submit" disabled={busy}>
         Aplicar frente
       </Button>
     </form>

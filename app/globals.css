@@ -104,6 +104,9 @@ button svg {
   align-items: center;
   gap: 6px;
   max-width: 100%;
+  /* Sem min-width o gatilho não encolhe dentro do topbar e o nome do projeto
+     empurrava os botões para fora em telas estreitas. */
+  min-width: 0;
   border: 1px solid transparent;
   background: none;
   font-size: 14px;
@@ -115,6 +118,8 @@ button svg {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* Item de flex: sem min-width:0 o texto não encolhe abaixo do conteúdo. */
+  min-width: 0;
 }
 .project-trigger:hover {
   border-color: #e3e7e0;
@@ -413,7 +418,7 @@ button svg {
 .composer {
   border: 1px solid #dce2d8;
   border-radius: 13px;
-  padding: 10px 10px 6px;
+  padding: 10px 8px 6px;
   box-shadow: 0 3px 9px #1c302006;
 }
 .composer:focus-within {
@@ -435,14 +440,29 @@ button svg {
   outline-offset: 2px;
   border-radius: 6px;
 }
+/* A dica do compositor dividia a linha com os botões: com o painel em 290 a
+   350 px ela era espremida e virava uma coluna de cinco linhas. Agora ela ocupa
+   a própria linha e o envio fica na ponta direita da linha de cima. */
 .composer > div {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  justify-content: flex-start;
   align-items: center;
+  gap: 6px;
 }
 .composer > div > span {
   font-size: 11px;
   color: #666f66;
+}
+.composer .composer-hint {
+  flex: 1 1 100%;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.composer .composer-send {
+  margin-left: auto;
 }
 .model-label {
   display: flex;
@@ -462,12 +482,17 @@ button svg {
   gap: 4px;
   border: 1px solid #dce2d8;
   border-radius: 999px;
-  padding: 3px 10px;
-  margin: 0 8px;
+  padding: 3px 8px;
+  /* O espaçamento vem do gap do compositor: a margem lateral de 8px empurrava
+     a linha dos botões para duas linhas com o painel em 280 a 290 px. */
   font-size: 11px;
   color: #637456;
   background: transparent;
   cursor: pointer;
+  /* Em janela estreita o rótulo quebrava em duas linhas ("Ao"/"vivo") e
+     desalinhava a linha do composer. */
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .fast-toggle:disabled {
   opacity: 0.5;
@@ -523,6 +548,12 @@ button svg {
   text-decoration: none;
   padding: 3px;
   border-radius: 6px;
+  /* O "x" media 18px: alvo mínimo de 24px sem mudar o desenho. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
 }
 .error-panel {
   margin: 0 0 8px;
@@ -617,6 +648,7 @@ button svg {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
 .revision {
   font-size: 11px;
@@ -929,7 +961,11 @@ button svg {
 .failed-turn p{font-size:12px;color:#5c352c}
 .failed-turn small{font-size:11px;color:#a3564a}
 .failed-turn>div{display:flex;gap:6px}
-.new-message-jump{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:6;padding:7px 14px;border:1px solid #98b577;border-radius:999px;background:#fff;font-size:12px;color:#2f4a24;box-shadow:0 4px 12px #30402022;display:flex;align-items:center;gap:5px;cursor:pointer}
+/* O atalho de "Nova mensagem" ficava ancorado no painel, por cima do composer
+   e do rodapé de status. A âncora sticky o mantém dentro da lista: preso ao pé
+   da área visível, sem cobrir o campo de escrita. */
+.new-message-anchor{position:sticky;bottom:0;z-index:6;display:flex;justify-content:center;height:0;pointer-events:none}
+.new-message-jump{position:static;transform:none;pointer-events:auto;padding:7px 14px;border:1px solid #98b577;border-radius:999px;background:#fff;font-size:12px;color:#2f4a24;box-shadow:0 4px 12px #30402022;display:flex;align-items:center;gap:5px;cursor:pointer}
 .view-rev{margin-top:5px}
 .view-rev.dropped{color:#666f66;font-size:11px}
 .part-chip.stale{opacity:.62}
@@ -1081,11 +1117,12 @@ button svg {
     padding: 0 10px;
   }
   .brand {
-    font-size: 20px;
+    font-size: 18px;
+    gap: 6px;
   }
   .brand-icon {
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
   }
   /* O nome do projeto é a única identificação visível: ele fica com o espaço
      que sobra em vez de ser cortado em 90px. */
@@ -1096,6 +1133,8 @@ button svg {
   }
   .project-trigger {
     width: 100%;
+    gap: 4px;
+    padding: 4px 6px;
   }
   .project-menu {
     /* O gatilho tem ~134px: ancorado nele, o menu de 340px saía pela
@@ -1110,15 +1149,20 @@ button svg {
   .saved {
     display: none;
   }
+  /* O rótulo do botão era apagado com font-size: 0 e sobrava só o "+", sem
+     ninguém saber o que ele faz. Ele fica compacto, mas escrito. */
   .topbar > button {
-    font-size: 0;
+    font-size: 12px;
+    padding: 5px 8px;
+    gap: 4px;
   }
   .topbar > button svg {
-    width: 18px;
+    width: 16px;
   }
   .export-button {
     font-size: 12px !important;
-    padding: 8px !important;
+    padding: 6px 8px !important;
+    height: 32px !important;
   }
   .workbench {
     display: flex;
@@ -1300,3 +1344,116 @@ button svg {
 .modular-editor .fields label{grid-template-rows:minmax(30px,auto) auto}.viewport-heading>div{min-width:0;flex:1}.viewport-heading h2{max-width:90%}
 .opening-notice{padding:10px 12px;border:1px solid #e5d9b8;background:#faf7ed;color:#785f28;border-radius:8px;font-size:12px;line-height:1.5}
 .preview-chip{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.opening-notice{display:block}
+
+/* Classes de confirmação e aviso do painel (app/page.tsx). Ficam aqui para o
+   JSX não precisar de utilitário solto no meio da conversa. */
+.confirm-card{width:100%;padding:12px;border:1px solid #e5d9b8;border-radius:12px;background:#faf7ed;display:grid;gap:8px}
+.confirm-card p{font-size:13px;font-weight:500;line-height:1.5;color:#5f5227}
+.confirm-card ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:12px;line-height:1.5;color:#6f6135}
+.confirm-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.notice-banner{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border:1px solid #e5d9b8;border-radius:10px;background:#fdf8e7;color:#785f28;font-size:12px;line-height:1.45}
+.notice-banner button{margin-left:auto;flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px;padding:0;border:0;border-radius:6px;background:none;color:inherit}
+.notice-banner button:hover{background:#f3e9c9}
+.revision-warning{display:block;margin-top:2px;font-size:11px;font-weight:500;color:#8a6a1f;white-space:normal}
+/* O selo de versão tem altura de pílula de uma linha: com o aviso dentro ele
+   cresce em vez de cortar o texto. */
+.revision:has(.revision-warning){height:auto;padding-top:3px;padding-bottom:3px}
+.field-error{display:block;margin:4px 0;font-size:11px;line-height:1.45;color:#a33b2e}
+.touch-target{min-width:24px;min-height:24px;display:inline-flex;align-items:center;justify-content:center}
+/* Cartão de esclarecimento: opção que pode ter morrido fica marcada, e sempre
+   existe uma saída (deixar para depois) em vez de um beco sem saída. */
+.clarify-card button.dead{border-style:dashed;color:#8a6a1f}
+.clarify-card .clarify-empty{margin:0;font-size:12px;line-height:1.45;color:#6f6135}
+.clarify-card .clarify-dismiss{justify-self:start;border:0;background:none;padding:2px;font-size:11px;color:#666f66;text-decoration:underline;cursor:pointer}
+/* Duas respostas sugeridas em destaque e um campo para responder do jeito da
+   pessoa: a sugestão é atalho, o campo é a saída livre. */
+.clarify-card .clarify-options{display:flex;flex-wrap:wrap;gap:8px}
+.clarify-card .clarify-more{display:flex;flex-direction:column;gap:5px}
+.clarify-card .clarify-more>small{font-size:10px;color:#6c7f5e;font-weight:600}
+.clarify-card .clarify-more>div{display:flex;flex-wrap:wrap;gap:6px}
+.clarify-card .clarify-more button{padding:5px 9px;font-size:11px;border-color:#c3d5a8}
+.clarify-card .clarify-answer{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.clarify-card .clarify-answer label{font-size:11px;font-weight:600;color:#5c7048}
+.clarify-card .clarify-answer input{width:100%;padding:8px 10px;border:1px solid #c3d5a8;border-radius:8px;background:#fff;font-size:12px;color:#33452a}
+.clarify-card .clarify-answer input:focus{outline:2px solid #81a267;outline-offset:1px}
+.clarify-card .clarify-answer button{align-self:flex-start;padding:8px 12px;font-size:12px}
+.clarify-card .clarify-answer button:disabled{opacity:.45;cursor:not-allowed}
+/* Etapas do turno: ferramenta usada e efeito real, uma linha por passo. */
+.turn-steps,.turn-changes{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.turn-steps>strong,.turn-changes>strong{font-size:11px;font-weight:600;letter-spacing:.2px;color:#6c7f5e}
+.turn-steps ol{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+.turn-steps li{display:flex;gap:7px;align-items:flex-start}
+.turn-steps code{flex:none;margin-top:1px;padding:1px 6px;border-radius:5px;background:#eef3e7;border:1px solid #dbe5cd;font-size:10px;color:#4c6a3a}
+.turn-steps .progress-step,.turn-steps li>span{display:flex;flex-direction:column;gap:1px;min-width:0}
+.turn-steps li>span>small{font-size:11px;color:#666f66;line-height:1.45}
+.turn-changes ul{margin:0;padding-left:16px;font-size:12px;color:#43563c;display:grid;gap:4px}
+/* Primeira interação: as sugestões fixas se apresentam como ponto de partida. */
+.suggestions .suggestions-hint{font-size:10px;font-weight:600;letter-spacing:.2px;color:#7d8a72;text-transform:uppercase}
+/* A mensagem nova entra suave; sem isso ela aparecia de uma vez e empurrava a
+   conversa. */
+.message{animation:message-in .2s ease-out}
+@keyframes message-in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.message{animation:none}}
+
+/* Alvos de toque: 24px é o mínimo no ponteiro fino e 32px em dedo. O desenho
+   não muda, só a área clicável. Os pontos do histórico são indicadores, quem
+   arrasta é o thumb do slider, que ganhou área extra no componente. */
+.history-step,.project-delete,.tree-header,.control-buttons button{min-width:24px;min-height:24px}
+/* A caixa de "Fundo sobreposto" tem 13px: o rótulo inteiro vira alvo de 24px. */
+.modular-editor .check-label{min-height:24px}
+/* Estes dois botões de ícone mediam 12x18 e 16x16 no composer. */
+.selection-chip button,.attachment-preview button{min-width:24px;min-height:24px;display:inline-flex;align-items:center;justify-content:center}
+@media (pointer: coarse) {
+  .history-step{width:32px;height:32px}
+  .project-delete{min-width:32px;min-height:32px}
+  .tree-header,.control-buttons button,.project-trigger,.touch-target{min-height:32px}
+  .selection-chip button,.attachment-preview button{min-width:32px;min-height:32px}
+}
+
+@media (max-width: 540px) {
+  /* O título do viewport ficava com uma ou duas letras visíveis e o selo de
+     versão ocupava metade da faixa. Menor, ele cabe com reticências. */
+  .viewport-heading h2{font-size:17px;margin:6px 0;max-width:100%}
+  .viewport-heading .revision{max-width:44%}
+  /* As seis vistas não cabem em 320px: a linha passa a rolar dentro do cartão
+     em vez de estourar a largura da página. */
+  .scene-bottom .viewport-controls{flex:1 1 100%;min-width:0}
+  .scene-bottom .control-buttons{display:flex;flex-wrap:wrap;gap:5px;max-width:100%;overflow-x:auto;scrollbar-width:thin}
+  .scene-bottom .control-buttons button{flex-shrink:0;padding:6px 9px;font-size:11px}
+}
+
+/* Confirmação de "Compartilhar painel": bloco dentro do painel, lista as medidas que mudam e traz os botões Confirmar/Cancelar. */
+.shared-preview{display:grid;gap:8px;padding:12px;border:1px solid #d9c27a;background:#fdf8e7;border-radius:10px;font-size:12px;line-height:1.5;color:#5c4a17}
+.shared-preview p{margin:0}
+.shared-preview ul{margin:0;padding-left:18px;display:grid;gap:2px}
+.shared-preview li{font-variant-numeric:tabular-nums}
+.shared-preview .modular-actions{margin-top:2px}
+
+/* Setas do input number: área de toque de 24 px, sem mexer no resto do campo. */
+.modular-editor input[type='number']::-webkit-inner-spin-button{height:24px;width:24px}
+.modular-editor input[type='number']::-webkit-outer-spin-button{height:24px;width:24px}
+/* Checkbox do painel com área de toque própria de 24px. */
+.modular-editor .check-label input[type='checkbox']{width:24px;height:24px;flex:none}
+
+/* Ambiente do painel Ajustes (app/page.tsx): dados da parede, acima da parte
+   que mexe no móvel. Fica no inspetor, que o print não imprime. */
+.room-panel{margin-bottom:16px;padding:12px;border:1px solid #e0e5df;border-radius:10px;background:#f8faf7;display:grid;gap:10px}
+.room-panel .shelf-hint{font-size:11px;line-height:1.5;color:#666f66;margin:0}
+.room-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.room-fields label{display:grid;gap:3px;font-size:11px;color:#53604a}
+.room-fields input,.room-obstacle select{width:100%;min-width:0;padding:7px 8px;border:1px solid #d6ddcf;border-radius:7px;background:#fff;color:#26321f;font-variant-numeric:tabular-nums}
+.room-fields small{font-size:10px;color:#768075;min-height:13px}
+.room-verdict{display:grid;gap:5px;padding:9px 10px;border:1px solid #cfe0bc;border-radius:8px;background:#f2f8ea}
+.room-verdict strong{font-size:12px;line-height:1.45;color:#2f4a24}
+.room-verdict.bad{border-color:#e6c4bd;background:#fdf3f1}
+.room-verdict.bad strong{color:#8f3527}
+.room-verdict .warning{margin:0;padding:7px 8px}
+.room-verdict .field-error{margin:0}
+.room-obstacles{display:grid;gap:8px}
+.room-obstacle{padding:8px;border:1px solid #e0e5df;border-radius:8px;background:#fff;display:grid;gap:7px}
+.room-obstacle-head{display:flex;align-items:center;gap:8px}
+.room-obstacle-head select{flex:1 1 auto}
+.room-save{display:flex;align-items:center;gap:8px}
+.room-save small{font-size:11px;color:#3e5e30}
+.room-panel .link-button{padding:2px 7px;font-size:11px;color:#3e5e30;background:#fff;border:1px solid #d6ddcf;border-radius:6px}
+.room-panel .section-label{margin:0}

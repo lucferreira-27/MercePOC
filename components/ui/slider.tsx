@@ -2,14 +2,32 @@ import { Slider as SliderPrimitive } from '@base-ui/react/slider';
 
 import { cn } from '@/lib/utils';
 
+type SliderProps = SliderPrimitive.Root.Props & {
+  /**
+   * Texto lido pelo leitor de tela no lugar do número cru. O Base UI só aceita
+   * esta prop no Thumb, então ela é repassada adiante aqui.
+   */
+  getAriaValueText?: (
+    formattedValue: string,
+    value: number,
+    index: number,
+  ) => string;
+};
+
 function Slider({
   className,
   defaultValue,
   value,
   min = 0,
   max = 100,
+  // Quem recebe o foco (e é anunciado) é o input escondido dentro do Thumb:
+  // sem este repasse o slider ficava sem nome acessível.
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
+  'aria-valuetext': ariaValueText,
+  getAriaValueText,
   ...props
-}: SliderPrimitive.Root.Props) {
+}: SliderProps) {
   const _values = Array.isArray(value)
     ? value
     : Array.isArray(defaultValue)
@@ -25,6 +43,8 @@ function Slider({
       min={min}
       max={max}
       thumbAlignment="center"
+      aria-label={ariaLabel}
+      aria-labelledby={ariaLabelledBy}
       {...props}
     >
       <SliderPrimitive.Control className="data-vertical:min-h-40 relative flex w-full touch-none items-center select-none data-disabled:opacity-50 data-vertical:h-full data-vertical:w-auto data-vertical:flex-col">
@@ -41,7 +61,11 @@ function Slider({
           <SliderPrimitive.Thumb
             data-slot="slider-thumb"
             key={index}
-            className="border-ring ring-ring/50 relative size-3 rounded-full border bg-white transition-[color,box-shadow] after:absolute after:-inset-2 hover:ring-3 focus-visible:ring-3 focus-visible:outline-hidden active:ring-3 block shrink-0 select-none disabled:pointer-events-none disabled:opacity-50"
+            aria-label={ariaLabel}
+            aria-labelledby={ariaLabelledBy}
+            aria-valuetext={ariaValueText}
+            getAriaValueText={getAriaValueText}
+            className="border-ring ring-ring/50 relative size-3 rounded-full border bg-white transition-[color,box-shadow] after:absolute after:-inset-3 hover:ring-3 focus-visible:ring-3 focus-visible:outline-hidden active:ring-3 block shrink-0 select-none disabled:pointer-events-none disabled:opacity-50"
           />
         ))}
       </SliderPrimitive.Control>
