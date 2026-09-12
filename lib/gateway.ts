@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { opSchema, type Design, canonical } from './studio';
+import { opSchema, type Design, type ShelfOp, canonical } from './studio';
 import { layout, validationMessage } from './composition';
 import { fitSummary, type Room } from './room';
 import type { Message, TurnContext } from './store';
@@ -156,6 +156,12 @@ export async function interpretStream(
   onText: (preview: TextPreview) => void = () => {},
   fast = false,
   room?: Room,
+  /**
+   * Desenho do projeto ATUAL (frontal + isométrica) como data URL. A IA vê a
+   * geometria em número no prompt e o desenho em imagem: sem ele, um layout
+   * montado às cegas pode ter a proporção errada e ninguém percebe.
+   */
+  currentView?: string,
 ): Promise<z.infer<typeof decisionSchema>> {
   const prof = profile(fast);
   const { key } = prof;
@@ -198,13 +204,36 @@ export async function interpretStream(
       ? { request: reference.content, name: reference.image?.name }
       : undefined,
   });
-  const userContent = reference?.image
+  const images: { type: 'image_url'; image_url: { url: string } }[] = [];
+  if (reference?.image)
+    images.push({
+      type: 'image_url',
+      image_url: {
+        url: await imageDataUrl(reference.image.id, fast ? 'jpeg' : 'webp'),
+      },
+    });
+  if (currentView)
+    images.push({ type: 'image_url', image_url: { url: currentView } });
+  // O texto imediatamente antes das imagens diz qual é qual: sem isso o modelo
+  // trata o desenho do projeto como se fosse a foto de referência.
+  const imageNote = [
+    reference?.image
+      ? `Imagem 1: foto de referência deste pedido${reference.image.name ? ` (${reference.image.name})` : ''}.`
+      : '',
+    currentView
+      ? `Imagem ${reference?.image ? 2 : 1}: desenho do projeto ATUAL, antes deste turno, em duas vistas lado a lado (esquerda frontal, direita isométrica, sem legenda; o contorno claro é a silhueta no chão).`
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const userContent = images.length
     ? [
-        { type: 'text', text: requestString },
         {
-          type: 'image_url',
-          image_url: { url: await imageDataUrl(reference.image.id, fast ? 'jpeg' : 'webp') },
+          type: 'text',
+          text: imageNote ? `${requestString}
+${imageNote}` : requestString,
         },
+        ...images,
       ]
     : requestString;
   // Um pedido longo e saudável não deve ser cortado por relógio: o limite é
@@ -427,6 +456,129 @@ export async function interpretStream(
   }
   } finally {
     clearTimeout(idleTimer);
+  }
+}
+/**
+ * Conferência do próprio desenho.
+ *
+ * Depois de aplicar o lote, o app desenha o resultado (frontal + isométrica) e
+ * volta a perguntar à IA, agora com a foto e o desenho lado a lado: ficou
+ * parecido com a referência? O que está claramente errado? As correções vêm em
+ * operações, no mesmo contrato, e passam pela validação como qualquer outra.
+ *
+ * É uma chamada só, sem laço: se a resposta não vier no formato, o turno segue
+ * sem veredito, em vez de arriscar uma segunda rodada de ajustes.
+ */
+export const reviewSchema = z.object({
+  fidelity: z.enum(['parecido', 'parcial', 'diferente']),
+  /**
+   * O veredito é cortado, não recusado: uma leitura de três frases é útil e
+   * mais longa que o teto, e recusá-la jogava fora a conferência inteira.
+   */
+  verdict: z
+    .string()
+    .min(1)
+    .transform((v) => v.trim().replace(/\s+/g, ' ').slice(0, 600)),
+  /**
+   * As correções são validadas uma a uma: uma operação malformada no meio de
+   * três boas não pode jogar fora o veredito inteiro (foi o que aconteceu na
+   * primeira medição no app, com o esquema estrito).
+   */
+  ops: z.array(z.unknown()).max(30).default([]),
+});
+export type DesignReview = {
+  fidelity: 'parecido' | 'parcial' | 'diferente';
+  verdict: string;
+  ops: ShelfOp[];
+};
+export async function reviewResult(params: {
+  photo: string;
+  result: string;
+  design: Design;
+  applied: readonly ShelfOp[];
+  request: string;
+  fast?: boolean;
+  room?: Room;
+  signal?: AbortSignal;
+  /** Recebe a resposta crua do provedor: usado para diagnosticar o formato. */
+  debug?: (raw: string) => void;
+}): Promise<DesignReview | null> {
+  const prof = profile(Boolean(params.fast));
+  const body = {
+    model: prof.model,
+    ...(params.fast ? {} : { reasoning_effort: 'low' }),
+    // O mesmo teto da chamada principal: comparar duas imagens gasta
+    // raciocínio suficiente para 4000 tokens acabarem antes do veredito, e a
+    // resposta chegava vazia.
+    max_tokens: aiMaxTokens(),
+    messages: [
+      {
+        role: 'system',
+        content: `Você acabou de montar um móvel e agora confere o seu próprio desenho, sem falar com o usuário ainda. A imagem 1 é a foto de referência; a imagem 2 é o desenho do que você montou, em duas vistas lado a lado (esquerda frontal, direita isométrica; sem legenda; o contorno claro é a silhueta no chão). Compare os dois e responda só JSON: {"fidelity":"parecido|parcial|diferente","verdict":"uma ou duas frases do que está parecido e do que está claramente errado ou faltando","ops":[]}.
+  O veredito é uma leitura honesta do desenho: proporção entre largura e altura, número de corpos, colunas de vãos, vão alto aberto, gavetas, o que está empilhado ou avançado. Não invente detalhe que não dá para ver num desenho de linhas: cor, textura, ferragem, veio da madeira. Só marque diferente quando a estrutura estiver errada de verdade.
+  Se houver correção, use no máximo 10 operações do mesmo contrato, na ordem certa (medidas antes de ligar, todas as divisões antes das frentes), e só o que aproxima o desenho da foto. Se o desenho já corresponde, devolva ops vazio.
+  Composição atual em mm: ${JSON.stringify(canonical(params.design))}.
+  Operações que você acabou de aplicar: ${JSON.stringify(params.applied)}.${params.room ? ` Ambiente informado: ${JSON.stringify(params.room)}.` : ''}
+  Contrato das operações: ${JSON.stringify(z.toJSONSchema(opSchema))}.`,
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: `Pedido original do usuário: ${params.request.slice(0, 500)}`,
+          },
+          { type: 'image_url', image_url: { url: params.photo } },
+          { type: 'image_url', image_url: { url: params.result } },
+        ],
+      },
+    ],
+  };
+  try {
+    const response = await fetch(`${prof.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${prof.key}`,
+        'Content-Type': 'application/json',
+      },
+      signal: params.signal,
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      params.debug?.(`HTTP ${response.status}: ${(await response.text()).slice(0, 300)}`);
+      return null;
+    }
+    const payload = (await response.json()) as {
+      choices?: {
+        finish_reason?: string;
+        message?: { content?: string; reasoning?: string };
+      }[];
+    };
+    const choice = payload.choices?.[0];
+    const raw = choice?.message?.content ?? '';
+    params.debug?.(raw);
+    if (!raw.trim())
+      throw new Error(
+        `resposta sem texto (motivo ${choice?.finish_reason ?? '?'}, raciocínio de ${choice?.message?.reasoning?.length ?? 0} caracteres)`,
+      );
+    const json = JSON.parse(
+      raw.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '').trim(),
+    );
+    const parsed = reviewSchema.parse(json);
+    const ops: ShelfOp[] = [];
+    for (const candidate of parsed.ops) {
+      if (ops.length === 10) break;
+      const op = opSchema.safeParse(candidate);
+      if (op.success) ops.push(op.data as ShelfOp);
+    }
+    return { fidelity: parsed.fidelity, verdict: parsed.verdict, ops };
+  } catch (e) {
+    // Sem veredito o turno continua: a conferência é um extra, não um portão.
+    // O motivo fica no log do servidor, senão a ausência vira mistério.
+    console.warn(
+      `[review] sem veredito: ${e instanceof Error ? e.message.slice(0, 200) : String(e)}`,
+    );
+    return null;
   }
 }
 export function interpret(

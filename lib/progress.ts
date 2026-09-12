@@ -6,6 +6,7 @@ export type Progress = {
     | 'retrying'
     | 'validating'
     | 'applying'
+    | 'reviewing'
     | 'saving';
   label: string;
   detail: string;
@@ -57,6 +58,17 @@ export type ChatReport = {
   changes: string[];
   /** O que mudou, em cartões: o conteúdo principal da mensagem. */
   highlights?: ChangeHighlight[];
+  /**
+   * O que a IA viu no próprio desenho depois de aplicar, comparando com a foto
+   * de referência. Fica separado do texto do turno: um é a proposta, o outro é
+   * a conferência.
+   */
+  review?: {
+    fidelity: 'parecido' | 'parcial' | 'diferente';
+    verdict: string;
+    /** Operações de correção que a conferência pediu, já aplicadas. */
+    corrections: number;
+  };
   /** Texto próprio da IA, para a interface não repetir o resumo do diff. */
   prose?: string;
   selected?: SelectedPart[];

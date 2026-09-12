@@ -27,6 +27,7 @@ process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-bench-'));
 
 const { applyRequest, create, get, revise, save } = await import('../lib/store.ts');
 const { saveImage } = await import('../lib/images.ts');
+const { planDataUrl } = await import('../lib/plan-render.ts');
 const { interpretStream } = await import('../lib/gateway.ts');
 const { executeRequest, generateDesign, entityIds } = await import('../lib/studio.ts');
 const { cases, groups } = await import('./cases.mjs');
@@ -99,7 +100,7 @@ globalThis.fetch = async (...callArgs) => {
 };
 
 /** Mesmo laço de reparo da rota: erro de validação volta para o modelo. */
-async function interpretWithRepair(before, revision, messages, selection, context, telemetry) {
+async function interpretWithRepair(before, revision, messages, selection, context, telemetry, currentView) {
   const callOnce = async (note) => {
     const t0 = Date.now();
     const callsBefore = providerCalls;
@@ -120,6 +121,10 @@ async function interpretWithRepair(before, revision, messages, selection, contex
       undefined,
           () => {},
           fast,
+          undefined,
+          // O app manda o desenho do projeto atual em turno com foto: o
+          // benchmark manda o mesmo, senão mede um caminho que ninguém usa.
+          currentView,
         );
         break;
       } catch (error) {
@@ -291,6 +296,7 @@ for (const benchCase of selected) {
           selection,
           context,
           telemetry,
+          image ? await planDataUrl(generateDesign(before).parts) : undefined,
         );
         decision = interpreted.decision;
         row.preview = interpreted.preview;

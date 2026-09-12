@@ -1,5 +1,5 @@
 import { applyRequest, get, save, view, revise, type Clarification, type Message } from '@/lib/store';
-import { interpretStream } from '@/lib/gateway';
+import { interpretStream, reviewResult } from '@/lib/gateway';
 import { materials } from '@/lib/furniture';
 import {
   describeDesignChanges,
@@ -18,7 +18,8 @@ import {
 } from '@/lib/progress';
 import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
-import { getImage } from '@/lib/images';
+import { getImage, imageDataUrl, saveImage, type ImageRef } from '@/lib/images';
+import { planDataUrl, planPng } from '@/lib/plan-render';
 const busy = new Set<string>();
 /** Correções de geometria pedidas à IA antes de recusar o turno. */
 const GEOMETRY_RETRIES = 2;
@@ -259,6 +260,17 @@ export async function POST(req: Request) {
       // (ou uma resposta que nunca chega) não pode apagar o pedido.
       version = save(p, version).version;
       persistedUser = true;
+      // O desenho do resultado e o veredito da conferência entram na resposta
+      // como imagem e como leitura, não como se fossem o texto da IA.
+      let resultImage: ImageRef | undefined;
+      let resultReview:
+        | { fidelity: 'parecido' | 'parcial' | 'diferente'; verdict: string; corrections: number }
+        | undefined;
+      // Turno com foto: a IA recebe também o desenho do projeto atual, para
+      // planejar sabendo como a peça está hoje, e não só em milímetros.
+      const currentView = image
+        ? await planDataUrl(generateDesign(before).parts)
+        : undefined;
       let d = await interpretStream(
         before,
         baseRev.id,
@@ -281,6 +293,7 @@ export async function POST(req: Request) {
         text,
         Boolean(b.fast),
         p.room,
+        currentView,
       );
       signal.throwIfAborted();
       progress({
@@ -361,6 +374,7 @@ export async function POST(req: Request) {
           text,
           Boolean(b.fast),
           p.room,
+          currentView,
         );
         signal.throwIfAborted();
         if (d.refs.length) userMsg.context!.referencedPartIds = d.refs;
@@ -397,11 +411,54 @@ export async function POST(req: Request) {
       if (JSON.stringify(preview.design) === JSON.stringify(before)) {
         return finishTurn(userMsg, d.select, ops, 'O projeto já está nesse estado; nenhuma medida mudou.', d, false, 'unchanged');
       }
+      // A conferência só faz sentido em turno com foto: é onde a semelhança
+      // com a referência importa. Ela olha o desenho do resultado, pode pedir
+      // até 10 operações de correção e uma vez só, sem laço.
+      if (image) {
+        progress({
+          stage: 'reviewing',
+          label: 'Conferindo o desenho',
+          detail: 'Comparando o resultado com a foto de referência.',
+        });
+        try {
+          const review = await reviewResult({
+            photo: await imageDataUrl(image.id, b.fast ? 'jpeg' : 'webp'),
+            result: await planDataUrl(generateDesign(preview.design).parts),
+            design: preview.design,
+            applied: ops,
+            request: b.message,
+            fast: Boolean(b.fast),
+            room: p.room,
+            signal,
+          });
+          let corrections = 0;
+          if (review?.ops.length) {
+            const fixed = executeRequest(preview.design, review.ops);
+            if (fixed.ok && JSON.stringify(fixed.design) !== JSON.stringify(preview.design)) {
+              preview = fixed;
+              ops = [...ops, ...review.ops];
+              corrections = review.ops.length;
+            }
+          }
+          if (review)
+            resultReview = {
+              fidelity: review.fidelity,
+              verdict: review.verdict,
+              corrections,
+            };
+          signal.throwIfAborted();
+        } catch (e) {
+          // A conferência é um extra: sem ela o turno segue com o resultado que
+          // já passou na validação.
+          if (signal.aborted) throw e;
+        }
+      }
       progress({
         stage: 'applying',
         label: 'Aplicando as alterações',
         detail: 'Conferindo o lote e salvando a nova versão.',
       });
+      if (image) resultImage = await saveImage(await planPng(generateDesign(preview.design).parts), 'resultado.png');
       const discarded = revise(p, preview.design, b.message.slice(0,90));
       return { ...finishTurn(userMsg, d.select, ops, null, d), discarded };
 
@@ -471,6 +528,8 @@ export async function POST(req: Request) {
           revisionId: p.revisions[p.cursor].id,
           revision: p.revisions[p.cursor].number,
           context: user.context,
+          // O desenho que a IA conferiu também fica visível para a pessoa.
+          ...(resultImage ? { image: resultImage } : {}),
           ...(decision?.suggestions?.length
             ? { suggestions: decision.suggestions }
             : {}),
@@ -491,6 +550,7 @@ export async function POST(req: Request) {
               ? { highlights: describeHighlights(before, after, appliedOps) }
               : {}),
             ...(decision?.message ? { prose: decision.message } : {}),
+            ...(resultReview ? { review: resultReview } : {}),
           },
         };
         p.messages.push(assistant);

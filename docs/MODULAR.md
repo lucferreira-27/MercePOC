@@ -56,7 +56,16 @@ Pedido de cópia de layout a partir de uma imagem não é recusado por falta de 
 3. **Ordem de montagem.** Um módulo por vez: `module.add` → `module.edit` (nome e medidas) → `connect`. Vários `module.add` seguidos de `module.edit` são recusados como módulos sobrepostos, porque o módulo novo nasce ao lado da composição e cresce até encostar. `shared:true` só entre módulos de mesma altura, profundidade, orientação e acabamento, com afastamento zero; profundidade diferente exige `shared:false` (fica a divisória aparente). Módulo girado entra só na ponta da fileira. Todas as `cell.split` vêm antes de qualquer `front.set`, e `preset:"shelf"` já chega dividido (quem vai definir as divisões usa `preset:"niche"`).
 4. **Erro declarado.** A resposta diz a régua usada, o erro esperado (±10 a 20%) e a única medida que fecharia o desenho (largura da parede ou pé-direito). O que a foto mostra e o contrato não tem (cabideiro, curva, inclinado, porta de correr, tampo avulso, canto com interior contínuo) é nomeado no texto, não omitido.
 
-Medição: grupo `foto` do benchmark (`bench/README.md`) e `work/qa/verify-foto.mjs` no navegador, com a foto anexada no compositor.
+### O desenho que a IA confere
+
+A IA não trabalha só em milímetros: `lib/plan-render.ts` desenha o projeto em duas vistas lado a lado (esquerda frontal, direita isométrica) em SVG puro, rasterizado com o `sharp` que já está no projeto. Nada de WebGL: o `three` do app roda no navegador e o servidor não tem contexto 3D, e a leitura que interessa aqui (proporção, cheios e vazios, quantos corpos, onde estão as gavetas) não depende de material nem de luz. Cada peça vira um polígono por face visível, pintados do fundo para a frente, com o tampo mais claro e a frente mais escura, e uma silhueta clara no chão para o móvel não flutuar.
+
+Dois usos:
+
+- **Antes do turno, com foto:** o desenho do projeto atual vai junto da referência, com o texto dizendo qual imagem é qual. Sem isso a IA planeja em número, sem ver a proporção do que já existe.
+- **Depois de aplicar, com foto:** `reviewResult` (`lib/gateway.ts`) manda a foto e o desenho do resultado e pede um veredito curto (`parecido`, `parcial` ou `diferente`), o que está errado ou faltando e, se for o caso, até 10 operações de correção. As correções passam pela mesma validação das outras, entram na mesma revisão e aparecem nos cartões; se a resposta vier fora do formato, o turno segue sem veredito em vez de arriscar uma segunda rodada. O veredito e o desenho ficam na mensagem (`report.review` e `message.image`), então o que a IA viu é visível para quem pediu.
+
+Limite declarado: um desenho de linhas não mostra cor, textura nem ferragem, e a conferência é instruída a não julgar isso. Medição: `work/qa/verify-foto.mjs`, que confere veredito, correções e a imagem do resultado na conversa, além do grupo `foto` do benchmark.
 
 ## Colisões e animação
 

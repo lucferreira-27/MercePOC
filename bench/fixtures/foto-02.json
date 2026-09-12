@@ -1,44 +1,37 @@
 {
  "id": "foto-02",
- "at": "2026-09-12T08:50:45.678Z",
+ "at": "2026-09-12T09:31:50.893Z",
  "decision": {
   "action": "update",
-  "approach": "Fileira reta de 4 corpos somando 3600 mm (800 + 1100 + 800 + 900), todos com 2400 mm de altura e 400 mm de profundidade, com gavetas na coluna da esquerda, vão central alto e nichos abertos à direita.",
-  "message": "Usei a frente de gaveta (~200 mm) e a lombada de livro (~240 mm) como régua: a fileira fecha em 800 + 1100 + 800 + 900 = 3600 mm de largura, com 2400 mm de altura, erro esperado de ±10 a 20%. O cabideiro e o canto de 90° da parede perpendicular ficaram de fora, e a única medida que fecharia tudo é a altura do vão central (assumi 1500 mm) — se souber a altura do teto ou do rodapé, ajusto.",
+  "approach": "Canto em L: fileira reta com 4 corpos somando 3200 mm e um corpo girado no canto, fechando os 3600 mm da parede.",
+  "message": "Usei a frente de gaveta (~200 mm) e a lombada do livro (~240 mm) como régua: a foto pede um armário de cerca de 4,0 m de desenvolvimento e fechei em 3600 mm com quatro corpos retos (3200) mais o corpo girado do canto (400 de profundidade), com erro esperado de ±15%. O cabideiro e a iluminação interna dos nichos ficaram de fora, e a altura ficou no limite de 2400 mm — a altura do pé-direito e a largura exata do vão do televisor fechariam as últimas diferenças.",
   "suggestions": [
-   "Coloque duas portas no vão central alto",
-   "Divida o nicho direito em três alturas",
-   "Suba a altura do vão central para 1700 mm"
+   "Confirme a altura do pé-direito da parede",
+   "Coloque portas no vão superior do televisor",
+   "Ajuste a largura do vão central do televisor"
   ],
   "ops": [
    {
     "kind": "module.edit",
     "id": "module-1",
-    "name": "Estante esquerda",
-    "width": 800,
+    "name": "Estante de nichos",
+    "width": 700,
     "height": 2400,
     "depth": 400,
     "materialId": "oak",
     "back": true
    },
    {
-    "kind": "front.set",
-    "id": "cell-legacy-0",
-    "type": "drawers",
-    "count": 4,
-    "materialId": "oak"
-   },
-   {
     "kind": "module.add",
-    "id": "m2",
+    "id": "module-2",
     "preset": "niche",
-    "name": "Vão central"
+    "name": "Vão de TV"
    },
    {
     "kind": "module.edit",
-    "id": "m2",
-    "name": "Vão central",
-    "width": 1100,
+    "id": "module-2",
+    "name": "Vão de TV",
+    "width": 1000,
     "height": 2400,
     "depth": 400,
     "materialId": "oak",
@@ -47,33 +40,46 @@
    {
     "kind": "connect",
     "parent": "module-1",
-    "child": "m2",
+    "child": "module-2",
     "side": "right",
     "shared": true,
     "align": "front",
     "offset": 0
    },
    {
-    "kind": "cell.split",
-    "id": "m2:root",
-    "axis": "y",
-    "gapMm": 1500
+    "kind": "module.add",
+    "id": "module-3",
+    "preset": "niche",
+    "name": "Nicho com livros"
    },
    {
-    "kind": "cell.split",
-    "id": "m2:root:high",
-    "axis": "y",
-    "gapMm": 400
+    "kind": "module.edit",
+    "id": "module-3",
+    "name": "Nicho com livros",
+    "width": 700,
+    "height": 2400,
+    "depth": 400,
+    "materialId": "oak",
+    "back": true
+   },
+   {
+    "kind": "connect",
+    "parent": "module-2",
+    "child": "module-3",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
    },
    {
     "kind": "module.add",
-    "id": "m3",
+    "id": "module-4",
     "preset": "shelf",
     "name": "Estante direita"
    },
    {
     "kind": "module.edit",
-    "id": "m3",
+    "id": "module-4",
     "name": "Estante direita",
     "width": 800,
     "height": 2400,
@@ -83,8 +89,8 @@
    },
    {
     "kind": "connect",
-    "parent": "m2",
-    "child": "m3",
+    "parent": "module-3",
+    "child": "module-4",
     "side": "right",
     "shared": true,
     "align": "front",
@@ -92,57 +98,79 @@
    },
    {
     "kind": "module.add",
-    "id": "m4",
+    "id": "module-5",
     "preset": "niche",
-    "name": "Nichos direitos"
+    "name": "Canto com gavetas"
    },
    {
     "kind": "module.edit",
-    "id": "m4",
-    "name": "Nichos direitos",
-    "width": 900,
+    "id": "module-5",
+    "name": "Canto com gavetas",
+    "width": 600,
     "height": 2400,
     "depth": 400,
     "materialId": "oak",
-    "back": true
+    "back": true,
+    "rotation": 90
    },
    {
     "kind": "connect",
-    "parent": "m3",
-    "child": "m4",
-    "side": "right",
-    "shared": true,
+    "parent": "module-1",
+    "child": "module-5",
+    "side": "left",
+    "shared": false,
     "align": "front",
     "offset": 0
    },
    {
     "kind": "cell.split",
-    "id": "m4:root",
+    "id": "module-2:root",
     "axis": "y",
-    "gapMm": 700
+    "gapMm": 1900
    },
    {
     "kind": "cell.split",
-    "id": "m4:root:high",
+    "id": "module-3:root",
+    "axis": "y",
+    "gapMm": 500
+   },
+   {
+    "kind": "cell.split",
+    "id": "module-3:root:high",
     "axis": "y",
     "gapMm": 800
+   },
+   {
+    "kind": "cell.split",
+    "id": "module-3:root:high:high",
+    "axis": "y",
+    "gapMm": 550
+   },
+   {
+    "kind": "cell.split",
+    "id": "module-5:root",
+    "axis": "y",
+    "gapMm": 600
+   },
+   {
+    "kind": "front.set",
+    "id": "module-5:root:low",
+    "type": "drawers",
+    "hinge": "left",
+    "count": 4,
+    "materialId": "oak"
    }
   ],
-  "select": [
-   "module-1",
-   "m2",
-   "m3",
-   "m4"
-  ],
+  "select": [],
   "refs": [
    "module-1",
-   "cell-legacy-0",
-   "m2",
-   "m3",
-   "m4"
+   "module-2",
+   "module-3",
+   "module-4",
+   "module-5"
   ]
  },
- "latencyMs": 49772,
+ "latencyMs": 59472,
  "calls": 1,
  "retries": 0
 }

@@ -25,7 +25,7 @@ npm run bench -- --compare bench/results/baseline.json
 
 O banco usado é temporário (`MERCE_DATA_DIR` em pasta do sistema): a base real de projetos nunca é tocada. A chave do provedor vem do `.env` da raiz, como no app.
 
-Casos com foto (`image` no caso, grupo `foto`) leem o arquivo indicado, salvam a imagem no diretório temporário e mandam o mesmo pedido que o app manda, com imagem. A foto **não** é versionada: ponha o arquivo em `bench/images/` (ignorado no git) para rodar; sem ele o caso é pulado com o motivo impresso, em vez de virar falha por falta de insumo.
+Casos com foto (`image` no caso, grupo `foto`) leem o arquivo indicado, salvam a imagem no diretório temporário e mandam o mesmo pedido que o app manda, com imagem. A foto **não** é versionada: ponha o arquivo em `bench/images/` (ignorado no git) para rodar; sem ele o caso é pulado com o motivo impresso, em vez de virar falha por falta de insumo. Os casos de foto mandam também o desenho do projeto atual (`lib/plan-render.ts`), como o app manda. A conferência do desenho do resultado é uma segunda chamada da ROTA, fora do caminho medido aqui: ela tem verificação de navegador em `work/qa/verify-foto.mjs`.
 
 Saídas: `bench/results/*.json` (ignorados no git) e `bench/fixtures/*.json` (versionados, uma decisão do modelo por caso, gravada com `--record`).
 
