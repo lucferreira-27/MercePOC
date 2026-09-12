@@ -3,6 +3,7 @@ import { interpretStream } from '@/lib/gateway';
 import { materials } from '@/lib/furniture';
 import {
   describeDesignChanges,
+  describeHighlights,
   describeOperations,
   executeRequest,
   generateDesign,
@@ -546,6 +547,12 @@ export async function POST(req: Request) {
             changes,
             approach: decision?.approach,
             selected: showcase,
+            // O resultado principal da mensagem: o que mudou, em cartões. O
+            // roteiro técnico continua em `steps`, para a seção de detalhes.
+            ...(appliedOps.length && changes.length
+              ? { highlights: describeHighlights(before, after, appliedOps) }
+              : {}),
+            ...(decision?.message ? { prose: decision.message } : {}),
             steps: [
               {
                 tool: 'interpretar',

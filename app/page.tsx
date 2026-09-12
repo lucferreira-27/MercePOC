@@ -3,6 +3,7 @@
 'use client';
 import Link from 'next/link';
 import { ChatProgress } from '@/components/chat-progress';
+import { ChangeCards } from '@/components/change-cards';
 import { readEvents } from '@/lib/sse';
 import { type Progress, type TextPreview } from '@/lib/progress';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -1519,7 +1520,14 @@ export default function Home() {
                 )}
                 <div>
                   {m.image && <img className="chat-image" src={m.image.url} alt={m.image.name} loading="lazy" />}
-                  {m.content}
+                  {m.report?.highlights?.length ? (
+                    <>
+                      <ChangeCards highlights={m.report.highlights} />
+                      {m.report.prose && <p className="message-prose">{m.report.prose}</p>}
+                    </>
+                  ) : (
+                    m.content
+                  )}
                   {m.error && <div className="turn-error" role="alert">{m.error}</div>}
                   {m.error && m.retry && (
                     <div className="confirm-actions">
@@ -1636,18 +1644,27 @@ export default function Home() {
                   {m.report && (
                     <details className="change-report">
                       <summary>
-                        {m.report.outcome === 'applied'
-                          ? 'Alterações aplicadas'
-                          : m.report.outcome === 'clarification'
-                            ? 'Aguardando sua resposta'
-                            : m.report.outcome === 'rejected'
-                              ? 'Projeto preservado'
-                              : m.report.outcome === 'highlighted'
-                                ? 'Peças destacadas'
-                                : m.report.outcome === 'answered'
-                                  ? 'Resposta'
-                                  : 'Sem alteração nas medidas'}{' '}
-                        · {rev.status === 'found' ? `v${rev.revision.number}` : rev.status === 'dropped' ? 'versão descartada' : 'sem versão'} · {(m.report.durationMs / 1000).toFixed(1)}s
+                        {m.report.highlights?.length ? (
+                          <>
+                            Detalhes técnicos
+                            {rev.status === 'found' ? ` · v${rev.revision.number}` : ''}
+                          </>
+                        ) : (
+                          <>
+                            {m.report.outcome === 'applied'
+                              ? 'Alterações aplicadas'
+                              : m.report.outcome === 'clarification'
+                                ? 'Aguardando sua resposta'
+                                : m.report.outcome === 'rejected'
+                                  ? 'Projeto preservado'
+                                  : m.report.outcome === 'highlighted'
+                                    ? 'Peças destacadas'
+                                    : m.report.outcome === 'answered'
+                                      ? 'Resposta'
+                                      : 'Sem alteração nas medidas'}{' '}
+                            · {rev.status === 'found' ? `v${rev.revision.number}` : rev.status === 'dropped' ? 'versão descartada' : 'sem versão'} · {(m.report.durationMs / 1000).toFixed(1)}s
+                          </>
+                        )}
                       </summary>
                       {m.report.approach && (
                         <div className="saved-approach">
@@ -1657,7 +1674,7 @@ export default function Home() {
                       )}
                       {m.report.steps && m.report.steps.length > 0 && (
                         <div className="turn-steps">
-                          <strong>O que o assistente fez</strong>
+                          <strong>Como foi executado</strong>
                           <ol>
                             {m.report.steps.map((step, s) => (
                               <li key={`${step.tool}-${s}`}>
@@ -1671,9 +1688,11 @@ export default function Home() {
                           </ol>
                         </div>
                       )}
+                      {/* Com cartões, o diff em texto já está na mensagem: aqui
+                          fica só o registro de quem lê o histórico técnico. */}
                       {m.report.changes.length > 0 ? (
                         <div className="turn-changes">
-                          <strong>Medidas alteradas</strong>
+                          <strong>Registro do diff</strong>
                           <ul>
                             {m.report.changes.map((change) => (
                               <li key={change}>{change}</li>
@@ -1683,6 +1702,9 @@ export default function Home() {
                       ) : (
                         <p>Nenhuma medida foi alterada.</p>
                       )}
+                      <p className="report-duration">
+                        Duração do turno: {(m.report.durationMs / 1000).toFixed(1)} s
+                      </p>
                     </details>
                   )}
                   {m.role === 'assistant' && rev.status === 'found' && (

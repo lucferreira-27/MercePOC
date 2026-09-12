@@ -2,7 +2,7 @@
 import { z } from 'zod';
 import * as old from './design';
 import { materials, type Params } from './furniture';
-import type { TurnStep } from './progress';
+import type { ChangeHighlight, TurnStep } from './progress';
 import {
   applyModularOp,
   compositionSchema,
@@ -276,9 +276,329 @@ const FRONT_LABEL = {
   none: 'sem frente',
 } as const;
 const HINGE_LABEL = { left: 'dobradiça à esquerda', right: 'dobradiça à direita' } as const;
+const ALIGN_LABEL = { front: 'alinhado pela frente', back: 'alinhado pelos fundos' } as const;
 /** Nome do material para as etapas: o relatório mostra o nome, não o id. */
 function materialName(id: string) {
   return materials.find((m) => m.id === id)?.name ?? id;
+}
+/**
+ * O que mudou no projeto, contado como quem desenha móvel conta: "Nicho
+ * adicionado, 800 × 600 × 450 mm, à direita da estante, alinhado pela frente".
+ * Cada cartão é derivado do desenho DEPOIS de aplicar e das conexões que
+ * ficaram de pé, então a interface nunca promete o que a operação não fez.
+ */
+export function describeHighlights(
+  before: Design,
+  after: Design,
+  ops: readonly ShelfOp[],
+): ChangeHighlight[] {
+  const cellsAfter = layout(after).cells;
+  const cellsBefore = layout(before).cells;
+  const name = (d: Design, id: string) =>
+    d.modules.find((m) => m.id === id)?.name ?? 'módulo';
+  const cellLabel = (id: string) =>
+    (cellsAfter.find((c) => c.id === id) ?? cellsBefore.find((c) => c.id === id))?.label ??
+    'compartimento';
+  const shelfLabel = (id: string) =>
+    shelfInfos(before).find((s) => s.id === id)?.label ?? 'prateleira';
+  const mm = (value: number) => `${round2(value)} mm`;
+  const dims = (m: { width: number; height: number; depth: number }) =>
+    `${round2(m.width)} × ${round2(m.height)} × ${round2(m.depth)} mm`;
+  const measuresOf = (m: { width: number; height: number; depth: number }) => [
+    { label: 'Largura', value: mm(m.width) },
+    { label: 'Altura', value: mm(m.height) },
+    { label: 'Profundidade', value: mm(m.depth) },
+  ];
+  const frontsOf = (d: Design, id: string) => {
+    const cells = layout(d).cells.filter((c) => c.moduleId === id);
+    const parts = cells
+      .filter((c) => c.node.front)
+      .map((c) => {
+        const front = c.node.front!;
+        if (front.type === 'drawers') return `${front.heights.length} gavetas`;
+        return front.type === 'double' ? 'porta dupla' : 'porta simples';
+      });
+    const open = cells.filter((c) => !c.node.front && !c.node.split).length;
+    if (open) parts.push(open === 1 ? 'um vão aberto' : `${open} vãos abertos`);
+    return parts;
+  };
+  const shelvesOf = (d: Design, id: string) =>
+    generateDesign(d).parts.filter((p) => p.kind === 'shelf' && p.owners.includes(id)).length;
+  /** Propriedades do módulo que interessam a quem olha o resultado. */
+  const moduleFacts = (d: Design, id: string, extra: { label: string; value: string }[] = []) => {
+    const m = d.modules.find((v) => v.id === id);
+    if (!m) return extra;
+    const facts = [...extra];
+    const fronts = frontsOf(d, id);
+    if (fronts.length) facts.push({ label: 'Frentes', value: fronts.join(', ') });
+    const shelves = shelvesOf(d, id);
+    if (shelves) facts.push({ label: 'Prateleiras', value: String(shelves) });
+    facts.push({ label: 'Acabamento', value: materialName(m.materialId) });
+    if (m.rotation) facts.push({ label: 'Orientação', value: `${m.rotation}°` });
+    facts.push({ label: 'Fundo', value: m.back ? 'sobreposto' : 'sem fundo' });
+    return facts;
+  };
+  /** Como o módulo se apoia no resto: conexão manda, geometria só desempata. */
+  const attachment = (d: Design, id: string) => {
+    const conn = d.connections.find((c) => c.child === id);
+    if (!conn) return null;
+    return {
+      parent: name(d, conn.parent),
+      side: SIDE_LABEL[conn.side],
+      shared: conn.shared,
+      align: ALIGN_LABEL[conn.align],
+      offset: conn.offset,
+    };
+  };
+  const out: ChangeHighlight[] = [];
+  const novos = after.modules.filter((m) => !before.modules.some((b) => b.id === m.id));
+  const addedIds = new Set(novos.map((m) => m.id));
+  /** Cada módulo novo vira um cartão: dois adds no mesmo lote não se repetem. */
+  const usados = new Set<string>();
+  for (const op of ops) {
+    switch (op.kind) {
+      case 'module.add':
+      case 'module.duplicate': {
+        const pedido = op.kind === 'module.add' ? op.id : op.newId;
+        const target =
+          (pedido ? after.modules.find((m) => m.id === pedido) : undefined) ??
+          novos.find((m) => !usados.has(m.id));
+        if (!target) break;
+        usados.add(target.id);
+        const link = attachment(after, target.id);
+        const facts: { label: string; value: string }[] = [];
+        if (link) {
+          facts.push({ label: 'Posição', value: `${link.side} de ${link.parent}` });
+          facts.push({ label: 'Alinhamento', value: link.align });
+          if (link.offset) facts.push({ label: 'Afastamento', value: mm(link.offset) });
+          if (link.shared) facts.push({ label: 'Laterais', value: 'compartilhadas com o vizinho' });
+        } else {
+          facts.push({ label: 'Posição', value: 'sem conexão, solto no projeto' });
+        }
+        out.push({
+          tool: op.kind,
+          title:
+            op.kind === 'module.add'
+              ? `${target.name} adicionado`
+              : `Cópia: ${target.name}`,
+          summary:
+            op.kind === 'module.add'
+              ? `Um novo módulo de ${dims(target)}${link ? ` foi colocado ${link.side} de ${link.parent}, ${link.align}` : ' foi criado no projeto'}.`
+              : `Uma cópia independente de ${name(before, op.id)} entrou com ${dims(target)}.`,
+          size: [target.width, target.height, target.depth],
+          measures: measuresOf(target),
+          facts: moduleFacts(after, target.id, facts),
+        });
+        break;
+      }
+      case 'module.edit': {
+        const edited = after.modules.find((m) => m.id === op.id);
+        const previous = before.modules.find((m) => m.id === op.id);
+        if (!edited || !previous) break;
+        const mudancas: string[] = [];
+        if (edited.width !== previous.width)
+          mudancas.push(`largura de ${mm(previous.width)} para ${mm(edited.width)}`);
+        if (edited.height !== previous.height)
+          mudancas.push(`altura de ${mm(previous.height)} para ${mm(edited.height)}`);
+        if (edited.depth !== previous.depth)
+          mudancas.push(`profundidade de ${mm(previous.depth)} para ${mm(edited.depth)}`);
+        if (edited.name !== previous.name)
+          mudancas.push(`o nome virou ${edited.name}`);
+        if (edited.materialId !== previous.materialId)
+          mudancas.push(`acabamento ${materialName(edited.materialId)}`);
+        if (edited.rotation !== previous.rotation)
+          mudancas.push(`orientação em ${edited.rotation}°`);
+        if (edited.back !== previous.back)
+          mudancas.push(edited.back ? 'ganhou fundo sobreposto' : 'ficou sem fundo');
+        out.push({
+          tool: op.kind,
+          title: `${edited.name} ajustado`,
+          summary: mudancas.length
+            ? `${mudancas.join(', ').replace(/^./, (c) => c.toUpperCase())}.`
+            : 'O módulo foi reeditado sem mudar medidas nem acabamento.',
+          size: [edited.width, edited.height, edited.depth],
+          measures: measuresOf(edited),
+          facts: moduleFacts(after, edited.id),
+        });
+        break;
+      }
+      case 'module.remove': {
+        const gone = before.modules.find((m) => m.id === op.id);
+        if (!gone) break;
+        out.push({
+          tool: op.kind,
+          title: `${gone.name} removido`,
+          summary: `O módulo saiu do projeto e ficaram ${after.modules.length} no lugar.`,
+          measures: measuresOf(gone),
+          facts: [
+            { label: 'Frentes', value: frontsOf(before, gone.id).join(', ') || 'nenhuma' },
+            { label: 'Acabamento', value: materialName(gone.materialId) },
+          ],
+        });
+        break;
+      }
+      case 'connect': {
+        // Conexão de módulo que acabou de entrar já vem contada no cartão dele.
+        if (addedIds.has(op.child)) break;
+        const child = after.modules.find((m) => m.id === op.child);
+        const parent = after.modules.find((m) => m.id === op.parent);
+        if (!child || !parent) break;
+        out.push({
+          tool: op.kind,
+          title: `${child.name} conectado à ${SIDE_LABEL[op.side].replace('à ', '')} de ${parent.name}`,
+          summary: op.shared
+            ? 'A face entre os dois módulos virou uma lateral compartilhada, sem afastamento.'
+            : 'Os módulos ficaram encostados, cada um com a própria lateral.',
+          size: [child.width, child.height, child.depth],
+          facts: [
+            { label: 'Alinhamento', value: ALIGN_LABEL[op.align] },
+            { label: 'Afastamento', value: op.offset ? mm(op.offset) : 'nenhum' },
+            { label: 'Laterais', value: op.shared ? 'compartilhadas' : 'independentes' },
+          ],
+        });
+        break;
+      }
+      case 'disconnect':
+        out.push({
+          tool: op.kind,
+          title: `${name(before, op.child)} separado`,
+          summary: 'O módulo deixou de fazer parte do conjunto e pode ser movido livremente.',
+          facts: [{ label: 'Módulo', value: name(before, op.child) }],
+        });
+        break;
+      case 'cell.split': {
+        const cell = cellsAfter.find((c) => c.id === op.id);
+        const children = cell?.node.split?.children ?? [];
+        const axis = op.axis === 'x' ? 0 : 1;
+        const sizes = children.map((child) => round2(cellsAfter.find((c) => c.id === child.id)?.size[axis] ?? 0));
+        out.push({
+          tool: op.kind,
+          title: `Vão dividido em ${op.axis === 'x' ? 'duas colunas' : 'duas alturas'}`,
+          summary: sizes.length === 2
+            ? `A divisória de 18 mm criou dois vãos de ${sizes[0]} mm e ${sizes[1]} mm.`
+            : 'Uma divisória de 18 mm separou o vão em dois.',
+          facts: [
+            { label: 'Compartimento', value: cellLabel(op.id) },
+            ...(op.gapMm ? [{ label: 'Vão escolhido', value: mm(op.gapMm) }] : []),
+          ],
+        });
+        break;
+      }
+      case 'cell.move':
+        out.push({
+          tool: op.kind,
+          title: 'Divisória movida',
+          summary: `A peça menor ficou com ${mm(op.gapMm)} e a outra fecha o compartimento.`,
+          facts: [{ label: 'Compartimento', value: cellLabel(op.id) }],
+        });
+        break;
+      case 'cell.merge':
+        out.push({
+          tool: op.kind,
+          title: 'Divisória removida',
+          summary: 'Os dois vãos viraram um só.',
+          facts: [{ label: 'Compartimento', value: cellLabel(op.id) }],
+        });
+        break;
+      case 'cell.distribute':
+        out.push({
+          tool: op.kind,
+          title: 'Vãos igualados',
+          summary: 'As colunas do compartimento ficaram com o mesmo vão.',
+          facts: [{ label: 'Compartimento', value: cellLabel(op.id) }],
+        });
+        break;
+      case 'front.set': {
+        const alvo = cellsAfter.find((c) => c.id === op.id)?.node.front;
+        const titulo =
+          op.type === 'drawers'
+            ? `${op.count ?? 3} gavetas colocadas`
+            : op.type === 'double'
+              ? 'Porta dupla colocada'
+              : op.type === 'single'
+                ? 'Porta colocada'
+                : 'Frente removida';
+        out.push({
+          tool: op.kind,
+          title: titulo,
+          summary:
+            op.type === 'none'
+              ? 'O vão voltou a ficar aberto.'
+              : `A frente cobre o vão de ${cellLabel(op.id)}.`,
+          facts: [
+            { label: 'Compartimento', value: cellLabel(op.id) },
+            ...(op.hinge ? [{ label: 'Abertura', value: HINGE_LABEL[op.hinge] }] : []),
+            ...(alvo?.materialId ? [{ label: 'Acabamento', value: materialName(alvo.materialId) }] : []),
+          ],
+        });
+        break;
+      }
+      case 'drawer.height':
+        out.push({
+          tool: op.kind,
+          title: 'Altura da gaveta ajustada',
+          summary: `A gaveta ${op.index + 1} ficou com ${mm(op.height)}.`,
+          facts: [{ label: 'Compartimento', value: cellLabel(op.id) }],
+        });
+        break;
+      case 'resize': {
+        const mudancas: string[] = [];
+        for (const key of ['width', 'height', 'depth'] as const)
+          if (before[key] !== after[key])
+            mudancas.push(`${MODULE_FIELD[key]} de ${mm(before[key])} para ${mm(after[key])}`);
+        if (before.materialId !== after.materialId)
+          mudancas.push(`acabamento ${materialName(after.materialId)}`);
+        out.push({
+          tool: op.kind,
+          title: 'Medidas do móvel ajustadas',
+          summary: mudancas.length
+            ? `${mudancas.join(', ').replace(/^./, (c) => c.toUpperCase())}.`
+            : 'O móvel foi reeditado sem mudar medidas.',
+          size: [after.width, after.height, after.depth],
+          measures: measuresOf(after),
+        });
+        break;
+      }
+      case 'move':
+        out.push({
+          tool: op.kind,
+          title: op.ids.length > 1 ? 'Prateleiras movidas' : 'Prateleira movida',
+          summary: `${op.ids.map(shelfLabel).join(', ')} ${op.deltaMm > 0 ? 'subiu' : 'desceu'} ${mm(Math.abs(op.deltaMm))}.`,
+        });
+        break;
+      case 'gap':
+        out.push({
+          tool: op.kind,
+          title: 'Vão definido',
+          summary: `${shelfLabel(op.id)} ficou com ${mm(op.gapMm)} livres abaixo.`,
+        });
+        break;
+      case 'add':
+        out.push({
+          tool: op.kind,
+          title: 'Prateleira adicionada',
+          summary: `O móvel ficou com ${after.shelves.length} prateleiras.`,
+        });
+        break;
+      case 'remove':
+        out.push({
+          tool: op.kind,
+          title: 'Prateleira removida',
+          summary: `Saíram: ${op.ids.map(shelfLabel).join(', ')}.`,
+        });
+        break;
+      case 'distribute':
+        out.push({
+          tool: op.kind,
+          title: 'Vãos distribuídos',
+          summary: `As ${after.shelves.length} prateleiras ficaram com vãos iguais.`,
+        });
+        break;
+      default:
+        break;
+    }
+  }
+  return out;
 }
 /**
  * O que cada ferramenta fez no projeto: uma etapa por operação, com o nome da

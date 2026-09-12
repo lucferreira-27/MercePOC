@@ -1253,8 +1253,30 @@ button svg {
 .progress-details li.current{color:#3e5e30;font-weight:600}
 .progress-dot{width:6px;height:6px;border-radius:50%;background:#7d9f60;flex-shrink:0}
 .progress-wait{margin-top:10px;font-size:12px;color:#666f66;background:#fff;border:1px dashed #d3dcc9;border-radius:8px;padding:8px 10px}
-.change-report{margin-top:8px}
-.change-report summary{cursor:pointer;font-size:12px;color:#637456;width:fit-content}
+/* Cartões de mudança: o resultado do turno é o conteúdo principal da
+   mensagem. Título, o que aconteceu, o desenho do módulo, as medidas e os
+   fatos que interessam; o log técnico fica nos detalhes. */
+.change-cards{display:flex;flex-direction:column;gap:10px;margin:2px 0 6px}
+.change-card{padding:11px 12px;border:1px solid #d9e5cb;border-radius:12px;background:#fbfdf8;display:flex;flex-direction:column;gap:8px}
+.change-card>strong{font-size:13px;color:#2f4a24}
+.change-card>p{font-size:12px;line-height:1.5;color:#55684c}
+.change-card-body{display:flex;gap:12px;align-items:flex-start}
+.change-card-sketch{flex:none;width:96px;height:96px}
+.change-card-data{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1}
+.change-card-measures,.change-card-facts{display:flex;flex-direction:column;gap:2px;margin:0}
+.change-card-measures>div,.change-card-facts>div{display:flex;gap:6px;align-items:baseline;font-size:11px;line-height:1.45}
+.change-card-measures>div{justify-content:space-between;border-bottom:1px dashed #e2ead8;padding-bottom:1px}
+.change-card-measures dt,.change-card-facts dt{color:#77856d;flex:none}
+.change-card-measures dd,.change-card-facts dd{margin:0;color:#33452a;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.change-card-facts>div{justify-content:flex-start}
+.change-card-facts dd{font-weight:500;text-align:left;min-width:0}
+/* Com cartões, o texto da IA vem depois do resultado, como comentário. */
+.message-prose{font-size:13px;line-height:1.55;color:#3f4b3a;margin:6px 0 0}
+.change-report .report-duration{margin:8px 0 0;font-size:11px;color:#839378}
+/* O resumo do relatório técnico: discreto, é o registro da execução. */
+.change-report summary{font-size:11px;color:#839378}
+.change-report{margin-top:6px}
+.change-report .turn-changes ul{font-size:11px;color:#5d6b52}
 .change-report ul{margin:8px 0 0;padding-left:18px;font-size:12px;color:#43563c;display:grid;gap:4px}
 .change-report p{font-size:12px;color:#616b60;margin:8px 0 0}
 .part-showcase{margin:12px 0 4px}
