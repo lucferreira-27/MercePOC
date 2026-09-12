@@ -1,4 +1,5 @@
 import { applyRequest, get, save, view, revise, type Clarification, type Message } from '@/lib/store';
+import { sameOrigin } from '@/lib/utils';
 import { interpretStream, reviewResult } from '@/lib/gateway';
 import { materials } from '@/lib/furniture';
 import {
@@ -62,8 +63,7 @@ function orderWords(text: string): string[] {
 export async function POST(req: Request) {
   let id: string | undefined;
   try {
-    const origin = req.headers.get('origin');
-    if (origin && origin !== new URL(req.url).origin)
+    if (!sameOrigin(req))
       return Response.json({ error: 'Origem inválida' }, { status: 403 });
     const b = z
       .object({

@@ -1,4 +1,5 @@
 import { applyShelfOp, applyRequest, create, createDemo, fork, list, get, view, save, revise, seek, remove } from '@/lib/store';
+import { sameOrigin } from '@/lib/utils';
 import { designSchema, opSchema } from '@/lib/studio';
 import { z } from 'zod';
 import { validationMessage } from '@/lib/composition';
@@ -13,8 +14,7 @@ export async function GET(req: Request) {
 }
 export async function POST(req: Request) {
   try {
-    const origin = req.headers.get('origin');
-    if (origin && origin !== new URL(req.url).origin)
+    if (!sameOrigin(req))
       return Response.json({ error: 'Origem inválida' }, { status: 403 });
     const body = await req.json();
     const setup = z.object({ action: z.enum(['create', 'demo']) }).safeParse(body);

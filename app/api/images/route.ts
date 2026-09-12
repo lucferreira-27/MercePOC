@@ -1,8 +1,8 @@
 import { saveImage, imageBytes, MAX_IMAGE_BYTES } from '@/lib/images';
+import { sameOrigin } from '@/lib/utils';
 export async function POST(req: Request) {
   try {
-    const origin = req.headers.get('origin');
-    if (origin && origin !== new URL(req.url).origin) return Response.json({ error: 'Origem inválida' }, { status: 403 });
+    if (!sameOrigin(req)) return Response.json({ error: 'Origem inválida' }, { status: 403 });
     if (Number(req.headers.get('content-length')) > MAX_IMAGE_BYTES + 65536) throw new Error('A imagem deve ter até 10 MB.');
     const reader = req.body?.getReader();
     if (!reader) throw new Error('Selecione uma imagem.');
