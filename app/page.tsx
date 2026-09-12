@@ -1566,6 +1566,24 @@ export default function Home() {
                     <>
                       <ChangeCards highlights={m.report.highlights} />
                       {m.report.prose && <p className="message-prose">{m.report.prose}</p>}
+                      {m.report.review && (
+                        <div className={'turn-review ' + m.report.review.fidelity}>
+                          <span className="turn-review-label">
+                            {m.report.review.fidelity === 'parecido'
+                              ? 'Olhei o desenho: ficou parecido com a foto'
+                              : m.report.review.fidelity === 'parcial'
+                                ? 'Olhei o desenho: ficou parecido em parte'
+                                : 'Olhei o desenho: ficou diferente da foto'}
+                          </span>
+                          <p>{m.report.review.verdict}</p>
+                          {m.report.review.corrections > 0 && (
+                            <em>
+                              Ajustei {m.report.review.corrections} operaç
+                              {m.report.review.corrections === 1 ? 'ão' : 'ões'} depois de olhar.
+                            </em>
+                          )}
+                        </div>
+                      )}
                     </>
                   ) : (
                     m.content
