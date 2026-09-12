@@ -1718,7 +1718,19 @@ export default function Home() {
               </div>
               );
             })}
-            {!p && !error && <p>Carregando seu estúdio…</p>}
+            {!p && !error && (
+              <>
+                <p>Carregando seu estúdio…</p>
+                {/* Só aparece se esta tela continuar aqui: sem JavaScript
+                    (pacote trocado no servidor, rede caída) a página ficava
+                    carregando para sempre, sem dizer o que fazer. */}
+                <p className="boot-hint">
+                  Está demorando mais que o normal. Se não sair em instantes,
+                  recarregue a página (Ctrl+Shift+R): o app costuma estar em uma
+                  versão mais nova que a desta aba.
+                </p>
+              </>
+            )}
             {pending && (
               <>
                 <div className="message user">
