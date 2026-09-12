@@ -89,7 +89,8 @@ export function ModularEditor({
 }: {
   design: Composition;
   selected: string[];
-  onSelect: (ids: string[]) => void;
+  /** `extend` é o shift+clique: o pai soma o conjunto à seleção. */
+  onSelect: (ids: string[], extend?: boolean) => void;
   onOp: (op: ModularOp, label: string) => Promise<void>;
   /** Lote atômico: o servidor aceita { action: 'ops', ops: [...] }. */
   onOps?: (ops: ModularOp[], label: string) => Promise<void>;
@@ -314,7 +315,8 @@ export function ModularEditor({
             className={
               'tree-item touch-target ' + (target === node.id ? 'active' : '')
             }
-            onClick={() => onSelect([node.id])}
+            title="Clique para selecionar · Shift+clique seleciona o módulo inteiro"
+            onClick={(e) => onSelect([node.id], e.shiftKey)}
           >
             <span className="tree-thumb">{nodeIcon(node)}</span>
             <span className="tree-text">

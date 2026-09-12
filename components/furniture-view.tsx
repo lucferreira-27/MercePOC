@@ -42,7 +42,8 @@ export default function FurnitureView({
   params: Design;
   parts: Part[];
   selected: string[];
-  onSelect: (id: string | null) => void;
+  /** `extend` é o shift+clique: o chamador expande para o conjunto. */
+  onSelect: (id: string | null, extend?: boolean) => void;
   exploded: boolean;
   view: ViewMode;
   spin?: boolean;
@@ -159,6 +160,7 @@ export default function FurnitureView({
       callback.current(
         ray.intersectObjects(motion.pickable(), false)[0]?.object.userData.id ??
           null,
+        e.shiftKey,
       );
     };
     renderer.domElement.addEventListener('pointerdown', start);

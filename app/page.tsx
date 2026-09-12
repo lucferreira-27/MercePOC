@@ -807,8 +807,40 @@ export default function Home() {
       setSelected(d.selected.filter((id) => entityIds(d.params).includes(id)));
     else setSelected((s) => s.filter((id) => entityIds(d.params).includes(id)));
   };
-  const toggleSelected = (id: string) =>
-    setSelected((s) => (s.includes(id) ? s.filter((v) => v !== id) : [...s, id]));
+  /**
+   * Conjunto que um shift+clique puxa: a peça traz o módulo inteiro, o
+   * compartimento traz as peças dele e o módulo traz tudo que é dele. Sem
+   * shift é só a peça, como antes.
+   */
+  const groupOf = (id: string): string[] => {
+    if (!p) return [id];
+    const peca = p.parts.find((v) => v.id === id);
+    if (peca) {
+      const donos = peca.owners ?? [];
+      return p.parts
+        .filter((v) => (v.owners ?? []).some((dono) => donos.includes(dono)))
+        .map((v) => v.id);
+    }
+    if (generateDesign(p.params).cells.some((c) => c.id === id))
+      return [id, ...p.parts.filter((v) => v.cellId === id).map((v) => v.id)];
+    if (p.params.modules.some((m) => m.id === id))
+      return [id, ...p.parts.filter((v) => (v.owners ?? []).includes(id)).map((v) => v.id)];
+    return [id];
+  };
+  const toggleSelected = (id: string, extend = false) => {
+    const grupo = extend ? groupOf(id) : [id];
+    setSelected((s) => {
+      const dentro = grupo.every((v) => s.includes(v));
+      return dentro
+        ? s.filter((v) => !grupo.includes(v))
+        : [...new Set([...s, ...grupo])];
+    });
+  };
+  /** Seleção vinda da árvore: clique troca, shift+clique soma os conjuntos. */
+  const selectMany = (ids: string[], extend = false) =>
+    setSelected((s) =>
+      extend ? [...new Set([...s, ...ids.flatMap(groupOf)])] : ids,
+    );
   const refresh = async () =>
     setProjects(await api<ProjectSummary[]>('/api/projects'));
   useEffect(() => {
@@ -1622,8 +1654,8 @@ export default function Home() {
                             type="button"
                             className={'part-chip' + (stale ? ' stale' : '')}
                             title={alive ? 'Alternar seleção' : stale ? `Peça removida ou de versão anterior (${chipRev!.label})` : 'Peça de uma versão anterior'}
-                            onClick={() => {
-                              if (alive) toggleSelected(s.id);
+                            onClick={(e) => {
+                              if (alive) toggleSelected(s.id, e.shiftKey);
                             }}
                           >
                             {s.size && s.color && thumbs[thumbKey(s.size, s.color)] && (
@@ -1971,7 +2003,9 @@ export default function Home() {
               scrub={scrubbing}
               dims={false}
               selected={displaySelected}
-              onSelect={(id) => (id === null ? setSelected([]) : toggleSelected(id))}
+              onSelect={(id, extend) =>
+                id === null ? setSelected([]) : toggleSelected(id, extend)
+              }
               exploded={exploded}
               view={view}
               spin={spin}
@@ -2209,7 +2243,7 @@ export default function Home() {
           </nav>
           {p && (
             <div className="inspector-content">
-              {tab === 'params' && <><RoomPanel key={p.id} room={p.room} report={roomFit?.report ?? null} summary={roomFit?.summary ?? ''} busy={busy||historyPreview!==null} onSave={saveRoom}/><ModularEditor design={visualParams!} selected={selected} onSelect={setSelected} onOp={op} onOps={applyOps} busy={busy||historyPreview!==null} onOpen={toggleOpening} opened={opened}/><label className="wide-field">Nome do projeto<input key={p.id+p.name} defaultValue={p.name} maxLength={80} disabled={busy} onBlur={e=>{if(e.target.value.trim()&&e.target.value!==p.name)void action('rename',{name:e.target.value.trim()});}}/></label></>}
+              {tab === 'params' && <><RoomPanel key={p.id} room={p.room} report={roomFit?.report ?? null} summary={roomFit?.summary ?? ''} busy={busy||historyPreview!==null} onSave={saveRoom}/><ModularEditor design={visualParams!} selected={selected} onSelect={selectMany} onOp={op} onOps={applyOps} busy={busy||historyPreview!==null} onOpen={toggleOpening} opened={opened}/><label className="wide-field">Nome do projeto<input key={p.id+p.name} defaultValue={p.name} maxLength={80} disabled={busy} onBlur={e=>{if(e.target.value.trim()&&e.target.value!==p.name)void action('rename',{name:e.target.value.trim()});}}/></label></>}
               {tab === 'parts' && p && (
                 <>
                   <div className="section-label">
@@ -2236,7 +2270,8 @@ export default function Home() {
                         'part-row ' + (selected.includes(v.id) ? 'selected' : '')
                       }
                       key={v.id}
-                      onClick={() => toggleSelected(v.id)}
+                      title="Clique para selecionar · Shift+clique seleciona o módulo inteiro"
+                      onClick={(e) => toggleSelected(v.id, e.shiftKey)}
                     >
                       <span>
                         <strong>{v.name}</strong>
