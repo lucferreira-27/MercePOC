@@ -1,0 +1,43 @@
+{
+ "id": "div-05",
+ "at": "2026-09-12T03:08:14.608Z",
+ "decision": {
+  "action": "clarify",
+  "approach": "A divisão pedida deixaria a coluna da esquerda com 50 mm, abaixo do vão livre mínimo de 100 mm, então preciso confirmar a largura antes de dividir.",
+  "message": "Não posso dividir o nicho deixando a coluna da esquerda com 50 mm: o vão livre mínimo é 100 mm. Qual largura devo usar para essa coluna?",
+  "ops": [],
+  "select": [],
+  "refs": [
+   "n:root"
+  ],
+  "clarification": {
+   "question": "Qual largura devo usar para a coluna da esquerda do nicho?",
+   "options": [
+    {
+     "id": "left-100",
+     "label": "100 mm (mínimo permitido)",
+     "partIds": [
+      "n:root"
+     ]
+    },
+    {
+     "id": "left-150",
+     "label": "150 mm",
+     "partIds": [
+      "n:root"
+     ]
+    },
+    {
+     "id": "left-200",
+     "label": "200 mm",
+     "partIds": [
+      "n:root"
+     ]
+    }
+   ]
+  }
+ },
+ "latencyMs": 9414,
+ "calls": 1,
+ "retries": 0
+}

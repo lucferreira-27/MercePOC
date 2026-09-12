@@ -13,7 +13,9 @@
     "format": "oxfmt",
     "test": "tsx --test tests/*.test.ts",
     "test:live": "node scripts/modular-live.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "bench": "tsx bench/run.mjs",
+    "bench:doc": "tsx bench/doc.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",

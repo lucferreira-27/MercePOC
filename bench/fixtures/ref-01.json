@@ -1,0 +1,41 @@
+{
+ "id": "ref-01",
+ "at": "2026-09-12T03:10:22.340Z",
+ "decision": {
+  "action": "clarify",
+  "approach": "A estante tem três prateleiras horizontais e a numeração pedida não aponta para uma peça única (não existe uma quarta prateleira). Preciso saber qual delas elevar.",
+  "message": "Qual prateleira devo subir 5 cm? Esta estante tem três prateleiras horizontais: uma a cerca de 356 mm, outra a cerca de 713 mm e outra a cerca de 1069 mm do piso.",
+  "ops": [],
+  "select": [],
+  "refs": [],
+  "clarification": {
+   "question": "Qual das três prateleiras horizontais devo subir 5 cm?",
+   "options": [
+    {
+     "id": "opt-altura-1069",
+     "label": "A prateleira a cerca de 1069 mm do piso (sob o vão de cima)",
+     "partIds": [
+      "sh-3"
+     ]
+    },
+    {
+     "id": "opt-altura-713",
+     "label": "A prateleira a cerca de 713 mm do piso (a do meio)",
+     "partIds": [
+      "sh-2"
+     ]
+    },
+    {
+     "id": "opt-altura-356",
+     "label": "A prateleira a cerca de 356 mm do piso (a mais baixa)",
+     "partIds": [
+      "sh-1"
+     ]
+    }
+   ]
+  }
+ },
+ "latencyMs": 29539,
+ "calls": 1,
+ "retries": 0
+}

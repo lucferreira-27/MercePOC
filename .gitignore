@@ -46,3 +46,6 @@ next-env.d.ts
 /repo/
 /screenshots/
 .turn-*.png
+
+# benchmark: resultados são artefatos, as fixtures e o corpus ficam versionados
+/bench/results/

@@ -1,0 +1,20 @@
+{
+ "id": "sug-03",
+ "at": "2026-09-12T03:59:53.238Z",
+ "decision": {
+  "action": "answer",
+  "approach": "Custo não é calculado aqui; explico o escopo e ofereço próximos ajustes.",
+  "message": "Não consigo calcular preços nem orçamentos: este editor trabalha apenas com a geometria do móvel. Hoje o projeto tem 1 módulo (800 × 1800 × 350 mm, em carvalho) com 9 compartimentos livres. Posso ajustar medidas, divisões e frentes para você levar a lista final a um marceneiro ou fornecedor.",
+  "suggestions": [
+   "Defina portas ou gavetas nos vãos que quiser",
+   "Ajuste largura, altura ou profundidade do módulo",
+   "Divida um vão para organizar melhor o interior"
+  ],
+  "ops": [],
+  "select": [],
+  "refs": []
+ },
+ "latencyMs": 3056,
+ "calls": 1,
+ "retries": 0
+}

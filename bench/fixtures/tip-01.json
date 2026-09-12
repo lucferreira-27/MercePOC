@@ -1,0 +1,43 @@
+{
+ "id": "tip-01",
+ "at": "2026-09-12T03:10:47.663Z",
+ "decision": {
+  "action": "clarify",
+  "approach": "Portas de correr não são suportadas pelo editor; posso aplicar portas de abrir no lugar.",
+  "message": "Não consigo criar porta de correr: o editor só trabalha com portas de abrir (simples ou dupla) e gavetas. Quer que eu aplique portas de abrir em vez disso?",
+  "ops": [],
+  "select": [],
+  "refs": [
+   "module-1"
+  ],
+  "clarification": {
+   "question": "Como prefere as portas, já que correr não é suportado?",
+   "options": [
+    {
+     "id": "hinged-double-all",
+     "label": "Portas de abrir duplas cobrindo todo o armário",
+     "partIds": [
+      "module-1"
+     ]
+    },
+    {
+     "id": "hinged-lower",
+     "label": "Porta de abrir simples no compartimento de baixo",
+     "partIds": [
+      "cell-legacy-0"
+     ]
+    },
+    {
+     "id": "hinged-upper",
+     "label": "Portas de abrir na parte de cima",
+     "partIds": [
+      "cell-upper-1"
+     ]
+    }
+   ]
+  }
+ },
+ "latencyMs": 5670,
+ "calls": 1,
+ "retries": 0
+}

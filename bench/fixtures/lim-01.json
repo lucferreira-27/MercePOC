@@ -1,0 +1,17 @@
+{
+ "id": "lim-01",
+ "at": "2026-09-12T03:08:52.906Z",
+ "decision": {
+  "action": "answer",
+  "approach": "O pedido é claro (largura), mas 15 m excede o máximo permitido por módulo, então não há operação a executar.",
+  "message": "A largura máxima de um módulo é 1200 mm, então não consigo ajustar para 15 m (15000 mm). Posso deixar a estante com 1200 mm de largura, ou dividir a medida em vários módulos lado a lado — me diga qual caminho prefere.",
+  "ops": [],
+  "select": [],
+  "refs": [
+   "module-1"
+  ]
+ },
+ "latencyMs": 3169,
+ "calls": 1,
+ "retries": 0
+}

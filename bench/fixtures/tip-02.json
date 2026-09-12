@@ -1,0 +1,15 @@
+{
+ "id": "tip-02",
+ "at": "2026-09-12T03:10:53.241Z",
+ "decision": {
+  "action": "answer",
+  "approach": "Resposta informativa: o editor só compõe móveis retangulares modulares; tampos avulsos de mesa não fazem parte do escopo suportado.",
+  "message": "Não consigo criar um tampo de mesa avulso: este editor trabalha apenas com módulos retangulares fechados (corpo, fundo, prateleiras e frentes), sem tampos soltos nem mesas. Se quiser uma superfície horizontal de aproximadamente 1,50 m, o caminho possível seria uma composição de módulos lado a lado, cada um com no máximo 1,20 m de largura — diga se quer seguir por aí e com que altura, profundidade e material.",
+  "ops": [],
+  "select": [],
+  "refs": []
+ },
+ "latencyMs": 5074,
+ "calls": 1,
+ "retries": 0
+}

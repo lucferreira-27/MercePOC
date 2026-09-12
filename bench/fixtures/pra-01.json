@@ -1,0 +1,27 @@
+{
+ "id": "pra-01",
+ "at": "2026-09-12T03:08:22.877Z",
+ "decision": {
+  "action": "update",
+  "approach": "Ajusto a prateleira mais alta do módulo, elevando-a 50 mm (5 cm) dentro do vão livre existente.",
+  "message": "Elevo em 5 cm a prateleira mais alta, a que fecha o compartimento superior da estante.",
+  "ops": [
+   {
+    "kind": "move",
+    "ids": [
+     "sh-4"
+    ],
+    "deltaMm": 50
+   }
+  ],
+  "select": [
+   "sh-4"
+  ],
+  "refs": [
+   "sh-4"
+  ]
+ },
+ "latencyMs": 7749,
+ "calls": 1,
+ "retries": 0
+}

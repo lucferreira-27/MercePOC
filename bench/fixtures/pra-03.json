@@ -1,0 +1,23 @@
+{
+ "id": "pra-03",
+ "at": "2026-09-12T03:08:49.223Z",
+ "decision": {
+  "action": "update",
+  "approach": "Ajusto a prateleira inferior da estante para que o compartimento de baixo fique com 450 mm de altura, mantendo as demais divisões.",
+  "message": "Ajustando o vão de baixo para 450 mm de altura, sem mexer nas prateleiras de cima.",
+  "ops": [
+   {
+    "kind": "cell.move",
+    "id": "sh-1",
+    "gapMm": 450
+   }
+  ],
+  "select": [],
+  "refs": [
+   "sh-1"
+  ]
+ },
+ "latencyMs": 18589,
+ "calls": 1,
+ "retries": 0
+}

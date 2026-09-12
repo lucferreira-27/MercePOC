@@ -54,4 +54,8 @@ npm run test:live
 
 `test:live` usa o GLM configurado e cria uma demonstração. Resultado: `work/modular-live.json`. Para retomar após um limite temporário: `$env:RESUME_MODULAR='1'; npm run test:live`.
 
+`npm run bench` mede o par prompt + modelo + validação em 42 casos e compara duas execuções (`--compare`); o catálogo e o que já aprendemos ficam em [bench/README.md](bench/README.md).
+
+`node work/qa/verify-chat-ui.mjs` verifica em navegador real as superfícies do chat (chips da IA, cartão de dúvida com campo livre e roteiro de etapas), incluindo dois turnos de verdade. `node work/qa/verify-composer.mjs` mede o rodapé do compositor de 360 a 1280 px (controles numa linha, dica sem virar coluna). Requerem o app rodando em `127.0.0.1:4310`.
+
 `node --import tsx scripts/modular-ui.mjs` verifica um navegador real e grava screenshots/exportações em `outputs/modular`. Requer Playwright disponível. Opcionalmente defina `PLAYWRIGHT_MODULE` com o caminho absoluto de `playwright/index.mjs` e `BROWSER_EXECUTABLE` com um executável Chromium/Chrome/Brave.

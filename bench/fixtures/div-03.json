@@ -1,0 +1,39 @@
+{
+ "id": "div-03",
+ "at": "2026-09-12T03:07:52.985Z",
+ "decision": {
+  "action": "update",
+  "approach": "Dividir o compartimento selecionado em duas colunas na largura e aplicar uma porta de abrir em cada lado, mantendo a altura atual.",
+  "message": "Dividi o nicho selecionado em duas colunas iguais e coloquei uma porta de abrir em cada uma. Envio para validação.",
+  "ops": [
+   {
+    "kind": "cell.split",
+    "id": "n:root",
+    "axis": "x",
+    "gapMm": 382
+   },
+   {
+    "kind": "front.set",
+    "id": "n:root:low",
+    "type": "single",
+    "hinge": "left"
+   },
+   {
+    "kind": "front.set",
+    "id": "n:root:high",
+    "type": "single",
+    "hinge": "right"
+   }
+  ],
+  "select": [
+   "n:root:low",
+   "n:root:high"
+  ],
+  "refs": [
+   "n:root"
+  ]
+ },
+ "latencyMs": 4411,
+ "calls": 1,
+ "retries": 0
+}

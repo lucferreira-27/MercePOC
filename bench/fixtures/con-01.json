@@ -1,0 +1,19 @@
+{
+ "id": "con-01",
+ "at": "2026-09-12T03:09:28.404Z",
+ "decision": {
+  "action": "answer",
+  "approach": "Somar a largura ocupada de todos os módulos na planta; há apenas um módulo de 800 mm.",
+  "message": "A largura total do projeto é 800 mm: há um único módulo de estante, com 800 mm de largura.",
+  "ops": [],
+  "select": [
+   "module-1"
+  ],
+  "refs": [
+   "module-1"
+  ]
+ },
+ "latencyMs": 2517,
+ "calls": 1,
+ "retries": 0
+}

@@ -1,0 +1,15 @@
+{
+ "id": "rec-01",
+ "at": "2026-09-12T03:09:43.978Z",
+ "decision": {
+  "action": "answer",
+  "approach": "Pergunta de preço não é suportada pelo editor; respondo sem alterar a composição.",
+  "message": "Não consigo calcular preços: este editor trabalha apenas com a geometria e a montagem do móvel (medidas, divisões, frentes e gavetas), sem custos, orçamento ou valores em reais. Posso ajudar com medidas, compartimentos, portas, gavetas ou material do armário.",
+  "ops": [],
+  "select": [],
+  "refs": []
+ },
+ "latencyMs": 2575,
+ "calls": 1,
+ "retries": 0
+}

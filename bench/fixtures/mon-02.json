@@ -1,0 +1,36 @@
+{
+ "id": "mon-02",
+ "at": "2026-09-12T03:07:22.493Z",
+ "decision": {
+  "action": "update",
+  "approach": "Adiciono um módulo do tipo nicho e o empilho apoiado sobre o topo da estante existente, alinhado pela frente.",
+  "message": "Criei um nicho e o posicionei em cima da estante, alinhado pela frente com o módulo de baixo.",
+  "ops": [
+   {
+    "kind": "module.add",
+    "id": "module-2",
+    "preset": "niche",
+    "name": "Nicho"
+   },
+   {
+    "kind": "connect",
+    "parent": "module-1",
+    "child": "module-2",
+    "side": "top",
+    "shared": false,
+    "align": "front",
+    "offset": 0
+   }
+  ],
+  "select": [
+   "module-2"
+  ],
+  "refs": [
+   "module-1",
+   "module-2"
+  ]
+ },
+ "latencyMs": 5824,
+ "calls": 1,
+ "retries": 0
+}

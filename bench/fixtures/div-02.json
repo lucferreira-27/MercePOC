@@ -1,0 +1,26 @@
+{
+ "id": "div-02",
+ "at": "2026-09-12T03:07:48.059Z",
+ "decision": {
+  "action": "update",
+  "approach": "Aplico três gavetas no compartimento selecionado do módulo Nicho, sem alterar medidas.",
+  "message": "Coloco três gavetas no compartimento selecionado do Nicho.",
+  "ops": [
+   {
+    "kind": "front.set",
+    "id": "n:root",
+    "type": "drawers",
+    "count": 3
+   }
+  ],
+  "select": [
+   "n:root"
+  ],
+  "refs": [
+   "n:root"
+  ]
+ },
+ "latencyMs": 2493,
+ "calls": 1,
+ "retries": 0
+}

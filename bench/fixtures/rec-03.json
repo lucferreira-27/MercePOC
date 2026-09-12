@@ -1,0 +1,15 @@
+{
+ "id": "rec-03",
+ "at": "2026-09-12T03:09:52.296Z",
+ "decision": {
+  "action": "answer",
+  "approach": "Consulta informativa: verifico as frentes existentes para localizar dobradiças.",
+  "message": "A composição atual é uma estante com prateleiras e compartimentos abertos, sem portas — por isso não há dobradiças nem ferragens de dobradiça para listar. O editor também não emite lista de ferragens nem cotas de furação; ele trabalha apenas com a geometria dos módulos, divisões, frentes e gavetas. Se quiser, posso instalar portas em um ou mais compartimentos (simples ou duplas, com dobradiça à esquerda ou à direita); a partir daí as frentes passam a existir na composição, mas ainda sem relação de furação.",
+  "ops": [],
+  "select": [],
+  "refs": []
+ },
+ "latencyMs": 4625,
+ "calls": 1,
+ "retries": 0
+}

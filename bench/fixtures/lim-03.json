@@ -1,0 +1,36 @@
+{
+ "id": "lim-03",
+ "at": "2026-09-12T03:09:02.458Z",
+ "decision": {
+  "action": "clarify",
+  "approach": "O compartimento selecionado aceita no máximo 6 gavetas; para chegar a 7 é preciso dividi-lo em duas alturas.",
+  "message": "Cada compartimento comporta no máximo 6 gavetas. Como quer as 7 gavetas: 6 no compartimento selecionado (limite máximo) ou dividir esse compartimento em duas alturas e distribuir 4 em cima e 3 embaixo?",
+  "ops": [],
+  "select": [],
+  "refs": [
+   "n:root"
+  ],
+  "clarification": {
+   "question": "São 7 gavetas, mas o limite por compartimento é 6. Como prefere?",
+   "options": [
+    {
+     "id": "opt-6",
+     "label": "6 gavetas no compartimento atual (máximo permitido)",
+     "partIds": [
+      "n:root"
+     ]
+    },
+    {
+     "id": "opt-split",
+     "label": "Dividir o compartimento em duas alturas: 4 gavetas em cima e 3 embaixo",
+     "partIds": [
+      "n:root"
+     ]
+    }
+   ]
+  }
+ },
+ "latencyMs": 3832,
+ "calls": 1,
+ "retries": 0
+}

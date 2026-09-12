@@ -1,0 +1,38 @@
+{
+ "id": "uni-02",
+ "at": "2026-09-12T03:07:07.064Z",
+ "decision": {
+  "action": "clarify",
+  "approach": "O pedido é claro (2500 mm de altura), mas excede o limite de 2400 mm por módulo; preciso confirmar como proceder antes de alterar a geometria.",
+  "message": "A altura máxima permitida por módulo é 2400 mm, então 2500 mm não é possível. O módulo Estante está hoje com 1800 mm de altura. Quer que eu ajuste para 2400 mm (o máximo) ou mantenha 1800 mm?",
+  "ops": [],
+  "select": [
+   "module-1"
+  ],
+  "refs": [
+   "module-1"
+  ],
+  "clarification": {
+   "question": "2500 mm de altura excede o limite de 2400 mm. Como devo proceder com a Estante?",
+   "options": [
+    {
+     "id": "height-2400",
+     "label": "Ajustar a altura para 2400 mm (máximo permitido)",
+     "partIds": [
+      "module-1"
+     ]
+    },
+    {
+     "id": "height-keep",
+     "label": "Manter a altura atual de 1800 mm",
+     "partIds": [
+      "module-1"
+     ]
+    }
+   ]
+  }
+ },
+ "latencyMs": 7091,
+ "calls": 1,
+ "retries": 0
+}

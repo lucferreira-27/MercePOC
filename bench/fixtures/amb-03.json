@@ -1,0 +1,48 @@
+{
+ "id": "amb-03",
+ "at": "2026-09-12T03:06:50.370Z",
+ "decision": {
+  "action": "clarify",
+  "approach": "O pedido fala em \"a outra prateleira\", mas não há seleção nem movimento anterior de prateleira para identificar qual delas. Peço que indique qual prateleira deve subir 5 cm (50 mm).",
+  "message": "Não consegui identificar qual prateleira é \"a outra\". O móvel tem quatro prateleiras; qual delas deve subir 5 cm (50 mm)?",
+  "ops": [],
+  "select": [],
+  "refs": [],
+  "clarification": {
+   "question": "Qual prateleira devo mover 5 cm para cima?",
+   "options": [
+    {
+     "id": "shelf-1",
+     "label": "Prateleira mais baixa (cerca de 360 mm da base)",
+     "partIds": [
+      "sh-1"
+     ]
+    },
+    {
+     "id": "shelf-2",
+     "label": "2ª prateleira de baixo para cima (cerca de 710 mm da base)",
+     "partIds": [
+      "sh-2"
+     ]
+    },
+    {
+     "id": "shelf-3",
+     "label": "3ª prateleira de baixo para cima (cerca de 1070 mm da base)",
+     "partIds": [
+      "sh-3"
+     ]
+    },
+    {
+     "id": "shelf-4",
+     "label": "Prateleira mais alta (cerca de 1430 mm da base)",
+     "partIds": [
+      "sh-4"
+     ]
+    }
+   ]
+  }
+ },
+ "latencyMs": 8222,
+ "calls": 1,
+ "retries": 0
+}

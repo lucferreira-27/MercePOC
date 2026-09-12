@@ -1,0 +1,22 @@
+{
+ "id": "cop-01",
+ "at": "2026-09-12T03:09:19.785Z",
+ "decision": {
+  "action": "update",
+  "approach": "Duplicar o único módulo da composição, a estante, mantendo as mesmas medidas e configuração interna.",
+  "message": "Duplicando a estante, com as mesmas medidas e divisões internas.",
+  "ops": [
+   {
+    "kind": "module.duplicate",
+    "id": "module-1"
+   }
+  ],
+  "select": [],
+  "refs": [
+   "module-1"
+  ]
+ },
+ "latencyMs": 3920,
+ "calls": 1,
+ "retries": 0
+}

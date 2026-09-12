@@ -1,0 +1,36 @@
+{
+ "id": "mon-01",
+ "at": "2026-09-12T03:07:16.140Z",
+ "decision": {
+  "action": "update",
+  "approach": "Criar um módulo do tipo nicho ao lado direito da estante e conectá-lo rente, alinhado pela frente.",
+  "message": "Vou adicionar um nicho à direita da estante, encostado no módulo e alinhado pela frente.",
+  "ops": [
+   {
+    "kind": "module.add",
+    "id": "module-2",
+    "preset": "niche",
+    "name": "Nicho"
+   },
+   {
+    "kind": "connect",
+    "parent": "module-1",
+    "child": "module-2",
+    "side": "right",
+    "shared": false,
+    "align": "front",
+    "offset": 0
+   }
+  ],
+  "select": [
+   "module-2"
+  ],
+  "refs": [
+   "module-1",
+   "module-2"
+  ]
+ },
+ "latencyMs": 5680,
+ "calls": 1,
+ "retries": 0
+}

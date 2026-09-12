@@ -1,0 +1,43 @@
+{
+ "id": "amb-02",
+ "at": "2026-09-12T03:06:41.632Z",
+ "decision": {
+  "action": "clarify",
+  "approach": "O pedido indica 10 cm sem dizer qual medida alterar; o módulo tem largura, altura e profundidade plausíveis, então preciso confirmar o eixo.",
+  "message": "Qual medida devo aumentar em 10 cm: largura, altura ou profundidade?",
+  "ops": [],
+  "select": [],
+  "refs": [
+   "module-1"
+  ],
+  "clarification": {
+   "question": "Aumentar 10 cm em qual medida?",
+   "options": [
+    {
+     "id": "width",
+     "label": "Largura (de 800 mm para 900 mm)",
+     "partIds": [
+      "module-1"
+     ]
+    },
+    {
+     "id": "height",
+     "label": "Altura (de 1800 mm para 1900 mm)",
+     "partIds": [
+      "module-1"
+     ]
+    },
+    {
+     "id": "depth",
+     "label": "Profundidade (de 350 mm para 450 mm)",
+     "partIds": [
+      "module-1"
+     ]
+    }
+   ]
+  }
+ },
+ "latencyMs": 3211,
+ "calls": 1,
+ "retries": 0
+}

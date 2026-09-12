@@ -1,0 +1,43 @@
+{
+ "id": "amb-01",
+ "at": "2026-09-12T03:06:37.904Z",
+ "decision": {
+  "action": "clarify",
+  "approach": "O pedido cita 2 metros sem dizer qual medida; como o módulo tem largura, altura e profundidade diferentes, preciso confirmar o eixo antes de alterar.",
+  "message": "Qual medida devo ajustar para 2 m (2000 mm)? A altura comporta esse valor; largura vai até 1200 mm e profundidade até 800 mm.",
+  "ops": [],
+  "select": [],
+  "refs": [
+   "module-1"
+  ],
+  "clarification": {
+   "question": "Em qual medida aplico 2 metros (2000 mm)?",
+   "options": [
+    {
+     "id": "width",
+     "label": "Largura (800 mm → 2000 mm, acima do limite de 1200 mm)",
+     "partIds": [
+      "module-1"
+     ]
+    },
+    {
+     "id": "height",
+     "label": "Altura (1800 mm → 2000 mm)",
+     "partIds": [
+      "module-1"
+     ]
+    },
+    {
+     "id": "depth",
+     "label": "Profundidade (350 mm → 2000 mm, acima do limite de 800 mm)",
+     "partIds": [
+      "module-1"
+     ]
+    }
+   ]
+  }
+ },
+ "latencyMs": 4518,
+ "calls": 1,
+ "retries": 0
+}

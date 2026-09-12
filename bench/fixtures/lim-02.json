@@ -1,0 +1,43 @@
+{
+ "id": "lim-02",
+ "at": "2026-09-12T03:08:58.113Z",
+ "decision": {
+  "action": "clarify",
+  "approach": "A altura pedida (10 mm) fica abaixo do mínimo suportado para um módulo, então não dá para aplicar direto. Preciso confirmar em que valor ajustar.",
+  "message": "10 mm de altura fica abaixo do mínimo que consigo modelar por módulo. Hoje a estante tem 800 mm de largura, 1800 mm de altura e 350 mm de profundidade. Qual altura devo usar?",
+  "ops": [],
+  "select": [],
+  "refs": [
+   "module-1"
+  ],
+  "clarification": {
+   "question": "A altura de 10 mm não é suportada. Qual altura devo aplicar à estante?",
+   "options": [
+    {
+     "id": "min-height",
+     "label": "Usar a menor altura possível (400 mm)",
+     "partIds": [
+      "module-1"
+     ]
+    },
+    {
+     "id": "keep-current",
+     "label": "Manter os 1800 mm atuais",
+     "partIds": [
+      "module-1"
+     ]
+    },
+    {
+     "id": "custom-height",
+     "label": "Informar outra altura (entre 400 e 2400 mm)",
+     "partIds": [
+      "module-1"
+     ]
+    }
+   ]
+  }
+ },
+ "latencyMs": 4697,
+ "calls": 1,
+ "retries": 0
+}

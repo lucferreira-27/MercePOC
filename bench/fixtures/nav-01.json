@@ -1,0 +1,15 @@
+{
+ "id": "nav-01",
+ "at": "2026-09-12T03:10:30.142Z",
+ "decision": {
+  "action": "undo",
+  "approach": "Reverte a última alteração feita na composição, voltando à revisão anterior.",
+  "message": "Desfazendo a última alteração.",
+  "ops": [],
+  "select": [],
+  "refs": []
+ },
+ "latencyMs": 2110,
+ "calls": 1,
+ "retries": 0
+}

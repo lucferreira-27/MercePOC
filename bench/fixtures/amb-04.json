@@ -1,0 +1,25 @@
+{
+ "id": "amb-04",
+ "at": "2026-09-12T03:06:53.961Z",
+ "decision": {
+  "action": "update",
+  "approach": "Ajustar a estante existente para 1200 mm de largura e 600 mm de profundidade, mantendo a altura atual.",
+  "message": "Vou redimensionar a estante para 1200 mm de largura e 600 mm de profundidade, mantendo a altura e a divisão interna atuais.",
+  "ops": [
+   {
+    "kind": "resize",
+    "width": 1200,
+    "depth": 600
+   }
+  ],
+  "select": [
+   "module-1"
+  ],
+  "refs": [
+   "module-1"
+  ]
+ },
+ "latencyMs": 3079,
+ "calls": 1,
+ "retries": 0
+}

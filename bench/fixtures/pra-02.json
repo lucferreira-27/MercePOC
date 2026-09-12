@@ -1,0 +1,26 @@
+{
+ "id": "pra-02",
+ "at": "2026-09-12T03:08:30.117Z",
+ "decision": {
+  "action": "update",
+  "approach": "Remoção das duas prateleiras horizontais inferiores do módulo Estante, unificando os vãos de baixo em um espaço mais alto.",
+  "message": "Removi as duas prateleiras de baixo do Estante: os vãos inferiores ficam unificados em um compartimento mais alto, mantendo as demais prateleiras como estão.",
+  "ops": [
+   {
+    "kind": "remove",
+    "ids": [
+     "sh-2",
+     "sh-1"
+    ]
+   }
+  ],
+  "select": [],
+  "refs": [
+   "sh-1",
+   "sh-2"
+  ]
+ },
+ "latencyMs": 6722,
+ "calls": 1,
+ "retries": 0
+}

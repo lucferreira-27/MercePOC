@@ -1,0 +1,15 @@
+{
+ "id": "rec-02",
+ "at": "2026-09-12T03:09:47.166Z",
+ "decision": {
+  "action": "answer",
+  "approach": "Esclarecer que o gerador de plano de corte e contagem de chapas não é suportado; oferecer ajuste do móvel.",
+  "message": "Não consigo gerar plano de corte nem calcular quantas chapas comprar — este editor não produz peças de corte, listas de material ou CSV. Posso ajudar a ajustar medidas, divisões, frentes e gavetas do móvel atual (estante de 800 × 1800 × 350 mm, com 9 compartimentos distribuídos em 4 alturas). Se quiser, digo as medidas internas dos vãos ou altero a configuração.",
+  "ops": [],
+  "select": [],
+  "refs": []
+ },
+ "latencyMs": 2671,
+ "calls": 1,
+ "retries": 0
+}

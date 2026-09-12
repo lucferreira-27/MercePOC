@@ -1,0 +1,43 @@
+{
+ "id": "nav-02",
+ "at": "2026-09-12T03:10:41.487Z",
+ "decision": {
+  "action": "clarify",
+  "approach": "Desfazer uma versão e alterar medidas não cabem na mesma ação: o histórico é revertido sem operações, e o ajuste de largura é um novo lote.",
+  "message": "Só consigo fazer uma coisa por vez aqui: ou eu volto uma versão, ou eu ajusto a largura para 900 mm. Como prefere seguir?",
+  "ops": [],
+  "select": [],
+  "refs": [
+   "module-1"
+  ],
+  "clarification": {
+   "question": "Voltar uma versão e ajustar a largura para 900 mm precisam ser dois passos. Qual ordem devo seguir?",
+   "options": [
+    {
+     "id": "undo-then-resize",
+     "label": "Voltar uma versão e, em seguida, deixar a largura com 900 mm",
+     "partIds": [
+      "module-1"
+     ]
+    },
+    {
+     "id": "resize-now",
+     "label": "Agora apenas deixar a largura com 900 mm, sem voltar versão",
+     "partIds": [
+      "module-1"
+     ]
+    },
+    {
+     "id": "undo-only",
+     "label": "Agora apenas voltar uma versão",
+     "partIds": [
+      "module-1"
+     ]
+    }
+   ]
+  }
+ },
+ "latencyMs": 10837,
+ "calls": 1,
+ "retries": 0
+}

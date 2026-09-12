@@ -1,0 +1,40 @@
+{
+ "id": "sug-01",
+ "at": "2026-09-12T03:59:47.005Z",
+ "decision": {
+  "action": "update",
+  "approach": "Criar um módulo de nicho e conectá-lo à lateral direita da estante, alinhado pela frente.",
+  "message": "Vou adicionar um nicho à direita da estante, encostado na lateral e alinhado pela frente.",
+  "suggestions": [
+   "Divida o nicho em duas alturas",
+   "Coloque portas no alto da estante",
+   "Acrescente gavetas na base do nicho"
+  ],
+  "ops": [
+   {
+    "kind": "module.add",
+    "id": "module-2",
+    "preset": "niche",
+    "name": "Nicho"
+   },
+   {
+    "kind": "connect",
+    "parent": "module-1",
+    "child": "module-2",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   }
+  ],
+  "select": [
+   "module-2"
+  ],
+  "refs": [
+   "module-1"
+  ]
+ },
+ "latencyMs": 6576,
+ "calls": 1,
+ "retries": 0
+}

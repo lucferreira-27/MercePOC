@@ -1,0 +1,27 @@
+{
+ "id": "ref-02",
+ "at": "2026-09-12T03:10:27.524Z",
+ "decision": {
+  "action": "update",
+  "approach": "Aplico o deslocamento vertical de 50 mm (5 cm) para cima na prateleira selecionada, mantendo o restante da composição.",
+  "message": "Desloquei 50 mm para cima a prateleira selecionada do Estante. A mudança só vale após a validação da geometria.",
+  "ops": [
+   {
+    "kind": "move",
+    "ids": [
+     "sh-2"
+    ],
+    "deltaMm": 50
+   }
+  ],
+  "select": [
+   "sh-2"
+  ],
+  "refs": [
+   "sh-2"
+  ]
+ },
+ "latencyMs": 4675,
+ "calls": 1,
+ "retries": 0
+}

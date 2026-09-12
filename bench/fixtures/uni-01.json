@@ -1,0 +1,43 @@
+{
+ "id": "uni-01",
+ "at": "2026-09-12T03:06:59.458Z",
+ "decision": {
+  "action": "clarify",
+  "approach": "Verifiquei os limites do perfil: cada módulo aceita no máximo 1.200 mm de largura, então 2.400 mm não cabe em um único módulo.",
+  "message": "A largura máxima de um módulo é 1.200 mm, então não consigo ajustar a estante para 2.400 mm em uma peça só. Como prefere seguir: usar 1.200 mm neste módulo ou manter 800 mm e acrescentar um segundo módulo ao lado para somar 2.400 mm?",
+  "ops": [],
+  "select": [],
+  "refs": [
+   "module-1"
+  ],
+  "clarification": {
+   "question": "2.400 mm excede o limite de 1.200 mm por módulo. Qual opção você quer?",
+   "options": [
+    {
+     "id": "single-1200",
+     "label": "Ajustar este módulo para 1.200 mm de largura",
+     "partIds": [
+      "module-1"
+     ]
+    },
+    {
+     "id": "keep-800",
+     "label": "Manter 800 mm neste módulo",
+     "partIds": [
+      "module-1"
+     ]
+    },
+    {
+     "id": "add-second",
+     "label": "Manter 800 mm e acrescentar um segundo módulo ao lado (total 1.600 mm)",
+     "partIds": [
+      "module-1"
+     ]
+    }
+   ]
+  }
+ },
+ "latencyMs": 4977,
+ "calls": 1,
+ "retries": 0
+}
