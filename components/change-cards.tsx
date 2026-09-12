@@ -67,8 +67,12 @@ function ModuleSketch({ size, box = 84 }: { size: [number, number, number]; box?
 
 /**
  * O resultado do turno como conteúdo principal: título, o que aconteceu, as
- * medidas do que mudou e os fatos que interessam. O log técnico fica nos
- * detalhes, não aqui.
+ * medidas do que mudou e os fatos que interessam.
+ *
+ * Quando o lote repete a mesma mudança em vários alvos, o cartão agrupa e
+ * desenha uma barra proporcional por linha: três divisões com o mesmo vão de um
+ * lado e restos diferentes (1296, 828 e 360 mm) ficam visivelmente diferentes,
+ * em vez de três cartões idênticos.
  */
 export function ChangeCards({ highlights }: { highlights: ChangeHighlight[] }) {
   return (
@@ -77,31 +81,54 @@ export function ChangeCards({ highlights }: { highlights: ChangeHighlight[] }) {
         <article className="change-card" key={`${card.tool}-${i}`}>
           <strong>{card.title}</strong>
           <p>{card.summary}</p>
-          <div className="change-card-body">
-            {card.size && <ModuleSketch size={card.size} />}
-            <div className="change-card-data">
-              {card.measures && card.measures.length > 0 && (
-                <dl className="change-card-measures">
-                  {card.measures.map((m) => (
-                    <div key={m.label}>
-                      <dt>{m.label}</dt>
-                      <dd>{m.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
-              {card.facts && card.facts.length > 0 && (
-                <dl className="change-card-facts">
-                  {card.facts.map((f) => (
-                    <div key={f.label}>
-                      <dt>{f.label}</dt>
-                      <dd>{f.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
+          {card.rows && card.rows.length > 0 && (
+            <ul className="change-card-rows">
+              {card.rows.map((row, r) => (
+                <li className="change-card-row" key={`${row.label}-${r}`}>
+                  <span className="change-row-label">{row.label}</span>
+                  <span className="change-row-value">{row.value}</span>
+                  {row.parts && row.parts.length > 1 && (
+                    <span className="change-row-bar" aria-hidden="true">
+                      {row.parts.map((part, p) => (
+                        <span
+                          key={p}
+                          className={p === 0 ? 'seg first' : 'seg'}
+                          style={{ flexGrow: part }}
+                        />
+                      ))}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {(card.size || card.measures || card.facts) && (
+            <div className="change-card-body">
+              {card.size && <ModuleSketch size={card.size} />}
+              <div className="change-card-data">
+                {card.measures && card.measures.length > 0 && (
+                  <dl className="change-card-measures">
+                    {card.measures.map((m) => (
+                      <div key={m.label}>
+                        <dt>{m.label}</dt>
+                        <dd>{m.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+                {card.facts && card.facts.length > 0 && (
+                  <dl className="change-card-facts">
+                    {card.facts.map((f) => (
+                      <div key={f.label}>
+                        <dt>{f.label}</dt>
+                        <dd>{f.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </article>
       ))}
     </div>

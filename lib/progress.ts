@@ -24,6 +24,17 @@ export type ChangeHighlight = {
   size?: [number, number, number];
   measures?: { label: string; value: string }[];
   facts?: { label: string; value: string }[];
+  /**
+   * Várias mudanças do mesmo tipo no mesmo lote: uma linha por alvo. `parts`
+   * são as medidas que a linha produziu, na ordem, para o desenho proporcional
+   * deixar claro que cada alvo saiu diferente.
+   */
+  rows?: ChangeRow[];
+};
+export type ChangeRow = {
+  label: string;
+  value: string;
+  parts?: number[];
 };
 export type SelectedPart = {
   id: string;

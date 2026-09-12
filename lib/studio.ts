@@ -286,6 +286,25 @@ export function describeHighlights(
   after: Design,
   ops: readonly ShelfOp[],
 ): ChangeHighlight[] {
+  /**
+   * Chave de agrupamento: um lote que divide três vãos iguais vira um cartão
+   * com três linhas, não três cartões idênticos que ninguém compara.
+   */
+  const groupKey = (op: ShelfOp, i: number): string => {
+    if (op.kind === 'cell.split') return `cell.split:${op.axis}`;
+    if (op.kind === 'front.set') return `front.set:${op.type}:${op.count ?? ''}:${op.hinge ?? ''}`;
+    if (op.kind === 'cell.move' || op.kind === 'cell.merge' || op.kind === 'cell.distribute')
+      return op.kind;
+    if (op.kind === 'drawer.height') return 'drawer.height';
+    return `${op.kind}#${i}`;
+  };
+  const grupos = new Map<string, ShelfOp[]>();
+  ops.forEach((op, i) => {
+    const chave = groupKey(op, i);
+    const atual = grupos.get(chave);
+    if (atual) atual.push(op);
+    else grupos.set(chave, [op]);
+  });
   const cellsAfter = layout(after).cells;
   const cellsBefore = layout(before).cells;
   const name = (d: Design, id: string) =>
@@ -349,7 +368,9 @@ export function describeHighlights(
   const addedIds = new Set(novos.map((m) => m.id));
   /** Cada módulo novo vira um cartão: dois adds no mesmo lote não se repetem. */
   const usados = new Set<string>();
-  for (const op of ops) {
+  for (const [chave, lote] of grupos) {
+    const op = lote[0];
+    void chave;
     switch (op.kind) {
       case 'module.add':
       case 'module.duplicate': {
@@ -461,20 +482,33 @@ export function describeHighlights(
         });
         break;
       case 'cell.split': {
-        const cell = cellsAfter.find((c) => c.id === op.id);
-        const children = cell?.node.split?.children ?? [];
-        const axis = op.axis === 'x' ? 0 : 1;
-        const sizes = children.map((child) => round2(cellsAfter.find((c) => c.id === child.id)?.size[axis] ?? 0));
+        const eixo = op.axis === 'x' ? 0 : 1;
+        const splits = lote.filter(
+          (v): v is Extract<ShelfOp, { kind: 'cell.split' }> => v.kind === 'cell.split',
+        );
+        const rows = splits.map((split) => {
+          const children = cellsAfter.find((c) => c.id === split.id)?.node.split?.children ?? [];
+          const sizes = children.map((child) =>
+            round2(cellsAfter.find((c) => c.id === child.id)?.size[eixo] ?? 0),
+          );
+          return {
+            label: cellLabel(split.id),
+            value: sizes.length === 2 ? `${sizes[0]} + ${sizes[1]} mm` : 'dois vãos',
+            parts: sizes.length === 2 ? sizes : undefined,
+          };
+        });
+        const nome = op.axis === 'x' ? 'duas colunas' : 'duas alturas';
         out.push({
           tool: op.kind,
-          title: `Vão dividido em ${op.axis === 'x' ? 'duas colunas' : 'duas alturas'}`,
-          summary: sizes.length === 2
-            ? `A divisória de 18 mm criou dois vãos de ${sizes[0]} mm e ${sizes[1]} mm.`
-            : 'Uma divisória de 18 mm separou o vão em dois.',
-          facts: [
-            { label: 'Compartimento', value: cellLabel(op.id) },
-            ...(op.gapMm ? [{ label: 'Vão escolhido', value: mm(op.gapMm) }] : []),
-          ],
+          title:
+            lote.length > 1
+              ? `${lote.length} vãos divididos em ${nome}`
+              : `Vão dividido em ${nome}`,
+          summary:
+            lote.length > 1
+              ? `A divisória de 18 mm entrou em ${lote.length} compartimentos, cada um com duas medidas próprias.`
+              : `A divisória de 18 mm separou o vão em ${nome}, com as medidas abaixo.`,
+          rows,
         });
         break;
       }
@@ -504,26 +538,51 @@ export function describeHighlights(
         break;
       case 'front.set': {
         const alvo = cellsAfter.find((c) => c.id === op.id)?.node.front;
-        const titulo =
+        const frente =
           op.type === 'drawers'
-            ? `${op.count ?? 3} gavetas colocadas`
+            ? `${op.count ?? 3} gavetas`
             : op.type === 'double'
-              ? 'Porta dupla colocada'
+              ? 'porta dupla'
               : op.type === 'single'
-                ? 'Porta colocada'
-                : 'Frente removida';
+                ? 'porta'
+                : 'vão aberto';
+        const frenteTxt = `${frente[0].toUpperCase()}${frente.slice(1)}`;
+        const titulo =
+          op.type === 'none'
+            ? 'Frente removida'
+            : lote.length > 1
+              ? `${frenteTxt} em ${lote.length} vãos`
+              : op.type === 'drawers'
+                ? `${frenteTxt} colocadas`
+                : `${frenteTxt} colocada`;
         out.push({
           tool: op.kind,
           title: titulo,
           summary:
             op.type === 'none'
               ? 'O vão voltou a ficar aberto.'
-              : `A frente cobre o vão de ${cellLabel(op.id)}.`,
-          facts: [
-            { label: 'Compartimento', value: cellLabel(op.id) },
-            ...(op.hinge ? [{ label: 'Abertura', value: HINGE_LABEL[op.hinge] }] : []),
-            ...(alvo?.materialId ? [{ label: 'Acabamento', value: materialName(alvo.materialId) }] : []),
-          ],
+              : lote.length > 1
+                ? `A mesma frente cobre ${lote.length} vãos.`
+                : `A frente cobre o vão de ${cellLabel(op.id)}.`,
+          rows: lote
+            .filter(
+              (v): v is Extract<ShelfOp, { kind: 'front.set' }> => v.kind === 'front.set',
+            )
+            .map((frenteOp) => ({
+            label: cellLabel(frenteOp.id),
+            value:
+              frenteOp.type === 'drawers'
+                ? `${frenteOp.count ?? 3} gavetas`
+                : frenteOp.type === 'double'
+                  ? 'porta dupla'
+                  : frenteOp.type === 'single'
+                    ? 'porta'
+                    : 'aberto',
+          })),
+          ...(op.hinge ? { facts: [{ label: 'Abertura', value: HINGE_LABEL[op.hinge] }] } : {}),
+          ...(alvo?.materialId
+            ? { facts: [{ label: 'Acabamento', value: materialName(alvo.materialId) }] }
+            : {}),
         });
         break;
       }

@@ -133,9 +133,69 @@ void test('frente e divisão viram cartões com o vão e a quantidade certos', (
     cartoes.map((c) => c.title),
     ['Vão dividido em duas alturas', '3 gavetas colocadas'],
   );
-  assert.match(cartoes[0].summary, /dois vãos de 400 mm e \d+ mm/);
-  assert.equal(cartoes[0].facts?.find((f) => f.label === 'Vão escolhido')?.value, '400 mm');
+  // Um cartão por tipo de mudança, com o vão de cada alvo na linha.
+  assert.match(cartoes[0].summary, /separou o vão em duas alturas/);
+  assert.deepEqual(cartoes[0].rows?.[0].parts, [400, 1346]);
   assert.match(cartoes[1].summary, /cobre o vão de .*compartimento/);
+});
+
+void test('divisões repetidas no mesmo lote viram um cartão com uma linha por vão', () => {
+  const before = design(nicho());
+  const ops: ModularOp[] = [
+    { kind: 'cell.split', id: 'a:root', axis: 'y', gapMm: 450 },
+    { kind: 'cell.split', id: 'a:root:high', axis: 'y', gapMm: 450 },
+    { kind: 'cell.split', id: 'a:root:high:high', axis: 'y', gapMm: 450 },
+  ];
+  let after = before;
+  for (const op of ops) after = design(applyModularOp(after, op));
+  const cartoes = describeHighlights(before, after, ops);
+  assert.equal(cartoes.length, 1, 'um cartão, não três');
+  const [cartao] = cartoes;
+  assert.equal(cartao.title, '3 vãos divididos em duas alturas');
+  assert.equal(cartao.rows?.length, 3);
+  // Cada linha traz a medida própria: é o que diferencia um vão do outro.
+  const valores = (cartao.rows ?? []).map((r) => r.value);
+  assert.equal(new Set(valores).size, 3, valores.join(' | '));
+  for (const row of cartao.rows ?? []) {
+    assert.equal(row.parts?.length, 2);
+    assert.equal(row.parts?.[0], 450, 'o vão escolhido se repete');
+    assert.ok((row.parts?.[1] ?? 0) > 0);
+  }
+  const sobras = (cartao.rows ?? []).map((r) => r.parts?.[1] ?? 0);
+  assert.deepEqual(
+    sobras,
+    [...sobras].sort((a, b) => b - a),
+    'a sobra diminui conforme o vão desce',
+  );
+});
+
+void test('frentes iguais em vãos diferentes agrupam, frentes distintas não', () => {
+  const before = design(nicho());
+  const abertura: ModularOp[] = [
+    { kind: 'cell.split', id: 'a:root', axis: 'y', gapMm: 600 },
+    { kind: 'cell.split', id: 'a:root:high', axis: 'y', gapMm: 400 },
+  ];
+  let depois = before;
+  for (const op of abertura) depois = design(applyModularOp(depois, op));
+  const portas: ModularOp[] = [
+    { kind: 'front.set', id: 'a:root:low', type: 'single', hinge: 'left' },
+    { kind: 'front.set', id: 'a:root:high:low', type: 'single', hinge: 'left' },
+  ];
+  let comPortas = depois;
+  for (const op of portas) comPortas = design(applyModularOp(comPortas, op));
+  const iguais = describeHighlights(depois, comPortas, portas);
+  assert.equal(iguais.length, 1, 'duas portas iguais viram um cartão');
+  assert.equal(iguais[0].rows?.length, 2);
+  assert.match(iguais[0].title, /Porta em 2 vãos/);
+
+  const gavetas: ModularOp[] = [
+    { kind: 'front.set', id: 'a:root:low', type: 'drawers', count: 3 },
+    { kind: 'front.set', id: 'a:root:high:high', type: 'drawers', count: 2 },
+  ];
+  let comGavetas = depois;
+  for (const op of gavetas) comGavetas = design(applyModularOp(comGavetas, op));
+  const diferentes = describeHighlights(depois, comGavetas, gavetas);
+  assert.equal(diferentes.length, 2, 'gaveteiros diferentes não se agrupam');
 });
 
 void test('remover módulo e ajustar medidas também rendem cartão', () => {

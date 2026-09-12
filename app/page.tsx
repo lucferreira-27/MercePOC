@@ -746,13 +746,17 @@ export default function Home() {
   const historyView = historyPreview ?? p?.cursor ?? 0;
   const messages = useRef<HTMLDivElement>(null);
   const [pinnedToBottom, setPinnedToBottom] = useState(true);
-  const [newMessageFlag, setNewMessageFlag] = useState(false);
+  // Quantas mensagens chegaram depois de a pessoa sair do fim. Rolar para cima
+  // numa conversa parada não é "mensagem nova": o aviso só existe quando há
+  // algo que ela ainda não viu.
+  const [unseen, setUnseen] = useState(0);
+  const seenCount = useRef(0);
   const onScroll = () => {
     const el = messages.current;
     if (!el) return;
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
     setPinnedToBottom(nearBottom);
-    if (nearBottom) setNewMessageFlag(false);
+    if (nearBottom) setUnseen(0);
   };
   useEffect(() => {
     const el = messages.current;
@@ -760,7 +764,13 @@ export default function Home() {
     el.scrollTop = el.scrollHeight;
   }, [p?.messages.length, pending, progress.length, pinnedToBottom]);
   useEffect(() => {
-    if (!pinnedToBottom && p?.messages.length) setNewMessageFlag(true);
+    const total = p?.messages.length ?? 0;
+    if (pinnedToBottom) {
+      seenCount.current = total;
+      setUnseen(0);
+      return;
+    }
+    if (total > seenCount.current) setUnseen(total - seenCount.current);
   }, [p?.messages.length, pinnedToBottom]);
   /** Revisão de uma mensagem: disponível, descartada ou indisponível. */
   const revisionState = (m: Message) => {
@@ -1800,19 +1810,22 @@ export default function Home() {
                 </div>
               </div>
             )}
-            {newMessageFlag && (
+            {unseen > 0 && (
               <div className="new-message-anchor">
                 <button
                   type="button"
                   className="new-message-jump"
+                  aria-live="polite"
                   onClick={() => {
                     setPinnedToBottom(true);
-                    setNewMessageFlag(false);
+                    setUnseen(0);
                     const el = messages.current;
                     if (el) el.scrollTop = el.scrollHeight;
                   }}
                 >
-                  Nova mensagem <ArrowUp size={12} />
+                  <span className="new-message-count">{unseen}</span>
+                  {unseen === 1 ? 'nova mensagem' : 'novas mensagens'}
+                  <ArrowDown size={13} />
                 </button>
               </div>
             )}
@@ -1953,6 +1966,12 @@ export default function Home() {
                   <Bug size={14} />
                   Ao vivo
                 </button>
+                <span
+                  className="composer-hint"
+                  title="Enter envia · Shift+Enter quebra linha · aceita imagem JPG, PNG ou WebP"
+                >
+                  Enter envia
+                </span>
                 <Button
                   type="submit"
                   size="icon"
@@ -1962,7 +1981,6 @@ export default function Home() {
                 >
                   <ArrowUp />
                 </Button>
-                <span className="composer-hint">Imagem ou texto · Enter para enviar</span>
               </div>
             </form>
             <div className="model-label">

@@ -434,19 +434,21 @@ button svg {
   outline: 0;
   background: none;
 }
-/* O outline:0 acima vence a regra global pelo ordem: repor o anel aqui. */
+/* O campo não desenha anel próprio: o foco aparece no conjunto (borda e halo),
+   senão são dois retângulos verdes um dentro do outro. */
 .composer textarea:focus-visible {
-  outline: 2px solid #58883c;
-  outline-offset: 2px;
-  border-radius: 6px;
+  outline: none;
 }
-/* A dica do compositor dividia a linha com os botões: com o painel em 290 a
-   350 px ela era espremida e virava uma coluna de cinco linhas. Agora ela ocupa
-   a própria linha e o envio fica na ponta direita da linha de cima. */
+.composer:focus-within {
+  border-color: #58883c;
+  box-shadow: 0 0 0 3px #81a2672e;
+}
+/* Uma linha só: controles à esquerda, dica encostada no envio. A dica é curta
+   de propósito e desaparece quando o painel é estreito demais para ela, em vez
+   de virar uma coluna de texto quebrado. */
 .composer > div {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 6px;
 }
@@ -455,14 +457,29 @@ button svg {
   color: #666f66;
 }
 .composer .composer-hint {
-  flex: 1 1 100%;
+  flex: 1 1 auto;
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: right;
 }
 .composer .composer-send {
-  margin-left: auto;
+  flex: none;
+}
+/* O painel do chat mede de 280 a 420 px conforme a tela: a consulta é do
+   painel, não da janela, porque a largura não acompanha o viewport. */
+.chat-panel {
+  container-type: inline-size;
+}
+@container (max-width: 330px) {
+  .composer .composer-hint {
+    display: none;
+  }
+  /* Sem a dica, quem empurra o envio para a direita é a margem automática. */
+  .composer .composer-send {
+    margin-left: auto;
+  }
 }
 .model-label {
   display: flex;
@@ -961,11 +978,16 @@ button svg {
 .failed-turn p{font-size:12px;color:#5c352c}
 .failed-turn small{font-size:11px;color:#a3564a}
 .failed-turn>div{display:flex;gap:6px}
-/* O atalho de "Nova mensagem" ficava ancorado no painel, por cima do composer
-   e do rodapé de status. A âncora sticky o mantém dentro da lista: preso ao pé
-   da área visível, sem cobrir o campo de escrita. */
-.new-message-anchor{position:sticky;bottom:0;z-index:6;display:flex;justify-content:center;height:0;pointer-events:none}
-.new-message-jump{position:static;transform:none;pointer-events:auto;padding:7px 14px;border:1px solid #98b577;border-radius:999px;background:#fff;font-size:12px;color:#2f4a24;box-shadow:0 4px 12px #30402022;display:flex;align-items:center;gap:5px;cursor:pointer}
+/* O atalho de "Nova mensagem" fica dentro da lista, preso ao pé da área
+   visível, e só aparece quando existe mensagem que a pessoa ainda não viu. */
+/* Âncora de altura zero: a pílula não pode ser esticada por ela (com
+   align-items: stretch o fundo encolhia a 12 px e o texto vazava para fora). */
+.new-message-anchor{position:sticky;bottom:0;z-index:6;display:flex;justify-content:center;align-items:flex-end;height:0;pointer-events:none}
+.new-message-anchor::before{content:'';position:absolute;left:50%;transform:translateX(-50%);bottom:-8px;width:min(300px,100%);height:60px;background:radial-gradient(120% 100% at 50% 100%,#fff 52%,#ffffffd8 70%,#ffffff00);pointer-events:none}
+.new-message-jump{position:relative;align-self:flex-end;transform:none;pointer-events:auto;padding:5px 12px 5px 5px;border:1px solid #9dba82;border-radius:999px;background:#fff;font-size:12px;font-weight:600;color:#2f4a24;box-shadow:0 8px 20px #3040202e,0 0 0 4px #ffffffcc;display:flex;align-items:center;gap:7px;cursor:pointer;animation:message-in .18s ease-out}
+.new-message-jump:hover{border-color:#81a267;background:#f7fbf2}
+.new-message-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:#58883c;color:#fff;font-size:11px;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:reduce){.new-message-jump{animation:none}}
 .view-rev{margin-top:5px}
 .view-rev.dropped{color:#666f66;font-size:11px}
 .part-chip.stale{opacity:.62}
@@ -1267,6 +1289,15 @@ button svg {
 .change-card-measures dd,.change-card-facts dd{margin:0;color:#33452a;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
 .change-card-facts>div{justify-content:flex-start}
 .change-card-facts dd{font-weight:500;text-align:left;min-width:0}
+/* Linhas do cartão agrupado: cada alvo com a própria medida e uma barra
+   proporcional, para dar de relance que os vãos saíram diferentes. */
+.change-card-rows{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.change-card-row{display:grid;grid-template-columns:1fr auto;gap:3px 8px;align-items:baseline}
+.change-row-label{font-size:11px;color:#5b6b50;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.change-row-value{font-size:11px;font-weight:600;color:#33452a;font-variant-numeric:tabular-nums;white-space:nowrap}
+.change-row-bar{grid-column:1/-1;display:flex;height:6px;border-radius:3px;overflow:hidden;background:#eef3e7}
+.change-row-bar .seg{background:#d6e4c4;border-left:1px solid #fbfdf8}
+.change-row-bar .seg.first{background:#9cba7c}
 /* Com cartões, o texto da IA vem depois do resultado, como comentário. */
 .message-prose{font-size:13px;line-height:1.55;color:#3f4b3a;margin:6px 0 0}
 /* O resumo do relatório técnico: discreto, é o registro da execução. */
