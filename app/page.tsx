@@ -1906,6 +1906,9 @@ export default function Home() {
             >
               <input ref={fileInput} type="file" hidden accept="image/jpeg,image/png,image/webp" onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ''; }} />
               {attachment && <div className="attachment-preview"><img src={attachment.url} alt={attachment.name} /><span>{attachment.name}</span><button type="button" disabled={busy} aria-label="Remover imagem" onClick={() => setAttachment(null)}><X size={16} /></button></div>}
+              {/* A foto agora serve para copiar layout: sem esta linha, quem
+                  anexa uma referência não sabe que pode pedir a cópia. */}
+              {attachment && <p className="attachment-hint">Peça “copie o layout desta foto” e eu monto uma versão com medidas estimadas, dizendo o erro e o que ficou de fora.</p>}
               {uploading && <output className="upload-status">Preparando imagem…</output>}
               <textarea
                 ref={composer}
