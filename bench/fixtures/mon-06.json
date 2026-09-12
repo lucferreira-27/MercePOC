@@ -1,0 +1,50 @@
+{
+ "id": "mon-06",
+ "at": "2026-09-12T07:09:27.266Z",
+ "decision": {
+  "action": "update",
+  "approach": "Criar um módulo do tipo nicho com as medidas pedidas (800 de largura, 600 de altura, 450 de profundidade) e conectá-lo ao lado direito da estante, alinhado pela frente.",
+  "message": "Nicho de 800 × 600 × 450 mm encostado à direita da estante, com fundo e frente alinhada.",
+  "suggestions": [
+   "Coloque uma porta no nicho à direita",
+   "Adicione duas prateleiras na estante",
+   "Crie um módulo com gavetas ao lado"
+  ],
+  "ops": [
+   {
+    "kind": "module.add",
+    "id": "niche-1",
+    "preset": "niche",
+    "name": "Nicho"
+   },
+   {
+    "kind": "module.edit",
+    "id": "niche-1",
+    "width": 800,
+    "height": 600,
+    "depth": 450,
+    "materialId": "oak",
+    "back": true
+   },
+   {
+    "kind": "connect",
+    "parent": "module-1",
+    "child": "niche-1",
+    "side": "right",
+    "shared": false,
+    "align": "front",
+    "offset": 0
+   }
+  ],
+  "select": [
+   "niche-1"
+  ],
+  "refs": [
+   "module-1",
+   "niche-1"
+  ]
+ },
+ "latencyMs": 6765,
+ "calls": 1,
+ "retries": 0
+}

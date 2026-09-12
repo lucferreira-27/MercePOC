@@ -6,16 +6,10 @@ import { join } from 'node:path';
 import { readEvents } from '../lib/sse';
 import { decisionSchema, normalizeSuggestions } from '../lib/gateway';
 import { create, get, view } from '../lib/store';
-import {
-  applyModularOp,
-  PROFILE,
-  preset,
-  type Composition,
-} from '../lib/composition';
-import { describeOperations, entityIds } from '../lib/studio';
+import { entityIds } from '../lib/studio';
 import { POST } from '../app/api/chat/route';
 
-process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-steps-'));
+process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-suggestions-'));
 process.env.AI_API_KEY = 'test-key';
 
 function response(payload: unknown) {
@@ -95,36 +89,7 @@ void test('o contrato aceita sugestões e as normaliza, com padrão vazio', () =
   );
 });
 
-void test('as etapas nomeiam a ferramenta e a medida real de cada operação', () => {
-  const niche = preset('niche', 'a');
-  niche.width = 800;
-  niche.height = 1800;
-  const before: Composition = {
-    schemaVersion: 3,
-    profile: PROFILE,
-    modules: [niche],
-    connections: [],
-  };
-  const ops = [
-    { kind: 'cell.split' as const, id: 'a:root', axis: 'y' as const, gapMm: 400 },
-    { kind: 'front.set' as const, id: 'a:root:low', type: 'drawers' as const, count: 3 },
-  ];
-  let after = before;
-  for (const op of ops) after = applyModularOp(after, op);
-  const steps = describeOperations(
-    { ...before, width: 800, height: 1800, depth: 350, materialId: 'oak', shelves: [] },
-    { ...after, width: 800, height: 1800, depth: 350, materialId: 'oak', shelves: [] },
-    ops,
-  );
-  assert.deepEqual(
-    steps.map((s) => s.tool),
-    ['cell.split', 'front.set'],
-  );
-  assert.match(steps[0].detail ?? '', /duas alturas · 400 \+ \d+ mm/);
-  assert.match(steps[1].detail ?? '', /3 gavetas em .*compartimento/);
-});
-
-void test('turno aplicado guarda as sugestões da IA e o roteiro das etapas', async () => {
+void test('turno aplicado guarda as sugestões da IA e o diff do relatório', async () => {
   const original = globalThis.fetch;
   globalThis.fetch = async () =>
     response({
@@ -150,20 +115,20 @@ void test('turno aplicado guarda as sugestões da IA e o roteiro das etapas', as
       'Coloque duas portas neste vão',
       'Suba a prateleira do meio',
     ]);
-    assert.deepEqual(
-      last?.report?.steps?.map((s) => s.tool),
-      ['interpretar', 'validar', 'resize', 'salvar'],
-    );
-    assert.match(last?.report?.steps?.[2].detail ?? '', /largura 800 mm → 1000 mm/);
-    assert.match(last?.report?.steps?.[3].detail ?? '', /versões no histórico/);
-    // O roteiro não carrega o texto privado do provedor.
+    // O relatório não guarda roteiro técnico: a resposta é o diff e o texto
+    // da IA.
+    assert.equal(Object.keys(last?.report ?? {}).includes('steps'), false);
+    // A resposta é o cartão com o que mudou, não um log de execução.
+    assert.equal(last?.report?.highlights?.[0].title, 'Medidas do móvel ajustadas');
+    assert.match(last?.report?.changes?.[0] ?? '', /Largura: 800 mm → 1000 mm/);
+    // Nada carrega o texto privado do provedor.
     assert.equal(JSON.stringify(saved).includes('PRIVATE'), false);
   } finally {
     globalThis.fetch = original;
   }
 });
 
-void test('turno com pergunta não sugere chips e o roteiro termina em perguntar', async () => {
+void test('turno com pergunta não sugere chips', async () => {
   const original = globalThis.fetch;
   globalThis.fetch = async () =>
     response({
@@ -201,8 +166,9 @@ void test('turno com pergunta não sugere chips e o roteiro termina em perguntar
     );
     const last = get(p.id).messages.at(-1);
     assert.equal(last?.suggestions, undefined, 'pergunta não sugere próximo passo');
-    assert.equal(last?.report?.steps?.at(-1)?.tool, 'perguntar');
-    assert.match(last?.report?.steps?.[1].detail ?? '', /opção\(ões\) reais listadas/);
+    assert.equal(last?.report?.outcome, 'clarification');
+    assert.ok((last?.clarification?.options?.length ?? 0) >= 2, 'pergunta com opções reais');
+    assert.match(last?.clarification?.question ?? '', /qual prateleira/i);
   } finally {
     globalThis.fetch = original;
   }

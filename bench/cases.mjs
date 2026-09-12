@@ -643,6 +643,23 @@ export const cases = [
     },
     learned: 'Tampos avulsos e mesas estão fora do escopo declarado.',
   },
+  {
+    id: 'mon-06',
+    group: 'montagem',
+    prompt: 'Adicione um nicho de 800 × 600 × 450 mm encostado à direita da estante.',
+    expect: {
+      action: ['update'],
+      design: (design) => {
+        const novo = design.modules.find((m) => /nicho/i.test(m.name)) ?? design.modules.at(-1);
+        if (!novo) return 'nenhum módulo novo';
+        return novo.width === 800 && novo.height === 600 && novo.depth === 450
+          ? true
+          : `medidas aplicadas ${novo.width} × ${novo.height} × ${novo.depth} (pedido 800 × 600 × 450)`;
+      },
+    },
+    learned:
+      'Medida ditada em três eixos: o modelo já aplicou só a largura duas vezes, com a prosa prometendo 800 × 600 × 450. O cartão da interface denuncia, mas o certo é aplicar as três.',
+  },
   // ------------------------------------------------------------------ sugestoes
   {
     id: 'sug-01',

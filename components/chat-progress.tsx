@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Check, LoaderCircle } from 'lucide-react';
+import { LoaderCircle } from 'lucide-react';
 import type { Progress } from '@/lib/progress';
 export function ChatProgress({
   events,
@@ -29,32 +29,6 @@ export function ChatProgress({
       <div className="message-progress-track" aria-hidden="true">
         <span />
       </div>
-      <details className="progress-details">
-        <summary>
-          Ver etapas
-          {events.length > 0 ? ` · ${events.length}` : ''}
-        </summary>
-        <ol aria-label="Etapas do pedido">
-          {events.map((event, i) => (
-            <li key={i} className={i === events.length - 1 ? 'current' : ''}>
-              {i < events.length - 1 ? (
-                <Check className="progress-check" size={12} />
-              ) : (
-                <span className="progress-dot" />
-              )}
-              <span className="progress-step">
-                <span className="progress-step-label">
-                  {event.label}
-                  {event.stage === 'retrying' && event.attempt
-                    ? ` · tentativa ${event.attempt}`
-                    : ''}
-                </span>
-                {event.detail && <small>{event.detail}</small>}
-              </span>
-            </li>
-          ))}
-        </ol>
-      </details>
       {elapsed >= 15 && (
         <div className="progress-wait">
           {elapsed >= 45

@@ -1235,8 +1235,8 @@ button svg {
   }
 }
 .scene-bottom{background:rgba(255,255,255,.9);border:1px solid #e3e8dc;border-radius:14px;padding:10px 14px;gap:14px;backdrop-filter:blur(10px)}
-.approach-stream,.answer-stream{padding:13px 0;border-top:1px solid #dce7d4;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.65}.approach-stream h3,.answer-stream h3{margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:.2px;white-space:normal;color:#6c7f5e}.answer-stream{color:#283e20}.answer-stream small{display:block;font-size:11px;color:#666f66;margin-top:10px}.text-caret{display:inline-block;width:5px;height:14px;background:#719955;margin-left:3px;vertical-align:baseline;animation:stream-caret 1s step-end infinite}.saved-approach strong{font-size:12px;font-weight:500}.saved-approach p{font-size:13px;color:#637456;line-height:1.6}@keyframes stream-caret{50%{opacity:0}}@media(prefers-reduced-motion:reduce){.text-caret{animation:none}}
-.message-progress-track{height:3px;overflow:hidden;background:#e2eadc;border-radius:3px;margin:13px 0}.message-progress-track span{display:block;width:36%;height:100%;border-radius:inherit;background:linear-gradient(90deg,transparent,#8aab70,transparent);animation:message-activity 1.7s ease-in-out infinite}.progress-details{margin-top:10px;font-size:12px;color:#616b60}.progress-details summary{cursor:pointer;width:fit-content}.progress-details ol{padding-top:3px}.message.assistant{animation:message-arrive .22s ease-out}@keyframes message-activity{0%{transform:translateX(-110%)}100%{transform:translateX(390%)}}@keyframes message-arrive{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}@media(prefers-reduced-motion:reduce){.message-progress-track span,.message.assistant{animation:none}.message-progress-track span{margin:auto}}
+.approach-stream,.answer-stream{padding:13px 0;border-top:1px solid #dce7d4;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.65}.approach-stream h3,.answer-stream h3{margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:.2px;white-space:normal;color:#6c7f5e}.answer-stream{color:#283e20}.answer-stream small{display:block;font-size:11px;color:#666f66;margin-top:10px}.text-caret{display:inline-block;width:5px;height:14px;background:#719955;margin-left:3px;vertical-align:baseline;animation:stream-caret 1s step-end infinite}@keyframes stream-caret{50%{opacity:0}}@media(prefers-reduced-motion:reduce){.text-caret{animation:none}}
+.message-progress-track{height:3px;overflow:hidden;background:#e2eadc;border-radius:3px;margin:13px 0}.message-progress-track span{display:block;width:36%;height:100%;border-radius:inherit;background:linear-gradient(90deg,transparent,#8aab70,transparent);animation:message-activity 1.7s ease-in-out infinite}.message.assistant{animation:message-arrive .22s ease-out}@keyframes message-activity{0%{transform:translateX(-110%)}100%{transform:translateX(390%)}}@keyframes message-arrive{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}@media(prefers-reduced-motion:reduce){.message-progress-track span,.message.assistant{animation:none}.message-progress-track span{margin:auto}}
 
 .chat-image{display:block;max-width:100%;width:240px;max-height:220px;object-fit:contain;border-radius:10px;margin-bottom:10px;background:#ecefe7}
 .composer .attachment-preview{display:flex;gap:10px;align-items:center;padding:8px;background:#f4f7f0;border-radius:8px;margin:8px}
@@ -1248,9 +1248,6 @@ button svg {
 .progress-spinner{flex-shrink:0;color:#5c8a3c;animation:progress-spin 1s linear infinite}
 @keyframes progress-spin{to{transform:rotate(360deg)}}
 .chat-progress>p{color:#616b60;font-size:12px;line-height:1.6;margin:10px 0 0}
-.progress-details ol{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:6px}
-.progress-details li{display:flex;gap:8px;align-items:center;font-size:12px;color:#839378}
-.progress-details li.current{color:#3e5e30;font-weight:600}
 .progress-dot{width:6px;height:6px;border-radius:50%;background:#7d9f60;flex-shrink:0}
 .progress-wait{margin-top:10px;font-size:12px;color:#666f66;background:#fff;border:1px dashed #d3dcc9;border-radius:8px;padding:8px 10px}
 /* Cartões de mudança: o resultado do turno é o conteúdo principal da
@@ -1272,13 +1269,7 @@ button svg {
 .change-card-facts dd{font-weight:500;text-align:left;min-width:0}
 /* Com cartões, o texto da IA vem depois do resultado, como comentário. */
 .message-prose{font-size:13px;line-height:1.55;color:#3f4b3a;margin:6px 0 0}
-.change-report .report-duration{margin:8px 0 0;font-size:11px;color:#839378}
 /* O resumo do relatório técnico: discreto, é o registro da execução. */
-.change-report summary{font-size:11px;color:#839378}
-.change-report{margin-top:6px}
-.change-report .turn-changes ul{font-size:11px;color:#5d6b52}
-.change-report ul{margin:8px 0 0;padding-left:18px;font-size:12px;color:#43563c;display:grid;gap:4px}
-.change-report p{font-size:12px;color:#616b60;margin:8px 0 0}
 .part-showcase{margin:12px 0 4px}
 .part-showcase>strong{display:block;font-size:11px;font-weight:600;letter-spacing:.2px;color:#6c7f5e;margin-bottom:6px}
 .part-showcase>div{display:flex;flex-wrap:wrap;gap:8px}
@@ -1401,14 +1392,6 @@ button svg {
 .clarify-card .clarify-answer button{align-self:flex-start;padding:8px 12px;font-size:12px}
 .clarify-card .clarify-answer button:disabled{opacity:.45;cursor:not-allowed}
 /* Etapas do turno: ferramenta usada e efeito real, uma linha por passo. */
-.turn-steps,.turn-changes{margin-top:10px;display:flex;flex-direction:column;gap:6px}
-.turn-steps>strong,.turn-changes>strong{font-size:11px;font-weight:600;letter-spacing:.2px;color:#6c7f5e}
-.turn-steps ol{list-style:none;margin:0;padding:0;display:grid;gap:7px}
-.turn-steps li{display:flex;gap:7px;align-items:flex-start}
-.turn-steps code{flex:none;margin-top:1px;padding:1px 6px;border-radius:5px;background:#eef3e7;border:1px solid #dbe5cd;font-size:10px;color:#4c6a3a}
-.turn-steps .progress-step,.turn-steps li>span{display:flex;flex-direction:column;gap:1px;min-width:0}
-.turn-steps li>span>small{font-size:11px;color:#666f66;line-height:1.45}
-.turn-changes ul{margin:0;padding-left:16px;font-size:12px;color:#43563c;display:grid;gap:4px}
 /* Primeira interação: as sugestões fixas se apresentam como ponto de partida. */
 .suggestions .suggestions-hint{font-size:10px;font-weight:600;letter-spacing:.2px;color:#7d8a72;text-transform:uppercase}
 /* A mensagem nova entra suave; sem isso ela aparecia de uma vez e empurrava a

@@ -97,6 +97,7 @@ O que o benchmark **não** mede: qualidade do texto além das regex, aparência 
 | `mon-03` | Crie dois nichos, um à direita do outro, ligados a este módulo. | ação update; muda o projeto; geometria conferida | Dois módulos ligados no mesmo pai caem um sobre o outro. A cadeia é a correção que a validação devolve. |
 | `mon-04` | Separe os módulos e remova o da direita. | ação update; muda o projeto; geometria conferida | Remover módulo conectado exige separar antes; a ordem das operações no lote importa. |
 | `mon-05` | Aumente a largura do módulo da direita para 1 metro e deixe a fileira com 2,20 m. | ação update ou clarify; geometria conferida | Valdir tentou redimensionar um módulo encostado no vizinho e a sobreposição recusou o lote inteiro, inclusive o nome. É o caso que mede a capacidade de correção. |
+| `mon-06` | Adicione um nicho de 800 × 600 × 450 mm encostado à direita da estante. | ação update; geometria conferida | Medida ditada em três eixos: o modelo já aplicou só a largura duas vezes, com a prosa prometendo 800 × 600 × 450. O cartão da interface denuncia, mas o certo é aplicar as três. |
 
 ### divisao · Dividir compartimento, frentes, gavetas e ordem das operações
 
@@ -178,4 +179,4 @@ O que o benchmark **não** mede: qualidade do texto além das regex, aparência 
 | `sug-02` | Qual é a altura total do projeto? | ação answer ou update ou clarify | Pergunta informativa também abre caminho para o próximo pedido sem sugerir algo fora do escopo. |
 | `sug-03` | Quanto custa para fazer este armário? | ação answer ou clarify ou update | Cinco de seis personas pediram preço; a sugestão não pode abrir uma porta que o produto não atende. |
 
-Total: 42 casos em 13 grupos.
+Total: 43 casos em 13 grupos.

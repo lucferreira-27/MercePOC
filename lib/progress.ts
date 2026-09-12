@@ -12,16 +12,6 @@ export type Progress = {
   attempt?: number;
 };
 /**
- * Uma etapa do turno: a ferramenta usada (ou a etapa do servidor) e o efeito
- * real no projeto. Alimenta o painel "Etapas", que mostra o que o assistente
- * fez em vez de só dizer que terminou.
- */
-export type TurnStep = {
-  tool: string;
-  label: string;
-  detail?: string;
-};
-/**
  * O que mudou no projeto, em linguagem de quem desenha móvel: é o conteúdo
  * principal da resposta, não o log da execução. Medidas e fatos vêm do desenho
  * depois de aplicar, nunca do texto da IA.
@@ -58,9 +48,6 @@ export type ChatReport = {
   highlights?: ChangeHighlight[];
   /** Texto próprio da IA, para a interface não repetir o resumo do diff. */
   prose?: string;
-  /** Roteiro do turno: interpretação, validação, ferramentas usadas e versão. */
-  steps?: TurnStep[];
-  approach?: string;
   selected?: SelectedPart[];
 };
 export type TextPreview = {

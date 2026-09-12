@@ -4,7 +4,6 @@ import { materials } from '@/lib/furniture';
 import {
   describeDesignChanges,
   describeHighlights,
-  describeOperations,
   executeRequest,
   generateDesign,
   resolveShelfId,
@@ -25,14 +24,6 @@ const busy = new Set<string>();
 const GEOMETRY_RETRIES = 2;
 /** Dízimas de milímetro (185.33333) não devem aparecer em texto de resposta. */
 const round2 = (value: number) => String(Math.round(value * 100) / 100);
-/** Nome da ação da IA para o roteiro de etapas. */
-const ACTION_LABEL: Record<string, string> = {
-  update: 'alteração no projeto',
-  clarify: 'pergunta antes de mexer',
-  undo: 'voltar uma versão',
-  redo: 'refazer a versão',
-  answer: 'resposta sem alterar medidas',
-};
 /** Pedidos já confirmados: requestId → índice da mensagem assistente. */
 const confirmed = new Map<string, { projectId: string; index: number }>();
 
@@ -121,10 +112,6 @@ export async function POST(req: Request) {
     let version = b.version;
     let persistedUser = false;
     const started = Date.now();
-    /** Chamadas ao provedor neste turno: 1 é o normal; 2 ou 3 significam reparo. */
-    let modelCalls = 0;
-    /** Motivo do último reparo de geometria, para o roteiro de etapas. */
-    let repairNote = '';
     const baseRev = p.revisions[p.cursor];
     const historyNote =
       p.cursor < p.revisions.length - 1
@@ -242,24 +229,6 @@ export async function POST(req: Request) {
               durationMs: Date.now() - started,
               outcome: 'rejected',
               changes: [],
-              approach: d_approach(),
-              steps: [
-                {
-                  tool: 'interpretar',
-                  label: 'Aplicar a escolha do usuário',
-                  detail: `sem chamada à IA · opção "${option.label}"`,
-                },
-                {
-                  tool: 'validar',
-                  label: 'Conferir medidas, vãos e peças',
-                  detail: `nada foi aplicado: ${applied.error}`,
-                },
-                {
-                  tool: 'descartar',
-                  label: 'Preservar o projeto',
-                  detail: `a versão ${baseRev.number} continua igual`,
-                },
-              ],
             },
           };
           p.messages.push(assistant);
@@ -313,7 +282,6 @@ export async function POST(req: Request) {
         Boolean(b.fast),
         p.room,
       );
-      modelCalls++;
       signal.throwIfAborted();
       progress({
         stage: 'validating',
@@ -361,7 +329,6 @@ export async function POST(req: Request) {
       // connect correto no papel pode cair sobre outro módulo. Devolve o erro
       // de validação e deixa corrigir no mesmo pedido, sem aplicar nada antes.
       for (let attempt = 1; !preview.ok && attempt <= GEOMETRY_RETRIES; attempt++) {
-        repairNote = preview.error;
         progress({
           stage: 'retrying',
           label: 'Corrigindo o posicionamento',
@@ -395,7 +362,6 @@ export async function POST(req: Request) {
           Boolean(b.fast),
           p.room,
         );
-        modelCalls++;
         signal.throwIfAborted();
         if (d.refs.length) userMsg.context!.referencedPartIds = d.refs;
         if (d.action !== 'update') break;
@@ -420,27 +386,6 @@ export async function POST(req: Request) {
             durationMs: Date.now() - started,
             outcome: 'rejected',
             changes: [],
-            approach: d.approach,
-            steps: [
-              {
-                tool: 'interpretar',
-                label: 'Interpretar o pedido',
-                detail: `${modelCalls} chamada(s) à IA · ${ACTION_LABEL[d.action] ?? d.action}`,
-              },
-              ...(repairNote
-                ? [{ tool: 'corrigir', label: 'Corrigir a geometria', detail: repairNote }]
-                : []),
-              {
-                tool: 'validar',
-                label: 'Conferir medidas, vãos e peças',
-                detail: `nada foi aplicado: ${preview.error}`,
-              },
-              {
-                tool: 'descartar',
-                label: 'Preservar o projeto',
-                detail: `a versão ${baseRev.number} continua igual`,
-              },
-            ],
           },
         };
         p.messages.push(assistant);
@@ -455,17 +400,11 @@ export async function POST(req: Request) {
       progress({
         stage: 'applying',
         label: 'Aplicando as alterações',
-        detail:
-          describeOperations(before, preview.design, ops)
-            .map((step) => step.label)
-            .join(' · ') || 'aplicando as operações validadas',
+        detail: 'Conferindo o lote e salvando a nova versão.',
       });
       const discarded = revise(p, preview.design, b.message.slice(0,90));
       return { ...finishTurn(userMsg, d.select, ops, null, d), discarded };
 
-      function d_approach() {
-        return 'Proposta validada no servidor.';
-      }
       /** Confirmação principal gerada do diff real; texto da IA é complemento. */
       function finishTurn(
         user: Message,
@@ -545,55 +484,13 @@ export async function POST(req: Request) {
             durationMs: Date.now() - started,
             outcome,
             changes,
-            approach: decision?.approach,
             selected: showcase,
-            // O resultado principal da mensagem: o que mudou, em cartões. O
-            // roteiro técnico continua em `steps`, para a seção de detalhes.
+            // O resultado principal da mensagem: o que mudou, em cartões, e o
+            // texto próprio da IA depois, sem repetir o resumo do diff.
             ...(appliedOps.length && changes.length
               ? { highlights: describeHighlights(before, after, appliedOps) }
               : {}),
             ...(decision?.message ? { prose: decision.message } : {}),
-            steps: [
-              {
-                tool: 'interpretar',
-                label: 'Interpretar o pedido',
-                detail: decision
-                  ? `${modelCalls} chamada(s) à IA · ${ACTION_LABEL[decision.action ?? 'update'] ?? 'alteração no projeto'}`
-                  : 'sem chamada à IA: escolha aplicada direto',
-              },
-              ...(repairNote
-                ? [
-                    {
-                      tool: 'corrigir',
-                      label: 'Corrigir a geometria',
-                      detail: repairNote,
-                    },
-                  ]
-                : []),
-              {
-                tool: 'validar',
-                label: 'Conferir medidas, vãos e peças',
-                detail: navigated
-                  ? `versão ${baseRev.number} → ${p.revisions[p.cursor].number} localizada no histórico`
-                  : outcome === 'unchanged'
-                    ? 'as medidas já estavam nesse estado'
-                    : `${appliedOps.length} operação(ões) aceita(s) pelo servidor`,
-              },
-              ...(appliedOps.length && changes.length
-                ? describeOperations(before, after, appliedOps)
-                : []),
-              {
-                tool: outcome === 'applied' ? 'salvar' : 'responder',
-                label:
-                  outcome === 'applied'
-                    ? 'Salvar a versão'
-                    : 'Responder sem mexer no projeto',
-                detail:
-                  outcome === 'applied'
-                    ? `v${p.revisions[p.cursor].number} · ${p.revisions.length} versões no histórico`
-                    : `nenhuma versão nova · v${baseRev.number}`,
-              },
-            ],
           },
         };
         p.messages.push(assistant);
@@ -633,26 +530,6 @@ export async function POST(req: Request) {
             durationMs: Date.now() - started,
             outcome: 'clarification',
             changes: [],
-            approach: decision?.approach,
-            steps: [
-              {
-                tool: 'interpretar',
-                label: 'Interpretar o pedido',
-                detail: decision
-                  ? `${modelCalls} chamada(s) à IA · ${ACTION_LABEL[decision.action ?? 'clarify'] ?? 'pergunta antes de mexer'}`
-                  : 'sem chamada à IA',
-              },
-              {
-                tool: 'validar',
-                label: 'Conferir a versão da pergunta',
-                detail: `v${baseRev.number} · ${options.length} opção(ões) reais listadas`,
-              },
-              {
-                tool: 'perguntar',
-                label: 'Perguntar antes de mexer',
-                detail: 'nada foi alterado; a escolha fica com você',
-              },
-            ],
           },
         };
         p.messages.push(assistant);
