@@ -6,6 +6,8 @@ Estúdio local de móveis modulares com painéis retos. Chat, editor, modelo 3D,
 
 Use `Start-Merce.cmd`, ou `npm install` e `npm run dev` em `G:\MercePOC`. Abra http://127.0.0.1:4310/. Para produção local: `npm run build` e `npm start`. Não execute dois servidores na mesma porta.
 
+Importante: `npm run build` reescreve o pacote que o servidor em execução está servindo. Se o servidor já estava de pé, reinicie-o depois do build; sem isso a página trava em "Carregando seu estúdio..." porque o navegador recebe um pacote misturado e não chega a hidratar. Para uso no dia a dia, `npm run dev` (HMR na mesma porta) não tem esse problema.
+
 Configure `.env`, ignorado pelo Git:
 
 ```dotenv
