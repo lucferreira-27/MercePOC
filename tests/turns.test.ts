@@ -214,6 +214,92 @@ void test('esclarecimento caído reaparece no pedido seguinte com o estado atual
     globalThis.fetch = original;
   }
 });
+void test('esclarecimento pendente é informado ao próximo turno e some quando respondido', async () => {
+  const original = globalThis.fetch;
+  const bodies: string[] = [];
+  let pId = '';
+  let call = 0;
+  globalThis.fetch = async (_url: unknown, init?: RequestInit) => {
+    bodies.push(typeof init?.body === 'string' ? init.body : '');
+    call++;
+    if (call === 1)
+      return response({
+        action: 'clarify',
+        approach: 'Perguntar qual medida.',
+        message: 'Qual medida você quer mudar?',
+        ops: [],
+        clarification: {
+          question: 'Qual medida você quer mudar?',
+          options: [
+            { id: 'largura', label: 'Largura', partIds: [get(pId).revisions[0].params.modules[0].id] },
+            { id: 'altura', label: 'Altura', partIds: [get(pId).revisions[0].params.modules[0].id] },
+          ],
+        },
+      });
+    if (call === 2)
+      return response({
+        action: 'answer',
+        approach: 'a',
+        message: 'Qual medida você quer mudar?',
+        ops: [],
+      });
+    return response({
+      action: 'update',
+      approach: 'a',
+      message: 'm',
+      ops: [{ kind: 'resize', width: 1000 }],
+    });
+  };
+  try {
+    const p = create();
+    pId = p.id;
+    await readEvents(await POST(request(p.id, { message: 'deixe com 2 metros' })), () => {});
+    const ask = get(p.id).messages.at(-1)!;
+    assert.equal(ask.result?.outcome, 'clarification');
+    assert.equal(ask.clarification?.options.length, 2);
+    // O turno anterior precisa ver a pergunta pendente; sem isso a IA repetia
+    // a mesma pergunta como se nada tivesse acontecido.
+    await readEvents(
+      await POST(request(p.id, { message: 'pode ser 2 metros' }, get(p.id).version)),
+      () => {},
+    );
+    const sent = JSON.parse(bodies[1] ?? '{}') as { messages: { role: string; content: string }[] };
+    const userTurn = sent.messages.filter((m) => m.role === 'user').at(-1)!;
+    const payload = JSON.parse(userTurn.content) as {
+      pending_clarification: string | null;
+    };
+    assert.equal(payload.pending_clarification, 'Qual medida você quer mudar?');
+    // Responder pela opção aplica a escolha e encerra a pendência.
+    const clar = get(p.id).messages.findLast((m) => m.clarification)!.clarification!;
+    const answerEvents: { event: string; data: string }[] = [];
+    await readEvents(
+      await POST(
+        request(
+          p.id,
+          { message: 'Largura', clarificationId: clar.id, optionId: clar.options[0].id },
+          get(p.id).version,
+        ),
+      ),
+      (e) => answerEvents.push(e),
+    );
+    assert.equal(answerEvents.at(-1)?.event, 'done', answerEvents.at(-1)?.data);
+    assert.equal(view(get(p.id)).params.width, 1000);
+    assert.ok(
+      get(p.id).messages.some((m) => m.clarificationId === clar.id),
+      'a mensagem liga a resposta à pergunta',
+    );
+    const answered = JSON.parse(bodies[2] ?? '{}') as {
+      messages: { role: string; content: string }[];
+    };
+    const answeredTurn = answered.messages.filter((m) => m.role === 'user').at(-1)!;
+    const after = JSON.parse(answeredTurn.content) as {
+      pending_clarification: string | null;
+    };
+    assert.equal(after.pending_clarification, null);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
 void test('proposta sobreposta volta para a IA corrigir e o pedido termina aplicado', async () => {
   const original = globalThis.fetch;
   const p = create();

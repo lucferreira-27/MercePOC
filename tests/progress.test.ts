@@ -94,7 +94,9 @@ void test('live progress precedes completion, holds lock, persists report, keeps
       events
         .filter((e) => e.event === 'progress')
         .map((e) => JSON.parse(e.data).stage),
-      ['connecting', 'interpreting', 'validating', 'saving'],
+      // A ordem é o contrato do turno: proposta pública da IA e aplicação das
+      // operações ganharam etapa própria para o painel dizer o que aconteceu.
+      ['connecting', 'interpreting', 'proposing', 'validating', 'applying', 'saving'],
     );
     assert.equal(events.at(-1)?.event, 'done');
     // O raciocínio só pode aparecer no campo de depuração dos eventos de
@@ -147,10 +149,22 @@ void test('invalid tool call reports retries and failure without changing projec
       2,
     );
     assert.equal(events.at(-1)?.event, 'error');
-    assert.equal(get(p.id).version, 0);
+    // Nada muda no desenho: sem revisão nova e sem perda do que já existia.
+    // O pedido, porém, fica salvo com um cartão repetível.
+    const saved = get(p.id);
+    assert.equal(saved.revisions.length, 1, 'nenhuma revisão criada');
+    assert.equal(view(saved).params.width, defaults.width, 'desenho intacto');
+    const failed = saved.messages.at(-1)!;
+    assert.match(failed.error ?? '', /não passou na validação/);
+    assert.equal(failed.retry?.message, 'Largura de 1 metro');
     globalThis.fetch = async () => response(wire());
-    const retry = await POST(request(p.id, 0, false));
+    const retry = await POST(request(p.id, saved.version, false));
     assert.equal(retry.status, 200);
+    assert.equal(
+      view(get(p.id)).params.width,
+      1000,
+      'a repetição depois do cartão aplica a mudança',
+    );
   } finally {
     globalThis.fetch = realFetch;
   }
@@ -251,7 +265,13 @@ void test('a silent provider aborts and preserves the project', async () => {
     const events: { event: string; data: string }[] = [];
     await readEvents(await POST(request(p.id)), (e) => events.push(e));
     assert.equal(events.at(-1)?.event, 'error');
-    assert.equal(get(p.id).version, 0);
+    // O provedor ficou mudo: o desenho não muda, mas o pedido não desaparece.
+    const saved = get(p.id);
+    assert.equal(saved.revisions.length, 1, 'nenhuma revisão criada');
+    assert.equal(view(saved).params.width, defaults.width, 'desenho intacto');
+    const failed = saved.messages.at(-1)!;
+    assert.match(failed.error ?? '', /interrompida/);
+    assert.equal(failed.retry?.message, 'Largura de 1 metro');
   } finally {
     delete process.env.MERCE_AI_TIMEOUT_MS;
     globalThis.fetch = realFetch;

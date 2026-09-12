@@ -3,6 +3,7 @@ import { interpretStream } from '@/lib/gateway';
 import { materials } from '@/lib/furniture';
 import {
   describeDesignChanges,
+  describeOperations,
   executeRequest,
   generateDesign,
   resolveShelfId,
@@ -23,6 +24,14 @@ const busy = new Set<string>();
 const GEOMETRY_RETRIES = 2;
 /** Dízimas de milímetro (185.33333) não devem aparecer em texto de resposta. */
 const round2 = (value: number) => String(Math.round(value * 100) / 100);
+/** Nome da ação da IA para o roteiro de etapas. */
+const ACTION_LABEL: Record<string, string> = {
+  update: 'alteração no projeto',
+  clarify: 'pergunta antes de mexer',
+  undo: 'voltar uma versão',
+  redo: 'refazer a versão',
+  answer: 'resposta sem alterar medidas',
+};
 /** Pedidos já confirmados: requestId → índice da mensagem assistente. */
 const confirmed = new Map<string, { projectId: string; index: number }>();
 
@@ -99,13 +108,22 @@ export async function POST(req: Request) {
         { status: 409 },
       );
     const p = get(b.id);
-    const replay = p.messages.findLast(m => m.role === 'assistant' && m.context?.requestId === requestId);
+    // Replay só vale para turno concluído: um turno que falhou precisa rodar de novo.
+    const replay = p.messages.findLast(m => m.role === 'assistant' && m.context?.requestId === requestId && m.result);
     if (replay) return Response.json(view(p));
     if (p.version !== b.version)
       throw new Error('O projeto mudou. Recarregue e tente novamente.');
     id = b.id;
     busy.add(id);
+    // A mensagem do usuário é gravada antes de chamar a IA: recarregar no meio
+    // do turno não pode apagar o que a pessoa escreveu.
+    let version = b.version;
+    let persistedUser = false;
     const started = Date.now();
+    /** Chamadas ao provedor neste turno: 1 é o normal; 2 ou 3 significam reparo. */
+    let modelCalls = 0;
+    /** Motivo do último reparo de geometria, para o roteiro de etapas. */
+    let repairNote = '';
     const baseRev = p.revisions[p.cursor];
     const historyNote =
       p.cursor < p.revisions.length - 1
@@ -141,13 +159,26 @@ export async function POST(req: Request) {
     // Peça removida nunca é substituída silenciosamente.
     const dangling = (explicit.length ? explicit : lastAssistant?.context?.referencedPartIds ?? []).filter(rid=>!validIds.includes(resolveShelfId(rid,before)??rid));    const pendingClarification = [...p.messages]
       .reverse()
-      .find((m) => m.clarification && !m.result)?.clarification;
+      .find((m) => {
+        if (!m.clarification || m.result?.outcome !== 'clarification') return false;
+        // Respondida quando existe uma mensagem do usuário ligada a ela.
+        const clarId = m.clarification.id;
+        return !p.messages.some((later) => later.clarificationId === clarId);
+      })?.clarification;
+    // O turno que já É a resposta ao esclarecimento não deve receber a
+    // pendência de novo: a mensagem atual já nomeia o alvo escolhido.
+    const answeringClarification = Boolean(b.clarificationId && b.optionId);
     const run = async (
       progress: (event: Progress) => void,
       signal: AbortSignal,
       text: (preview: TextPreview) => void = () => {},
     ) => {
       // Resposta a esclarecimento pendente: valida e executa a intenção guardada.
+      let answeredClarId: string | undefined;
+      // Resposta digitada (sem escolher opção): a pergunta fica marcada como
+      // respondida, senão ela seguiria pendente e voltaria no contexto dos
+      // próximos turnos.
+      if (b.clarificationId && !b.optionId) answeredClarId = b.clarificationId;
       if (b.clarificationId && b.optionId) {
         const clar=p.messages.find(m=>m.clarification?.id===b.clarificationId)?.clarification;
         const choice=clar?.options.find(o=>o.id===b.optionId);
@@ -156,6 +187,7 @@ export async function POST(req: Request) {
         if(!clar.pendingOps?.length){
           explicit.splice(0,explicit.length,...choice.partIds);
           b.message=`${clar.pendingMessage??b.message}. Alvo escolhido: ${choice.label} (${choice.partIds.join(', ')}).`;
+          answeredClarId=clar.id;
           b.clarificationId=undefined;b.optionId=undefined;
         }
       }
@@ -183,6 +215,8 @@ export async function POST(req: Request) {
           content: `${clar.pendingMessage ?? b.message} (${option.label})`,
           revisionId: baseRev.id,
           revision: baseRev.number,
+          // Liga a resposta à pergunta: sem isso o servidor não sabe que já foi respondida.
+          clarificationId: clar.id,
           context: {
             requestId,
             baseRevisionId: baseRev.id,
@@ -191,6 +225,8 @@ export async function POST(req: Request) {
           },
         };
         p.messages.push(userMsg);
+        version = save(p, version).version;
+        persistedUser = true;
         const applied = applyRequest(p, pending, userMsg.content.slice(0, 90));
         if (!applied.ok) {
           const assistant: Message = {
@@ -201,27 +237,72 @@ export async function POST(req: Request) {
             revision: baseRev.number,
             context: { requestId, baseRevisionId: baseRev.id, selectedPartIds: explicit, referencedPartIds: partIds },
             result: { outcome: 'rejected', resultRevisionId: baseRev.id, appliedOperations: [], changes: [] },
-            report: { durationMs: Date.now() - started, outcome: 'rejected', changes: [], approach: d_approach() },
+            report: {
+              durationMs: Date.now() - started,
+              outcome: 'rejected',
+              changes: [],
+              approach: d_approach(),
+              steps: [
+                {
+                  tool: 'interpretar',
+                  label: 'Aplicar a escolha do usuário',
+                  detail: `sem chamada à IA · opção "${option.label}"`,
+                },
+                {
+                  tool: 'validar',
+                  label: 'Conferir medidas, vãos e peças',
+                  detail: `nada foi aplicado: ${applied.error}`,
+                },
+                {
+                  tool: 'descartar',
+                  label: 'Preservar o projeto',
+                  detail: `a versão ${baseRev.number} continua igual`,
+                },
+              ],
+            },
           };
           p.messages.push(assistant);
-          const state = save(p, b.version);
+          const state = save(p, version);
+          version = state.version;
           confirmed.set(requestId, { projectId: p.id, index: p.messages.length - 1 });
           return { ...state, selected: partIds };
         }
-        return finishTurn(userMsg, partIds, pending, null, null);
+        return { ...finishTurn(userMsg, partIds, pending, null, null), discarded: applied.discarded };
       }
+      const userMsg: Message = {
+        id: randomUUID(),
+        role: 'user',
+        content: b.message,
+        ...(image ? { image } : {}),
+        revisionId: baseRev.id,
+        revision: baseRev.number,
+        ...(answeredClarId ? { clarificationId: answeredClarId } : {}),
+        context: {
+          requestId,
+          baseRevisionId: baseRev.id,
+          selectedPartIds: explicit,
+          referencedPartIds: explicit.length ? explicit : resolved,
+        },
+      };
+      p.messages.push(userMsg);
+      // Grava antes de chamar a IA: um recarregamento no meio do turno
+      // (ou uma resposta que nunca chega) não pode apagar o pedido.
+      version = save(p, version).version;
+      persistedUser = true;
       let d = await interpretStream(
         before,
         baseRev.id,
         baseRev.number,
-        [...p.messages, {id:requestId,role:'user',content:b.message,...(image?{image}:{})}],
+        [...p.messages],
         explicit,
         {
           requestId,
           baseRevisionId: baseRev.id,
           selectedPartIds: explicit,
           referencedPartIds: explicit.length ? explicit : resolved,
-          pendingClarification: pendingClarification?.question ?? null,
+          pendingClarification: answeringClarification
+            ? null
+            : (pendingClarification?.question ?? null),
           historyNote,
         },
         progress,
@@ -229,7 +310,9 @@ export async function POST(req: Request) {
         signal,
         text,
         Boolean(b.fast),
+        p.room,
       );
+      modelCalls++;
       signal.throwIfAborted();
       progress({
         stage: 'validating',
@@ -239,21 +322,6 @@ export async function POST(req: Request) {
             ? 'Verificando medidas, vãos e peças antes de aplicar.'
             : 'Conferindo o pedido com a versão atual.',
       });
-      const userMsg: Message = {
-        id: randomUUID(),
-        role: 'user',
-        content: b.message,
-        ...(image ? { image } : {}),
-        revisionId: baseRev.id,
-        revision: baseRev.number,
-        context: {
-          requestId,
-          baseRevisionId: baseRev.id,
-          selectedPartIds: explicit,
-          referencedPartIds: explicit.length ? explicit : resolved,
-        },
-      };
-      p.messages.push(userMsg);
       if(d.refs.length)userMsg.context!.referencedPartIds=d.refs;
       // Peça referenciada sumiu: nunca substituir — pedir esclarecimento.
       if (dangling.length && /suba|desça|mova|remova|vão|cm|mm|esta|essa/i.test(b.message)) {
@@ -292,6 +360,7 @@ export async function POST(req: Request) {
       // connect correto no papel pode cair sobre outro módulo. Devolve o erro
       // de validação e deixa corrigir no mesmo pedido, sem aplicar nada antes.
       for (let attempt = 1; !preview.ok && attempt <= GEOMETRY_RETRIES; attempt++) {
+        repairNote = preview.error;
         progress({
           stage: 'retrying',
           label: 'Corrigindo o posicionamento',
@@ -301,14 +370,16 @@ export async function POST(req: Request) {
           before,
           baseRev.id,
           baseRev.number,
-          [...p.messages, { id: requestId, role: 'user', content: b.message, ...(image ? { image } : {}) }],
+          [...p.messages],
           explicit,
           {
             requestId,
             baseRevisionId: baseRev.id,
             selectedPartIds: explicit,
             referencedPartIds: explicit.length ? explicit : resolved,
-            pendingClarification: pendingClarification?.question ?? null,
+            pendingClarification: answeringClarification
+            ? null
+            : (pendingClarification?.question ?? null),
             historyNote: [
               historyNote,
               `A proposta anterior não passou na validação: ${preview.error} A composição não mudou. Reenvie o pedido completo, corrigido, com todas as operações necessárias. Lembre que em connect o side é o lado do próprio módulo pai no referencial dele, não a direção na tela.`,
@@ -321,7 +392,9 @@ export async function POST(req: Request) {
           signal,
           text,
           Boolean(b.fast),
+          p.room,
         );
+        modelCalls++;
         signal.throwIfAborted();
         if (d.refs.length) userMsg.context!.referencedPartIds = d.refs;
         if (d.action !== 'update') break;
@@ -342,18 +415,52 @@ export async function POST(req: Request) {
           revision: baseRev.number,
           context: userMsg.context,
           result: { outcome: 'rejected', resultRevisionId: baseRev.id, appliedOperations: [], attemptedOperations:ops, changes: [] },
-          report: { durationMs: Date.now() - started, outcome: 'rejected', changes: [], approach: d.approach },
+          report: {
+            durationMs: Date.now() - started,
+            outcome: 'rejected',
+            changes: [],
+            approach: d.approach,
+            steps: [
+              {
+                tool: 'interpretar',
+                label: 'Interpretar o pedido',
+                detail: `${modelCalls} chamada(s) à IA · ${ACTION_LABEL[d.action] ?? d.action}`,
+              },
+              ...(repairNote
+                ? [{ tool: 'corrigir', label: 'Corrigir a geometria', detail: repairNote }]
+                : []),
+              {
+                tool: 'validar',
+                label: 'Conferir medidas, vãos e peças',
+                detail: `nada foi aplicado: ${preview.error}`,
+              },
+              {
+                tool: 'descartar',
+                label: 'Preservar o projeto',
+                detail: `a versão ${baseRev.number} continua igual`,
+              },
+            ],
+          },
         };
         p.messages.push(assistant);
-        const state = save(p, b.version);
+        const state = save(p, version);
+        version = state.version;
         confirmed.set(requestId, { projectId: p.id, index: p.messages.length - 1 });
         return { ...state, selected: [] };
       }
       if (JSON.stringify(preview.design) === JSON.stringify(before)) {
         return finishTurn(userMsg, d.select, ops, 'O projeto já está nesse estado; nenhuma medida mudou.', d, false, 'unchanged');
       }
-      revise(p, preview.design, b.message.slice(0,90));
-      return finishTurn(userMsg, d.select, ops, null, d);
+      progress({
+        stage: 'applying',
+        label: 'Aplicando as alterações',
+        detail:
+          describeOperations(before, preview.design, ops)
+            .map((step) => step.label)
+            .join(' · ') || 'aplicando as operações validadas',
+      });
+      const discarded = revise(p, preview.design, b.message.slice(0,90));
+      return { ...finishTurn(userMsg, d.select, ops, null, d), discarded };
 
       function d_approach() {
         return 'Proposta validada no servidor.';
@@ -364,7 +471,7 @@ export async function POST(req: Request) {
         select: string[],
         appliedOps: ShelfOp[],
         override: string | null,
-        decision: { approach: string; message: string } | null,
+        decision: { action?: string; approach: string; message: string; suggestions?: string[] } | null,
         navigated = false,
         forceOutcome?: TurnOutcome,
       ) {
@@ -424,6 +531,9 @@ export async function POST(req: Request) {
           revisionId: p.revisions[p.cursor].id,
           revision: p.revisions[p.cursor].number,
           context: user.context,
+          ...(decision?.suggestions?.length
+            ? { suggestions: decision.suggestions }
+            : {}),
           result: {
             outcome,
             resultRevisionId: p.revisions[p.cursor].id,
@@ -436,6 +546,47 @@ export async function POST(req: Request) {
             changes,
             approach: decision?.approach,
             selected: showcase,
+            steps: [
+              {
+                tool: 'interpretar',
+                label: 'Interpretar o pedido',
+                detail: decision
+                  ? `${modelCalls} chamada(s) à IA · ${ACTION_LABEL[decision.action ?? 'update'] ?? 'alteração no projeto'}`
+                  : 'sem chamada à IA: escolha aplicada direto',
+              },
+              ...(repairNote
+                ? [
+                    {
+                      tool: 'corrigir',
+                      label: 'Corrigir a geometria',
+                      detail: repairNote,
+                    },
+                  ]
+                : []),
+              {
+                tool: 'validar',
+                label: 'Conferir medidas, vãos e peças',
+                detail: navigated
+                  ? `versão ${baseRev.number} → ${p.revisions[p.cursor].number} localizada no histórico`
+                  : outcome === 'unchanged'
+                    ? 'as medidas já estavam nesse estado'
+                    : `${appliedOps.length} operação(ões) aceita(s) pelo servidor`,
+              },
+              ...(appliedOps.length && changes.length
+                ? describeOperations(before, after, appliedOps)
+                : []),
+              {
+                tool: outcome === 'applied' ? 'salvar' : 'responder',
+                label:
+                  outcome === 'applied'
+                    ? 'Salvar a versão'
+                    : 'Responder sem mexer no projeto',
+                detail:
+                  outcome === 'applied'
+                    ? `v${p.revisions[p.cursor].number} · ${p.revisions.length} versões no histórico`
+                    : `nenhuma versão nova · v${baseRev.number}`,
+              },
+            ],
           },
         };
         p.messages.push(assistant);
@@ -446,12 +597,13 @@ export async function POST(req: Request) {
             ? 'Registrando a versão e preparando o modelo 3D.'
             : 'Salvando a resposta. As medidas foram preservadas.',
         });
-        const state = save(p, b.version);
+        const state = save(p, version);
+        version = state.version;
         confirmed.set(requestId, { projectId: p.id, index: p.messages.length - 1 });
         const echo = explicit.filter((sid) => shelfIds.includes(sid) || !sid.startsWith('sh-'));
         return { ...state, selected: echo.length ? echo : affected.size ? [...affected] : select.map(id=>resolveShelfId(id,design)??id).filter(id=>entityIds(design).includes(id)) };
       }
-      function finishClarify(user: Message, question: string, decision: { approach: string } | null) {
+      function finishClarify(user: Message, question: string, decision: { action?: string; approach: string } | null) {
         const options = (decision as {clarification?:{options:Clarification['options']}} | null)?.clarification?.options ?? infos.map((s) => ({ id: s.id, label: s.label, partIds: [s.id] }));
         const clar: Clarification = {
           id: randomUUID(),
@@ -470,23 +622,86 @@ export async function POST(req: Request) {
           context: user.context,
           clarification: clar,
           result: { outcome: 'clarification', resultRevisionId: baseRev.id, appliedOperations: [], changes: [] },
-          report: { durationMs: Date.now() - started, outcome: 'clarification', changes: [], approach: decision?.approach },
+          report: {
+            durationMs: Date.now() - started,
+            outcome: 'clarification',
+            changes: [],
+            approach: decision?.approach,
+            steps: [
+              {
+                tool: 'interpretar',
+                label: 'Interpretar o pedido',
+                detail: decision
+                  ? `${modelCalls} chamada(s) à IA · ${ACTION_LABEL[decision.action ?? 'clarify'] ?? 'pergunta antes de mexer'}`
+                  : 'sem chamada à IA',
+              },
+              {
+                tool: 'validar',
+                label: 'Conferir a versão da pergunta',
+                detail: `v${baseRev.number} · ${options.length} opção(ões) reais listadas`,
+              },
+              {
+                tool: 'perguntar',
+                label: 'Perguntar antes de mexer',
+                detail: 'nada foi alterado; a escolha fica com você',
+              },
+            ],
+          },
         };
         p.messages.push(assistant);
-        const state = save(p, b.version);
+        const state = save(p, version);
+        version = state.version;
         confirmed.set(requestId, { projectId: p.id, index: p.messages.length - 1 });
         return { ...state, selected: [] };
+      }
+    };
+    /**
+     * Falha depois do pedido já salvo: grava um cartão repetível no histórico
+     * para o trabalho não sumir quando a página recarrega.
+     */
+    const persistFailure = (e: unknown) => {
+      const aborted =
+        e instanceof Error && (e.name === 'AbortError' || /abort/i.test(e.message));
+      const message =
+        e instanceof Error && e.name === 'TimeoutError'
+          ? 'A IA demorou mais que o esperado. Seu projeto foi preservado; tente novamente.'
+          : aborted
+            ? 'A resposta foi interrompida antes de terminar. O pedido ficou salvo e pode ser repetido.'
+            : (e instanceof Error ? e.message : '') || 'Não foi possível concluir.';
+      if (!persistedUser) return undefined;
+      if (p.messages.some((m) => m.context?.requestId === requestId && m.result))
+        return undefined;
+      p.messages.push({
+        id: randomUUID(),
+        role: 'assistant',
+        content: '',
+        revisionId: p.revisions[p.cursor].id,
+        revision: p.revisions[p.cursor].number,
+        retry: { message: b.message, ...(image ? { image } : {}) },
+        error: message,
+      });
+      try {
+        const state = save(p, version);
+        version = state.version;
+        return state;
+      } catch {
+        return undefined;
       }
     };
     if (!req.headers.get('accept')?.includes('text/event-stream')) {
       try {
         return Response.json(await run(() => {}, req.signal));
+      } catch (e) {
+        persistFailure(e);
+        throw e;
       } finally {
         busy.delete(b.id);
       }
     }
     const cancellation = new AbortController();
     let ended = false;
+    /** Última proposta pública já enviada: a etapa é atualizada, não repetida. */
+    let lastApproach = '';
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         const enc = new TextEncoder();
@@ -513,17 +728,37 @@ export async function POST(req: Request) {
             (event) => send('progress', event),
             AbortSignal.any([req.signal, cancellation.signal]),
             (preview) => {
+              // A proposta pública da IA aparece na hora para quem espera, mesmo
+              // com a transmissão de depuração desligada: raciocínio privado
+              // continua fora (isso é o campo `reasoning`, não `approach`).
+              if (preview.approach && preview.approach !== lastApproach) {
+                lastApproach = preview.approach;
+                send('progress', {
+                  stage: 'proposing',
+                  label: 'Proposta da IA',
+                  detail: preview.approach,
+                  attempt: preview.attempt,
+                });
+              }
               if (req.headers.get('x-chat-preview') !== 'hidden')
                 send('text', preview);
             },
           );
           send('done', result);
         } catch (e) {
+          // O estado volta junto do erro: o cliente precisa saber a versão nova
+          // (a mensagem do usuário já foi salva) para poder tentar de novo.
+          const state = persistFailure(e);
+          const aborted =
+            e instanceof Error && (e.name === 'AbortError' || /abort/i.test(e.message));
           send('error', {
             error:
               e instanceof Error && e.name === 'TimeoutError'
                 ? 'A IA demorou mais que o esperado. Seu projeto foi preservado; tente novamente.'
-                : (e as Error).message,
+                : aborted
+                  ? 'A resposta foi interrompida antes de terminar. O pedido ficou salvo e pode ser repetido.'
+                  : (e as Error).message,
+            ...(state ? { state } : {}),
           });
         } finally {
           clearInterval(heartbeat);
