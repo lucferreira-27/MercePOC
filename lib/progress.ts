@@ -1,8 +1,25 @@
 export type Progress = {
-  stage: 'connecting' | 'interpreting' | 'retrying' | 'validating' | 'saving';
+  stage:
+    | 'connecting'
+    | 'interpreting'
+    | 'proposing'
+    | 'retrying'
+    | 'validating'
+    | 'applying'
+    | 'saving';
   label: string;
   detail: string;
   attempt?: number;
+};
+/**
+ * Uma etapa do turno: a ferramenta usada (ou a etapa do servidor) e o efeito
+ * real no projeto. Alimenta o painel "Etapas", que mostra o que o assistente
+ * fez em vez de só dizer que terminou.
+ */
+export type TurnStep = {
+  tool: string;
+  label: string;
+  detail?: string;
 };
 export type SelectedPart = {
   id: string;
@@ -23,6 +40,8 @@ export type ChatReport = {
   durationMs: number;
   outcome: TurnOutcome;
   changes: string[];
+  /** Roteiro do turno: interpretação, validação, ferramentas usadas e versão. */
+  steps?: TurnStep[];
   approach?: string;
   selected?: SelectedPart[];
 };

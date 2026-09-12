@@ -25,13 +25,13 @@ Constantes centralizadas em `PROFILE`, com versão fixa. Não garantem compatibi
 
 Corpo: laterais inteiras, base/tampo entre laterais, fundo sobreposto. Divisões novas recuam 20 mm da frente para liberar frentes embutidas. Prateleiras migradas mantêm as folgas antigas, 2 mm totais na largura e recuo traseiro de 10 mm. A migração não as converte às regras novas.
 
-Porta simples: largura/altura livre menos 4 mm. Porta dupla: largura livre menos 4 mm perimetrais e 2 mm centrais, dividida igualmente. Pivôs na borda frontal externa, dobradiças nas extremidades externas. Abertura máxima de 95°.
+Porta simples: largura/altura livre menos 4 mm. Porta dupla: largura livre menos 4 mm perimetrais e 2 mm centrais, dividida em milímetro inteiro com a sobra na última porta da direita. Pivôs na borda frontal externa, dobradiças nas extremidades externas. Abertura máxima de 95°.
 
-Gavetas: altura disponível para frentes é altura livre menos 4 mm e menos 2 mm por encontro. Pesos começam iguais. Alterar uma frente redistribui proporcionalmente o restante. Mínimo de 80 mm por frente. Caixa: largura livre menos 26 mm; profundidade livre menos frente de 18 mm e recuo de 20 mm; altura da frente menos 24 mm. Laterais inteiras; frente/traseira da caixa entre laterais; fundo sobreposto por baixo. Seis peças por gaveta: frente externa, duas laterais, frente interna, traseira e fundo. Curso visual de até 70% da profundidade da caixa.
+Gavetas: altura disponível para frentes é altura livre menos 4 mm e menos 2 mm por encontro. Pesos começam iguais e as alturas saem em milímetro inteiro, com a sobra na frente de cima. Alterar uma frente redistribui proporcionalmente o restante. Mínimo de 80 mm por frente. Caixa: largura livre menos 26 mm; profundidade livre menos frente de 18 mm e recuo de 20 mm; altura da frente menos 24 mm. Laterais inteiras; frente/traseira da caixa entre laterais; fundo sobreposto por baixo. Seis peças por gaveta: frente externa, duas laterais, frente interna, traseira e fundo. Curso visual de até 70% da profundidade da caixa.
 
 ## Compartimentos
 
-Divisão insere painel de 18 mm e cria dois filhos. Eixo X cria divisória vertical; Y cria prateleira horizontal. `gapMm` é espaço livre à esquerda ou abaixo, medido das faces internas. Distribuição e redimensionamento descontam espessuras e preservam proporções do espaço livre, inclusive em cadeias de divisões.
+Divisão insere painel de 18 mm e cria dois filhos. Eixo X cria divisória vertical; Y cria prateleira horizontal. `gapMm` é espaço livre à esquerda ou abaixo, medido das faces internas. Divisão, distribuição e redimensionamento descontam espessuras e fecham em milímetro inteiro, porque lista de corte é requisito de oficina: cada parte recebe o piso do espaço livre dividido pelo número de partes e a sobra fica na última, em cima no eixo Y e à direita no eixo X, inclusive em cadeias de divisões. A proporção guardada no schema é a do vão inteiro resultante.
 
 Limite de 32 compartimentos finais por módulo. Todos os nós precisam de largura e altura livres de pelo menos 100 mm. Uma frente ocupa um compartimento final. Não há portas externas envolvendo gavetas internas. Mesclar exige filhos sem frentes e sem subdivisões; remova-os primeiro.
 
@@ -69,7 +69,7 @@ Histórico/alternativas guardam snapshots completos. Restaurar cursor preserva f
 
 ## Migração e saídas
 
-SQLite usa `VACUUM INTO` antes de operar um banco antigo, produzindo backup consistente inclusive com WAL. O backup não é sobrescrito. Conversão v1/v2 é determinística por revisão, na leitura; próximo salvamento persiste v3. Medidas antigas não são adaptadas a presets. IDs antigos de prateleira continuam resolvíveis. Mensagens e vínculos inequívocos de revisão são preservados.
+SQLite usa `VACUUM INTO` antes de operar um banco antigo, produzindo backup consistente inclusive com WAL. O backup não é sobrescrito. Conversão v1/v2 é determinística por revisão, na leitura; próximo salvamento persiste v3. Medidas antigas não são adaptadas a presets. Vãos herdados mantêm a fração original da migração; divisões, frentes e distribuições feitas depois fecham em milímetro inteiro. IDs antigos de prateleira continuam resolvíveis. Mensagens e vínculos inequívocos de revisão são preservados.
 
 CSV/Cortecloud usam peças fechadas. Painel compartilhado sai uma vez com dois proprietários. Peças internas identificam compartimento e função. C/L seguem o plano local do painel, não sua orientação no ambiente. JSON completo contém composição, conexões, perfil, versão e histórico. Impressão mostra vista superior e tabela.
 

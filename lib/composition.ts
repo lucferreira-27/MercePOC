@@ -84,8 +84,33 @@ export type CellInfo = {
 const mid = z.string().min(1).max(100);
 const material = z.enum(['white', 'oak', 'graphite']);
 export function validationMessage(error: z.ZodError) {
-  const issue = error.issues[0],
-    field = String(issue?.path.at(-1) ?? 'pedido');
+  // União de operações recusa sem dizer o campo: cada ramo vira uma lista de
+  // falhas e o ramo que aceitou o `kind` é o que diz o campo culpado.
+  const leaves: z.core.$ZodIssue[][] = [];
+  const collect = (list: z.core.$ZodIssue[]) => {
+    const union = list.find((i) => i.code === 'invalid_union');
+    if (!union || union.code !== 'invalid_union') {
+      leaves.push(list);
+      return;
+    }
+    for (const branch of union.errors) collect(branch.flat());
+  };
+  collect(error.issues);
+  /** Ruído dos outros ramos: o `kind` deles e as chaves que eles não conhecem. */
+  const noise = (list: z.core.$ZodIssue[]) =>
+    (list.some((i) => i.path.at(-1) === 'kind') ? 2 : 0) +
+    (list.some((i) => i.code === 'unrecognized_keys') ? 1 : 0);
+  const best = [...leaves].sort(
+    (a, b) => noise(a) - noise(b) || a.length - b.length,
+  )[0];
+  const issue = [...best].sort((a, b) => b.path.length - a.path.length)[0];
+  const path = issue?.path ?? [],
+    last = path.at(-1);
+  // O índice de um vetor (position.1) não é nome de campo: vira o eixo.
+  const field =
+    typeof last === 'number' && path.at(-2) === 'position'
+      ? (['x', 'y', 'z'][last] ?? 'position')
+      : String(path.filter((p) => typeof p === 'string').at(-1) ?? 'pedido');
   const labels: Record<string, string> = {
     width: 'Largura: 200 a 1200 mm.',
     height: 'Altura: 200 a 2400 mm.',
@@ -95,8 +120,20 @@ export function validationMessage(error: z.ZodError) {
     ratio:
       'A divisão deve ficar dentro do compartimento, mantendo os vãos livres.',
     rotation: 'Orientações permitidas: 0°, 90°, 180° e 270°.',
+    gap: 'Vão da divisória: pelo menos 100 mm.',
     gapMm: 'O vão livre precisa de pelo menos 100 mm.',
     offset: 'Afastamento permitido: 0 a 5000 mm.',
+    name: 'Nome do módulo: 1 a 80 caracteres.',
+    position: 'Posição entre -20000 e 20000 mm, com Y a partir de 0.',
+    x: 'Posição X entre -20000 e 20000 mm.',
+    y: 'Posição Y entre 0 e 20000 mm.',
+    z: 'Posição Z entre -20000 e 20000 mm.',
+    materialId: 'Acabamento inválido: use branco fosco, carvalho ou grafite.',
+    back: 'Fundo só aceita ligado ou desligado.',
+    preset: 'Preset inválido: use estante, nicho, rack ou gaveteiro.',
+    presets: 'Preset inválido: use estante, nicho, rack ou gaveteiro.',
+    side: 'Posição permitida: à direita, à esquerda ou empilhado acima.',
+    align: 'Alinhamento permitido: frentes ou fundos.',
   };
   return (
     labels[field] ??
@@ -194,6 +231,30 @@ function point(p: Vec, m: Module): Vec {
     m.position[2] - p[0] * Math.sin(a) + p[2] * Math.cos(a),
   ];
 }
+/**
+ * Milímetro inteiro da lista de corte. O marceneiro corta em milímetro cheio,
+ * então 185,33 não existe na oficina: o ruído do ponto flutuante volta a ser
+ * inteiro e a fração real é truncada, deixando a sobra para quem fecha a soma.
+ */
+function wholeMm(value: number): number {
+  const near = Math.round(value);
+  if (Math.abs(value - near) < 1e-6) return near;
+  return Math.floor(value);
+}
+/**
+ * Divide um espaço em partes de milímetro inteiro que somam exatamente o
+ * espaço disponível, na proporção dos pesos. Lista de corte que fecha em mm é
+ * requisito de oficina: três frentes de 185,33 mm não fecham os 556 mm do vão
+ * interno. Cada parte recebe floor(espaço / N) e a última fica com a sobra, de
+ * baixo para cima nas gavetas e à direita nas colunas.
+ */
+function wholeParts(space: number, weights: number[]): number[] {
+  const total = weights.reduce((a, b) => a + b, 0);
+  const parts = weights.map((w) => wholeMm((space * w) / total));
+  const last = parts.length - 1;
+  parts[last] += space - parts.reduce((a, b) => a + b, 0);
+  return parts;
+}
 export function migrateComposition(
   input: legacy.Design | Composition,
 ): Composition {
@@ -254,17 +315,21 @@ export function preset(
   base.root = { id: `${id}:root` };
   if (type === 'shelf') {
     base.name = 'Estante';
-    let node = base.root;
-    const gap = (base.height - 6 * PROFILE.panel) / 5;
+    // Cinco vãos iguais em milímetro inteiro: a sobra fica no vão de cima,
+    // como na última gaveta, porque só milímetro cheio entra na lista de corte.
+    const gaps = wholeParts(base.height - 6 * PROFILE.panel, [1, 1, 1, 1, 1]);
+    let node = base.root,
+      space = base.height - 2 * PROFILE.panel;
     for (let i = 0; i < 4; i++) {
+      const rest = space - PROFILE.panel;
       node.split = {
         id: uid('panel'),
         axis: 'y',
-        ratio:
-          gap / (base.height - 3 * PROFILE.panel - i * (gap + PROFILE.panel)),
+        ratio: gaps[i] / rest,
         children: [{ id: uid('cell') }, { id: uid('cell') }],
       };
       node = node.split.children[1];
+      space = rest - gaps[i];
     }
   } else {
     base.height = 600;
@@ -404,7 +469,14 @@ export function layout(d: Composition) {
         if (c.front)
           throw new Error('Remova a frente antes de dividir o compartimento.');
         const axis = c.split.axis === 'x' ? 0 : 1;
-        const length = (size[axis] - PROFILE.panel) * c.split.ratio;
+        const exact = (size[axis] - PROFILE.panel) * c.split.ratio,
+          near = Math.round(exact);
+        // As divisões novas já nascem em milímetro inteiro (split, move,
+        // distribute e resize calculam o vão cheio), então aqui só cai o ruído
+        // do ponto flutuante: 556 * (185 / 556) sai 184,99999999999997. Fração
+        // herdada de projeto antigo passa intacta, senão a migração de v2
+        // perderia a geometria das prateleiras.
+        const length = Math.abs(exact - near) < 1e-6 ? near : exact;
         const psize: [number, number, number] = [...size];
         psize[axis] = PROFILE.panel;
         const pos: Vec = [...origin];
@@ -649,11 +721,18 @@ export function generateComposition(input: Composition, validate = true) {
     const frontZ = z + dep - PROFILE.front / 2;
     if (f.type === 'single' || f.type === 'double') {
       const count = f.type === 'double' ? 2 : 1;
-      const fw =
-        (w - 2 * PROFILE.reveal - (count - 1) * PROFILE.reveal) / count;
+      // Portas dividem a largura livre em milímetro inteiro: a última da
+      // direita fica com a sobra, como as colunas de uma divisão.
+      const widths = wholeParts(
+        w - PROFILE.reveal * (count + 1),
+        Array(count).fill(1),
+      );
+      let start = x + PROFILE.reveal;
       for (let i = 0; i < count; i++) {
-        const left = count === 2 ? i === 0 : f.hinge === 'left';
-        const cx = x + PROFILE.reveal + fw / 2 + i * (fw + PROFILE.reveal);
+        const fw = widths[i],
+          left = count === 2 ? i === 0 : f.hinge === 'left',
+          cx = start + fw / 2;
+        start += fw + PROFILE.reveal;
         add(
           m,
           `${f.id}:door-${i}`,
@@ -678,12 +757,15 @@ export function generateComposition(input: Composition, validate = true) {
         );
       }
     } else {
-      const sum = f.heights.reduce((a, b) => a + b, 0);
       const available =
         h - 2 * PROFILE.reveal - (f.heights.length - 1) * PROFILE.reveal;
+      // Frentes de gaveta em milímetro inteiro, de baixo para cima: cada uma
+      // recebe floor(espaço / N) e a de cima fecha a conta, então 556 mm viram
+      // 185 + 185 + 186 e não sobram 0,01 mm para o marceneiro.
+      const fronts = wholeParts(available, f.heights);
       let bottom = y + PROFILE.reveal;
       for (let i = 0; i < f.heights.length; i++) {
-        const fh = (available * f.heights[i]) / sum;
+        const fh = fronts[i];
         if (fh < 80)
           throw new Error('Cada frente de gaveta precisa de pelo menos 80 mm.');
         const bw = w - 2 * PROFILE.slideSpace,
@@ -965,7 +1047,10 @@ function resizeCells(node: Cell, oldSize: number[], newSize: number[]) {
     oldLow = (oldSize[axis] - PROFILE.panel) * s.ratio;
   const totalOld = oldSize[axis] - PROFILE.panel - sa - sb,
     totalNew = newSize[axis] - PROFILE.panel - sa - sb;
-  const low = sa + ((oldLow - sa) * totalNew) / totalOld;
+  // O vão livre escalado vira milímetro inteiro: a fração fica no filho de
+  // cima (ou da direita) e a soma dos dois filhos segue exata, sem peça com
+  // dízima depois de redimensionar o módulo.
+  const low = sa + wholeMm(((oldLow - sa) * totalNew) / totalOld);
   s.ratio = low / (newSize[axis] - PROFILE.panel);
   s.children.forEach((child, i) => {
     const prev = [...oldSize],
@@ -1080,15 +1165,22 @@ export function applyModularOp(
       if (c.split || c.front)
         throw new Error('Escolha um compartimento livre, sem frente.');
       const length = info.size[op.axis === 'x' ? 0 : 1] - 18;
+      // A divisão guarda a proporção no schema, mas o vão nasce em milímetro
+      // inteiro: com gapMm, o valor pedido; sem ele, floor(metade) com a sobra
+      // para o filho de cima (eixo Y) ou da direita (eixo X).
+      const low = wholeMm(op.gapMm ?? length / 2);
       c.split = {
         id: `${c.id}:divider`,
         axis: op.axis,
-        ratio: (op.gapMm ?? length / 2) / length,
+        ratio: low / length,
         children: [{ id: `${c.id}:low` }, { id: `${c.id}:high` }],
       };
     } else if (op.kind === 'cell.move') {
       if (!c.split) throw new Error('Selecione uma divisória.');
-      c.split.ratio = op.gapMm / (info.size[c.split.axis === 'x' ? 0 : 1] - 18);
+      // O vão pedido é o tamanho da peça menor: milímetro inteiro na lista de
+      // corte e a outra parte fica com o resto, fechando o compartimento.
+      c.split.ratio =
+        wholeMm(op.gapMm) / (info.size[c.split.axis === 'x' ? 0 : 1] - 18);
     } else if (op.kind === 'cell.merge') {
       if (!c.split) throw new Error('Selecione uma divisão.');
       if (c.split.children.some((v) => v.split || v.front))
@@ -1105,8 +1197,16 @@ export function applyModularOp(
         const a = count(node.split.children[0]),
           b = count(node.split.children[1]),
           index = axis === 'x' ? 0 : 1;
-        const free = (size[index] - (a + b - 1) * PROFILE.panel) / (a + b);
-        const low = a * free + (a - 1) * PROFILE.panel;
+        // Vãos iguais em milímetro inteiro: cada folha recebe floor(espaço / N)
+        // e a última fica com a sobra, então a soma das folhas mais as
+        // divisórias fecha exatamente o compartimento.
+        const parts = wholeParts(
+            size[index] - (a + b - 1) * PROFILE.panel,
+            Array(a + b).fill(1),
+          ),
+          low =
+            parts.slice(0, a).reduce((x, y) => x + y, 0) +
+            (a - 1) * PROFILE.panel;
         node.split.ratio = low / (size[index] - PROFILE.panel);
         node.split.children.forEach((child, i) => {
           const next = [...size];

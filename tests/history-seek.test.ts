@@ -33,3 +33,28 @@ void test('new projects start with a demo walkthrough at the latest revision', (
     raw.revisions.map((_, i) => i + 1),
   );
 });
+
+void test('editar uma versão antiga informa quantas versões foram descartadas', () => {
+  const created = create();
+  const project = get(created.id);
+  revise(
+    project,
+    resizeDesign(project.revisions[project.cursor].params, { width: 1000 }),
+    'Largura',
+  );
+  save(project, 0);
+  const before = get(created.id);
+  seek(before, 0);
+  save(before, before.version);
+  const current = get(created.id);
+  const discarded = revise(
+    current,
+    resizeDesign(current.revisions[current.cursor].params, { width: 900 }),
+    'Edição a partir da versão antiga',
+  );
+  save(current, current.version);
+  // A interface usa este número para dizer o que a edição custou.
+  assert.equal(discarded, 1);
+  assert.equal(current.revisions.length, 2);
+  assert.equal(view(get(created.id)).params.width, 900);
+});

@@ -170,3 +170,10 @@ void test('migration preserves legacy geometry and fork keeps history consistent
   assert.equal(alt.messages.at(-1)?.content.includes('versão 1'), true);
   assert.deepEqual(alt.params, view(get(p.id)).params);
 });
+
+void test('criar projetos não repete o nome padrão', () => {
+  const first = create();
+  const second = create();
+  assert.notEqual(first.name, second.name);
+  assert.match(second.name, /Minha estante/);
+});

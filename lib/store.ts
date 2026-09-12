@@ -17,6 +17,9 @@ import {
   type ShelfOp,
 } from './studio';
 import { canonical, normalize, executeRequest } from './studio';
+import type { ImageRef } from './images';
+import type { ChatReport, TurnOutcome } from './progress';
+import type { Room } from './room';
 export type TurnContext = {
   requestId: string;
   baseRevisionId: string;
@@ -24,11 +27,11 @@ export type TurnContext = {
   referencedPartIds: string[];
 };
 export type TurnResult = {
-  outcome: import('./progress').TurnOutcome;
+  outcome: TurnOutcome;
   resultRevisionId: string;
-  appliedOperations: import('./studio').ShelfOp[];
+  appliedOperations: ShelfOp[];
   changes: string[];
-  attemptedOperations?: import('./studio').ShelfOp[];
+  attemptedOperations?: ShelfOp[];
 };
 export type ClarificationOption = {
   id: string;
@@ -41,15 +44,21 @@ export type Clarification = {
   baseRevisionId: string;
   options: ClarificationOption[];
   /** Intenção original preservada: ops com lacuna + texto do pedido. */
-  pendingOps?: import('./studio').ShelfOp[];
+  pendingOps?: ShelfOp[];
   pendingMessage?: string;
 };
 export type Message = {
   role: 'user' | 'assistant';
   content: string;
   id: string;
-  image?: import('./images').ImageRef;
-  report?: import('./progress').ChatReport;
+  image?: ImageRef;
+  report?: ChatReport;
+  /**
+   * Próximos passos propostos pela IA para este projeto. Ficam na mensagem
+   * para a sugestão sobreviver ao recarregamento e ser sempre a do contexto
+   * mais recente.
+   */
+  suggestions?: string[];
   /** Id imutável da revisão vigente ao salvar a mensagem. */
   revisionId?: string;
   /** Número legado (1-based); pode repetir após branching — só exibição. */
@@ -57,6 +66,10 @@ export type Message = {
   context?: TurnContext;
   result?: TurnResult;
   clarification?: Clarification;
+  /** Resposta a um esclarecimento: liga a mensagem do usuário à pergunta. */
+  clarificationId?: string;
+  /** Turno que falhou antes de aplicar: permite repetir depois de recarregar. */
+  retry?: { message: string; image?: ImageRef };
   error?: string;
 };
 export type Revision = {
@@ -74,6 +87,11 @@ export type Project = {
   revisions: Revision[];
   messages: Message[];
   origin?: { fromId: string; revision: number; at: string };
+  /**
+   * Ambiente do móvel. Ausente em projeto antigo: sem ambiente informado não
+   * há veredito de encaixe. Fora das revisões porque é dado do lugar.
+   */
+  room?: Room;
 };
 let db: DatabaseSync;
 function database() {
@@ -106,14 +124,38 @@ export function list() {
       .all() as { body: string; updated: string }[]
   ).map((r) => {
     const p = JSON.parse(r.body) as Project;
+    const design = p.revisions[p.cursor]?.params;
+    // Projeto legado (schemaVersion 2) não tem módulos: é uma estante só.
+    const modules = design
+      ? Array.isArray(design.modules)
+        ? design.modules.length
+        : 1
+      : undefined;
     return {
       id: p.id,
       name: p.name,
       updated: r.updated,
       revisions: p.revisions.length,
       version: p.cursor + 1,
+      // Sem isto o seletor mostra centenas de "Minha estante" idênticas.
+      modules,
     };
   });
+}
+/** "Minha estante" já existe? Então "Minha estante 2", 3…; nomes iguais confundem. */
+export function uniqueName(base = 'Minha estante') {
+  const taken = new Set(
+    (
+      database().prepare("SELECT json_extract(body, '$.name') AS name FROM projects").all() as {
+        name: string;
+      }[]
+    ).map((r) => r.name),
+  );
+  if (!taken.has(base)) return base;
+  for (let i = 2; ; i++) {
+    const candidate = `${base} ${i}`;
+    if (!taken.has(candidate)) return candidate;
+  }
 }
 /** Apaga o projeto e o histórico dele. Não há lixeira: a ação é definitiva. */
 export function remove(id: string) {
@@ -150,7 +192,7 @@ export function get(id: string) {
 export function create() {
   const p: Project = {
     id: randomUUID(),
-    name: 'Minha estante',
+    name: uniqueName(),
     version: 0,
     cursor: 0,
     revisions: [
@@ -268,7 +310,7 @@ export function createDemo() {
   }
   const p: Project = {
     id: randomUUID(),
-    name: 'Minha estante',
+    name: uniqueName(),
     version: 0,
     cursor: revisions.length - 1,
     revisions,
@@ -299,8 +341,10 @@ export function view(p: Project) {
     ...generateDesign(p.revisions[p.cursor].params),
   };
 }
+/** Devolve quantas revisões futuras foram descartadas (0 quando nada se perde). */
 export function revise(p: Project, params: Design, label: string) {
   generateDesign(params);
+  const discarded = Math.max(0, p.revisions.length - p.cursor - 1);
   p.revisions = p.revisions.slice(0, p.cursor + 1);
   // Dois rótulos iguais na lista de versões são indistinguíveis ("Adicionar
   // módulo" duas vezes). O sufixo mantém cada linha identificável.
@@ -316,6 +360,7 @@ export function revise(p: Project, params: Design, label: string) {
     at: new Date().toISOString(),
   });
   p.cursor = p.revisions.length - 1;
+  return discarded;
 }
 export function seek(p: Project, cursor: number) {
   if (!Number.isInteger(cursor) || cursor < 0 || cursor >= p.revisions.length)
@@ -350,6 +395,8 @@ export function fork(id: string, cursor: number, name: string) {
       revision: base.number,
       at: new Date().toISOString(),
     },
+    // A alternativa é do mesmo lugar: o ambiente informado continua valendo.
+    ...(src.room ? { room: src.room } : {}),
   };
   p.messages.push({
     id: randomUUID(),
@@ -366,9 +413,8 @@ export function fork(id: string, cursor: number, name: string) {
 export function applyShelfOp(p: Project, op: ShelfOp, label: string) {
   const before = p.revisions[p.cursor].params;
   const after = applyOp(before, op);
-  if (JSON.stringify(after) === JSON.stringify(before)) return true;
-  revise(p, after, label);
-  return false;
+  if (JSON.stringify(after) === JSON.stringify(before)) return { noop: true as const, discarded: 0 };
+  return { noop: false as const, discarded: revise(p, after, label) };
 }
 function encode(p: Project) {
   return JSON.stringify({
@@ -386,7 +432,6 @@ export function applyRequest(p: Project, ops: ShelfOp[], label: string) {
   if (!result.ok) return result;
   const current = result.design;
   if (JSON.stringify(current) === JSON.stringify(before))
-    return { ok: true as const, noop: true as const, design: current };
-  revise(p, current, label);
-  return { ok: true as const, noop: false as const, design: current };
+    return { ok: true as const, noop: true as const, design: current, discarded: 0 };
+  return { ok: true as const, noop: false as const, design: current, discarded: revise(p, current, label) };
 }

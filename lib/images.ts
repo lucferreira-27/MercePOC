@@ -22,7 +22,13 @@ function path(id: string) { return join(directory(), z.uuid().parse(id) + '.webp
 export async function saveImage(bytes: Buffer, name: string): Promise<ImageRef> {
   if (!bytes.length || bytes.length > MAX_IMAGE_BYTES) throw new Error('A imagem deve ter até 10 MB.');
   const source = sharp(bytes, { limitInputPixels: 25000000 });
-  const metadata = await source.metadata();
+  let metadata: { format?: string; pages?: number };
+  try {
+    metadata = await source.metadata();
+  } catch {
+    // O sharp devolve erro técnico em inglês para PDF e outros formatos.
+    throw new Error('Use uma imagem estática JPG, PNG ou WebP.');
+  }
   if (!['jpeg', 'png', 'webp'].includes(metadata.format || '') || (metadata.pages || 1) > 1)
     throw new Error('Use uma imagem estática JPG, PNG ou WebP.');
   const output = await source.rotate().resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true }).webp({ quality: 85 }).toBuffer();
