@@ -1,0 +1,265 @@
+{
+ "id": "foto-01",
+ "at": "2026-09-12T08:49:55.456Z",
+ "decision": {
+  "action": "update",
+  "approach": "Montagem em canto de 90° estimada pela foto: fileira esquerda (armário com gavetas + coluna) e, virada 90°, a fileira do nicho central com colunas de prateleiras nas pontas.",
+  "message": "Copiei o canto em 90°: fileira esquerda com armário de gavetas e coluna aberta, e a parede virada com a coluna do canto, o nicho central alto e aberto (o “nicho no meio”) e duas colunas de prateleiras. Usei a frente de gaveta (~200 mm) e o pé-direito (~2600 mm) como régua, com erro esperado de ±15%; a medida que fecharia tudo é a largura de cada parede (a fileira saiu com ~1350 mm numa e ~2450 mm na outra, 2400 mm de altura). Ficaram de fora as luminárias, livros, o barco decorativo, os rodapés e molduras do teto, além do rebaixo curvo do nicho, que virou vão reto e aberto.",
+  "suggestions": [
+   "Divida o nicho central em duas alturas",
+   "Coloque portas no alto do armário esquerdo",
+   "Reduza a profundidade das colunas para 350 mm"
+  ],
+  "ops": [
+   {
+    "kind": "remove",
+    "ids": [
+     "sh-1",
+     "sh-2",
+     "sh-3",
+     "sh-4"
+    ]
+   },
+   {
+    "kind": "module.edit",
+    "id": "module-1",
+    "name": "Armário esquerdo",
+    "width": 900,
+    "height": 2400,
+    "depth": 600,
+    "materialId": "oak",
+    "back": true
+   },
+   {
+    "kind": "cell.split",
+    "id": "cell-root",
+    "axis": "y",
+    "gapMm": 800
+   },
+   {
+    "kind": "cell.split",
+    "id": "cell-root:high",
+    "axis": "y",
+    "gapMm": 780
+   },
+   {
+    "kind": "front.set",
+    "id": "cell-root:low",
+    "type": "drawers",
+    "count": 4,
+    "materialId": "oak"
+   },
+   {
+    "kind": "module.add",
+    "id": "module-2",
+    "preset": "niche",
+    "name": "Coluna da esquerda"
+   },
+   {
+    "kind": "module.edit",
+    "id": "module-2",
+    "name": "Coluna da esquerda",
+    "width": 450,
+    "height": 2400,
+    "depth": 600,
+    "materialId": "oak",
+    "back": true
+   },
+   {
+    "kind": "cell.split",
+    "id": "module-2:root",
+    "axis": "y",
+    "gapMm": 600
+   },
+   {
+    "kind": "cell.split",
+    "id": "module-2:root:high",
+    "axis": "y",
+    "gapMm": 600
+   },
+   {
+    "kind": "cell.split",
+    "id": "module-2:root:high:high",
+    "axis": "y",
+    "gapMm": 600
+   },
+   {
+    "kind": "connect",
+    "parent": "module-1",
+    "child": "module-2",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   },
+   {
+    "kind": "module.add",
+    "id": "module-3",
+    "preset": "niche",
+    "name": "Coluna do canto"
+   },
+   {
+    "kind": "module.edit",
+    "id": "module-3",
+    "name": "Coluna do canto",
+    "width": 400,
+    "height": 2400,
+    "depth": 400,
+    "materialId": "oak",
+    "back": true
+   },
+   {
+    "kind": "cell.split",
+    "id": "module-3:root",
+    "axis": "y",
+    "gapMm": 600
+   },
+   {
+    "kind": "cell.split",
+    "id": "module-3:root:high",
+    "axis": "y",
+    "gapMm": 600
+   },
+   {
+    "kind": "cell.split",
+    "id": "module-3:root:high:high",
+    "axis": "y",
+    "gapMm": 600
+   },
+   {
+    "kind": "connect",
+    "parent": "module-2",
+    "child": "module-3",
+    "side": "right",
+    "shared": false,
+    "align": "front",
+    "offset": 0
+   },
+   {
+    "kind": "module.add",
+    "id": "module-4",
+    "preset": "niche",
+    "name": "Nicho central"
+   },
+   {
+    "kind": "module.edit",
+    "id": "module-4",
+    "name": "Nicho central",
+    "width": 1100,
+    "height": 2400,
+    "depth": 400,
+    "materialId": "oak",
+    "back": true
+   },
+   {
+    "kind": "connect",
+    "parent": "module-3",
+    "child": "module-4",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   },
+   {
+    "kind": "module.add",
+    "id": "module-5",
+    "preset": "niche",
+    "name": "Coluna de livros"
+   },
+   {
+    "kind": "module.edit",
+    "id": "module-5",
+    "name": "Coluna de livros",
+    "width": 550,
+    "height": 2400,
+    "depth": 400,
+    "materialId": "oak",
+    "back": true
+   },
+   {
+    "kind": "cell.split",
+    "id": "module-5:root",
+    "axis": "y",
+    "gapMm": 600
+   },
+   {
+    "kind": "cell.split",
+    "id": "module-5:root:high",
+    "axis": "y",
+    "gapMm": 600
+   },
+   {
+    "kind": "cell.split",
+    "id": "module-5:root:high:high",
+    "axis": "y",
+    "gapMm": 600
+   },
+   {
+    "kind": "connect",
+    "parent": "module-4",
+    "child": "module-5",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   },
+   {
+    "kind": "module.add",
+    "id": "module-6",
+    "preset": "niche",
+    "name": "Coluna final"
+   },
+   {
+    "kind": "module.edit",
+    "id": "module-6",
+    "name": "Coluna final",
+    "width": 400,
+    "height": 2400,
+    "depth": 400,
+    "materialId": "oak",
+    "back": true
+   },
+   {
+    "kind": "cell.split",
+    "id": "module-6:root",
+    "axis": "y",
+    "gapMm": 600
+   },
+   {
+    "kind": "cell.split",
+    "id": "module-6:root:high",
+    "axis": "y",
+    "gapMm": 600
+   },
+   {
+    "kind": "cell.split",
+    "id": "module-6:root:high:high",
+    "axis": "y",
+    "gapMm": 600
+   },
+   {
+    "kind": "connect",
+    "parent": "module-5",
+    "child": "module-6",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   }
+  ],
+  "select": [
+   "module-4"
+  ],
+  "refs": [
+   "module-1",
+   "module-2",
+   "module-3",
+   "module-4",
+   "module-5",
+   "module-6"
+  ]
+ },
+ "latencyMs": 40698,
+ "calls": 1,
+ "retries": 0
+}

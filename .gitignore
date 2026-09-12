@@ -49,3 +49,5 @@ next-env.d.ts
 
 # benchmark: resultados são artefatos, as fixtures e o corpus ficam versionados
 /bench/results/
+# fotos de referência dos casos de foto: ficam locais, como as fixtures de imagem
+/bench/images/

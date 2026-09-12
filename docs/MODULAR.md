@@ -47,6 +47,17 @@ Separar recompõe dois painéis e reposiciona o filho com seus descendentes para
 
 O L usa módulos ortogonais sem compartilhamento. O posicionamento considera a extensão do módulo girado e o alinhamento pedido. Não é criado canto especial. Módulos elevados recebem aviso de revisão de apoio/fixação.
 
+## Layout a partir de foto
+
+Pedido de cópia de layout a partir de uma imagem não é recusado por falta de medida: a IA estima. O procedimento está no prompt (bloco `PHOTO_LAYOUT_RULES`, em `lib/gateway.ts`) e só entra no turno quando há imagem de referência entre as últimas mensagens; sem imagem, vale a regra antiga (não inventar dimensão de foto, perguntar ou preservar).
+
+1. **Escala por âncora.** Objetos de tamanho conhecido na foto servem de régua (frente de gaveta ~200 mm, livro ~240 mm, cabide/ombro ~450 mm, cadeira ~450 mm, pé-direito ~2600 mm, rodapé ~150 mm, porta 2100x800 mm, cama de solteiro 1880x1380 mm). As proporções entre larguras e entre alturas são preservadas.
+2. **Medidas no contrato.** Arredondamento em 10 mm, módulo dentro de 200..1200 de largura, 200..2400 de altura e 200..800 de profundidade. Vão maior que 1200 mm vira dois ou três módulos ligados com lateral compartilhada.
+3. **Ordem de montagem.** Um módulo por vez: `module.add` → `module.edit` (nome e medidas) → `connect`. Vários `module.add` seguidos de `module.edit` são recusados como módulos sobrepostos, porque o módulo novo nasce ao lado da composição e cresce até encostar. `shared:true` só entre módulos de mesma altura, profundidade, orientação e acabamento, com afastamento zero; profundidade diferente exige `shared:false` (fica a divisória aparente). Módulo girado entra só na ponta da fileira. Todas as `cell.split` vêm antes de qualquer `front.set`, e `preset:"shelf"` já chega dividido (quem vai definir as divisões usa `preset:"niche"`).
+4. **Erro declarado.** A resposta diz a régua usada, o erro esperado (±10 a 20%) e a única medida que fecharia o desenho (largura da parede ou pé-direito). O que a foto mostra e o contrato não tem (cabideiro, curva, inclinado, porta de correr, tampo avulso, canto com interior contínuo) é nomeado no texto, não omitido.
+
+Medição: grupo `foto` do benchmark (`bench/README.md`) e `work/qa/verify-foto.mjs` no navegador, com a foto anexada no compositor.
+
 ## Colisões e animação
 
 Volumes dos módulos e painéis orientados são verificados fechados; contato sem interpenetração é permitido. Sobreposição declarada de módulos compartilhados é permitida; as peças finais continuam verificadas.

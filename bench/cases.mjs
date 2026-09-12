@@ -31,9 +31,15 @@ export const groups = {
   navegacao: 'Desfazer, refazer e voltar versão',
   tipos: 'Tipos de móvel que o produto declara não suportar',
   sugestoes: 'Próximos passos propostos pela IA para o chip de sugestão',
+  foto: 'Foto de referência: estimar a escala e montar o layout, sem recusar',
 };
 
 const modulos = (design) => design.modules.length;
+/** Vãos (folhas ou nós com frente) por módulo, para achar coluna de nichos. */
+const vaosDoModulo = (design, helpers, id) =>
+  helpers.cells.filter((c) => c.moduleId === id).length;
+const vaoAltoAberto = (helpers, minimo) =>
+  helpers.cells.some((c) => !c.node.front && c.size[1] >= minimo);
 const conexoes = (design) => design.connections.length;
 const compartilhadas = (design) => design.connections.filter((c) => c.shared).length;
 const modulo = (design, id) => design.modules.find((m) => m.id === id);
@@ -694,7 +700,61 @@ export const cases = [
     },
     learned: 'Cinco de seis personas pediram preço; a sugestão não pode abrir uma porta que o produto não atende.',
   },
+
+  // ---------------------------------------------------------------------- foto
+  {
+    id: 'foto-01',
+    group: 'foto',
+    image: 'bench/images/armario-canto.webp',
+    prompt: 'Copia o layout dessa foto: é um armário de canto com nicho no meio.',
+    expect: {
+      action: ['update'],
+      applied: true,
+      design: (design, helpers) => {
+        // O que a foto exige: uma fileira de módulos (não um móvel solto), com
+        // o nicho alto e aberto, coluna de vãos pequenos e gavetas.
+        if (design.modules.length < 4) return `layout raso: ${design.modules.length} módulo(s)`;
+        if (design.width < 2400) return `parede curta demais para a fileira da foto: ${design.width} mm`;
+        if (design.modules.some((m) => m.width > 1200)) return 'módulo acima do limite de 1200 mm';
+        if (!vaoAltoAberto(helpers, 1200)) return 'sem vão alto e aberto (o nicho da foto)';
+        if (!helpers.cells.some((c) => c.node.front?.type === 'drawers'))
+          return 'sem gavetas, e a foto tem três';
+        if (!design.modules.some((m) => vaosDoModulo(design, helpers, m.id) >= 4))
+          return 'sem coluna de vãos pequenos, e a foto tem duas';
+        if (design.connections.filter((c) => c.shared).length < 2)
+          return 'módulos soltos: a fileira precisa de laterais compartilhadas';
+        return true;
+      },
+      content: {
+        // O pedido do dono: estimar e dizer o erro, em vez de recusar.
+        mustMatch: [/(estimat|aproximad|régua|margem|erro|±|\+\/-)/i],
+        mustNotMatch: [/(não consigo medir|não posso medir|sem uma referência real|não é possível medir)/i],
+      },
+    },
+    learned:
+      'Antes o prompt mandava pedir as medidas que faltavam e o modelo recusava copiar layouts de foto. Medido com perguntas de controle, ele vê a imagem e acerta; o que faltava era o procedimento de escala e a ordem da montagem (um módulo por vez, medidas antes do próximo add, frentes por último).',
+  },
+  {
+    id: 'foto-02',
+    group: 'foto',
+    image: 'bench/images/armario-canto.webp',
+    prompt: 'Copia o layout da foto, mas a minha parede tem 3600 mm.',
+    expect: {
+      action: ['update'],
+      applied: true,
+      design: (design) => {
+        if (design.modules.length < 4) return `layout raso: ${design.modules.length} módulo(s)`;
+        if (design.width < 3200 || design.width > 4000)
+          return `não usou a parede informada: ${design.width} mm para 3600 mm`;
+        return true;
+      },
+      content: { mustNotMatch: [/(não consigo medir|não posso medir|não é possível medir)/i] },
+    },
+    learned:
+      'Duas medidas na mesma frase (layout da foto + parede real): a parede manda na escala e a foto nas proporções.',
+  },
 ];
+
 
 /** Casos que só rodam com modelo (os demais aceitam fixture gravada). */
 export const requiresModel = new Set(['con-01', 'con-02', 'con-03', 'rec-01', 'rec-02', 'rec-03']);

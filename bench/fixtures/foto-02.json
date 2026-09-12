@@ -1,0 +1,148 @@
+{
+ "id": "foto-02",
+ "at": "2026-09-12T08:50:45.678Z",
+ "decision": {
+  "action": "update",
+  "approach": "Fileira reta de 4 corpos somando 3600 mm (800 + 1100 + 800 + 900), todos com 2400 mm de altura e 400 mm de profundidade, com gavetas na coluna da esquerda, vão central alto e nichos abertos à direita.",
+  "message": "Usei a frente de gaveta (~200 mm) e a lombada de livro (~240 mm) como régua: a fileira fecha em 800 + 1100 + 800 + 900 = 3600 mm de largura, com 2400 mm de altura, erro esperado de ±10 a 20%. O cabideiro e o canto de 90° da parede perpendicular ficaram de fora, e a única medida que fecharia tudo é a altura do vão central (assumi 1500 mm) — se souber a altura do teto ou do rodapé, ajusto.",
+  "suggestions": [
+   "Coloque duas portas no vão central alto",
+   "Divida o nicho direito em três alturas",
+   "Suba a altura do vão central para 1700 mm"
+  ],
+  "ops": [
+   {
+    "kind": "module.edit",
+    "id": "module-1",
+    "name": "Estante esquerda",
+    "width": 800,
+    "height": 2400,
+    "depth": 400,
+    "materialId": "oak",
+    "back": true
+   },
+   {
+    "kind": "front.set",
+    "id": "cell-legacy-0",
+    "type": "drawers",
+    "count": 4,
+    "materialId": "oak"
+   },
+   {
+    "kind": "module.add",
+    "id": "m2",
+    "preset": "niche",
+    "name": "Vão central"
+   },
+   {
+    "kind": "module.edit",
+    "id": "m2",
+    "name": "Vão central",
+    "width": 1100,
+    "height": 2400,
+    "depth": 400,
+    "materialId": "oak",
+    "back": true
+   },
+   {
+    "kind": "connect",
+    "parent": "module-1",
+    "child": "m2",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   },
+   {
+    "kind": "cell.split",
+    "id": "m2:root",
+    "axis": "y",
+    "gapMm": 1500
+   },
+   {
+    "kind": "cell.split",
+    "id": "m2:root:high",
+    "axis": "y",
+    "gapMm": 400
+   },
+   {
+    "kind": "module.add",
+    "id": "m3",
+    "preset": "shelf",
+    "name": "Estante direita"
+   },
+   {
+    "kind": "module.edit",
+    "id": "m3",
+    "name": "Estante direita",
+    "width": 800,
+    "height": 2400,
+    "depth": 400,
+    "materialId": "oak",
+    "back": true
+   },
+   {
+    "kind": "connect",
+    "parent": "m2",
+    "child": "m3",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   },
+   {
+    "kind": "module.add",
+    "id": "m4",
+    "preset": "niche",
+    "name": "Nichos direitos"
+   },
+   {
+    "kind": "module.edit",
+    "id": "m4",
+    "name": "Nichos direitos",
+    "width": 900,
+    "height": 2400,
+    "depth": 400,
+    "materialId": "oak",
+    "back": true
+   },
+   {
+    "kind": "connect",
+    "parent": "m3",
+    "child": "m4",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   },
+   {
+    "kind": "cell.split",
+    "id": "m4:root",
+    "axis": "y",
+    "gapMm": 700
+   },
+   {
+    "kind": "cell.split",
+    "id": "m4:root:high",
+    "axis": "y",
+    "gapMm": 800
+   }
+  ],
+  "select": [
+   "module-1",
+   "m2",
+   "m3",
+   "m4"
+  ],
+  "refs": [
+   "module-1",
+   "cell-legacy-0",
+   "m2",
+   "m3",
+   "m4"
+  ]
+ },
+ "latencyMs": 49772,
+ "calls": 1,
+ "retries": 0
+}

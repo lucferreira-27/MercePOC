@@ -13,15 +13,20 @@
  *   npm run bench -- --offline             # roda sem rede, contra as fixtures
  *   npm run bench -- --out bench/results/depois.json
  *   npm run bench -- --compare bench/results/antes.json
+ *
+ * Casos com `image` (foto de referência) usam o arquivo indicado no caso. A
+ * foto não é versionada: sem o arquivo o caso é pulado, com o motivo impresso,
+ * em vez de virar falha por falta de insumo.
  */
 import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 
 // O banco do benchmark é temporário: a base real nunca é tocada.
 process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-bench-'));
 
 const { applyRequest, create, get, revise, save } = await import('../lib/store.ts');
+const { saveImage } = await import('../lib/images.ts');
 const { interpretStream } = await import('../lib/gateway.ts');
 const { executeRequest, generateDesign, entityIds } = await import('../lib/studio.ts');
 const { cases, groups } = await import('./cases.mjs');
@@ -206,11 +211,18 @@ function evaluate(benchCase, info, helpers) {
 }
 
 const results = [];
+const skipped = [];
 let stopped = false;
 for (const benchCase of selected) {
   const fixturePath = join(fixtureDir, `${benchCase.id}.json`);
   if (onlyMissing && existsSync(fixturePath)) {
     console.log(`pulado ${benchCase.id} (fixture já gravada)`);
+    continue;
+  }
+  const imagePath = benchCase.image ? resolve(benchCase.image) : '';
+  if (imagePath && !existsSync(imagePath)) {
+    console.log(`pulado ${benchCase.id} (sem a foto ${benchCase.image}; coloque o arquivo para rodar)`);
+    skipped.push({ id: benchCase.id, reason: `foto ausente: ${benchCase.image}` });
     continue;
   }
   for (let run = 1; run <= repeat && !stopped; run++) {
@@ -243,7 +255,20 @@ for (const benchCase of selected) {
       const revision = fresh.revisions[fresh.cursor];
       const before = revision.params;
       const selection = benchCase.setup?.selected ?? [];
-      const messages = [{ id: 'bench-user', role: 'user', content: benchCase.prompt }];
+      // A foto entra como o app manda: salva no diretório de dados e
+      // referenciada na mensagem, para o prompt receber o mesmo bloco de
+      // estimativa calibrada que um pedido real recebe.
+      const image = imagePath
+        ? await saveImage(readFileSync(imagePath), basename(imagePath))
+        : null;
+      const messages = [
+        {
+          id: 'bench-user',
+          role: 'user',
+          content: benchCase.prompt,
+          ...(image ? { image } : {}),
+        },
+      ];
       const context = {
         requestId: `bench-${benchCase.id}-${run}`,
         baseRevisionId: revision.id,
@@ -407,6 +432,7 @@ const summary = {
   offline,
   fast,
   cases: results.length,
+  skipped,
   passed: results.filter((r) => r.ok).length,
   passRate: results.length ? results.filter((r) => r.ok).length / results.length : 0,
   latencyMs: stats(results.map((r) => r.latencyMs)),
@@ -432,6 +458,8 @@ console.log(
 );
 for (const [name, g] of Object.entries(summary.groups))
   console.log(`  ${name.padEnd(14)} ${g.ok}/${g.total}  latência mediana ${g.latency.median} ms${g.retries ? `  correções ${g.retries}` : ''}`);
+if (skipped.length)
+  console.log(`  pulados: ${skipped.map((s) => `${s.id} (${s.reason})`).join(', ')}`);
 if (summary.failures.length) {
   console.log('\n=== falhas (o que aprender com elas) ===');
   for (const f of summary.failures) console.log(`- ${f.id}: ${f.errors.join(' | ')}`);

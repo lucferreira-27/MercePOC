@@ -1162,7 +1162,13 @@ export function applyModularOp(
     const { c } = cellBy(d, op.id);
     const info = layout(d).cells.find((v) => v.id === c.id)!;
     if (op.kind === 'cell.split') {
-      if (c.split || c.front)
+      // Duas causas diferentes, dois conselhos diferentes: a divisão de um nó
+      // que já tem split falhava dizendo "sem frente", que não era o caso.
+      if (c.split)
+        throw new Error(
+          'Este compartimento já está dividido: use cell.merge para voltar ao vão único antes de dividir de novo.',
+        );
+      if (c.front)
         throw new Error('Escolha um compartimento livre, sem frente.');
       const length = info.size[op.axis === 'x' ? 0 : 1] - 18;
       // A divisão guarda a proporção no schema, mas o vão nasce em milímetro

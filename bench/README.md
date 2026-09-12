@@ -25,6 +25,8 @@ npm run bench -- --compare bench/results/baseline.json
 
 O banco usado é temporário (`MERCE_DATA_DIR` em pasta do sistema): a base real de projetos nunca é tocada. A chave do provedor vem do `.env` da raiz, como no app.
 
+Casos com foto (`image` no caso, grupo `foto`) leem o arquivo indicado, salvam a imagem no diretório temporário e mandam o mesmo pedido que o app manda, com imagem. A foto **não** é versionada: ponha o arquivo em `bench/images/` (ignorado no git) para rodar; sem ele o caso é pulado com o motivo impresso, em vez de virar falha por falta de insumo.
+
 Saídas: `bench/results/*.json` (ignorados no git) e `bench/fixtures/*.json` (versionados, uma decisão do modelo por caso, gravada com `--record`).
 
 ## O que cada medida significa
@@ -48,6 +50,7 @@ Em `bench/cases.mjs`, um objeto com `id`, `group`, `prompt`, `setup` (operaçõe
 - `design(design, helpers, info)`: devolve `true` ou uma frase de erro. `helpers` traz `parts`, `cells`, `before`, `content`; `info` traz `action`, `content`, `options`, `deadOptions`.
 - `content`: `mustMatch` e `mustNotMatch` (regex na resposta).
 - `clarify`: mínimos do cartão (`minOptions`, `aliveOptions`).
+- `image`: caminho da foto de referência do caso (opcional). Sem o arquivo, o caso é pulado.
 
 Regra de ouro: a expectativa tem de ser **honesta**. Um caso que exige `undo` num projeto com uma única revisão reprova uma resposta correta. Se o modelo erra e a expectativa está certa, o caso fica como está e vira item de melhoria de prompt ou de harness.
 
@@ -64,9 +67,10 @@ A primeira execução completa (38 casos, 1 chamada por caso, mediana 5,1 s) deu
 | **Referência a peça que mudou ou sumiu** | `ref-01` acertou o esclarecimento, mas foi o caso mais lento (29 a 48 s) | O modelo pensa muito aqui. Vale um atalho no harness: quando o id citado não existe, perguntar direto com a lista de alvos vivos em vez de gastar uma passada inteira |
 | **Latência da cauda** | `ref-01` 29 a 48 s; `mon-05`, `lim-04` e `div-04` entre 11 e 15 s; o resto abaixo de 8 s | Latência do benchmark é por turno curto: mediana 5 s aqui contra 15,7 s nas sessões com usuários reais (pedidos longos, vários módulos, correções). A cauda vem de raciocínio longo em lotes complexos, não de rede |
 | **Escopo respeitado** | `rec-01` a `rec-03` (preço, plano de corte, ferragens) responderam sem inventar número em 2,6 a 4,6 s | Classe saudável; manter no corpus como regressão, porque é o tipo de resposta que engana o usuário quando piora |
+| **Layout a partir de foto** | Primeiras tentativas do grupo `foto`: a IA recusava ("não consigo medir a foto"), depois montava o lote em ordem inválida (quatro `module.add` seguidos de `module.edit`, recusado como módulos sobrepostos) e usava `preset:"shelf"` para depois tentar dividir a raiz, que já vem dividida | Medido com perguntas de controle (quantas gavetas, o que está no vão de baixo, quantas colunas), o modelo **vê** a imagem e acertou as três: o que faltava era procedimento. O prompt ganhou o bloco de escala (âncora conhecida, proporção preservada, erro declarado) e as regras do motor que só apareceram montando o layout na mão: um módulo por vez (`add` → `edit` → `connect`), `shared:true` só com altura/profundidade/orientação/acabamento iguais, canto girado só na ponta da fileira, todas as `cell.split` antes de qualquer `front.set`, e `preset:"niche"` para quem vai definir as divisões. Custo medido: 40 a 170 s por cópia (turno longo de propósito: um layout inteiro em uma chamada), contra 5 s de um turno curto |
 | **Chip de sugestão fora do contexto** | grupo `sugestoes` (3 casos): no prompt atual a IA devolve 3 próximos passos por turno, todos citando o que acabou de mudar; no caso de preço ela recusou e sugeriu só o que o produto faz | Este grupo existe para o chip: ele deixou de ser lista fixa e passou a vir da IA. Se a sugestão citar id interno, repetir a resposta ou prometer recurso fora do escopo, o caso reprova aqui, não na conversa do usuário |
 
-O que o benchmark **não** mede: qualidade do texto além das regex, aparência da interface, o cartão de esclarecimento clicando de verdade e o mundo real (paredes, preço, oficina). Essas partes continuam cobertas pela avaliação com personas em navegador real (`work/qa2/`), que é onde os defeitos de fluxo apareceram. O chip clicável, o cartão com as duas respostas sugeridas e o roteiro de etapas têm verificação própria em navegador real: `work/qa/verify-chat-ui.mjs`.
+O que o benchmark **não** mede: qualidade do texto além das regex, aparência da interface, o cartão de esclarecimento clicando de verdade e o mundo real (paredes, preço, oficina). No grupo `foto` ele também não julga a fidelidade da cópia à imagem (isso é olho humano): mede que a fileira foi montada — vários módulos ligados, vão alto e aberto, coluna de vãos, gavetas — e que a resposta declara a régua, o erro e o que ficou de fora. O fluxo real com a foto anexada no compositor tem verificação própria: `work/qa/verify-foto.mjs`. Essas partes continuam cobertas pela avaliação com personas em navegador real (`work/qa2/`), que é onde os defeitos de fluxo apareceram. O chip clicável, o cartão com as duas respostas sugeridas e o roteiro de etapas têm verificação própria em navegador real: `work/qa/verify-chat-ui.mjs`.
 
 <!-- catalogo -->
 <!-- gerado por bench/doc.mjs: não edite à mão -->
@@ -179,4 +183,11 @@ O que o benchmark **não** mede: qualidade do texto além das regex, aparência 
 | `sug-02` | Qual é a altura total do projeto? | ação answer ou update ou clarify | Pergunta informativa também abre caminho para o próximo pedido sem sugerir algo fora do escopo. |
 | `sug-03` | Quanto custa para fazer este armário? | ação answer ou clarify ou update | Cinco de seis personas pediram preço; a sugestão não pode abrir uma porta que o produto não atende. |
 
-Total: 43 casos em 13 grupos.
+### foto · Foto de referência: estimar a escala e montar o layout, sem recusar
+
+| caso | pedido | expectativa | o que já aprendemos |
+|---|---|---|---|
+| `foto-01` | Copia o layout dessa foto: é um armário de canto com nicho no meio. | ação update; muda o projeto; geometria conferida; resposta cita /(estimat|aproximad|régua|margem|erro|±|\+\/-)/i; resposta não traz /(não consigo medir|não posso medir|sem uma referência real|não é possível medir)/i | Antes o prompt mandava pedir as medidas que faltavam e o modelo recusava copiar layouts de foto. Medido com perguntas de controle, ele vê a imagem e acerta; o que faltava era o procedimento de escala e a ordem da montagem (um módulo por vez, medidas antes do próximo add, frentes por último). |
+| `foto-02` | Copia o layout da foto, mas a minha parede tem 3600 mm. | ação update; muda o projeto; geometria conferida; resposta não traz /(não consigo medir|não posso medir|não é possível medir)/i | Duas medidas na mesma frase (layout da foto + parede real): a parede manda na escala e a foto nas proporções. |
+
+Total: 45 casos em 14 grupos.
