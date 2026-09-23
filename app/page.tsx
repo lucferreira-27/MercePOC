@@ -27,6 +27,9 @@ import {
   Undo2,
   X,
   Zap,
+  Scan,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import { useProjectTools } from '@/hooks/use-project-tools';
 import { Button } from '@/components/ui/button';
@@ -49,7 +52,7 @@ import type { Project, Message, Clarification } from '@/lib/store';
 import { ModularEditor } from '@/components/modular-editor';
 import { ProjectPicker, type ProjectSummary } from '@/components/project-picker';
 import { entityIds, canonical, selectedPartIds } from '@/lib/studio';
-import { openingLimit, openingPose, type ModularPart } from '@/lib/composition';
+import { generateComposition, openingLimit, openingPose, type ModularPart } from '@/lib/composition';
 import {
   emptyRoom,
   fitReport,
@@ -699,6 +702,8 @@ export default function Home() {
     }
   }
   const visualParams = p?.revisions[historyPreview ?? p.cursor].params;
+  const visualBounds = useMemo(() => visualParams ? generateComposition(visualParams).bounds : null, [visualParams]);
+  const visualSize = visualBounds ? [0, 1, 2].map(i => visualBounds.max[i] - visualBounds.min[i]) : null;
   /**
    * Veredito de encaixe do ambiente, calculado uma vez por render: alimenta a
    * seção Ambiente e o aviso do cabeçalho. Sem ambiente informado não existe
@@ -716,15 +721,13 @@ export default function Home() {
         : [],
     [p, visualParams],
   );
-  const changed = useMemo(
-    () =>
-      new Set(
-        (['width', 'height', 'depth', 'materialId'] as const).filter(
-          (key) => p && visualParams && p.revisions[p.cursor].params[key] !== visualParams[key],
-        ),
-      ),
-    [p, visualParams],
-  );
+  const changed = useMemo(() => {
+    if (!p || !visualBounds || historyPreview === null) return new Set<string>();
+    const current = generateComposition(p.revisions[p.cursor].params).bounds;
+    return new Set(['width', 'height', 'depth'].filter((_, i) =>
+      visualBounds.max[i] - visualBounds.min[i] !== current.max[i] - current.min[i],
+    ));
+  }, [p, visualBounds, historyPreview]);
   const visualParts = useMemo(() => {
     if (!p) return [];
     const rev = p.revisions[historyPreview ?? p.cursor];

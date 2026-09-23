@@ -26,7 +26,7 @@ type Runtime = {
   controls: OrbitControls;
   reduced: MediaQueryList;
   move?: CameraMove;
-  view?: { height: number; width: number; depth: number; mode: ViewMode };
+  view?: { height: number; width: number; depth: number; mode: ViewMode; frameRequest: number };
 };
 export default function FurnitureView({
   params,
@@ -37,6 +37,8 @@ export default function FurnitureView({
   view,
   spin = false,
   scrub = false,
+  frameRequest = 0,
+  zoomRequest,
   onSpinSuppressed,
 }: {
   params: Design;
@@ -48,6 +50,8 @@ export default function FurnitureView({
   view: ViewMode;
   spin?: boolean;
   scrub?: boolean;
+  frameRequest?: number;
+  zoomRequest?: { id: number; direction: 'in' | 'out' };
   dims?: boolean;
   /**
    * Avisa o painel quando o sistema pede menos movimento. Nesse caso a
@@ -187,7 +191,7 @@ export default function FurnitureView({
       }
       const box = el.getBoundingClientRect();
       const x = e.clientX - box.left;
-      setHover({ id, x, y: e.clientY - box.top, flip: x > box.width - 230 });
+      setHover({ id, x, y: Math.min(e.clientY - box.top, box.height - 100), flip: x > box.width - 230 });
     };
     renderer.domElement.addEventListener('pointermove', hover);
     renderer.domElement.addEventListener('pointerleave', () => setHover(null));
@@ -257,6 +261,20 @@ export default function FurnitureView({
     if (state) state.controls.autoRotate = spin && !state.reduced.matches;
   }, [spin]);
   useEffect(() => {
+    const state = runtime.current;
+    if (!state || !zoomRequest) return;
+    const offset = state.camera.position.clone().sub(state.controls.target);
+    const factor = zoomRequest.direction === 'in' ? 0.8 : 1.25;
+    const distance = THREE.MathUtils.clamp(offset.length() * factor, state.controls.minDistance, state.controls.maxDistance);
+    state.move = {
+      from: state.camera.position.clone(),
+      to: state.controls.target.clone().add(offset.setLength(distance)),
+      targetFrom: state.controls.target.clone(),
+      targetTo: state.controls.target.clone(),
+      started: performance.now(),
+    };
+  }, [zoomRequest]);
+  useEffect(() => {
     const s = runtime.current;
     if (!s) return;
     const box = generateComposition(params).bounds;
@@ -265,26 +283,33 @@ export default function FurnitureView({
     // O peso extra no eixo vertical evita que a peça de baixo fique atrás da
     // barra de controles flutuante.
     const growth = exploded ? SPREAD_MM * 2 : 0;
+    const width = box.max[0] - box.min[0];
+    const height = box.max[1] - box.min[1];
+    const depth = box.max[2] - box.min[2];
     const scale = Math.max(
-        params.height + growth * 1.5,
-        (params.width + growth) * 1.5,
-        (params.depth + growth) * 1.5,
+        height + growth * 1.5,
+        (width + growth) * 1.5,
+        (depth + growth) * 1.5,
       ),
       target = new THREE.Vector3(
         (box.min[0] + box.max[0]) / 2,
-        params.height / 2,
+        (box.min[1] + box.max[1]) / 2,
         (box.min[2] + box.max[2]) / 2,
       );
+    // A distância permitida precisa crescer com uma composição larga. O
+    // limite fixo de 8 m cortava projetos com vários módulos.
+    s.controls.maxDistance = Math.max(8000, scale * 5);
     let to: THREE.Vector3;
-    if (!s.view || s.view.mode !== view) {
+    const resetDirection = !s.view || s.view.mode !== view || s.view.frameRequest !== frameRequest;
+    if (resetDirection) {
       if (view === 'front')
-        to = new THREE.Vector3(0, params.height * 0.7, scale * 2.15);
+        to = new THREE.Vector3(0, height * 0.2, scale * 2.15);
       else if (view === 'side')
-        to = new THREE.Vector3(scale * 2.15, params.height * 0.7, 0);
+        to = new THREE.Vector3(scale * 2.15, height * 0.2, 0);
       else if (view === 'top')
-        to = new THREE.Vector3(0, params.height / 2 + scale * 2.2, 0.02);
+        to = new THREE.Vector3(0, scale * 2.2, 0.02);
       else
-        to = new THREE.Vector3(scale * 1.05, params.height * 0.7, scale * 2.15);
+        to = new THREE.Vector3(scale * 1.05, height * 0.2, scale * 2.15);
     } else {
       const previousScale = Math.max(
         s.view.height,
@@ -297,8 +322,9 @@ export default function FurnitureView({
         .multiplyScalar(scale / previousScale)
         .add(target);
     }
-    if (!s.view || s.view.mode !== view) {
+    if (resetDirection) {
       to.x += target.x;
+      to.y += target.y;
       to.z += target.z;
     }
     if (!s.view || s.reduced.matches || scrub) {
@@ -316,19 +342,20 @@ export default function FurnitureView({
       };
     }
     s.view = {
-      height: params.height,
-      width: params.width,
-      depth: params.depth,
+      height,
+      width,
+      depth,
       mode: view,
+      frameRequest,
     };
-  }, [params, view, scrub, exploded]);
+  }, [params, view, scrub, exploded, frameRequest]);
   const hoveredPart = hover ? parts.find((v) => v.id === hover.id) : undefined;
   return (
     <div
       ref={host}
       className="scene"
       role="application"
-      aria-label="Modelo 3D interativo da estante. Arraste para girar e clique para selecionar peças."
+      aria-label="Modelo 3D interativo. Arraste para girar, use a roda para aproximar, arraste com o botão direito para mover e clique para selecionar peças."
     >
       {error && (
         <p className="scene-error">
