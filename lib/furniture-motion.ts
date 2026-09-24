@@ -111,6 +111,15 @@ export class FurnitureMotion {
   setDiff(diff: SceneDiff | null) {
     this.diff = diff;
   }
+  /**
+   * Móvel sendo arrastado: as peças do conjunto andam pelo deslocamento sem
+   * refazer o projeto a cada quadro. `blocked` pinta de vermelho quando a
+   * posição bate em outro móvel.
+   */
+  private drag: { ids: Set<string>; offset: THREE.Vector3; blocked: boolean } | null = null;
+  setDrag(drag: { ids: Set<string>; offset: THREE.Vector3; blocked: boolean } | null) {
+    this.drag = drag;
+  }
   constructor(private scene: THREE.Scene) {}
   readonly entries = new Map<string, AnimatedPart>();
   private initialized = false;
@@ -270,6 +279,8 @@ export class FurnitureMotion {
           .add(e.pivot);
       }
       if (t === 1) e.mesh.position.copy(e.to.position);
+      const dragged = !!this.drag?.ids.has(id);
+      if (dragged) e.mesh.position.add(this.drag!.offset);
       e.mesh.scale.lerpVectors(e.from.size, e.to.size, t);
       e.mesh.material.color.copy(e.from.color).lerp(e.to.color, t);
       const mark = this.diff
@@ -305,9 +316,10 @@ export class FurnitureMotion {
         (markColor || hot ? EDGE.hotOpacity : EDGE.restOpacity) * e.mesh.material.opacity;
       // Selecionada brilha na cor de destaque sem perder o acabamento; no
       // diff, a cor diz se a peça entrou ou mudou.
-      const glow = e.selected ? SELECTION_GLOW : markColor;
+      const blocked = dragged && this.drag!.blocked;
+      const glow = blocked ? DIFF_GLOW.removed : e.selected ? SELECTION_GLOW : markColor;
       e.mesh.material.emissive.set(glow ?? '#000000');
-      e.mesh.material.emissiveIntensity = e.selected ? 0.42 : markColor ? 0.38 : 0;
+      e.mesh.material.emissiveIntensity = blocked ? 0.5 : e.selected ? 0.42 : markColor ? 0.38 : 0;
       if (t === 1 && e.exiting) {
         this.disposeEntry(e);
         this.entries.delete(id);

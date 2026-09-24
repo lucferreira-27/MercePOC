@@ -61,7 +61,7 @@ Exemplos: “Faz um rack de TV de 2 m em nogueira”; “Quero um painel de TV c
 
 ### Atalhos
 
-No canto da cena, o controle de movimento tem um direcional: arraste o centro como um joystick (mais longe, mais rápido) ou segure as setas. **Girar** e **Mover** escolhem o que o direcional e o arrasto com o botão esquerdo fazem; no Mover, o botão direito gira e, no celular, um dedo move a vista. O botão de recolher (no canto do controle) guarda a escolha.
+**Mudar o móvel de lugar:** selecione uma peça dele e arraste-a na cena. O conjunto inteiro anda junto (módulos conectados vão com a raiz), em passos de 1 cm, grudando nas bordas dos vizinhos e voltando ao lugar se bater em outro móvel (fica vermelho). De cima, arrasta no piso; de frente, aéreos e painéis também sobem e descem. No canto da cena, o controle **Mover** faz o ajuste fino: setas (1 cm, 10 cm com Shift, seguram e repetem), Subir/Descer e girar 90°. Com ambiente real, a parede fica parada e a distância do canto acompanha.
 
 | Tecla | Ação |
 |---|---|
@@ -69,8 +69,7 @@ No canto da cena, o controle de movimento tem um direcional: arraste o centro co
 | `/` | Escrever para a IA |
 | `1` `2` `3` `4` | Perspectiva, frontal, lateral, topo |
 | `F` · `+` · `-` | Enquadrar, aproximar, afastar |
-| Setas · `Shift`+setas | Girar a vista, mover a vista (segurar anda sem parar) |
-| `M` | Alternar o arrasto entre girar e mover |
+| Setas · `PageUp` `PageDown` | Mover o móvel selecionado 1 cm (10 cm com `Shift`), subir, descer |
 | `D` · `R` · `E` · `O` | Cotas, ambiente, explodir, abrir/fechar frentes |
 | `[` · `]` | Recolher conversa, recolher painel |
 | `Ctrl+Z` · `Ctrl+Y` | Desfazer, refazer |

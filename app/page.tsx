@@ -979,11 +979,23 @@ export default function Home() {
     return guardTruncation(() => runOps([operation], label, 'op'), label);
   }
   /** Lote atômico: igualar módulos que compartilham painel exige editar os dois. */
-  async function applyOps(operations: ShelfOp[], label: string) {
+  async function applyOps(operations: ShelfOp[], label: string, extra: { room?: Room } = {}) {
     if (busy || !p) return;
-    return guardTruncation(() => runOps(operations, label, 'ops'), label);
+    return guardTruncation(() => runOps(operations, label, 'ops', extra), label);
   }
-  async function runOps(operations: ShelfOp[], label: string, kind: 'op' | 'ops') {
+  /**
+   * Móvel arrastado na cena. Com ambiente real, a distância do canto anda
+   * junto no mesmo pedido: a parede fica onde está e o móvel desliza nela.
+   */
+  async function moveFurniture(operation: ShelfOp, label: string, shiftX: number) {
+    if (!p) return;
+    const room =
+      p.room && Math.round(shiftX)
+        ? { ...p.room, offsetMm: Math.max(0, Math.round((p.room.offsetMm ?? 0) + shiftX)) }
+        : undefined;
+    await applyOps([operation], label, room ? { room } : {});
+  }
+  async function runOps(operations: ShelfOp[], label: string, kind: 'op' | 'ops', extra: { room?: Room } = {}) {
     if (busy || !p) return;
     setBusy(true);
     setError('');
@@ -993,7 +1005,7 @@ export default function Home() {
       const next =
         kind === 'op'
           ? await api<State>('/api/projects', { id: p.id, version: p.version, action: 'op', op: operations[0], label })
-          : await api<State>('/api/projects', { id: p.id, version: p.version, action: 'ops', ops: operations, label });
+          : await api<State>('/api/projects', { id: p.id, version: p.version, action: 'ops', ops: operations, label, ...extra });
       accept(next, { dims: true });
       // Um módulo novo passa a ser a seleção: sem isso o painel continuava
       // mostrando o módulo anterior e o recém-criado parecia inexistente.
@@ -2340,6 +2352,8 @@ export default function Home() {
               onSpinSuppressed={setReducedMotion}
               diff={sceneDiff}
               keyboard={!paletteOpen && !galleryOpen}
+              movable={!busy && !pending && historyPreview === null && !reviewLocked && !exploded}
+              onMove={moveFurniture}
             />
           )}
           <div className="stage-tools" role="toolbar" aria-label="Ferramentas da cena" aria-orientation="vertical">

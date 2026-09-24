@@ -62,6 +62,8 @@ export async function POST(req: Request) {
       if(!result.ok)return Response.json({error:result.error},{status:422});
       if(result.noop)return Response.json({...view(p),noop:true,discarded:0});
       discarded = result.discarded;
+      // Móvel arrastado com ambiente real: a distância do canto vem junto.
+      if (b.room) p.room = b.room;
     }
     if (b.action === 'undo') p.cursor = Math.max(0, p.cursor - 1);
     if (b.action === 'redo')

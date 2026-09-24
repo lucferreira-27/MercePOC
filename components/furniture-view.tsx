@@ -17,7 +17,9 @@ import {
   TRANSITION_MS,
 } from '@/lib/furniture-motion';
 import { DIFF_GLOW } from '@/lib/scene-materials';
-import { NavPad, type NavMode } from './nav-pad';
+import type { ModularOp } from '@/lib/composition';
+import { MOVE_GRID, moduleBoxes, moveGroup, moveOp, rotateOp, selectedGroup, shortMm, snapDelta, tryOp, type MoveGroup, type Vec3 } from '@/lib/move';
+import { MovePad, type NudgeDir } from './move-pad';
 type CameraMove = {
   from: THREE.Vector3;
   to: THREE.Vector3;
@@ -44,66 +46,46 @@ type Runtime = {
   ghosts?: { group: THREE.Group; dispose: () => void };
   dims?: { lines: THREE.LineSegments; labels: DimLabel[]; dispose: () => void };
   labelEls: HTMLSpanElement[];
-  /** Movimento pedido pelo controle e pelas setas: direção na tela, -1 a 1. */
-  nav: { mode: NavMode; pad: [number, number]; key: [number, number]; keySwap: boolean };
+  /** Móvel em movimento (arrasto ou setas), ainda não gravado. */
+  preview?: { group: MoveGroup; delta: Vec3; blocked: boolean };
+  showPreview?: () => void;
+  commitPreview?: () => void;
+  /** Até quando a câmera fica parada: mover à mão não reenquadra a cena. */
+  holdFrame?: number;
 };
-/** Giro com o controle no fim do curso, em radianos por segundo. */
-const NAV_TURN = 1.7;
-/** Deslocamento lateral por segundo, em fração da distância até o móvel. */
-const NAV_SLIDE = 0.75;
-const spherical = new THREE.Spherical();
-const navOffset = new THREE.Vector3();
-const navAxis = new THREE.Vector3();
-
-/**
- * Anda a câmera pelo controle de movimento: girar em volta do alvo ou mover
- * câmera e alvo juntos no plano da tela. As direções seguem o arrasto no 3D:
- * empurrar para a direita gira o móvel para a direita e leva o móvel junto.
- */
-function driveCamera(s: Runtime, dt: number) {
-  const { mode, pad, key, keySwap } = s.nav;
-  let turnX = 0,
-    turnY = 0,
-    slideX = 0,
-    slideY = 0;
-  // Curva no curso do joystick: perto do centro fica fino para ajustes.
-  const [px, py] = pad.map((v) => v * Math.abs(v));
-  if (mode === 'pan') [slideX, slideY] = [px, py];
-  else [turnX, turnY] = [px, py];
-  if ((mode === 'pan') !== keySwap) [slideX, slideY] = [slideX + key[0], slideY + key[1]];
-  else [turnX, turnY] = [turnX + key[0], turnY + key[1]];
-  if (!turnX && !turnY && !slideX && !slideY) return;
-  s.move = undefined;
-  const { camera, controls } = s;
-  navOffset.copy(camera.position).sub(controls.target);
-  if (turnX || turnY) {
-    spherical.setFromVector3(navOffset);
-    spherical.theta -= turnX * NAV_TURN * dt;
-    spherical.phi = THREE.MathUtils.clamp(spherical.phi - turnY * NAV_TURN * dt, 0.02, controls.maxPolarAngle);
-    navOffset.setFromSpherical(spherical);
-    camera.position.copy(controls.target).add(navOffset);
-  }
-  if (slideX || slideY) {
-    const step = navOffset.length() * NAV_SLIDE * dt;
-    camera.updateMatrix();
-    navAxis.setFromMatrixColumn(camera.matrix, 0).multiplyScalar(-slideX * step);
-    camera.position.add(navAxis);
-    controls.target.add(navAxis);
-    navAxis.setFromMatrixColumn(camera.matrix, 1).multiplyScalar(slideY * step);
-    camera.position.add(navAxis);
-    controls.target.add(navAxis);
-  }
-}
-/** Setas que o controle escuta, e a direção de cada uma na tela. */
-const ARROW_KEYS: Record<string, [number, number]> = {
-  ArrowLeft: [-1, 0],
-  ArrowRight: [1, 0],
-  ArrowUp: [0, -1],
-  ArrowDown: [0, 1],
+/** Setas do teclado e a direção de cada uma no controle. */
+const ARROW_KEYS: Record<string, NudgeDir> = {
+  ArrowLeft: 'left',
+  ArrowRight: 'right',
+  ArrowUp: 'back',
+  ArrowDown: 'front',
+  PageUp: 'up',
+  PageDown: 'down',
 };
 /** Onde as setas já têm dono: campos, sliders, listas e menus. */
 const OWNS_ARROWS =
   'input, textarea, select, [contenteditable="true"], [role="slider"], [role="listbox"], [role="menu"], [role="tablist"], [role="radiogroup"], [role="dialog"], [role="combobox"]';
+/** Depois do último toque numa seta, grava o lugar novo. */
+const NUDGE_COMMIT_MS = 450;
+
+/** Frase curta do motivo do bloqueio: "Bate em Estante", o outro móvel. */
+function blockedText(reason: string, d?: { modules: { id: string; name: string }[] }, group?: MoveGroup) {
+  const overlap = /Módulos sobrepostos: (.+?) e (.+?)\./.exec(reason);
+  if (overlap) {
+    const mine = new Set(group?.members.map((id) => d?.modules.find((m) => m.id === id)?.name));
+    return `Bate em ${[overlap[1], overlap[2]].find((n) => !mine.has(n)) ?? overlap[2]}`;
+  }
+  if (/Interpenetração/.test(reason)) return 'Encosta em outra peça';
+  return reason.replace(/ Ajuste o posicionamento\.?$/, '');
+}
+/** "35 cm à direita · 10 cm para a frente", no eixo do mundo. */
+function deltaText(delta: Vec3) {
+  const out: string[] = [];
+  if (delta[0]) out.push(`${shortMm(delta[0])} ${delta[0] > 0 ? 'à direita' : 'à esquerda'}`);
+  if (delta[2]) out.push(`${shortMm(delta[2])} ${delta[2] > 0 ? 'para a frente' : 'para o fundo'}`);
+  if (delta[1]) out.push(`${shortMm(delta[1])} ${delta[1] > 0 ? 'acima' : 'abaixo'}`);
+  return out.join(' · ') || 'No lugar de origem';
+}
 const PALETTE = {
   light: { grid: [0xcfc8bb, 0xe4dfd6], ground: '#dcd3c5', dim: '#3c4a3f', groundOpacity: 0.75 },
   dark: { grid: [0x3b3e44, 0x2c2e33], ground: '#2a2d31', dim: '#b9d7bf', groundOpacity: 0.9 },
@@ -145,9 +127,18 @@ export default function FurnitureView({
   onSnapshot,
   onSpinSuppressed,
   diff = null,
+  movable = false,
+  onMove,
   keyboard = true,
 }: {
-  /** Setas e M movem a vista. Desligado com diálogos abertos por cima. */
+  /** Pode mover o móvel selecionado (fora do explodido, sem turno em curso). */
+  movable?: boolean;
+  /**
+   * Grava o móvel no lugar novo. `shiftX` é quanto a borda esquerda do
+   * projeto andou: com ambiente real, a parede fica onde está.
+   */
+  onMove?: (op: ModularOp, label: string, shiftX: number) => Promise<unknown>;
+  /** Setas movem o móvel selecionado. Desligado com diálogos abertos. */
   keyboard?: boolean;
   /**
    * Diff do turno na cena: o que entrou e mudou brilha, o que saiu aparece
@@ -194,6 +185,15 @@ export default function FurnitureView({
   useEffect(() => {
     callback.current = onSelect;
   }, [onSelect]);
+  // O arrasto vive nos ouvintes da montagem: lê o projeto e a seleção do
+  // render atual por aqui.
+  const latest = useRef({ params, parts, selected, movable, onMove });
+  useEffect(() => {
+    latest.current = { params, parts, selected, movable, onMove };
+  }, [params, parts, selected, movable, onMove]);
+  const [moveTip, setMoveTip] = useState<{ x: number; y: number; text: string; bad: boolean } | null>(null);
+  const [moveStatus, setMoveStatus] = useState<{ text: string; bad?: boolean } | null>(null);
+  const dragging = useRef(false);
   const spinNotice = useRef(onSpinSuppressed);
   useEffect(() => {
     spinNotice.current = onSpinSuppressed;
@@ -289,18 +289,159 @@ export default function FurnitureView({
       ground,
       reduced: window.matchMedia('(prefers-reduced-motion: reduce)'),
       labelEls: [],
-      nav: { mode: 'orbit', pad: [0, 0], key: [0, 0], keySwap: false },
     };
     runtime.current = state;
+    /** Desenha o móvel no lugar da prévia: peças, pés e cotas. */
+    const showPreview = () => {
+      const p = state.preview;
+      const members = new Set(p?.group.members ?? []);
+      const ids = new Set(
+        latest.current.parts.filter((v) => (v as { owners?: string[] }).owners?.some((o) => members.has(o))).map((v) => v.id),
+      );
+      const offset = new THREE.Vector3(...(p?.delta ?? [0, 0, 0]));
+      motion.setDrag(p ? { ids, offset, blocked: p.blocked } : null);
+      for (const foot of state.feet?.group.children ?? []) {
+        const { moduleId, home } = foot.userData as { moduleId?: string; home?: THREE.Vector3 };
+        if (home) foot.position.copy(home).add(p && moduleId && members.has(moduleId) ? offset : new THREE.Vector3());
+      }
+      // Cotas são do lugar gravado: somem enquanto o móvel anda.
+      const moving = !!p && p.delta.some((v) => v !== 0);
+      if (state.dims) state.dims.lines.visible = !moving;
+      if (labelHost.current) labelHost.current.style.visibility = moving ? 'hidden' : '';
+    };
+    state.showPreview = showPreview;
+    /** Grava a prévia; bloqueada ou parada, o móvel volta ao lugar. */
+    const commitPreview = () => {
+      const p = state.preview;
+      if (!p) return;
+      const now = latest.current;
+      if (p.blocked || !p.delta.some((v) => v !== 0) || !now.onMove) {
+        state.preview = undefined;
+        showPreview();
+        if (p.blocked) setMoveStatus({ text: 'Não coube ali: voltou ao lugar', bad: true });
+        return;
+      }
+      const op = moveOp(now.params, p.group, p.delta);
+      const check = tryOp(now.params, op);
+      if (!check.ok) {
+        state.preview = undefined;
+        showPreview();
+        setMoveStatus({ text: blockedText(check.reason, now.params, p.group), bad: true });
+        return;
+      }
+      const shiftX = generateComposition(check.design).bounds.min[0] - generateComposition(now.params).bounds.min[0];
+      setMoveStatus({ text: deltaText(p.delta) });
+      state.holdFrame = performance.now() + 5000;
+      void now
+        .onMove(op, `Moveu ${p.group.label}`, shiftX)
+        .catch(() => setMoveStatus({ text: 'Não foi possível gravar: voltou ao lugar', bad: true }))
+        .finally(() => {
+          // Com o projeto novo a prévia já saiu; se a gravação falhou, sai aqui.
+          if (state.preview === p) {
+            state.preview = undefined;
+            showPreview();
+          }
+        });
+    };
+    state.commitPreview = commitPreview;
     controls.addEventListener('start', () => {
       state.move = undefined;
     });
     const ray = new THREE.Raycaster();
     let down = [0, 0];
+    const aim = (e: PointerEvent) => {
+      const r = renderer.domElement.getBoundingClientRect();
+      ray.setFromCamera(
+        new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, (-(e.clientY - r.top) / r.height) * 2 + 1),
+        camera,
+      );
+    };
+    // Arrasto do móvel: começa numa peça já selecionada. O plano segue a
+    // câmera: de cima, o piso (x e z); de frente, a parede (x e altura).
+    let drag: {
+      group: MoveGroup;
+      plane: THREE.Plane;
+      from: THREE.Vector3;
+      vertical: boolean;
+      boxes: ReturnType<typeof moduleBoxes>;
+      key: string;
+    } | null = null;
+    const hit = new THREE.Vector3();
     const start = (e: PointerEvent) => {
       down = [e.clientX, e.clientY];
+      const now = latest.current;
+      if (e.button !== 0 || !now.movable || !e.isPrimary) return;
+      aim(e);
+      const first = ray.intersectObjects(motion.pickable(), false)[0];
+      const id = first?.object.userData.id as string | undefined;
+      if (!first || !id || !now.selected.includes(id)) return;
+      const owner = (now.parts.find((p) => p.id === id) as { owners?: string[] } | undefined)?.owners?.[0];
+      const group = owner ? moveGroup(now.params, owner) : null;
+      if (!group) return;
+      const view = camera.getWorldDirection(new THREE.Vector3());
+      const floorView = Math.abs(view.y) > 0.35;
+      const normal = floorView ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(-view.x, 0, -view.z).normalize();
+      // Painel, aéreo e o que já está no alto também sobem e descem.
+      const lifts = group.members.some((mid) => {
+        const m = now.params.modules.find((v) => v.id === mid);
+        return !!m && (m.kind === 'panel' || !!m.wall || m.position[1] > 0);
+      });
+      drag = {
+        group,
+        plane: new THREE.Plane().setFromNormalAndCoplanarPoint(normal, first.point),
+        from: first.point.clone(),
+        vertical: !floorView && lifts,
+        boxes: moduleBoxes(now.params),
+        key: '0,0,0',
+      };
+      // Antes do OrbitControls (ouvinte de captura): o arrasto não gira a câmera.
+      controls.enabled = false;
+      dragging.current = true;
+      try {
+        renderer.domElement.setPointerCapture(e.pointerId);
+      } catch {
+        // Sem captura o arrasto termina quando o ponteiro sai da cena.
+      }
+      el.style.cursor = 'grabbing';
+      state.move = undefined;
+      setHover(null);
+    };
+    const dragMove = (e: PointerEvent) => {
+      if (!drag) return;
+      aim(e);
+      if (!ray.ray.intersectPlane(drag.plane, hit)) return;
+      const raw = hit.clone().sub(drag.from);
+      if (!drag.vertical) raw.y = 0;
+      const now = latest.current;
+      const delta = snapDelta(now.params, drag.group, [raw.x, raw.y, raw.z], drag.boxes);
+      const key = delta.join(',');
+      const box = el.getBoundingClientRect();
+      const x = e.clientX - box.left,
+        y = e.clientY - box.top;
+      if (key !== drag.key) {
+        drag.key = key;
+        const moved = delta.some((v) => v !== 0);
+        const check = moved ? tryOp(now.params, moveOp(now.params, drag.group, delta)) : null;
+        const bad = !!check && !check.ok;
+        state.preview = { group: drag.group, delta, blocked: bad };
+        showPreview();
+        setMoveTip({ x, y, text: check && !check.ok ? blockedText(check.reason, now.params, drag.group) : deltaText(delta), bad });
+      } else setMoveTip((tip) => (tip ? { ...tip, x, y } : tip));
+    };
+    const dragEnd = () => {
+      if (!drag) return;
+      drag = null;
+      controls.enabled = true;
+      dragging.current = false;
+      el.style.cursor = '';
+      setMoveTip(null);
+      commitPreview();
     };
     const pick = (e: PointerEvent) => {
+      if (drag) {
+        dragEnd();
+        return;
+      }
       if (Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
       const r = renderer.domElement.getBoundingClientRect();
       ray.setFromCamera(
@@ -316,9 +457,12 @@ export default function FurnitureView({
         e.shiftKey,
       );
     };
-    renderer.domElement.addEventListener('pointerdown', start);
+    renderer.domElement.addEventListener('pointerdown', start, { capture: true });
     renderer.domElement.addEventListener('pointerup', pick);
+    renderer.domElement.addEventListener('pointercancel', dragEnd);
+    renderer.domElement.addEventListener('pointermove', dragMove);
     const hover = (e: PointerEvent) => {
+      if (drag) return;
       if (e.pointerType !== 'mouse' || e.buttons !== 0) {
         setHover(null);
         return;
@@ -353,12 +497,9 @@ export default function FurnitureView({
     });
     resize.observe(el);
     const projected = new THREE.Vector3();
-    let frame = 0,
-      last = performance.now();
+    let frame = 0;
     const draw = (now: number) => {
       motion.tick(now, state.reduced.matches);
-      driveCamera(state, Math.min(now - last, 50) / 1000);
-      last = now;
       if (state.move) {
         const m = state.move,
           t = state.reduced.matches
@@ -416,6 +557,11 @@ export default function FurnitureView({
   }, []);
   useEffect(() => {
     const state = runtime.current;
+    // O projeto novo já traz o lugar gravado: a prévia sai antes de animar.
+    if (state?.preview && !dragging.current) {
+      state.preview = undefined;
+      state.showPreview?.();
+    }
     if (state)
       state.motion.update(
         parts,
@@ -473,71 +619,109 @@ export default function FurnitureView({
       },
     };
   }, [diff]);
-  // Modo do controle: no "Mover" o arrasto com o botão esquerdo (e um dedo
-  // no celular) desliza a vista, e o botão direito passa a girar.
-  const [navMode, setNavMode] = useState<NavMode>('orbit');
-  useEffect(() => {
-    const s = runtime.current;
-    if (!s) return;
-    s.nav.mode = navMode;
-    const pan = navMode === 'pan';
-    s.controls.mouseButtons = {
-      LEFT: pan ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE,
-      MIDDLE: THREE.MOUSE.DOLLY,
-      RIGHT: pan ? THREE.MOUSE.ROTATE : THREE.MOUSE.PAN,
-    };
-    s.controls.touches = { ONE: pan ? THREE.TOUCH.PAN : THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
-  }, [navMode]);
-  // Setas: seguram o movimento enquanto pressionadas; Shift troca girar e
-  // mover. M alterna o modo.
-  useEffect(() => {
-    if (!keyboard) return;
-    const held = new Set<string>();
-    const sync = (shift: boolean) => {
-      const s = runtime.current;
-      if (!s) return;
-      const key: [number, number] = [0, 0];
-      for (const k of held) {
-        key[0] += ARROW_KEYS[k][0];
-        key[1] += ARROW_KEYS[k][1];
-      }
-      s.nav.key = key;
-      s.nav.keySwap = shift;
-    };
-    const busy = (e: KeyboardEvent) =>
-      e.ctrlKey || e.metaKey || e.altKey || !!(e.target as HTMLElement | null)?.closest?.(OWNS_ARROWS);
-    const down = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || busy(e)) return;
-      if (ARROW_KEYS[e.key]) {
-        e.preventDefault();
-        held.add(e.key);
-        sync(e.shiftKey);
-      } else if (e.key.toLowerCase() === 'm' && !e.shiftKey && !e.repeat) setNavMode((m) => (m === 'pan' ? 'orbit' : 'pan'));
-      else if (e.key === 'Shift') sync(true);
-    };
-    const up = (e: KeyboardEvent) => {
-      held.delete(e.key);
-      sync(e.key === 'Shift' ? false : e.shiftKey);
-    };
-    const clear = () => {
-      held.clear();
-      sync(false);
-    };
-    window.addEventListener('keydown', down);
-    window.addEventListener('keyup', up);
-    window.addEventListener('blur', clear);
-    return () => {
-      window.removeEventListener('keydown', down);
-      window.removeEventListener('keyup', up);
-      window.removeEventListener('blur', clear);
-      clear();
-    };
-  }, [keyboard]);
   useEffect(() => {
     const state = runtime.current;
     if (state) state.motion.setHover(hover?.id ?? null);
-    if (host.current) host.current.style.cursor = hover ? 'pointer' : navMode === 'pan' ? 'grab' : '';
-  }, [hover, navMode]);
+    // Sobre uma peça já selecionada, a mão avisa que dá para arrastar.
+    if (host.current && !dragging.current)
+      host.current.style.cursor = hover ? (movable && selected.includes(hover.id) ? 'grab' : 'pointer') : '';
+  }, [hover, movable, selected]);
+  // Mover pelo controle e pelas setas: cada toque anda um passo na prévia e,
+  // parado um instante, o lugar novo é gravado numa versão só.
+  const target = useMemo(() => selectedGroup(params, parts, selected), [params, parts, selected]);
+  const nudgeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (nudgeTimer.current) clearTimeout(nudgeTimer.current);
+  }, []);
+  // Trocou a seleção com um movimento pendente: grava o que já andou.
+  useEffect(() => {
+    const s = runtime.current;
+    if (s?.preview && s.preview.group.root !== target?.root && !dragging.current) {
+      if (nudgeTimer.current) clearTimeout(nudgeTimer.current);
+      s.commitPreview?.();
+    }
+  }, [target]);
+  useEffect(() => {
+    if (!moveStatus) return;
+    const t = setTimeout(() => setMoveStatus(null), 2800);
+    return () => clearTimeout(t);
+  }, [moveStatus]);
+  const nudge = (dir: NudgeDir, big: boolean) => {
+    const s = runtime.current;
+    if (!s || !target || !movable || dragging.current) return;
+    const step = big ? 100 : MOVE_GRID;
+    const move: Vec3 = [0, 0, 0];
+    if (dir === 'up' || dir === 'down') move[1] = dir === 'up' ? step : -step;
+    else {
+      // As setas seguem a tela: direita de quem olha e "para o fundo" é
+      // se afastar da câmera, cada uma no eixo do piso mais próximo.
+      const right = new THREE.Vector3().setFromMatrixColumn(s.camera.matrixWorld, 0);
+      const away = new THREE.Vector3().setFromMatrixColumn(s.camera.matrixWorld, 1);
+      away.y = 0;
+      if (away.lengthSq() < 0.04) away.copy(s.camera.getWorldDirection(new THREE.Vector3())).setY(0);
+      const ax = Math.abs(right.x) >= Math.abs(right.z) ? 0 : 2;
+      const fax = ax === 0 ? 2 : 0;
+      const sign = Math.sign(ax === 0 ? right.x : right.z) || 1;
+      const fsign = Math.sign(fax === 0 ? away.x : away.z) || -1;
+      if (dir === 'right') move[ax] = sign * step;
+      if (dir === 'left') move[ax] = -sign * step;
+      if (dir === 'back') move[fax] = fsign * step;
+      if (dir === 'front') move[fax] = -fsign * step;
+    }
+    const current: Vec3 = s.preview?.group.root === target.root ? s.preview.delta : [0, 0, 0];
+    const root = params.modules.find((m) => m.id === target.root);
+    const next = current.map((v, i) => v + move[i]) as Vec3;
+    if (root) next[1] = Math.max(next[1], -root.position[1]);
+    if (next.every((v, i) => v === current[i])) {
+      setMoveStatus({ text: 'Já está no piso', bad: true });
+      return;
+    }
+    const check = next.some((v) => v !== 0) ? tryOp(params, moveOp(params, target, next)) : null;
+    if (check && !check.ok) {
+      setMoveStatus({ text: blockedText(check.reason, params, target), bad: true });
+      return;
+    }
+    s.preview = { group: target, delta: next, blocked: false };
+    s.showPreview?.();
+    setMoveStatus({ text: deltaText(next) });
+    if (nudgeTimer.current) clearTimeout(nudgeTimer.current);
+    nudgeTimer.current = setTimeout(() => runtime.current?.commitPreview?.(), NUDGE_COMMIT_MS);
+  };
+  const rotate = () => {
+    if (!target || !movable || !onMove) return;
+    if (runtime.current?.preview) {
+      setMoveStatus({ text: 'Gravando o movimento: gire em seguida' });
+      return;
+    }
+    const op = rotateOp(params, target);
+    const check = tryOp(params, op);
+    if (!check.ok) {
+      setMoveStatus({ text: `Não gira aqui: ${blockedText(check.reason, params, target)}`, bad: true });
+      return;
+    }
+    const shiftX = generateComposition(check.design).bounds.min[0] - generateComposition(params).bounds.min[0];
+    setMoveStatus({ text: 'Girou 90°' });
+    if (runtime.current) runtime.current.holdFrame = performance.now() + 5000;
+    void onMove(op, `Girou ${target.label}`, shiftX).catch(() => setMoveStatus({ text: 'Não foi possível gravar o giro', bad: true }));
+  };
+  const nudgeKey = useRef(nudge);
+  useEffect(() => {
+    nudgeKey.current = nudge;
+  });
+  // Setas do teclado movem o móvel selecionado (PageUp e PageDown, a altura).
+  useEffect(() => {
+    if (!keyboard) return;
+    const down = (e: KeyboardEvent) => {
+      const dir = ARROW_KEYS[e.key];
+      if (!dir || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+      if ((e.target as HTMLElement | null)?.closest?.(OWNS_ARROWS)) return;
+      if (!latest.current.movable || !latest.current.selected.length) return;
+      e.preventDefault();
+      nudgeKey.current(dir, e.shiftKey);
+    };
+    window.addEventListener('keydown', down);
+    return () => window.removeEventListener('keydown', down);
+  }, [keyboard]);
   useEffect(() => {
     const state = runtime.current;
     if (state) state.controls.autoRotate = spin && !state.reduced.matches;
@@ -677,6 +861,13 @@ export default function FurnitureView({
     s.grid.position.set(target.x, -2, target.z);
     let to: THREE.Vector3;
     const resetDirection = !s.view || s.view.mode !== view || s.view.frameRequest !== frameRequest;
+    // Móvel arrastado à mão: a câmera fica onde a pessoa deixou (sombra e
+    // piso acima já acompanharam). F ou trocar a vista reenquadram.
+    if (!resetDirection && s.view && (s.holdFrame ?? 0) > performance.now()) {
+      s.holdFrame = undefined;
+      s.view = { ...s.view, height, width, depth };
+      return;
+    }
     if (resetDirection || !s.view) {
       if (view === 'front')
         to = new THREE.Vector3(0, height * 0.2, scale * 2.15);
@@ -785,21 +976,21 @@ export default function FurnitureView({
       ref={host}
       className="scene"
       role="application"
-      aria-label={
-        navMode === 'pan'
-          ? 'Modelo 3D interativo. Arraste para mover a vista, use a roda para aproximar, arraste com o botão direito para girar e clique para selecionar peças. Setas movem a vista; M volta a girar.'
-          : 'Modelo 3D interativo. Arraste para girar, use a roda para aproximar, arraste com o botão direito para mover e clique para selecionar peças. Setas giram a vista; M passa a mover.'
-      }
+      aria-label="Modelo 3D interativo. Arraste para girar, use a roda para aproximar, arraste com o botão direito para mover a vista e clique para selecionar peças. Arraste uma peça selecionada, ou use as setas, para mudar o móvel de lugar."
     >
-      {!error && (
-        <NavPad
-          mode={navMode}
-          onMode={setNavMode}
-          onDrive={(x, y) => {
-            const s = runtime.current;
-            if (s) s.nav.pad = [x, y];
-          }}
+      {!error && onMove && (
+        <MovePad
+          target={target?.label ?? null}
+          disabled={!movable}
+          status={moveStatus}
+          onNudge={nudge}
+          onRotate={rotate}
         />
+      )}
+      {moveTip && (
+        <output className={'move-tip' + (moveTip.bad ? ' bad' : '')} style={{ left: moveTip.x, top: moveTip.y }}>
+          {moveTip.text}
+        </output>
       )}
       <div className="scene-dims" ref={labelHost} aria-hidden="true">
         {dimLabels.map((label, i) => (

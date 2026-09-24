@@ -203,6 +203,8 @@ export function buildFeet(feet: readonly Foot[], colorOf: (moduleId: string) => 
     const mesh = new THREE.Mesh(geo, m);
     mesh.position.set(...f.position);
     mesh.castShadow = true;
+    // O arrasto de um móvel leva os pés dele junto, a partir desta posição.
+    mesh.userData = { moduleId: f.moduleId, home: mesh.position.clone() };
     group.add(mesh);
   }
   return {

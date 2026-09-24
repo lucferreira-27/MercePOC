@@ -9,7 +9,7 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "node scripts/start.mjs",
-    "lint": "oxlint app lib components/furniture-view.tsx components/turn-progress.tsx components/model-picker.tsx components/usage-meter.tsx components/modular-editor.tsx components/finish-picker.tsx components/plan-thumb.tsx components/quote-panel.tsx components/cut-plan-panel.tsx components/room-panel.tsx components/command-palette.tsx components/template-gallery.tsx components/change-set.tsx components/nav-pad.tsx components/print-sheet.tsx hooks/use-project-tools.ts tests scripts vite.config.ts",
+    "lint": "oxlint app lib components/furniture-view.tsx components/turn-progress.tsx components/model-picker.tsx components/usage-meter.tsx components/modular-editor.tsx components/finish-picker.tsx components/plan-thumb.tsx components/quote-panel.tsx components/cut-plan-panel.tsx components/room-panel.tsx components/command-palette.tsx components/template-gallery.tsx components/change-set.tsx components/move-pad.tsx components/print-sheet.tsx hooks/use-project-tools.ts tests scripts vite.config.ts",
     "format": "oxfmt",
     "test": "tsx --test tests/*.test.ts",
     "test:live": "node scripts/modular-live.mjs",
