@@ -1,5 +1,17 @@
 import * as THREE from 'three';
 import { materials, type Part } from './furniture';
+import { finishTexture, panelUV, SELECTION_GLOW } from './scene-materials';
+/**
+ * Arestas: discretas em repouso, na cor de destaque quando o cursor passa ou a
+ * peça está selecionada. Antes a aresta escura a 25% desenhava cada painel como
+ * um desenho técnico e achatava o volume.
+ */
+export const EDGE = {
+  rest: '#2a2520',
+  restOpacity: 0.14,
+  hot: '#3f8f5a',
+  hotOpacity: 0.9,
+} as const;
 export const TRANSITION_MS = 750;
 export const SCRUB_MS = 140;
 export const ease = (value: number) => {
@@ -22,6 +34,9 @@ type AnimatedPart = {
   started: number;
   duration: number;
   exiting: boolean;
+  finish?: string;
+  sizeKey?: string;
+  selected?: boolean;
 };
 /**
  * Centro geométrico de cada módulo. Explodir em torno do centro do próprio
@@ -116,9 +131,7 @@ export class FurnitureMotion {
           exploded,
         ),
         size: new THREE.Vector3(...part.size),
-        color: new THREE.Color(
-          selected.includes(part.id) ? '#c8f57c' : (part.color ?? color),
-        ),
+        color: new THREE.Color(part.color ?? color),
         opacity: 1,
         rotation: part.rotation ?? 0,
       };
@@ -128,6 +141,7 @@ export class FurnitureMotion {
           material = new THREE.MeshStandardMaterial({
             color: target.color,
             roughness: 0.72,
+            envMapIntensity: 0.55,
           });
         const mesh = new THREE.Mesh(geo, material);
         mesh.position.copy(target.position);
@@ -139,9 +153,9 @@ export class FurnitureMotion {
         const edge = new THREE.LineSegments(
           new THREE.EdgesGeometry(geo),
           new THREE.LineBasicMaterial({
-            color: '#302b24',
+            color: EDGE.rest,
             transparent: true,
-            opacity: 0.25,
+            opacity: EDGE.restOpacity,
           }),
         );
         mesh.add(edge);
@@ -163,6 +177,21 @@ export class FurnitureMotion {
         this.entries.set(part.id, entry);
       }
       entry.from = this.read(entry);
+      // Acabamento e veio seguem a peça: a textura é da cor de catálogo e as
+      // coordenadas de textura são em milímetros do tamanho final, para o veio
+      // não esticar numa lateral de 2,4 m nem encolher numa frente de gaveta.
+      const finish = part.color ?? color;
+      const sizeKey = part.size.map((v) => Math.round(v)).join('x');
+      if (entry.finish !== finish || entry.sizeKey !== sizeKey) {
+        const map = finishTexture(finish);
+        entry.mesh.material.map = map;
+        entry.mesh.material.roughness = map?.userData.roughness ?? 0.72;
+        entry.mesh.material.needsUpdate = true;
+        panelUV(entry.mesh.geometry, part.size);
+        entry.finish = finish;
+        entry.sizeKey = sizeKey;
+      }
+      entry.selected = selected.includes(part.id);
       const motion = (
         part as Part & {
           motion?: { type: string; pivot: [number, number, number] };
@@ -239,9 +268,12 @@ export class FurnitureMotion {
         e.mesh.material.needsUpdate = true;
       }
       e.mesh.material.depthWrite = !transparent;
-      const hot = id === this.hovered;
-      e.edge.material.color.set(hot ? '#5ea336' : '#302b24');
-      e.edge.material.opacity = (hot ? 0.9 : 0.25) * e.mesh.material.opacity;
+      const hot = id === this.hovered || !!e.selected;
+      e.edge.material.color.set(hot ? EDGE.hot : EDGE.rest);
+      e.edge.material.opacity = (hot ? EDGE.hotOpacity : EDGE.restOpacity) * e.mesh.material.opacity;
+      // Selecionada brilha na cor de destaque sem perder o acabamento.
+      e.mesh.material.emissive.set(e.selected ? SELECTION_GLOW : '#000000');
+      e.mesh.material.emissiveIntensity = e.selected ? 0.42 : 0;
       if (t === 1 && e.exiting) {
         this.disposeEntry(e);
         this.entries.delete(id);

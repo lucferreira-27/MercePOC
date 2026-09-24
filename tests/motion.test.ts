@@ -6,6 +6,7 @@ import {
   TRANSITION_MS,
   moduleCentres,
   visualPosition,
+  EDGE,
 } from '../lib/furniture-motion';
 import { defaults, generate } from '../lib/furniture';
 import { addShelf, generateDesign, migrateParams, resizeDesign } from '../lib/design';
@@ -189,11 +190,11 @@ void test('hover emphasizes edges without moving geometry', () => {
   motion.setHover('base');
   motion.tick(TRANSITION_MS);
   assert.equal(base.mesh.scale.x, x);
-  assert.equal(base.edge.material.opacity, 0.9);
-  assert.equal(base.edge.material.color.getHexString(), '5ea336');
+  assert.equal(base.edge.material.opacity, EDGE.hotOpacity);
+  assert.equal(`#${base.edge.material.color.getHexString()}`, EDGE.hot);
   motion.setHover(null);
   motion.tick(TRANSITION_MS);
-  assert.equal(base.edge.material.opacity, 0.25);
-  assert.equal(base.edge.material.color.getHexString(), '302b24');
+  assert.equal(base.edge.material.opacity, EDGE.restOpacity);
+  assert.equal(`#${base.edge.material.color.getHexString()}`, EDGE.rest);
   motion.dispose();
 });
