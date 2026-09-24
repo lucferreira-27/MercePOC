@@ -1058,6 +1058,7 @@ export default function Home() {
           selected,
           requestId,
           fast,
+          prices,
           // Responder pelo cartão precisa chegar como resposta de
           // esclarecimento; antes o clique reenviava só o texto da pergunta.
           // Sem optionId é resposta digitada: resolve a pergunta do mesmo jeito.

@@ -152,6 +152,8 @@ export async function interpretStream(
   context: TurnContext & {
     pendingClarification?: string | null;
     historyNote?: string;
+    /** Orçamento e chapas da versão atual, calculados no servidor. */
+    quoteNote?: string;
   },
   onProgress: (event: Progress) => void,
   attempt = 0,
@@ -271,7 +273,8 @@ ${imageNote}` : requestString,
             {
               role: 'system',
               content: `Você é o assistente do Merce, editor de móveis retangulares modulares. Responda somente JSON: {"action":"update|clarify|undo|redo|answer","approach":"resumo público breve","message":"resposta breve","ops":[],"select":[],"refs":[],"suggestions":["próximo passo"]}. Não exponha raciocínio interno. Nunca afirme sucesso antes da validação do servidor.
-  Composição atual em mm: ${JSON.stringify(canonical(params))}. Compartimentos calculados: ${JSON.stringify(layout(params).cells.map((c) => ({ id: c.id, module: c.moduleId, label: c.label, origin: c.origin, size: c.size, split: c.node.split?.id, children: c.node.split?.children.map((v) => v.id), front: c.node.front?.id })))}.${roomNote}
+  Composição atual em mm: ${JSON.stringify(canonical(params))}. Compartimentos calculados: ${JSON.stringify(layout(params).cells.map((c) => ({ id: c.id, module: c.moduleId, label: c.label, origin: c.origin, size: c.size, split: c.node.split?.id, children: c.node.split?.children.map((v) => v.id), front: c.node.front?.id })))}.${roomNote}${context.quoteNote ? `
+  ${context.quoteNote}` : ''}
   Contrato das operações: ${JSON.stringify(z.toJSONSchema(opSchema))}.
   Acabamentos (materialId = nome para o usuário): ${FINISHES}. Frente pode ter acabamento próprio em front.set materialId (ex.: corpo branco com frentes em freijó).
   Para remover prateleiras antigas sh-N use {kind:"remove",ids:["sh-1","sh-2",...]} em uma só operação. Para divisões novas, cell.merge recebe o ID do nó que tem split, nunca o filho vazio. Remova de baixo para cima na árvore: subdivisões profundas primeiro. Uma cell.split em a:root cria a:root:low e a:root:high. Exemplo nicho em duas alturas com gavetas inferiores: [{kind:"cell.split",id:"a:root",axis:"y",gapMm:400},{kind:"front.set",id:"a:root:low",type:"drawers",count:3},{kind:"front.set",id:"a:root:high",type:"double"}]. Use operações module.*, cell.*, front.set, drawer.height, connect e disconnect. Em connect, side é o lado do PRÓPRIO módulo pai no referencial dele (right = +X local), não a direção na tela: um pai girado 90° ou 270° tem a direita local em outro eixo do mundo. Para estender a fileira no sentido do mundo, conecte a um módulo com a orientação pretendida ou reposicione um módulo sem conexão com module.edit {rotation, position}, pois só a posição de módulo conectado é recusada. Em caso de sobreposição a validação devolve o erro e você pode reenviar o lote corrigido. IDs estáveis são identidade. Não gere meshes, peças de corte ou CSV. A execução é atômica e só a geometria válida será salva. Ao criar ou ajustar um módulo com medidas ditadas, aplique TODAS as medidas pedidas nas operações (largura, altura e profundidade), não só a primeira: um nicho pedido com 800 × 600 × 450 mm precisa sair 800 de largura, 600 de altura e 450 de profundidade. A resposta não pode descrever medida que as operações não aplicaram. module.add pode receber um id def…

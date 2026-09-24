@@ -21,6 +21,25 @@ import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
 import { getImage, imageDataUrl, saveImage, type ImageRef } from '@/lib/images';
 import { planDataUrl, planPng } from '@/lib/plan-render';
+import { mergePrices, money, quote } from '@/lib/quote';
+import type { ModularPart } from '@/lib/composition';
+import type { Design } from '@/lib/studio';
+
+/**
+ * Orçamento e plano de corte da versão atual em uma linha para o prompt. Sem
+ * isto a IA respondia "quanto custa" ou "quantas chapas" de cabeça.
+ */
+function quoteSummary(design: Design, prices: unknown) {
+  try {
+    const q = quote(generateDesign(design).parts as ModularPart[], design.modules.length, mergePrices(prices));
+    const sheets = q.plan.groups
+      .map((g) => `${g.sheets}× ${g.material} ${g.thickness} mm (${Math.round(g.efficiency * 100)}% aproveitada)`)
+      .join('; ');
+    return `Orçamento estimado desta versão, com a tabela de preços do usuário: total ${money(q.total)} (custo ${money(q.cost)} + margem ${money(q.marginValue)}); chapas: ${sheets}; ${q.counts.doors} portas, ${q.counts.drawers} gavetas, ${q.counts.hinges} dobradiças, ${q.counts.edgeMeters} m de fita. Pergunta de preço, custo, chapas ou ferragens usa action answer com estes números, diz que é estimativa editável na aba Orçamento e não inventa outros valores.`;
+  } catch {
+    return '';
+  }
+}
 const busy = new Set<string>();
 /** Correções de geometria pedidas à IA antes de recusar o turno. */
 const GEOMETRY_RETRIES = 2;
@@ -76,6 +95,9 @@ export async function POST(req: Request) {
         clarificationId: z.string().trim().min(1).max(64).optional(),
         optionId: z.string().trim().min(1).max(64).optional(),
         fast: z.boolean().optional(),
+        // Tabela de preços do navegador: a IA responde "quanto custa" com os
+        // mesmos números da aba Orçamento. Formato solto, saneado por mergePrices.
+        prices: z.unknown().optional(),
       })
       .parse(await req.json());
     if (!b.message && !b.imageId && !b.optionId)
@@ -119,6 +141,7 @@ export async function POST(req: Request) {
         ? `Editando a versão ${baseRev.number} de ${p.revisions.length}; há revisões posteriores preservadas para consulta, não aplicadas ao estado atual.`
         : undefined;
     const before = baseRev.params;
+    const quoteNote = quoteSummary(before, b.prices);
     const infos = shelfInfos(before);
     const shelfIds = infos.map((s) => s.id);
     const validIds = entityIds(before);
@@ -286,6 +309,7 @@ export async function POST(req: Request) {
             ? null
             : (pendingClarification?.question ?? null),
           historyNote,
+          quoteNote,
         },
         progress,
         0,
@@ -367,6 +391,7 @@ export async function POST(req: Request) {
             ]
               .filter(Boolean)
               .join(' '),
+            quoteNote,
           },
           progress,
           0,
