@@ -1,6 +1,23 @@
-# Merce POC
+# Merce
 
-Estúdio local de móveis modulares com painéis retos. Chat, editor, modelo 3D, histórico e exportações usam uma composição canônica, schema v3.
+Estúdio local de móveis modulares com painéis retos. Chat, editor, modelo 3D, histórico, orçamento, plano de corte e exportações usam uma composição canônica, schema v3.
+
+## O que há de novo na v2
+
+A v1 levava da conversa ao 3D. A v2 leva da ideia ao móvel orçado e pronto para cortar, com a IA como copiloto e não como único caminho.
+
+- **Visual novo, claro e escuro.** Tokens de cor em `app/globals.css`, paleta de ateliê, tema do sistema ou escolhido no botão da barra superior. Conversa e painel lateral recolhem (`[` e `]`) e a cena ocupa o espaço.
+- **Cena 3D mais real.** Veio de madeira e laminado procedurais, luz de estúdio, sombra suave e chão que some nas bordas. Selecionar uma peça faz ela brilhar sem perder o acabamento.
+- **Ambiente no 3D.** Parede, laterais, rodapé, porta, janela, tomada e coluna desenhados com a mesma conta do veredito de encaixe; obstáculo que cruza o móvel fica vermelho. O cabeçalho da cena diz se cabe.
+- **Cotas de volta.** Largura, altura e profundidade gerais, largura de cada módulo e espaço livre até a parede e o teto.
+- **Nove acabamentos.** Branco fosco, areia, carvalho natural, freijó, nogueira, verde sálvia, azul petróleo, grafite e preto fosco, escolhidos por amostra. A IA entende os nomes ("troque para nogueira").
+- **Orçamento.** Chapas contadas pelo plano de corte, fita de borda, dobradiças pela altura da folha, corrediças, puxadores, mão de obra e margem. Tabela de preços editável, salva no navegador, e botão para copiar o orçamento. A IA responde "quanto custa" com os mesmos números.
+- **Plano de corte.** Encaixe em guilhotina por material e espessura, com disco, refilo e veio travado no comprimento da chapa, desenhado chapa a chapa, com aproveitamento e CSV de posições.
+- **Modelos prontos.** Estante de livros, guarda-roupa (com quarto de exemplo), rack com torres, aparador e sapateira, montados pelo motor com o mesmo contrato do chat.
+- **Paleta de comandos.** `Ctrl+K` busca qualquer ação; uma frase que não é comando vira pedido para a IA.
+- **Foto e impressão.** Foto PNG da vista com cotas e legenda. Imprimir gera um documento com a foto da vista, orçamento, peças agrupadas e as chapas do plano de corte.
+
+A v1 está na tag `v1`.
 
 ## Executar
 
@@ -22,28 +39,43 @@ A chave fica somente no servidor. O DeepSeek V4.1 Flash via Command Code propõe
 
 ## Usar
 
-1. Crie ou escolha um projeto no seletor superior. O seletor abre com busca por nome e um botão de exclusão por linha; excluir o projeto aberto passa para o vizinho.
-2. Adicione Estante, Nicho, Rack ou Gaveteiro em Ajustes. Todos usam o mesmo motor editável.
-3. Selecione módulo/compartimento na árvore ou peça no 3D. A seleção aparece no chat.
-4. Ajuste medidas, posição, orientação, material e fundo nas propriedades. Conecte/alinha módulos, compartilhe uma face compatível ou separe antes de mover um filho livremente. Um painel compartilhado exige faces iguais e afastamento zero: editar altura, largura, profundidade, material ou rotação de um dos dois módulos é recusado com a diferença nomeada, e o caminho é "Separar módulos" primeiro.
-5. Selecione compartimentos para dividir, mover/distribuir divisões ou configurar portas/gavetas. Abra e feche pelas ações do painel ou pelo chat. Abertura não cria revisão. As ferramentas de prateleira (inserir no vão, distribuir) valem para a estante única original; em projetos com módulos, use Dividir ↕ e Distribuir do compartimento.
-6. Arraste a timeline para consultar/restaurar versões. Uma edição a partir do passado cria um novo caminho. Use Criar alternativa desta versão para preservar ambos.
-7. Anexe ou cole uma imagem de referência no chat (JPG, PNG ou WebP, até 10 MB) e peça para copiar o layout. A IA estima a escala por objetos de tamanho conhecido na foto (frente de gaveta ~200 mm, livro ~240 mm, pé-direito ~2600 mm), mantém as proporções do que vê, arredonda para 10 mm, respeita os limites do motor e monta a fileira inteira no mesmo turno, com os módulos ligados e as divisões antes das frentes. Ela diz no texto a régua que usou, o erro esperado (±10 a 20%), o que a foto mostra e o editor não tem (cabideiro, curva, inclinado, porta de correr, tampo avulso, canto com interior contínuo) e qual medida sua fecharia o desenho: a largura real da parede ou o pé-direito. Sem pedido de cópia, a imagem é só referência visual e as medidas do projeto continuam como estão.
+1. Crie um projeto em **Novo**: em branco ou a partir de um modelo. O seletor superior abre projetos existentes, com busca por nome e exclusão por linha; excluir o projeto aberto passa para o vizinho.
+2. Adicione Estante, Nicho, Rack ou Gaveteiro na aba **Projeto**. Todos usam o mesmo motor editável.
+3. Selecione módulo/compartimento na árvore ou peça no 3D. A seleção aparece no chat e brilha na cena.
+4. Ajuste medidas, posição, orientação, acabamento e fundo nas propriedades. Conecte/alinhe módulos, compartilhe uma face compatível ou separe antes de mover um filho livremente. Um painel compartilhado exige faces iguais e afastamento zero: editar altura, largura, profundidade, acabamento ou rotação de um dos dois módulos é recusado com a diferença nomeada, e o caminho é "Separar módulos" primeiro.
+5. Selecione compartimentos para dividir, mover/distribuir divisões ou configurar portas/gavetas, com acabamento próprio na frente. Abra e feche pelas ações do painel, pelo chat ou todas de uma vez (botão da cena ou `O`). Abertura não cria revisão. As ferramentas de prateleira (inserir no vão, distribuir) valem para a estante única original; em projetos com módulos, use Dividir ↕ e Distribuir do compartimento.
+6. Arraste a linha do tempo para consultar/restaurar versões. Orçamento e plano de corte acompanham a versão exibida. Uma edição a partir do passado cria um novo caminho. Use Criar alternativa desta versão, em **Versões**, para preservar ambos.
+7. Informe o **Ambiente** (parede, pé-direito, profundidade, rodapé e obstáculos) para ver o quarto no 3D, as folgas nas cotas e o veredito de encaixe.
+8. Anexe ou cole uma imagem de referência no chat (JPG, PNG ou WebP, até 10 MB) e peça para copiar o layout. A IA estima a escala por objetos de tamanho conhecido na foto (frente de gaveta ~200 mm, livro ~240 mm, pé-direito ~2600 mm), mantém as proporções do que vê, arredonda para 10 mm, respeita os limites do motor e monta a fileira inteira no mesmo turno, com os módulos ligados e as divisões antes das frentes. Ela diz no texto a régua que usou, o erro esperado (±10 a 20%), o que a foto mostra e o editor não tem (cabideiro, curva, inclinado, porta de correr, tampo avulso, canto com interior contínuo) e qual medida sua fecharia o desenho: a largura real da parede ou o pé-direito. Sem pedido de cópia, a imagem é só referência visual e as medidas do projeto continuam como estão.
    A IA também vê o próprio desenho: em pedido com foto ela recebe, junto da referência, o desenho do projeto atual (frontal e isométrica) e, depois de aplicar, confere o desenho do resultado contra a foto e responde "olhei o desenho: ficou parecido/em parte/diferente", com o que está errado e até 10 operações de correção já aplicadas. O desenho conferido aparece na conversa, então você vê exatamente o que ela viu. Num desenho de linhas não dá para julgar cor, textura nem ferragem, e a conferência não inventa isso.
-8. Os chips abaixo da conversa são os próximos passos propostos pela IA para este projeto, com o contexto do último turno (a lista fixa só aparece na primeira mensagem, quando ainda não há resposta dela). Clicar envia o pedido direto, sem passar pelo campo, e o que você digitou continua lá. Quando a IA precisa de uma decisão, o cartão mostra a pergunta, duas respostas sugeridas, as demais opções e um campo para responder do seu jeito; as opções são revalidadas antes de aplicar. Cada alteração aparece como um cartão: o que foi feito ("Nicho adicionado"), um resumo, o desenho do módulo com as medidas reais, largura/altura/profundidade, posição, alinhamento, frentes e acabamento. Quando o lote repete a mesma mudança em vários alvos, o cartão agrupa e mostra uma linha por vão, com barra proporcional: três divisões com restos diferentes (1296, 828 e 360 mm) ficam visivelmente diferentes. O texto da IA vem depois, como comentário, e o roteiro técnico não aparece na interface.
-9. Exporte CSV, Cortecloud, projeto completo ou impressão/PDF. O nome do projeto permanece editável em Ajustes.
+9. Os chips abaixo da conversa são os próximos passos propostos pela IA para este projeto, com o contexto do último turno (a lista fixa só aparece quando ainda não há resposta dela). Clicar envia o pedido direto, sem passar pelo campo, e o que você digitou continua lá. Quando a IA precisa de uma decisão, o cartão mostra a pergunta, duas respostas sugeridas, as demais opções e um campo para responder do seu jeito; as opções são revalidadas antes de aplicar. Cada alteração aparece como um cartão com o que foi feito, um resumo, o desenho do módulo com as medidas reais, posição, alinhamento, frentes e acabamento. Quando o lote repete a mesma mudança em vários alvos, o cartão agrupa e mostra uma linha por vão, com barra proporcional. O texto da IA vem depois, como comentário.
+10. Veja o custo em **Orçamento** e as chapas em **Corte**. Ajuste a tabela de preços uma vez; ela vale para todos os projetos deste navegador.
+11. Em **Exportar**: foto da vista (PNG), imprimir/PDF, lista de peças (CSV), plano de corte (CSV), Cortecloud e projeto completo (JSON). O nome do projeto se edita clicando no título acima do 3D.
 
-Exemplos: “Copie o layout desta foto”; “Divida este compartimento em duas colunas”; “Coloque três gavetas embaixo e duas portas em cima”; “Adicione outro módulo à direita compartilhando a lateral”; “Adicione um módulo perpendicular alinhado pelos fundos”; “Abra as portas deste módulo”.
+Exemplos: “Copie o layout desta foto”; “Divida este compartimento em duas colunas”; “Coloque três gavetas embaixo e duas portas em cima”; “Troque as frentes para nogueira”; “Adicione outro módulo à direita compartilhando a lateral”; “Quanto custa e quantas chapas usa?”; “Abra as portas deste módulo”.
+
+### Atalhos
+
+| Tecla | Ação |
+|---|---|
+| `Ctrl+K` | Paleta de comandos |
+| `/` | Escrever para a IA |
+| `1` `2` `3` `4` | Perspectiva, frontal, lateral, topo |
+| `F` · `+` · `-` | Enquadrar, aproximar, afastar |
+| `D` · `R` · `E` · `O` | Cotas, ambiente, explodir, abrir/fechar frentes |
+| `[` · `]` | Recolher conversa, recolher painel |
+| `Ctrl+Z` · `Ctrl+Y` | Desfazer, refazer |
+| `Esc` | Limpar seleção, cancelar prévia do histórico |
 
 ## Limites e dados
 
 Até 12 módulos, 200 painéis físicos e 32 compartimentos finais por módulo. Medidas externas de cada módulo: largura 200–1200, altura 200–2400, profundidade 200–800 mm. Vãos mínimos de 100 mm. Rotação em passos de 90°. O L usa módulos retangulares separados.
 
-Não inclui curvas, inclinados, recortes, canto com interior contínuo, portas de correr/basculantes, mesas, tampos avulsos, furação, ferragens comerciais ou certificação estrutural. O botão de cotas não foi reintroduzido.
+Não inclui curvas, inclinados, recortes, canto com interior contínuo, portas de correr/basculantes, mesas, tampos avulsos, furação, ferragens comerciais ou certificação estrutural.
 
 SQLite em `data/merce.sqlite`, ou `MERCE_DATA_DIR`. Bancos antigos recebem backup consistente em `merce-before-modules.sqlite`. Revisões v1/v2 são migradas deterministicamente na leitura e gravadas em v3 no próximo salvamento, preservando medidas, mensagens e vínculos.
 
-CSV UTF-8 com BOM e `;`, uma linha por peça física. Painel compartilhado aparece uma vez, com dois proprietários. CSV/Cortecloud sempre usam a posição fechada. JSON completo inclui composição, conexões, perfil e histórico; a impressão mostra vista superior e uma tabela que agrupa peças idênticas numa linha com a quantidade e fecha com totais de itens, peças e área em m². Não há otimização de chapas, montagem ou ferragens na exportação. Adaptador Cortecloud experimental, sem validação de importação em conta real. Reimportação de projeto JSON pela interface permanece fora da POC.
+CSV UTF-8 com BOM e `;`, uma linha por peça física. Painel compartilhado aparece uma vez, com dois proprietários. CSV/Cortecloud sempre usam a posição fechada. JSON completo inclui composição, conexões, perfil e histórico; a impressão mostra vista superior e uma tabela que agrupa peças idênticas numa linha com a quantidade e fecha com totais de itens, peças e área em m². O plano de corte é um encaixe em guilhotina honesto, não o ótimo matemático; a exportação não traz montagem nem furação. O orçamento é estimativa com preços de partida em reais (chapa 2750 × 1840 mm). Adaptador Cortecloud experimental, sem validação de importação em conta real. Reimportação de projeto JSON pela interface permanece fora da POC.
 
 Consulte [regras e arquitetura](docs/MODULAR.md) e [resultados da validação](docs/MODULAR-VALIDATION.md).
 
