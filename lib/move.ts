@@ -101,7 +101,7 @@ export function moduleBoxes(d: Composition) {
  * borda de um vizinho (encostar lado a lado, alinhar frente, fundo, topo) ou
  * volta ao lugar de origem quando passa perto. O piso é o limite de baixo.
  */
-export function snapDelta(d: Composition, group: MoveGroup, raw: Vec3, boxes = moduleBoxes(d)): Vec3 {
+export function snapDelta(d: Composition, group: MoveGroup, raw: Vec3, boxes = moduleBoxes(d), wallZ?: number): Vec3 {
   const members = new Set(group.members);
   const mine = merge(group.members.map((id) => boxes.get(id)).filter((b): b is Box => !!b));
   const delta = raw.map((v) => Math.round(v / MOVE_GRID) * MOVE_GRID || 0) as Vec3;
@@ -117,12 +117,33 @@ export function snapDelta(d: Composition, group: MoveGroup, raw: Vec3, boxes = m
     delta[axis] = best;
   };
   pick(0, [0, ...others.flatMap((o) => [o.max[0] - mine.min[0], o.min[0] - mine.max[0], o.min[0] - mine.min[0], o.max[0] - mine.max[0]])]);
-  pick(2, [0, ...others.flatMap((o) => [o.min[2] - mine.min[2], o.max[2] - mine.max[2]])]);
+  pick(2, [0, ...(wallZ === undefined ? [] : [wallZ - mine.min[2]]), ...others.flatMap((o) => [o.min[2] - mine.min[2], o.max[2] - mine.max[2]])]);
+  // A parede é o limite de trás: o fundo do móvel encosta, não atravessa.
+  if (wallZ !== undefined) delta[2] = Math.max(delta[2], Math.min(0, wallZ - mine.min[2]));
   pick(1, [0, -mine.min[1], ...others.flatMap((o) => [o.max[1] - mine.max[1], o.min[1] - mine.min[1]])]);
   // Nada abaixo do piso: a raiz guarda o chão do conjunto em position[1].
   const root = d.modules.find((m) => m.id === group.root)!;
   delta[1] = Math.max(delta[1], -root.position[1], -mine.min[1]);
   return delta.map((v) => v || 0) as Vec3;
+}
+
+/**
+ * Conferência rápida durante o arrasto: a caixa do conjunto deslocado contra a
+ * de cada vizinho. A regra completa (peça por peça) roda ao soltar.
+ */
+export function quickBlock(d: Composition, group: MoveGroup, delta: Vec3, boxes = moduleBoxes(d)): string | null {
+  const members = new Set(group.members);
+  const TOUCH = 1;
+  for (const id of group.members) {
+    const a = boxes.get(id);
+    if (!a) continue;
+    for (const [other, b] of boxes) {
+      if (members.has(other)) continue;
+      const hit = [0, 1, 2].every((i) => Math.min(a.max[i] + delta[i], b.max[i]) - Math.max(a.min[i] + delta[i], b.min[i]) > TOUCH);
+      if (hit) return d.modules.find((m) => m.id === other)?.name ?? other;
+    }
+  }
+  return null;
 }
 
 export function moveOp(d: Composition, group: MoveGroup, delta: Vec3): ModularOp {

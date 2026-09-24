@@ -24,8 +24,29 @@ export type Room = {
    * lado esquerdo da composição. Ausente, o móvel encosta no canto.
    */
   offsetMm?: number;
+  /**
+   * Parede presa no mundo: x do canto esquerdo e z da face da parede, em mm.
+   * Existe depois que o móvel é arrastado: aí a parede fica parada e o
+   * afastamento do canto (e da parede) sai do lugar do móvel. Ausente, a
+   * parede acompanha o móvel, encostada atrás dele a `offsetMm` do canto.
+   */
+  anchor?: { x: number; z: number };
   obstacles?: Obstacle[];
 };
+
+type Extent = { min: readonly number[]; max: readonly number[] };
+/** Onde está a parede no mundo: presa, ou encostada atrás do móvel. */
+export function wallAt(room: Room, bounds: Extent) {
+  return room.anchor ?? { x: bounds.min[0] - (room.offsetMm ?? 0), z: bounds.min[2] };
+}
+/** Distância do canto esquerdo da parede ao lado esquerdo do móvel. */
+export function roomOffset(room: Room, bounds: Extent) {
+  return Math.round(bounds.min[0] - wallAt(room, bounds).x);
+}
+/** Folga entre a parede e o fundo do móvel (negativa: atravessa a parede). */
+export function wallGap(room: Room, bounds: Extent) {
+  return Math.round(bounds.min[2] - wallAt(room, bounds).z);
+}
 
 export type ObstacleKind = 'door' | 'window' | 'outlet' | 'column' | 'tv' | 'other';
 
@@ -131,6 +152,10 @@ export const roomSchema: z.ZodType<Room> = z
       .min(ROOM_LIMITS.offset[0])
       .max(ROOM_LIMITS.offset[1])
       .optional(),
+    anchor: z
+      .object({ x: z.number().min(-40000).max(40000), z: z.number().min(-40000).max(40000) })
+      .strict()
+      .optional(),
     obstacles: z.array(obstacleSchema).max(ROOM_LIMITS.obstacles).optional(),
   })
   .strict();
@@ -227,7 +252,8 @@ export function fitReport(design: Composition, room: Room): FitReport {
   const obstacles = room.obstacles ?? [];
   const crossed = new Set<string>();
   const obstacleIssues: FitIssue[] = [];
-  const offset = room.offsetMm ?? 0;
+  const offset = roomOffset(room, g.bounds);
+  const gap = wallGap(room, g.bounds);
   for (const obstacle of obstacles) {
     // A TV é da parede, não do móvel: fica na frente do painel e acima do
     // rack de propósito, então não conta como obstáculo.
@@ -261,7 +287,13 @@ export function fitReport(design: Composition, room: Room): FitReport {
       message: `O móvel tem ${metres(height)} de altura e o pé-direito é ${metres(room.heightMm)}`,
       detail: `Passa ${centimetres(height - room.heightMm)} do teto.`,
     });
-  if (offset + width > room.widthMm)
+  if (offset < 0)
+    issues.push({
+      code: 'too-wide',
+      message: `O móvel passa ${centimetres(-offset)} do canto esquerdo da parede`,
+      detail: 'Arraste o móvel para a direita ou informe uma parede maior.',
+    });
+  else if (offset + width > room.widthMm)
     issues.push({
       code: 'too-wide',
       message: offset
@@ -269,11 +301,19 @@ export function fitReport(design: Composition, room: Room): FitReport {
         : `O móvel tem ${metres(width)} de largura e a parede tem ${metres(room.widthMm)}`,
       detail: `Passa ${centimetres(offset + width - room.widthMm)} da parede.`,
     });
-  if (room.depthMm !== undefined && depth > room.depthMm)
+  if (gap < -1)
     issues.push({
       code: 'too-deep',
-      message: `O móvel tem ${metres(depth)} de profundidade e o ambiente permite ${metres(room.depthMm)}`,
-      detail: `Passa ${centimetres(depth - room.depthMm)} do limite do ambiente.`,
+      message: `O móvel atravessa a parede em ${centimetres(-gap)}`,
+      detail: 'Arraste o móvel para a frente até encostar na parede.',
+    });
+  else if (room.depthMm !== undefined && depth + Math.max(gap, 0) > room.depthMm)
+    issues.push({
+      code: 'too-deep',
+      message: gap > 1
+        ? `O móvel está a ${centimetres(gap)} da parede e tem ${metres(depth)} de profundidade; o ambiente permite ${metres(room.depthMm)}`
+        : `O móvel tem ${metres(depth)} de profundidade e o ambiente permite ${metres(room.depthMm)}`,
+      detail: `Passa ${centimetres(depth + Math.max(gap, 0) - room.depthMm)} do limite do ambiente.`,
     });
   issues.push(...obstacleIssues);
   // Painel e módulo suspenso vão presos na parede: não precisam tocar o piso.
@@ -334,7 +374,7 @@ export function fitSummary(
   const width = g.bounds.max[0] - g.bounds.min[0];
   // A folga contada é a menor das duas: é ela que aperta o encaixe.
   const vertical = room.heightMm - height;
-  const horizontal = room.widthMm - (room.offsetMm ?? 0) - width;
+  const horizontal = room.widthMm - roomOffset(room, g.bounds) - width;
   if (vertical <= horizontal)
     return `Cabe: ${metres(room.heightMm)} de parede por ${metres(height)} de móvel, folga de ${centimetres(vertical)}`;
   return `Cabe: ${metres(room.widthMm)} de parede por ${metres(width)} de móvel, folga de ${centimetres(horizontal)}`;

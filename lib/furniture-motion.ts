@@ -112,13 +112,58 @@ export class FurnitureMotion {
     this.diff = diff;
   }
   /**
-   * Móvel sendo arrastado: as peças do conjunto andam pelo deslocamento sem
-   * refazer o projeto a cada quadro. `blocked` pinta de vermelho quando a
-   * posição bate em outro móvel.
+   * Móvel em movimento, ainda não gravado: as peças do conjunto andam pelo
+   * deslocamento sem refazer o projeto. O deslocamento mostrado (`current`)
+   * persegue o pedido (`target`) com amortecimento, então o arrasto em passos
+   * de 1 cm e os toques nas setas deslizam em vez de pular. `blocked` pinta de
+   * vermelho quando a posição bate em outro móvel.
    */
-  private drag: { ids: Set<string>; offset: THREE.Vector3; blocked: boolean } | null = null;
-  setDrag(drag: { ids: Set<string>; offset: THREE.Vector3; blocked: boolean } | null) {
-    this.drag = drag;
+  private drag: {
+    ids: Set<string>;
+    modules: Set<string>;
+    target: THREE.Vector3;
+    current: THREE.Vector3;
+    blocked: boolean;
+    /** O projeto novo chegou com o móvel no lugar: a base pula, o resto desliza. */
+    rebase: boolean;
+  } | null = null;
+  private lastTick = 0;
+  /** Novo alvo do arrasto; `null` solta: o conjunto desliza de volta ao lugar. */
+  setDrag(next: { ids: Set<string>; modules: Set<string>; offset: THREE.Vector3; blocked: boolean } | null) {
+    if (!next) {
+      if (this.drag) {
+        this.drag.target.set(0, 0, 0);
+        this.drag.blocked = false;
+      }
+      return;
+    }
+    const same = this.drag && this.drag.ids.size === next.ids.size && [...next.ids].every((id) => this.drag!.ids.has(id));
+    if (same) {
+      this.drag!.target.copy(next.offset);
+      this.drag!.blocked = next.blocked;
+      return;
+    }
+    this.drag = { ids: next.ids, modules: next.modules, target: next.offset.clone(), current: new THREE.Vector3(), blocked: next.blocked, rebase: false };
+  }
+  /**
+   * O lugar novo foi gravado e o projeto vai chegar com ele: o que já andou na
+   * tela vira a diferença até o lugar novo, que desliza até zero. Chamar antes
+   * de `update` com o projeto novo.
+   */
+  rebaseDrag(delta: THREE.Vector3) {
+    if (!this.drag) return;
+    this.drag.current.sub(delta);
+    this.drag.target.set(0, 0, 0);
+    this.drag.blocked = false;
+    this.drag.rebase = true;
+  }
+  /** Deslocamento mostrado agora num módulo (os pés andam junto). */
+  dragOffset(moduleId: string) {
+    return this.drag?.modules.has(moduleId) ? this.drag.current : null;
+  }
+  /** Ainda andando: as cotas esperam o móvel parar. */
+  get moving() {
+    return !!this.drag && (this.drag.target.lengthSq() > 0.25 || this.drag.current.lengthSq() > 0.25);
   }
   constructor(private scene: THREE.Scene) {}
   readonly entries = new Map<string, AnimatedPart>();
@@ -201,6 +246,12 @@ export class FurnitureMotion {
         this.entries.set(part.id, entry);
       }
       entry.from = this.read(entry);
+      // Móvel recém-gravado no lugar novo: a base vai direto para lá e o
+      // deslocamento que resta faz a transição, sem voltar ao lugar antigo.
+      if (this.drag?.rebase && this.drag.ids.has(part.id)) {
+        entry.from.position.copy(target.position);
+        entry.from.rotation = target.rotation;
+      }
       // Acabamento e veio seguem a peça: a textura é da cor de catálogo e as
       // coordenadas de textura são em milímetros do tamanho final, para o veio
       // não esticar numa lateral de 2,4 m nem encolher numa frente de gaveta.
@@ -256,9 +307,18 @@ export class FurnitureMotion {
       entry.exiting = true;
     }
     this.initialized = true;
+    if (this.drag) this.drag.rebase = false;
     this.tick(now, reduced);
   }
   tick(now: number, reduced = false) {
+    const dt = Math.min(Math.max(now - this.lastTick, 0), 50);
+    this.lastTick = now;
+    if (this.drag) {
+      // Amortecimento de mola crítica: ~90% do caminho em 0,15 s.
+      const k = reduced ? 1 : 1 - Math.exp(-dt / 65);
+      this.drag.current.lerp(this.drag.target, k);
+      if (!this.drag.rebase && this.drag.target.lengthSq() === 0 && this.drag.current.lengthSq() < 0.04) this.drag = null;
+    }
     for (const [id, e] of this.entries) {
       const t =
         reduced || !e.duration ? 1 : ease((now - e.started) / e.duration);
@@ -280,7 +340,7 @@ export class FurnitureMotion {
       }
       if (t === 1) e.mesh.position.copy(e.to.position);
       const dragged = !!this.drag?.ids.has(id);
-      if (dragged) e.mesh.position.add(this.drag!.offset);
+      if (dragged) e.mesh.position.add(this.drag!.current);
       e.mesh.scale.lerpVectors(e.from.size, e.to.size, t);
       e.mesh.material.color.copy(e.from.color).lerp(e.to.color, t);
       const mark = this.diff

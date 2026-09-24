@@ -61,7 +61,7 @@ Exemplos: “Faz um rack de TV de 2 m em nogueira”; “Quero um painel de TV c
 
 ### Atalhos
 
-**Mudar o móvel de lugar:** selecione uma peça dele e arraste-a na cena. O conjunto inteiro anda junto (módulos conectados vão com a raiz), em passos de 1 cm, grudando nas bordas dos vizinhos e voltando ao lugar se bater em outro móvel (fica vermelho). De cima, arrasta no piso; de frente, aéreos e painéis também sobem e descem. No canto da cena, o controle **Mover** faz o ajuste fino: setas (1 cm, 10 cm com Shift, seguram e repetem), Subir/Descer e girar 90°. Com ambiente real, a parede fica parada e a distância do canto acompanha.
+**Mudar o móvel de lugar:** selecione uma peça dele e arraste-a na cena. O conjunto inteiro anda junto (módulos conectados vão com a raiz), em passos de 1 cm, grudando nas bordas dos vizinhos e voltando ao lugar se bater em outro móvel (fica vermelho). De cima, arrasta no piso; de frente, aéreos e painéis também sobem e descem. No canto da cena, o controle **Mover** faz o ajuste fino: setas (1 cm, 10 cm com Shift, seguram e repetem), Subir/Descer e girar 90°. A parede fica parada: no primeiro movimento ela é presa no lugar (também a parede de referência, sem ambiente), então dá para afastar o móvel dela, e desfazer devolve o móvel, não a parede. Para trás, o móvel encosta na parede e para. O móvel desliza até o lugar novo e as cotas voltam quando ele para.
 
 | Tecla | Ação |
 |---|---|

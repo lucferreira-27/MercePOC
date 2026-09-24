@@ -89,7 +89,7 @@ import { templates } from '@/lib/templates';
 import { PrintSheet, groupParts } from '@/components/print-sheet';
 import { entityIds, canonical, selectedPartIds } from '@/lib/studio';
 import { drawingParts, generateComposition, openingLimit, openingPose, type ModularPart } from '@/lib/composition';
-import { fitReport, fitSummary, type Room } from '@/lib/room';
+import { fitReport, fitSummary, roomOffset, wallAt, type Room } from '@/lib/room';
 import { DEFAULT_PRICES, mergePrices, money, quote as buildQuote, type Prices } from '@/lib/quote';
 import { friendlyError } from '@/lib/errors';
 import { MODEL_KEYS, modelInfo, tokensLabel, usd, type ModelKey, type TurnUsage } from '@/lib/models';
@@ -984,15 +984,18 @@ export default function Home() {
     return guardTruncation(() => runOps(operations, label, 'ops', extra), label);
   }
   /**
-   * Móvel arrastado na cena. Com ambiente real, a distância do canto anda
-   * junto no mesmo pedido: a parede fica onde está e o móvel desliza nela.
+   * Móvel arrastado na cena. Com ambiente real, a parede é presa no mundo no
+   * primeiro movimento (no mesmo pedido): daí em diante ela fica parada, o
+   * móvel anda nela e desfazer devolve o móvel, não a parede.
    */
   async function moveFurniture(operation: ShelfOp, label: string, shiftX: number) {
     if (!p) return;
-    const room =
-      p.room && Math.round(shiftX)
-        ? { ...p.room, offsetMm: Math.max(0, Math.round((p.room.offsetMm ?? 0) + shiftX)) }
-        : undefined;
+    let room: Room | undefined;
+    if (p.room) {
+      const before = generateComposition(p.params).bounds;
+      const anchor = p.room.anchor ?? wallAt(p.room, before);
+      room = { ...p.room, anchor, offsetMm: Math.max(0, Math.round(roomOffset({ ...p.room, anchor }, before) + shiftX)) };
+    }
     await applyOps([operation], label, room ? { room } : {});
   }
   async function runOps(operations: ShelfOp[], label: string, kind: 'op' | 'ops', extra: { room?: Room } = {}) {
@@ -1028,6 +1031,11 @@ export default function Home() {
    * descarta versões futuras, só grava as medidas no projeto.
    */
   async function saveRoom(room: Room) {
+    // Parede presa: o campo "a partir do canto" reposiciona a parede em x.
+    if (p?.room?.anchor) {
+      const bounds = generateComposition(p.params).bounds;
+      room = { ...room, anchor: { x: bounds.min[0] - (room.offsetMm ?? 0), z: p.room.anchor.z } };
+    }
     const next = await action('room', { room });
     // O painel mostra o motivo no próprio formulário; o aviso geral já saiu.
     if (!next) throw new Error('Não foi possível salvar o ambiente.');
@@ -2591,7 +2599,7 @@ export default function Home() {
               {tab === 'room' && (
                 <RoomPanel
                   key={p.id}
-                  room={p.room}
+                  room={p.room?.anchor ? { ...p.room, offsetMm: Math.max(0, roomOffset(p.room, generateComposition(p.params).bounds)) } : p.room}
                   report={roomFit?.report ?? null}
                   summary={roomFit?.summary ?? ''}
                   busy={busy || historyPreview !== null || reviewLocked}

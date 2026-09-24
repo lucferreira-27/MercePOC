@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Part } from './furniture';
-import type { Room } from './room';
+import { wallAt, type Room } from './room';
 import type { SceneBounds } from './scene-room';
 
 /**
@@ -71,7 +71,7 @@ export function buildDims(parts: readonly Part[], bounds: SceneBounds, room: Roo
   // Espaço livre até a parede: numa segunda linha, afastada das cotas do
   // móvel, para os rótulos não caírem uns sobre os outros.
   if (room) {
-    const wallBegin = x0 - (room.offsetMm ?? 0);
+    const wallBegin = wallAt(room, bounds).x;
     const wallEnd = wallBegin + room.widthMm;
     if (x0 - wallBegin > 5)
       dim(new THREE.Vector3(wallBegin, 0, front + 260), new THREE.Vector3(x0, 0, front + 260), new THREE.Vector3(0, 0, 1), `livre ${cmLabel(x0 - wallBegin)}`, 'free');

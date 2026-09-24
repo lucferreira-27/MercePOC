@@ -62,3 +62,65 @@ void test('girar 90° vira a raiz e dá a volta completa', () => {
   }
   assert.equal(d.modules.find((m) => m.id === 'a')!.rotation, 0);
 });
+
+void test('parede presa: afastar o móvel abre folga, não leva a parede junto', async () => {
+  const { wallAt, roomOffset, wallGap, fitReport } = await import('../lib/room');
+  const d = pair();
+  const bounds = generateComposition(d).bounds;
+  const room = { schemaVersion: 1 as const, widthMm: 3000, heightMm: 2600, depthMm: 1500, offsetMm: 500 };
+  // Sem âncora a parede acompanha: encostada atrás, a 500 mm do canto.
+  const anchor = wallAt(room, bounds);
+  assert.deepEqual(anchor, { x: bounds.min[0] - 500, z: bounds.min[2] });
+  const pinned = { ...room, anchor };
+  const moved = tryOp(d, moveOp(d, moveGroup(d, 'a')!, [-200, 0, 300]));
+  assert.ok(moved.ok);
+  if (!moved.ok) return;
+  const after = generateComposition(moved.design).bounds;
+  assert.equal(roomOffset(pinned, after), 300);
+  assert.equal(wallGap(pinned, after), 0, 'o nicho "b" continua encostado');
+  // Sem o vizinho, o nicho sozinho abre 30 cm de folga da parede presa.
+  const solo: Composition = { ...moved.design, modules: moved.design.modules.filter((m) => m.id === 'a') };
+  assert.equal(wallGap(pinned, generateComposition(solo).bounds), 300);
+  assert.equal(fitReport(solo, pinned).fits, true);
+  // Para trás da parede: o veredito acusa.
+  const through = tryOp(solo, moveOp(solo, moveGroup(solo, 'a')!, [0, 0, -500]));
+  assert.ok(through.ok);
+  if (through.ok) assert.match(fitReport(through.design, pinned).issues[0].message, /atravessa a parede/);
+});
+
+void test('arrasto para trás para na parede', () => {
+  const d = pair();
+  const g = moveGroup(d, 'a')!;
+  const boxes = moduleBoxes(d);
+  const wall = generateComposition(d).bounds.min[2];
+  assert.equal(snapDelta(d, g, [0, 0, -400], boxes, wall)[2], 0);
+  assert.equal(snapDelta(d, g, [0, 0, 400], boxes, wall)[2], 400);
+});
+
+void test('soltar no lugar novo continua de onde está, sem voltar ao lugar antigo', async () => {
+  const THREE = await import('three');
+  const { FurnitureMotion } = await import('../lib/furniture-motion');
+  const scene = new THREE.Scene();
+  const motion = new FurnitureMotion(scene);
+  const d = pair();
+  const parts = generateComposition(d).parts;
+  motion.update(parts, { height: 500, materialId: d.modules[0].materialId }, false, [], 0);
+  const ids = new Set(parts.filter((p) => p.owners[0] === 'a').map((p) => p.id));
+  const id = [...ids][0];
+  const home = motion.entries.get(id)!.mesh.position.clone();
+  motion.setDrag({ ids, modules: new Set(['a']), offset: new THREE.Vector3(-300, 0, 0), blocked: false });
+  for (let t = 16; t <= 2000; t += 16) motion.tick(t);
+  assert.ok(Math.abs(motion.entries.get(id)!.mesh.position.x - (home.x - 300)) < 1);
+  // O projeto gravado chega com o nicho 300 mm à esquerda.
+  const next = tryOp(d, moveOp(d, moveGroup(d, 'a')!, [-300, 0, 0]));
+  assert.ok(next.ok);
+  if (!next.ok) return;
+  motion.rebaseDrag(new THREE.Vector3(-300, 0, 0));
+  motion.update(generateComposition(next.design).parts, { height: 500, materialId: d.modules[0].materialId }, false, [], 2016);
+  // Nenhum quadro volta ao lugar antigo.
+  for (let t = 2016; t <= 3000; t += 16) {
+    motion.tick(t);
+    assert.ok(Math.abs(motion.entries.get(id)!.mesh.position.x - (home.x - 300)) < 1, `quadro ${t}`);
+  }
+  assert.equal(motion.moving, false);
+});

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Foot } from './composition';
-import type { Obstacle, Room } from './room';
+import { roomOffset, wallAt, type Obstacle, type Room } from './room';
 
 /**
  * O ambiente desenhado na cena 3D, com a mesma convenção do veredito de
@@ -22,23 +22,40 @@ export const ROOM_PALETTE: Record<'light' | 'dark', RoomPalette> = {
   dark: { wall: '#2b2d31', side: '#26282b', floor: '#1f2023', trim: '#3a3c41', glass: '#3f5f6d', bad: '#e0605b' },
 };
 
-/** Onde a parede começa no mundo: o móvel fica a `offsetMm` do canto esquerdo. */
+/** Onde a parede começa no mundo: presa, ou a `offsetMm` do móvel. */
 export function wallStart(room: Room, bounds: SceneBounds) {
-  return bounds.min[0] - (room.offsetMm ?? 0);
+  return wallAt(room, bounds).x;
 }
 
 /**
  * Parede de referência quando o projeto não tem ambiente: pé-direito comum e
  * um metro de parede de cada lado do móvel. Dá escala e o "encostar" na
  * parede sem fingir que é a medida do cliente (não entra no veredito).
+ *
+ * Com `homeZ` (onde fica o fundo de um módulo no lugar de origem), a parede
+ * fica presa no mundo: arrastar o móvel para a frente abre a folga em vez de
+ * a parede ir junto, e para o lado a parede só cresce para caber.
  */
-export function referenceRoom(bounds: SceneBounds): Room {
+export function referenceRoom(bounds: SceneBounds, homeZ?: number): Room {
+  const heightMm = Math.max(2700, Math.ceil((bounds.max[1] + 200) / 100) * 100);
+  if (homeZ !== undefined) {
+    const left = Math.floor(Math.min(bounds.min[0] - 1000, -1600) / 100) * 100;
+    const right = Math.ceil(Math.max(bounds.max[0] + 1000, 1600) / 100) * 100;
+    return {
+      schemaVersion: 1,
+      widthMm: right - left,
+      heightMm,
+      depthMm: 3000,
+      anchor: { x: left, z: Math.min(bounds.min[2], homeZ) },
+      obstacles: [],
+    };
+  }
   const width = bounds.max[0] - bounds.min[0];
   const wall = Math.max(3200, Math.ceil((width + 2000) / 100) * 100);
   return {
     schemaVersion: 1,
     widthMm: wall,
-    heightMm: Math.max(2700, Math.ceil((bounds.max[1] + 200) / 100) * 100),
+    heightMm,
     depthMm: 3000,
     offsetMm: Math.round((wall - width) / 2),
     obstacles: [],
@@ -57,8 +74,8 @@ export function obstacleCrosses(o: Obstacle, bounds: SceneBounds, offset = 0) {
 
 /** Extensão do ambiente no mundo: serve para enquadrar a câmera. */
 export function roomExtent(room: Room, bounds: SceneBounds): SceneBounds {
-  const wallZ = bounds.min[2];
-  const depth = room.depthMm ?? Math.max(1800, (bounds.max[2] - bounds.min[2]) * 3);
+  const wallZ = wallAt(room, bounds).z;
+  const depth = room.depthMm ?? Math.max(1800, (bounds.max[2] - wallAt(room, bounds).z) * 3);
   const x0 = wallStart(room, bounds);
   return {
     min: [x0, 0, wallZ],
@@ -73,7 +90,7 @@ export function roomExtent(room: Room, bounds: SceneBounds): SceneBounds {
  */
 export function roomFocus(room: Room, bounds: SceneBounds): SceneBounds {
   const x0 = wallStart(room, bounds);
-  const min = [bounds.min[0] - 350, 0, bounds.min[2]];
+  const min = [bounds.min[0] - 350, 0, Math.min(bounds.min[2], wallAt(room, bounds).z)];
   const max = [bounds.max[0] + 350, bounds.max[1] + 150, bounds.max[2]];
   for (const o of room.obstacles ?? []) {
     min[0] = Math.min(min[0], x0 + o.xMm - 150);
@@ -95,12 +112,12 @@ export function buildRoom(room: Room, bounds: SceneBounds, theme: 'light' | 'dar
   const c = ROOM_PALETTE[theme];
   const group = new THREE.Group();
   group.name = 'ambiente';
-  const offset = room.offsetMm ?? 0;
+  const offset = roomOffset(room, bounds);
   const x0 = wallStart(room, bounds);
-  const wallZ = bounds.min[2] - 1;
+  const wallZ = wallAt(room, bounds).z - 1;
   const W = room.widthMm;
   const H = room.heightMm;
-  const depth = room.depthMm ?? Math.max(1800, (bounds.max[2] - bounds.min[2]) * 3);
+  const depth = room.depthMm ?? Math.max(1800, (bounds.max[2] - wallAt(room, bounds).z) * 3);
   const disposables: { dispose: () => void }[] = [];
   const mat = (color: string, extra: THREE.MeshStandardMaterialParameters = {}) => {
     const m = new THREE.MeshStandardMaterial({ color, roughness: 0.95, ...extra });

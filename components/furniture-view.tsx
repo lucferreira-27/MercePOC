@@ -18,7 +18,8 @@ import {
 } from '@/lib/furniture-motion';
 import { DIFF_GLOW } from '@/lib/scene-materials';
 import type { ModularOp } from '@/lib/composition';
-import { MOVE_GRID, moduleBoxes, moveGroup, moveOp, rotateOp, selectedGroup, shortMm, snapDelta, tryOp, type MoveGroup, type Vec3 } from '@/lib/move';
+import { MOVE_GRID, moduleBoxes, moveGroup, moveOp, quickBlock, rotateOp, selectedGroup, shortMm, snapDelta, tryOp, type MoveGroup, type Vec3 } from '@/lib/move';
+import { wallAt } from '@/lib/room';
 import { MovePad, type NudgeDir } from './move-pad';
 type CameraMove = {
   from: THREE.Vector3;
@@ -50,6 +51,8 @@ type Runtime = {
   preview?: { group: MoveGroup; delta: Vec3; blocked: boolean };
   showPreview?: () => void;
   commitPreview?: () => void;
+  /** Prévia enviada para gravar: o projeto que volta já traz este lugar. */
+  committing?: { group: MoveGroup; delta: Vec3 };
   /** Até quando a câmera fica parada: mover à mão não reenquadra a cena. */
   holdFrame?: number;
 };
@@ -187,10 +190,24 @@ export default function FurnitureView({
   }, [onSelect]);
   // O arrasto vive nos ouvintes da montagem: lê o projeto e a seleção do
   // render atual por aqui.
-  const latest = useRef({ params, parts, selected, movable, onMove });
+  const bounds: SceneBounds = useMemo(() => generateComposition(params).bounds, [params]);
+  // Onde o fundo de um módulo fica no lugar de origem (centro em z = 0): a
+  // parede de referência se prende ali, e o móvel afasta dela sem levá-la.
+  const homeZ = useMemo(
+    () =>
+      -Math.max(
+        0,
+        ...params.modules.filter((m) => m.kind !== 'panel').map((m) => (m.rotation % 180 ? m.width : m.depth)),
+      ) / 2,
+    [params],
+  );
+  // A parede limita o arrasto para trás: a real, ou a de referência.
+  const wallZ = room ? wallAt(room, bounds).z : Math.min(bounds.min[2], homeZ);
+  const latest = useRef({ params, parts, selected, movable, onMove, wallZ });
   useEffect(() => {
-    latest.current = { params, parts, selected, movable, onMove };
-  }, [params, parts, selected, movable, onMove]);
+    latest.current = { params, parts, selected, movable, onMove, wallZ };
+  }, [params, parts, selected, movable, onMove, wallZ]);
+  const lastParams = useRef(params);
   const [moveTip, setMoveTip] = useState<{ x: number; y: number; text: string; bad: boolean } | null>(null);
   const [moveStatus, setMoveStatus] = useState<{ text: string; bad?: boolean } | null>(null);
   const dragging = useRef(false);
@@ -291,23 +308,21 @@ export default function FurnitureView({
       labelEls: [],
     };
     runtime.current = state;
-    /** Desenha o móvel no lugar da prévia: peças, pés e cotas. */
+    /**
+     * Passa a prévia ao controlador de peças, que desliza o conjunto até lá.
+     * Sem prévia, o conjunto desliza de volta ao lugar gravado.
+     */
     const showPreview = () => {
       const p = state.preview;
-      const members = new Set(p?.group.members ?? []);
-      const ids = new Set(
-        latest.current.parts.filter((v) => (v as { owners?: string[] }).owners?.some((o) => members.has(o))).map((v) => v.id),
-      );
-      const offset = new THREE.Vector3(...(p?.delta ?? [0, 0, 0]));
-      motion.setDrag(p ? { ids, offset, blocked: p.blocked } : null);
-      for (const foot of state.feet?.group.children ?? []) {
-        const { moduleId, home } = foot.userData as { moduleId?: string; home?: THREE.Vector3 };
-        if (home) foot.position.copy(home).add(p && moduleId && members.has(moduleId) ? offset : new THREE.Vector3());
+      if (!p) {
+        motion.setDrag(null);
+        return;
       }
-      // Cotas são do lugar gravado: somem enquanto o móvel anda.
-      const moving = !!p && p.delta.some((v) => v !== 0);
-      if (state.dims) state.dims.lines.visible = !moving;
-      if (labelHost.current) labelHost.current.style.visibility = moving ? 'hidden' : '';
+      const modules = new Set(p.group.members);
+      const ids = new Set(
+        latest.current.parts.filter((v) => (v as { owners?: string[] }).owners?.some((o) => modules.has(o))).map((v) => v.id),
+      );
+      motion.setDrag({ ids, modules, offset: new THREE.Vector3(...p.delta), blocked: p.blocked });
     };
     state.showPreview = showPreview;
     /** Grava a prévia; bloqueada ou parada, o móvel volta ao lugar. */
@@ -332,13 +347,15 @@ export default function FurnitureView({
       const shiftX = generateComposition(check.design).bounds.min[0] - generateComposition(now.params).bounds.min[0];
       setMoveStatus({ text: deltaText(p.delta) });
       state.holdFrame = performance.now() + 5000;
+      state.committing = { group: p.group, delta: p.delta };
       void now
         .onMove(op, `Moveu ${p.group.label}`, shiftX)
         .catch(() => setMoveStatus({ text: 'Não foi possível gravar: voltou ao lugar', bad: true }))
         .finally(() => {
-          // Com o projeto novo a prévia já saiu; se a gravação falhou, sai aqui.
+          // Com o projeto novo a prévia já saiu; se não gravou, desliza de volta.
           if (state.preview === p) {
             state.preview = undefined;
+            state.committing = undefined;
             showPreview();
           }
         });
@@ -413,19 +430,19 @@ export default function FurnitureView({
       const raw = hit.clone().sub(drag.from);
       if (!drag.vertical) raw.y = 0;
       const now = latest.current;
-      const delta = snapDelta(now.params, drag.group, [raw.x, raw.y, raw.z], drag.boxes);
+      const delta = snapDelta(now.params, drag.group, [raw.x, raw.y, raw.z], drag.boxes, now.wallZ);
       const key = delta.join(',');
       const box = el.getBoundingClientRect();
       const x = e.clientX - box.left,
         y = e.clientY - box.top;
       if (key !== drag.key) {
         drag.key = key;
-        const moved = delta.some((v) => v !== 0);
-        const check = moved ? tryOp(now.params, moveOp(now.params, drag.group, delta)) : null;
-        const bad = !!check && !check.ok;
-        state.preview = { group: drag.group, delta, blocked: bad };
+        // Durante o arrasto só as caixas dos módulos: rápido a cada passo. A
+        // regra completa, peça por peça, confere ao soltar.
+        const hitName = delta.some((v) => v !== 0) ? quickBlock(now.params, drag.group, delta, drag.boxes) : null;
+        state.preview = { group: drag.group, delta, blocked: !!hitName };
         showPreview();
-        setMoveTip({ x, y, text: check && !check.ok ? blockedText(check.reason, now.params, drag.group) : deltaText(delta), bad });
+        setMoveTip({ x, y, text: hitName ? `Bate em ${hitName}` : deltaText(delta), bad: !!hitName });
       } else setMoveTip((tip) => (tip ? { ...tip, x, y } : tip));
     };
     const dragEnd = () => {
@@ -497,7 +514,8 @@ export default function FurnitureView({
     });
     resize.observe(el);
     const projected = new THREE.Vector3();
-    let frame = 0;
+    let frame = 0,
+      dimsShown = true;
     const draw = (now: number) => {
       motion.tick(now, state.reduced.matches);
       if (state.move) {
@@ -510,6 +528,21 @@ export default function FurnitureView({
         if (t === 1) state.move = undefined;
       }
       controls.update();
+      // Pés andam com o móvel; cotas são do lugar gravado e esperam parar.
+      if (state.feet)
+        for (const foot of state.feet.group.children) {
+          const { moduleId, home } = foot.userData as { moduleId?: string; home?: THREE.Vector3 };
+          if (!home) continue;
+          const offset = moduleId ? motion.dragOffset(moduleId) : null;
+          foot.position.copy(home);
+          if (offset) foot.position.add(offset);
+        }
+      const settled = !motion.moving && !state.preview;
+      if (state.dims) state.dims.lines.visible = settled;
+      if (labelHost.current && dimsShown !== settled) {
+        dimsShown = settled;
+        labelHost.current.style.visibility = settled ? '' : 'hidden';
+      }
       renderer.render(scene, camera);
       // Rótulos das cotas: HTML nítido em qualquer zoom, reposicionado a cada
       // quadro direto no DOM, sem passar pelo React.
@@ -557,10 +590,18 @@ export default function FurnitureView({
   }, []);
   useEffect(() => {
     const state = runtime.current;
-    // O projeto novo já traz o lugar gravado: a prévia sai antes de animar.
-    if (state?.preview && !dragging.current) {
-      state.preview = undefined;
-      state.showPreview?.();
+    // Projeto novo com o móvel gravado no lugar: o que já andou na tela vira
+    // a diferença, que desliza até zero. Sem voltar ao lugar antigo.
+    if (state && lastParams.current !== params) {
+      lastParams.current = params;
+      if (state.committing && state.preview && !dragging.current) {
+        state.motion.rebaseDrag(new THREE.Vector3(...state.committing.delta));
+        state.preview = undefined;
+        state.committing = undefined;
+      } else if (state.preview && !dragging.current) {
+        state.preview = undefined;
+        state.showPreview?.();
+      }
     }
     if (state)
       state.motion.update(
@@ -676,9 +717,16 @@ export default function FurnitureView({
       setMoveStatus({ text: 'Já está no piso', bad: true });
       return;
     }
-    const check = next.some((v) => v !== 0) ? tryOp(params, moveOp(params, target, next)) : null;
-    if (check && !check.ok) {
-      setMoveStatus({ text: blockedText(check.reason, params, target), bad: true });
+    const boxes = moduleBoxes(params);
+    const mine = target.members.map((id) => boxes.get(id)).filter((b) => !!b);
+    const back = Math.min(...mine.map((b) => b!.min[2]));
+    if (next[2] < current[2] && back + next[2] < wallZ - 0.5) {
+      setMoveStatus({ text: 'Encostado na parede', bad: true });
+      return;
+    }
+    const hitName = next.some((v) => v !== 0) ? quickBlock(params, target, next, boxes) : null;
+    if (hitName) {
+      setMoveStatus({ text: `Bate em ${hitName}`, bad: true });
       return;
     }
     s.preview = { group: target, delta: next, blocked: false };
@@ -743,10 +791,12 @@ export default function FurnitureView({
     s.ground.material.color.set(c.ground);
     s.ground.material.opacity = c.groundOpacity;
   }, [theme]);
-  const bounds: SceneBounds = useMemo(() => generateComposition(params).bounds, [params]);
   // Sem ambiente informado, uma parede de referência dá escala e fundo; ela
   // não aparece nas cotas de espaço livre nem no enquadramento.
-  const sceneRoom = showRoom ? (room ?? referenceRoom(bounds)) : undefined;
+  const sceneRoom = useMemo(
+    () => (showRoom ? (room ?? referenceRoom(bounds, homeZ)) : undefined),
+    [showRoom, room, bounds, homeZ],
+  );
   const measuredRoom = showRoom ? room : undefined;
   // Frente do que está preso na parede (painel): a TV fica na frente dele.
   const mountZ = useMemo(
