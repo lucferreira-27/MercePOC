@@ -124,3 +124,24 @@ void test('soltar no lugar novo continua de onde está, sem voltar ao lugar anti
   }
   assert.equal(motion.moving, false);
 });
+
+void test('reaplicar as mesmas peças durante a prévia não dobra o deslocamento', async () => {
+  const THREE = await import('three');
+  const { FurnitureMotion } = await import('../lib/furniture-motion');
+  const motion = new FurnitureMotion(new THREE.Scene());
+  const d = pair();
+  const parts = generateComposition(d).parts;
+  const look = { height: 500, materialId: d.modules[0].materialId };
+  motion.update(parts, look, false, [], 0);
+  const ids = new Set(parts.filter((p) => p.owners[0] === 'a').map((p) => p.id));
+  const id = [...ids][0];
+  const home = motion.entries.get(id)!.mesh.position.x;
+  motion.setDrag({ ids, modules: new Set(['a']), offset: new THREE.Vector3(-300, 0, 0), blocked: false });
+  for (let t = 16; t <= 2000; t += 16) motion.tick(t);
+  // A página redesenha ao soltar (seleção, ocupado): as mesmas peças de novo.
+  motion.update(parts, look, false, [id], 2016);
+  for (let t = 2016; t <= 2400; t += 16) {
+    motion.tick(t);
+    assert.ok(Math.abs(motion.entries.get(id)!.mesh.position.x - (home - 300)) < 1, `quadro ${t}: ${motion.entries.get(id)!.mesh.position.x}`);
+  }
+});

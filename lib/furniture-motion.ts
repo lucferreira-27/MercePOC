@@ -246,6 +246,10 @@ export class FurnitureMotion {
         this.entries.set(part.id, entry);
       }
       entry.from = this.read(entry);
+      // A pose na tela inclui o deslocamento do arrasto, que o tick soma de
+      // novo: a base é sem ele. Sem isto, redesenhar a página no meio da
+      // prévia (ao soltar) mostrava o móvel com o dobro do deslocamento.
+      if (this.drag?.ids.has(part.id)) entry.from.position.sub(this.drag.current);
       // Móvel recém-gravado no lugar novo: a base vai direto para lá e o
       // deslocamento que resta faz a transição, sem voltar ao lugar antigo.
       if (this.drag?.rebase && this.drag.ids.has(part.id)) {
