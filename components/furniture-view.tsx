@@ -21,6 +21,7 @@ import type { ModularOp } from '@/lib/composition';
 import { MOVE_GRID, moduleBoxes, moveGroup, moveOp, quickBlock, rotateOp, selectedGroup, shortMm, snapDelta, tryOp, type MoveGroup, type Vec3 } from '@/lib/move';
 import { wallAt } from '@/lib/room';
 import { MovePad, type NudgeDir } from './move-pad';
+import { useDelayedTrue } from '@/hooks/use-delayed';
 type CameraMove = {
   from: THREE.Vector3;
   to: THREE.Vector3;
@@ -60,6 +61,12 @@ type Runtime = {
    * próximo quadro redesenha. Parada, a cena não gasta GPU nenhuma.
    */
   dirty: boolean;
+  /**
+   * Geometria e materiais trocados, descartados só depois do próximo quadro.
+   * Descartar antes de desenhar o substituto zerava o uso do programa de
+   * shader e o three.js o recompilava: ~100 ms travados a cada movimento.
+   */
+  retired: (() => void)[];
 };
 /** Setas do teclado e a direção de cada uma no controle. */
 const ARROW_KEYS: Record<string, NudgeDir> = {
@@ -314,6 +321,7 @@ function FurnitureView({
       reduced: window.matchMedia('(prefers-reduced-motion: reduce)'),
       labelEls: [],
       dirty: true,
+      retired: [],
     };
     runtime.current = state;
     /**
@@ -372,9 +380,18 @@ function FurnitureView({
     controls.addEventListener('start', () => {
       state.move = undefined;
     });
-    // Girar, aproximar e o amortecimento mexem na câmera: redesenha.
+    // Girar, aproximar e o amortecimento mexem na câmera: redesenha. O fim do
+    // amortecimento anda frações de milímetro por segundos a fio; abaixo de
+    // ~0,1 px desde o último quadro desenhado, não vale um quadro novo.
+    const shownCamera = new THREE.Vector3(),
+      shownTarget = new THREE.Vector3();
     controls.addEventListener('change', () => {
-      state.dirty = true;
+      const tolerance = camera.position.distanceTo(controls.target) * 1e-4;
+      if (
+        camera.position.distanceToSquared(shownCamera) > tolerance * tolerance ||
+        controls.target.distanceToSquared(shownTarget) > tolerance * tolerance
+      )
+        state.dirty = true;
     });
     const ray = new THREE.Raycaster();
     let down = [0, 0];
@@ -562,6 +579,9 @@ function FurnitureView({
         labelHost.current.style.visibility = settled ? '' : 'hidden';
       }
       renderer.render(scene, camera);
+      shownCamera.copy(camera.position);
+      shownTarget.copy(controls.target);
+      for (const dispose of state.retired.splice(0)) dispose();
       // Rótulos das cotas: HTML nítido em qualquer zoom, reposicionado a cada
       // quadro direto no DOM, sem passar pelo React.
       if (state.dims && state.labelEls.length) {
@@ -583,6 +603,7 @@ function FurnitureView({
       resize.disconnect();
       controls.dispose();
       motion.dispose();
+      for (const dispose of state.retired.splice(0)) dispose();
       state.room?.dispose();
       state.feet?.dispose();
       state.ghosts?.dispose();
@@ -647,7 +668,7 @@ function FurnitureView({
     );
     if (s.ghosts) {
       s.scene.remove(s.ghosts.group);
-      s.ghosts.dispose();
+      s.retired.push(s.ghosts.dispose);
       s.ghosts = undefined;
       s.dirty = true;
     }
@@ -829,8 +850,10 @@ function FurnitureView({
   useEffect(() => {
     const s = runtime.current;
     if (!s) return;
-    s.room?.dispose();
-    if (s.room) s.scene.remove(s.room.group);
+    if (s.room) {
+      s.scene.remove(s.room.group);
+      s.retired.push(s.room.dispose);
+    }
     s.room = undefined;
     if (sceneRoom) {
       s.room = buildRoom(sceneRoom, bounds, theme, mountZ);
@@ -846,7 +869,7 @@ function FurnitureView({
     s.dirty = true;
     if (s.feet) {
       s.scene.remove(s.feet.group);
-      s.feet.dispose();
+      s.retired.push(s.feet.dispose);
       s.feet = undefined;
     }
     const feet = exploded ? [] : feetOf(params);
@@ -866,7 +889,7 @@ function FurnitureView({
     s.dirty = true;
     if (s.dims) {
       s.scene.remove(s.dims.lines);
-      s.dims.dispose();
+      s.retired.push(s.dims.dispose);
       s.dims = undefined;
     }
     if (showDims && !exploded) {
@@ -1048,6 +1071,9 @@ function FurnitureView({
     snapshotSink.current?.(out.toDataURL('image/png'));
   }, [snapshotRequest, caption, theme]);
   const hoveredPart = hover ? parts.find((v) => v.id === hover.id) : undefined;
+  // Gravar o lugar novo trava o controle por ~100 ms: sem este atraso ele
+  // piscava apagado a cada movimento.
+  const padLocked = useDelayedTrue(!movable, 300);
   return (
     <div
       ref={host}
@@ -1058,7 +1084,7 @@ function FurnitureView({
       {!error && onMove && (
         <MovePad
           target={target?.label ?? null}
-          disabled={!movable}
+          disabled={padLocked}
           status={moveStatus}
           onNudge={nudge}
           onRotate={rotate}

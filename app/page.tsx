@@ -62,6 +62,7 @@ import {
 } from 'lucide-react';
 import { useProjectTools } from '@/hooks/use-project-tools';
 import { useEvent } from '@/hooks/use-event';
+import { useDelayedTrue } from '@/hooks/use-delayed';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import type { ImageRef } from '@/lib/images';
@@ -320,6 +321,9 @@ export default function Home() {
     [prices, setPrices] = useState<Prices>(DEFAULT_PRICES),
     [renaming, setRenaming] = useState(false);
   const theme = themeChoice === 'system' ? (systemDark ? 'dark' : 'light') : themeChoice;
+  // Ocupado na aparência só depois de 300 ms: gravar um movimento não pisca
+  // todos os botões. As funções continuam conferindo `busy` na hora.
+  const busyLook = useDelayedTrue(busy, 300);
   /** Para que serve a próxima foto da cena: baixar o PNG ou ilustrar a impressão. */
   const snapshotPurpose = useRef<'download' | 'print'>('download');
   // A ação pendente do cartão de confirmação vive num ref: o cartão é render do
@@ -1109,9 +1113,9 @@ export default function Home() {
                 placeholder="± mm"
                 value={shelfDelta}
                 onChange={(e) => setShelfDelta(e.target.value)}
-                disabled={busy}
+                disabled={busyLook}
               />
-              <Button variant="outline" disabled={busy || !Number.isFinite(delta) || delta === 0} onClick={() => void op({ kind: 'move', ids: [single.id], deltaMm: delta }, `${single.label}: deslocar ${delta} mm`)}>
+              <Button variant="outline" disabled={busyLook || !Number.isFinite(delta) || delta === 0} onClick={() => void op({ kind: 'move', ids: [single.id], deltaMm: delta }, `${single.label}: deslocar ${delta} mm`)}>
                 Mover
               </Button>
             </div>
@@ -1122,14 +1126,14 @@ export default function Home() {
                 placeholder="Vão abaixo (mm)"
                 value={gapTarget}
                 onChange={(e) => setGapTarget(e.target.value)}
-                disabled={busy}
+                disabled={busyLook}
               />
-              <Button variant="outline" disabled={busy || !Number.isFinite(Number(gapTarget))} onClick={() => void op({ kind: 'gap', id: single.id, gapMm: Number(gapTarget) }, `${single.label}: vão de ${gapTarget} mm`)}>
+              <Button variant="outline" disabled={busyLook || !Number.isFinite(Number(gapTarget))} onClick={() => void op({ kind: 'gap', id: single.id, gapMm: Number(gapTarget) }, `${single.label}: vão de ${gapTarget} mm`)}>
                 Definir vão
               </Button>
             </div>
             <div className="shelf-row">
-              <Button variant="outline" disabled={busy} onClick={() => void op({ kind: 'remove', ids: [single.id] }, `Remover ${single.label}`)}>
+              <Button variant="outline" disabled={busyLook} onClick={() => void op({ kind: 'remove', ids: [single.id] }, `Remover ${single.label}`)}>
                 Remover {single.label.toLowerCase()}
               </Button>
             </div>
@@ -1150,21 +1154,21 @@ export default function Home() {
                 placeholder="± mm"
                 value={shelfDelta}
                 onChange={(e) => setShelfDelta(e.target.value)}
-                disabled={busy}
+                disabled={busyLook}
               />
-              <Button variant="outline" disabled={busy || !Number.isFinite(delta) || delta === 0} onClick={() => void op({ kind: 'move', ids: shelfIds, deltaMm: delta }, `Mover ${shelfIds.length} prateleiras ${delta} mm`)}>
+              <Button variant="outline" disabled={busyLook || !Number.isFinite(delta) || delta === 0} onClick={() => void op({ kind: 'move', ids: shelfIds, deltaMm: delta }, `Mover ${shelfIds.length} prateleiras ${delta} mm`)}>
                 Mover juntas
               </Button>
             </div>
             <div className="shelf-row">
-              <Button variant="outline" disabled={busy} onClick={() => void op({ kind: 'remove', ids: shelfIds }, `Remover ${shelfIds.length} prateleiras`)}>
+              <Button variant="outline" disabled={busyLook} onClick={() => void op({ kind: 'remove', ids: shelfIds }, `Remover ${shelfIds.length} prateleiras`)}>
                 Remover selecionadas
               </Button>
             </div>
           </>
         )}
         <div className="shelf-row">
-          <select aria-label="Vão para nova prateleira" value={gapPick} onChange={(e) => setGapPick(e.target.value)} disabled={busy}>
+          <select aria-label="Vão para nova prateleira" value={gapPick} onChange={(e) => setGapPick(e.target.value)} disabled={busyLook}>
             <option value="0">Vão 1 · abaixo ({infos[0] ? Math.round(infos[0].gapBelow) : 0} mm)</option>
             {infos.map((s, i) => (
               <option key={s.id} value={String(i + 1)}>Vão {i + 2} · acima {s.label} ({Math.round(s.gapAbove)} mm)</option>
@@ -1172,10 +1176,10 @@ export default function Home() {
           </select>
         </div>
         <div className="shelf-row">
-          <Button variant="outline" disabled={busy || !infos.length} onClick={() => void op({ kind: 'add', gap: Number(gapPick) }, 'Adicionar prateleira no vão')}>
+          <Button variant="outline" disabled={busyLook || !infos.length} onClick={() => void op({ kind: 'add', gap: Number(gapPick) }, 'Adicionar prateleira no vão')}>
             Inserir no vão
           </Button>
-          <Button variant="outline" disabled={busy || !infos.length} onClick={() => void op({ kind: 'distribute' }, 'Distribuir prateleiras igualmente')}>
+          <Button variant="outline" disabled={busyLook || !infos.length} onClick={() => void op({ kind: 'distribute' }, 'Distribuir prateleiras igualmente')}>
             Distribuir
           </Button>
         </div>
@@ -1562,7 +1566,7 @@ export default function Home() {
         key={o.id}
         type="button"
         className={alive ? '' : 'dead'}
-        disabled={busy}
+        disabled={busyLook}
         title={
           alive
             ? `Enviar a escolha: ${o.label}`
@@ -1634,7 +1638,7 @@ export default function Home() {
         <ProjectPicker
           projects={projects}
           current={p?.id}
-          disabled={busy}
+          disabled={busyLook}
           onSelect={(id) => void openProject(id)}
           onDelete={removeProject}
         />
@@ -1656,7 +1660,7 @@ export default function Home() {
           >
             {themeChoice === 'system' ? <Monitor size={16} /> : theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
           </button>
-          <Button variant="ghost" className="topbar-new" onClick={() => openGallery('new')} disabled={busy}>
+          <Button variant="ghost" className="topbar-new" onClick={() => openGallery('new')} disabled={busyLook}>
             <Plus />
             Novo
           </Button>
@@ -1665,9 +1669,9 @@ export default function Home() {
               className="export-button"
               aria-expanded={exportOpen}
               onClick={() => setExportOpen(!exportOpen)}
-              disabled={!p || busy}
+              disabled={!p || busyLook}
               title={
-                busy
+                busyLook
                   ? 'Aguarde a resposta atual: exportar agora gravaria a versão anterior'
                   : 'Exportar foto, PDF, peças, corte ou projeto'
               }
@@ -1760,7 +1764,7 @@ export default function Home() {
                       <small>Medidas, portas, gavetas e acabamento</small>
                     </span>
                   </button>
-                  <button type="button" disabled={busy || !p} onClick={() => fileInput.current?.click()}>
+                  <button type="button" disabled={busyLook || !p} onClick={() => fileInput.current?.click()}>
                     <span className="start-icon"><ImagePlus size={17} /></span>
                     <span>
                       <strong>Copiar de uma foto</strong>
@@ -1827,7 +1831,7 @@ export default function Home() {
                     <div className="confirm-actions">
                       <Button
                         variant="outline"
-                        disabled={busy}
+                        disabled={busyLook}
                         title="Reenvia o mesmo pedido; o que já foi aplicado não é repetido"
                         onClick={() =>
                           void send(m.retry!.message, undefined, {
@@ -1883,10 +1887,10 @@ export default function Home() {
                           value={clarAnswer}
                           onChange={(e) => setClarAnswer(e.target.value)}
                           placeholder="Escreva sua resposta"
-                          disabled={busy}
+                          disabled={busyLook}
                           maxLength={500}
                         />
-                        <button type="submit" disabled={busy || !clarAnswer.trim()}>
+                        <button type="submit" disabled={busyLook || !clarAnswer.trim()}>
                           Responder
                         </button>
                       </form>
@@ -1894,7 +1898,7 @@ export default function Home() {
                       <button
                         type="button"
                         className="clarify-dismiss"
-                        disabled={busy}
+                        disabled={busyLook}
                         title="A pergunta sai da frente; nada muda no projeto"
                         onClick={() => setAnsweredClar(clar.id)}
                       >
@@ -1967,7 +1971,7 @@ export default function Home() {
                           <button
                             type="button"
                             className="msg-version"
-                            disabled={busy}
+                            disabled={busyLook}
                             title="Ver o projeto nesta versão"
                             onClick={() => seekVersion(rev.cursor)}
                           >
@@ -2070,12 +2074,12 @@ export default function Home() {
                   ))}
                 </ul>
                 <div className="confirm-actions">
-                  <Button variant="ghost" disabled={busy} onClick={closeConfirm}>
+                  <Button variant="ghost" disabled={busyLook} onClick={closeConfirm}>
                     Cancelar
                   </Button>
                   <Button
                     variant="outline"
-                    disabled={busy}
+                    disabled={busyLook}
                     title="Preserva este caminho num projeto separado e continua a edição lá"
                     onClick={() => {
                       const cursor = p?.cursor ?? 0;
@@ -2086,7 +2090,7 @@ export default function Home() {
                     Criar alternativa
                   </Button>
                   <Button
-                    disabled={busy}
+                    disabled={busyLook}
                     onClick={() => {
                       const run = confirmAction.current;
                       confirmAction.current = null;
@@ -2104,10 +2108,10 @@ export default function Home() {
                 <p><strong>Não enviado:</strong> {failedTurn.text}</p>
                 <small>{failedTurn.error}</small>
                 <div>
-                  <Button variant="outline" disabled={busy} onClick={() => void send(failedTurn.text, undefined, { text: failedTurn.text, image: failedTurn.image, requestId: failedTurn.requestId })}>
+                  <Button variant="outline" disabled={busyLook} onClick={() => void send(failedTurn.text, undefined, { text: failedTurn.text, image: failedTurn.image, requestId: failedTurn.requestId })}>
                     Tentar novamente
                   </Button>
-                  <Button variant="ghost" disabled={busy} onClick={() => setFailedTurn(null)}>
+                  <Button variant="ghost" disabled={busyLook} onClick={() => setFailedTurn(null)}>
                     Descartar
                   </Button>
                 </div>
@@ -2140,7 +2144,7 @@ export default function Home() {
                   <button
                     key={v}
                     type="button"
-                    disabled={busy}
+                    disabled={busyLook}
                     title="Enviar esta sugestão (o que você digitou continua no campo)"
                     onClick={() => void send(v)}
                   >
@@ -2206,7 +2210,7 @@ export default function Home() {
               }}
             >
               <input ref={fileInput} type="file" hidden accept="image/jpeg,image/png,image/webp" onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ''; }} />
-              {attachment && <div className="attachment-preview"><img src={attachment.url} alt={attachment.name} /><span>{attachment.name}</span><button type="button" disabled={busy} aria-label="Remover imagem" onClick={() => setAttachment(null)}><X size={16} /></button></div>}
+              {attachment && <div className="attachment-preview"><img src={attachment.url} alt={attachment.name} /><span>{attachment.name}</span><button type="button" disabled={busyLook} aria-label="Remover imagem" onClick={() => setAttachment(null)}><X size={16} /></button></div>}
               {/* A foto agora serve para copiar layout: sem esta linha, quem
                   anexa uma referência não sabe que pode pedir a cópia. */}
               {attachment && <p className="attachment-hint">Peça “copie o layout desta foto” e eu monto uma versão com medidas estimadas, dizendo o erro e o que ficou de fora.</p>}
@@ -2239,14 +2243,14 @@ export default function Home() {
                 }}
               />
               <div className="composer-bar">
-                <Button type="button" variant="ghost" size="icon" disabled={busy || !p} title="Anexar imagem (JPG, PNG ou WebP, até 10 MB)" aria-label="Anexar imagem" onClick={() => fileInput.current?.click()}><ImagePlus /></Button>
+                <Button type="button" variant="ghost" size="icon" disabled={busyLook || !p} title="Anexar imagem (JPG, PNG ou WebP, até 10 MB)" aria-label="Anexar imagem" onClick={() => fileInput.current?.click()}><ImagePlus /></Button>
                 <ModelPicker
                   value={model}
                   available={available}
                   onChange={chooseModel}
                   live={live}
                   onToggleLive={toggleLive}
-                  disabled={busy}
+                  disabled={busyLook}
                 />
                 <span
                   className="composer-hint"
@@ -2272,7 +2276,7 @@ export default function Home() {
                     size="icon"
                     className="composer-send"
                     aria-label="Enviar mensagem"
-                    disabled={busy || !p || (!hasDraft && !attachment)}
+                    disabled={busyLook || !p || (!hasDraft && !attachment)}
                   >
                     <ArrowUp />
                   </Button>
@@ -2315,7 +2319,7 @@ export default function Home() {
                   type="button"
                   className="title-button"
                   title="Clique para renomear"
-                  disabled={!p || busy}
+                  disabled={!p || busyLook}
                   onClick={() => setRenaming(true)}
                 >
                   <h2>{p?.name || 'Minha estante'}</h2>
@@ -2510,7 +2514,7 @@ export default function Home() {
                 <button
                   type="button"
                   className="history-step"
-                  disabled={busy || historyView <= 0}
+                  disabled={busyLook || historyView <= 0}
                   onClick={() => stepVersion(-1)}
                   aria-label="Versão anterior"
                 >
@@ -2536,7 +2540,7 @@ export default function Home() {
                       aria-label="Versão do projeto"
                       aria-valuetext={`Versão ${historyView + 1} de ${historyCount}: ${p.revisions[historyView]?.label ?? ''}`}
                       title={
-                        busy
+                        busyLook
                           ? 'Aguarde a resposta atual para navegar pelas versões'
                           : 'Arraste ou use as setas para ver uma versão anterior'
                       }
@@ -2595,7 +2599,7 @@ export default function Home() {
                 <button
                   type="button"
                   className="history-step"
-                  disabled={busy || historyView >= historyCount - 1}
+                  disabled={busyLook || historyView >= historyCount - 1}
                   onClick={() => stepVersion(1)}
                   aria-label="Próxima versão"
                 >
@@ -2623,7 +2627,7 @@ export default function Home() {
                 size="icon"
                 aria-label="Desfazer"
                 title="Desfazer (Ctrl+Z)"
-                disabled={busy || !p || p.cursor === 0}
+                disabled={busyLook || !p || p.cursor === 0}
                 onClick={() => action('undo')}
               >
                 <Undo2 />
@@ -2633,7 +2637,7 @@ export default function Home() {
                 size="icon"
                 aria-label="Refazer"
                 title="Refazer (Ctrl+Y)"
-                disabled={busy || !p || p.cursor === p.revisions.length - 1}
+                disabled={busyLook || !p || p.cursor === p.revisions.length - 1}
                 onClick={() => action('redo')}
               >
                 <Redo2 />
@@ -2667,7 +2671,7 @@ export default function Home() {
                   onOp={onEditorOp}
                   onOps={onEditorOps}
                   onLibrary={onEditorLibrary}
-                  busy={busy || historyPreview !== null || reviewLocked}
+                  busy={busyLook || historyPreview !== null || reviewLocked}
                   onOpen={onEditorOpen}
                   opened={opened}
                 />
@@ -2678,7 +2682,7 @@ export default function Home() {
                   room={roomForPanel}
                   report={roomFit?.report ?? null}
                   summary={roomFit?.summary ?? ''}
-                  busy={busy || historyPreview !== null || reviewLocked}
+                  busy={busyLook || historyPreview !== null || reviewLocked}
                   onSave={saveRoom}
                   showInScene={showRoom && !!p.room}
                   onToggleScene={(v) => toggleRoom(v)}
@@ -2752,7 +2756,7 @@ export default function Home() {
                     {[...p.revisions.entries()].reverse().map(([i, r]) => (
                       <li key={i}>
                         <button
-                          disabled={busy}
+                          disabled={busyLook}
                           onClick={() => seekVersion(i)}
                           className={
                             'history-row ' + (i === p.cursor ? 'current' : '')
@@ -2784,10 +2788,10 @@ export default function Home() {
                       placeholder={`${p?.name} · alternativa`}
                       value={forkName}
                       maxLength={80}
-                      disabled={busy}
+                      disabled={busyLook}
                       onChange={(e) => setForkName(e.target.value)}
                     />
-                    <Button variant="outline" disabled={busy || !p} onClick={() => void forkFrom(-1)}>
+                    <Button variant="outline" disabled={busyLook || !p} onClick={() => void forkFrom(-1)}>
                       Criar alternativa desta versão
                     </Button>
                   </div>
@@ -2812,7 +2816,7 @@ export default function Home() {
       <TemplateGallery
         open={galleryOpen}
         mode={galleryMode}
-        busy={busy}
+        busy={busyLook}
         onClose={() => setGalleryOpen(false)}
         onBlank={() => void createProject()}
         onPick={(id) => void createFromTemplate(id)}
