@@ -61,6 +61,7 @@ import {
   ZoomOut,
 } from 'lucide-react';
 import { useProjectTools } from '@/hooks/use-project-tools';
+import { useEvent } from '@/hooks/use-event';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import type { ImageRef } from '@/lib/images';
@@ -70,8 +71,8 @@ import {
   cortecloud,
   cutCSV,
   describeChanges,
+  designOf,
   opSchema,
-  generateDesign,
   shelfInfos,
   type Design,
   type ShelfOp,
@@ -88,7 +89,7 @@ import { TemplateGallery } from '@/components/template-gallery';
 import { templates } from '@/lib/templates';
 import { PrintSheet, groupParts } from '@/components/print-sheet';
 import { entityIds, canonical, selectedPartIds } from '@/lib/studio';
-import { drawingParts, generateComposition, openingLimit, openingPose, type ModularPart } from '@/lib/composition';
+import { drawingParts, openingLimit, openingPose, type ModularPart } from '@/lib/composition';
 import { fitReport, fitSummary, roomOffset, wallAt, type Room } from '@/lib/room';
 import { DEFAULT_PRICES, mergePrices, money, quote as buildQuote, type Prices } from '@/lib/quote';
 import { friendlyError } from '@/lib/errors';
@@ -106,6 +107,8 @@ type State = Project & {
   noop?: boolean;
 };
 type Tab = 'project' | 'room' | 'quote' | 'cut' | 'parts' | 'history';
+/** Atualizações do turno ao vivo esperando a próxima leva. */
+type StreamBuffer = { pulse?: Pulse; text?: TextPreview; reasoning: string };
 type ThemeChoice = 'system' | 'light' | 'dark';
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'project', label: 'Projeto', icon: <Boxes size={17} /> },
@@ -244,7 +247,9 @@ export default function Home() {
   const [opened,setOpened] = useState<Record<string,number>>({});
   const [p, setP] = useState<State | null>(null),
     [projects, setProjects] = useState<ProjectSummary[]>([]),
-    [text, setText] = useState(''),
+    // O rascunho vive no próprio campo (não controlado): digitar não
+    // redesenha o estúdio inteiro. O estado só registra se há texto.
+    [hasDraft, setHasDraft] = useState(false),
     [pending, setPending] = useState(''),
     [progress, setProgress] = useState<TimedProgress[]>([]),
     [started, setStarted] = useState(0),
@@ -445,6 +450,13 @@ export default function Home() {
   };
   const fileInput = useRef<HTMLInputElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
+  /** Texto do rascunho; sobrevive ao campo sumir com a conversa recolhida. */
+  const draft = useRef('');
+  const setText = (value: string) => {
+    draft.current = value;
+    if (composer.current) composer.current.value = value;
+    setHasDraft(!!value.trim());
+  };
   const exportWrap = useRef<HTMLDivElement>(null);
   /** Um clique fora fecha o menu; sem isso ele cobria as abas do inspetor. */
   useEffect(() => {
@@ -555,8 +567,11 @@ export default function Home() {
   /** Revendo uma versão que não é a atual, ou no meio da reprodução: só olhar. */
   const reviewLocked = !!reviewData && (!!review?.playing || !reviewData.current);
   const visualParams = reviewFrame?.design ?? p?.revisions[historyPreview ?? p.cursor].params;
-  const visualBounds = useMemo(() => (visualParams ? generateComposition(visualParams).bounds : null), [visualParams]);
-  const visualSize = visualBounds ? ([0, 1, 2].map((i) => visualBounds.max[i] - visualBounds.min[i]) as [number, number, number]) : null;
+  const visualBounds = useMemo(() => (visualParams ? designOf(visualParams).bounds : null), [visualParams]);
+  const visualSize = useMemo(
+    () => (visualBounds ? ([0, 1, 2].map((i) => visualBounds.max[i] - visualBounds.min[i]) as [number, number, number]) : null),
+    [visualBounds],
+  );
   /**
    * Veredito de encaixe do ambiente, calculado uma vez por render: alimenta a
    * seção Ambiente e o aviso do cabeçalho. Sem ambiente informado não existe
@@ -578,16 +593,16 @@ export default function Home() {
   );
   const changed = useMemo(() => {
     if (!p || !visualBounds || historyPreview === null) return new Set<string>();
-    const current = generateComposition(p.revisions[p.cursor].params).bounds;
+    const current = designOf(p.revisions[p.cursor].params).bounds;
     return new Set(['width', 'height', 'depth'].filter((_, i) =>
       visualBounds.max[i] - visualBounds.min[i] !== current.max[i] - current.min[i],
     ));
   }, [p, visualBounds, historyPreview]);
   const visualParts = useMemo(() => {
     if (!p) return [];
-    if (reviewFrame) return generateDesign(reviewFrame.design).parts;
+    if (reviewFrame) return designOf(reviewFrame.design).parts;
     const rev = p.revisions[historyPreview ?? p.cursor];
-    return historyPreview === null || historyPreview === p.cursor ? p.parts : generateDesign(rev.params).parts;
+    return historyPreview === null || historyPreview === p.cursor ? p.parts : designOf(rev.params).parts;
   }, [p, historyPreview, reviewFrame]);
   // Diff na cena contra o antes do turno: cresce quadro a quadro na reprodução.
   const sceneDiff = useMemo(() => {
@@ -598,7 +613,7 @@ export default function Home() {
   }, [reviewData, reviewFrame, visualParams, reviewFocus]);
   const historyCount = p?.revisions.length ?? 0;
   const displayParts=useMemo(()=>visualParts.map(part=>openingPose(part as ModularPart,historyPreview!==null?0:opened[(part as ModularPart).motion?.id??'']??0)),[visualParts,opened,historyPreview]);
-  const displaySelected=visualParams?selectedPartIds(visualParams,selected):[];
+  const displaySelected = useMemo(() => (visualParams ? selectedPartIds(visualParams, selected) : []), [visualParams, selected]);
   // Orçamento e plano de corte sempre da versão exibida: arrastar a linha do
   // tempo mostra quanto cada versão custava.
   const quote = useMemo(
@@ -747,7 +762,12 @@ export default function Home() {
     setViewNotice(blocked?'Alguns movimentos foram limitados para evitar colisões.':'');
     if (d.selected?.length)
       setSelected(d.selected.filter((id) => entityIds(d.params).includes(id)));
-    else setSelected((s) => s.filter((id) => entityIds(d.params).includes(id)));
+    else
+      setSelected((s) => {
+        // Mesma seleção devolve o mesmo array: nada abaixo precisa redesenhar.
+        const alive = s.filter((id) => entityIds(d.params).includes(id));
+        return alive.length === s.length ? s : alive;
+      });
   };
   /**
    * Conjunto que um shift+clique puxa: a peça traz o módulo inteiro, o
@@ -763,7 +783,7 @@ export default function Home() {
         .filter((v) => (v.owners ?? []).some((dono) => donos.includes(dono)))
         .map((v) => v.id);
     }
-    if (generateDesign(p.params).cells.some((c) => c.id === id))
+    if (designOf(p.params).cells.some((c) => c.id === id))
       return [id, ...p.parts.filter((v) => v.cellId === id).map((v) => v.id)];
     if (p.params.modules.some((m) => m.id === id))
       return [id, ...p.parts.filter((v) => (v.owners ?? []).includes(id)).map((v) => v.id)];
@@ -992,7 +1012,7 @@ export default function Home() {
     if (!p) return;
     let room: Room | undefined;
     if (p.room) {
-      const before = generateComposition(p.params).bounds;
+      const before = designOf(p.params).bounds;
       const anchor = p.room.anchor ?? wallAt(p.room, before);
       room = { ...p.room, anchor, offsetMm: Math.max(0, Math.round(roomOffset({ ...p.room, anchor }, before) + shiftX)) };
     }
@@ -1033,7 +1053,7 @@ export default function Home() {
   async function saveRoom(room: Room) {
     // Parede presa: o campo "a partir do canto" reposiciona a parede em x.
     if (p?.room?.anchor) {
-      const bounds = generateComposition(p.params).bounds;
+      const bounds = designOf(p.params).bounds;
       room = { ...room, anchor: { x: bounds.min[0] - (room.offsetMm ?? 0), z: p.room.anchor.z } };
     }
     const next = await action('room', { room });
@@ -1060,7 +1080,11 @@ export default function Home() {
       setHistoryPreview(null);
     }
   }
-  function ShelfPanel() {
+  /**
+   * Chamado como função, não como <Componente/>: declarado aqui dentro, cada
+   * render criava um tipo novo, o painel remontava e o campo perdia o foco.
+   */
+  function shelfPanel() {
     if (!p) return null;
     const infos = shelfInfos(p.params);
     const selectedShelves = infos.filter((s) => selected.includes(s.id));
@@ -1191,6 +1215,8 @@ export default function Home() {
     seekVersion(Math.min(p.revisions.length - 1, Math.max(0, (historyPreview ?? p.cursor) + delta)));
   }
   const draftDuringWait = useRef('');
+  const streamBuffer = useRef<StreamBuffer>({ reasoning: '' });
+  const streamTimer = useRef<number | undefined>(undefined);
   /** Turno em andamento: o botão Parar aborta esta conexão. */
   const turnAbort = useRef<AbortController | null>(null);
   const stopped = useRef(false);
@@ -1199,7 +1225,7 @@ export default function Home() {
     turnAbort.current?.abort();
   }
   async function send(
-    value = text,
+    value = draft.current,
     replyTo?: { clarificationId: string; optionId?: string },
     retry?: { text: string; image: ImageRef | null; requestId: string },
     confirmed = false,
@@ -1219,13 +1245,13 @@ export default function Home() {
     }
     const requestId = retry?.requestId ?? (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`);
     // O rascunho digitado não se perde ao clicar numa sugestão.
-    const keepDraft = value !== text;
+    const keepDraft = value !== draft.current;
     if (replyTo) setAnsweredClar(replyTo.clarificationId);
     // O servidor grava o pedido antes de chamar a IA: quando o erro traz o
     // estado, o cartão repetível já está no histórico e não precisa de um
     // segundo cartão local.
     let serverRecorded = false;
-    draftDuringWait.current = text;
+    draftDuringWait.current = draft.current;
     setPendingImage(sentImage);
     setAttachment(null);
     setBusy(true);
@@ -1288,6 +1314,27 @@ export default function Home() {
         throw new Error(d.error || 'Não foi possível concluir.');
       }
       let completed = false;
+      // Pulso e texto ao vivo chegam a cada pedaço da IA, dezenas por segundo:
+      // juntos, viram no máximo dez atualizações por segundo da página.
+      const flush = () => {
+        streamTimer.current = undefined;
+        const b = streamBuffer.current;
+        streamBuffer.current = { reasoning: '' };
+        if (b.pulse) setPulse(b.pulse);
+        if (b.text) setLiveText((previous) => ({ ...previous, ...b.text! }));
+        if (b.reasoning)
+          setReasoningView((previous) => {
+            const buffered = previous + b.reasoning;
+            return buffered.length > REASONING_VIEW_CAP ? buffered.slice(-REASONING_VIEW_CAP) : buffered;
+          });
+      };
+      const buffer = (next: Partial<StreamBuffer>) => {
+        const b = streamBuffer.current;
+        if (next.pulse) b.pulse = next.pulse;
+        if (next.text) b.text = { ...b.text, ...next.text };
+        if (next.reasoning) b.reasoning += next.reasoning;
+        streamTimer.current ??= window.setTimeout(flush, 100);
+      };
       await readEvents(r, ({ event, data }) => {
         if (event === 'progress') {
           const update = { ...(JSON.parse(data) as Progress), at: Date.now() };
@@ -1299,19 +1346,12 @@ export default function Home() {
               : [...previous, update],
           );
         } else if (event === 'pulse') {
-          setPulse(JSON.parse(data) as Pulse);
+          buffer({ pulse: JSON.parse(data) as Pulse });
         } else if (event === 'usage') {
           setLiveUsage(JSON.parse(data) as TurnUsage);
         } else if (event === 'text') {
           const preview = JSON.parse(data) as TextPreview;
-          setLiveText((previous) => ({ ...previous, ...preview }));
-          if (preview.reasoningDelta)
-            setReasoningView((previous) => {
-              const buffered = previous + preview.reasoningDelta;
-              return buffered.length > REASONING_VIEW_CAP
-                ? buffered.slice(-REASONING_VIEW_CAP)
-                : buffered;
-            });
+          buffer({ text: preview, reasoning: preview.reasoningDelta ?? '' });
         } else if (event === 'done') {
           finalState = JSON.parse(data) as State;
           // O bloco de mudanças da resposta já conta as medidas: sem o aviso
@@ -1368,6 +1408,10 @@ export default function Home() {
       }
     } finally {
       recordSessionUsage(finalState, requestId);
+      // O que ainda esperava no buffer não pode reaparecer depois do fim.
+      clearTimeout(streamTimer.current);
+      streamTimer.current = undefined;
+      streamBuffer.current = { reasoning: '' };
       turnAbort.current = null;
       setPending('');
       setPendingImage(null);
@@ -1461,13 +1505,26 @@ export default function Home() {
         { id: 'json', label: 'Projeto completo', hint: 'JSON com histórico', icon: <FileJson size={16} />, run: exportProjectJSON },
       ]
     : [];
-  const selectedNames = selected.map((id) => p?.parts.find((v) => v.id === id)?.name ?? p?.params.modules.find(m=>m.id===id)?.name ?? (p ? generateDesign(p.params).cells.find(c=>c.id===id)?.label : null) ?? id);
+  const selectedNames = useMemo(
+    () =>
+      selected.map(
+        (id) =>
+          p?.parts.find((v) => v.id === id)?.name ??
+          p?.params.modules.find((m) => m.id === id)?.name ??
+          (p ? designOf(p.params).cells.find((c) => c.id === id)?.label : null) ??
+          id,
+      ),
+    [p, selected],
+  );
   // Entidades vivas desta versão: ids de módulo, compartimento, frente e peça.
   const aliveIds = useMemo(() => (p ? entityIds(p.params) : []), [p]);
   const clarificationAnswered = (id: string) =>
     id === answeredClar || !!p?.messages.some((m) => m.clarificationId === id);
-  const targetPart=p?.parts.find(part=>part.id===selected[0]);
-  const targetCell=p?generateDesign(p.params).cells.find(c=>c.id===selected[0]||c.id===targetPart?.cellId):undefined;
+  const targetPart = useMemo(() => p?.parts.find((part) => part.id === selected[0]), [p, selected]);
+  const targetCell = useMemo(
+    () => (p ? designOf(p.params).cells.find((c) => c.id === selected[0] || c.id === targetPart?.cellId) : undefined),
+    [p, selected, targetPart],
+  );
   // Quem propõe o próximo passo é a IA, com o contexto do último turno. A lista
   // fixa abaixo só aparece quando ela ainda não respondeu nada (primeira
   // interação) ou quando a resposta não trouxe sugestões.
@@ -1539,6 +1596,24 @@ export default function Home() {
     ...exports.map((x) => ({ id: 'export-' + x.id, group: 'Exportar', label: x.label, hint: x.hint, icon: x.icon, run: x.run })),
   ];
   const messageCount = p?.messages.length ?? 0;
+  // Identidade fixa para os filhos memorizados (cena 3D e editor): sem isso
+  // qualquer render da página, como um pulso da IA, redesenhava os dois.
+  const selectInScene = useEvent((id: string | null, extend?: boolean) =>
+    id === null ? setSelected([]) : toggleSelected(id, extend),
+  );
+  const onMoveFurniture = useEvent(moveFurniture);
+  const onEditorSelect = useEvent(selectMany);
+  const onEditorOp = useEvent(op);
+  const onEditorOps = useEvent(applyOps);
+  const onEditorLibrary = useEvent(() => openGallery('add'));
+  const onEditorOpen = useEvent(toggleOpening);
+  const conversationUsage = useMemo(() => p?.messages.map((m) => m.usage) ?? [], [p?.messages]);
+  const room = p?.room, params = p?.params;
+  const roomForPanel = useMemo(
+    () => (room?.anchor && params ? { ...room, offsetMm: Math.max(0, roomOffset(room, designOf(params).bounds)) } : room),
+    [room, params],
+  );
+  const printDrawing = useMemo(() => (params ? drawingParts(params) : []), [params]);
   return (
     <main
       className={
@@ -1643,7 +1718,7 @@ export default function Home() {
               </span>
             </span>
             <UsageMeter
-              conversation={p?.messages.map((m) => m.usage) ?? []}
+              conversation={conversationUsage}
               session={sessionUsage}
               live={liveUsage}
             />
@@ -2140,9 +2215,12 @@ export default function Home() {
                 ref={composer}
                 aria-label="Mensagem para o assistente"
                 placeholder={selected.length ? 'Peça algo sobre a seleção…' : 'Descreva seu móvel ou uma alteração…'}
-                value={text}
+                defaultValue={draft.current}
                 maxLength={4000}
-                onChange={(e) => setText(e.target.value)}
+                onChange={(e) => {
+                  draft.current = e.target.value;
+                  setHasDraft(!!e.target.value.trim());
+                }}
                 onPaste={(e) => {
                   const file = Array.from(e.clipboardData.items).find((item) => item.type.startsWith('image/'))?.getAsFile();
                   if (file) { e.preventDefault(); void upload(file); }
@@ -2194,7 +2272,7 @@ export default function Home() {
                     size="icon"
                     className="composer-send"
                     aria-label="Enviar mensagem"
-                    disabled={busy || !p || (!text.trim() && !attachment)}
+                    disabled={busy || !p || (!hasDraft && !attachment)}
                   >
                     <ArrowUp />
                   </Button>
@@ -2342,9 +2420,7 @@ export default function Home() {
               parts={displayParts}
               scrub={scrubbing}
               selected={displaySelected}
-              onSelect={(id, extend) =>
-                id === null ? setSelected([]) : toggleSelected(id, extend)
-              }
+              onSelect={selectInScene}
               exploded={exploded}
               view={view}
               spin={spin}
@@ -2361,7 +2437,7 @@ export default function Home() {
               diff={sceneDiff}
               keyboard={!paletteOpen && !galleryOpen}
               movable={!busy && !pending && historyPreview === null && !reviewLocked && !exploded}
-              onMove={moveFurniture}
+              onMove={onMoveFurniture}
             />
           )}
           <div className="stage-tools" role="toolbar" aria-label="Ferramentas da cena" aria-orientation="vertical">
@@ -2587,19 +2663,19 @@ export default function Home() {
                 <ModularEditor
                   design={visualParams!}
                   selected={selected}
-                  onSelect={selectMany}
-                  onOp={op}
-                  onOps={applyOps}
-                  onLibrary={() => openGallery('add')}
+                  onSelect={onEditorSelect}
+                  onOp={onEditorOp}
+                  onOps={onEditorOps}
+                  onLibrary={onEditorLibrary}
                   busy={busy || historyPreview !== null || reviewLocked}
-                  onOpen={toggleOpening}
+                  onOpen={onEditorOpen}
                   opened={opened}
                 />
               )}
               {tab === 'room' && (
                 <RoomPanel
                   key={p.id}
-                  room={p.room?.anchor ? { ...p.room, offsetMm: Math.max(0, roomOffset(p.room, generateComposition(p.params).bounds)) } : p.room}
+                  room={roomForPanel}
                   report={roomFit?.report ?? null}
                   summary={roomFit?.summary ?? ''}
                   busy={busy || historyPreview !== null || reviewLocked}
@@ -2632,7 +2708,7 @@ export default function Home() {
                     )}
                   </div>
                   {p.params.modules.length===1 && p.params.modules[0].legacyIds ? (
-                    <ShelfPanel />
+                    shelfPanel()
                   ) : (
                     <p className="hint">
                       Clique para selecionar; Shift+clique seleciona o módulo inteiro.
@@ -2749,7 +2825,7 @@ export default function Home() {
           size={visualSize}
           moduleCount={p.params.modules.length}
           parts={p.parts as ModularPart[]}
-          drawing={drawingParts(p.params)}
+          drawing={printDrawing}
           quote={quote}
           snapshot={printShot}
         />

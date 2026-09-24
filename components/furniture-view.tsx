@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
@@ -55,6 +55,11 @@ type Runtime = {
   committing?: { group: MoveGroup; delta: Vec3 };
   /** Até quando a câmera fica parada: mover à mão não reenquadra a cena. */
   holdFrame?: number;
+  /**
+   * Algo fora das peças mudou (câmera, ambiente, cotas, tema, tamanho): o
+   * próximo quadro redesenha. Parada, a cena não gasta GPU nenhuma.
+   */
+  dirty: boolean;
 };
 /** Setas do teclado e a direção de cada uma no controle. */
 const ARROW_KEYS: Record<string, NudgeDir> = {
@@ -110,7 +115,9 @@ function groundTexture() {
   return t;
 }
 
-export default function FurnitureView({
+export default memo(FurnitureView);
+
+function FurnitureView({
   params,
   parts,
   selected,
@@ -306,6 +313,7 @@ export default function FurnitureView({
       ground,
       reduced: window.matchMedia('(prefers-reduced-motion: reduce)'),
       labelEls: [],
+      dirty: true,
     };
     runtime.current = state;
     /**
@@ -363,6 +371,10 @@ export default function FurnitureView({
     state.commitPreview = commitPreview;
     controls.addEventListener('start', () => {
       state.move = undefined;
+    });
+    // Girar, aproximar e o amortecimento mexem na câmera: redesenha.
+    controls.addEventListener('change', () => {
+      state.dirty = true;
     });
     const ray = new THREE.Raycaster();
     let down = [0, 0];
@@ -511,14 +523,17 @@ export default function FurnitureView({
       renderer.setSize(w, h);
       camera.aspect = w / Math.max(h, 1);
       camera.updateProjectionMatrix();
+      state.dirty = true;
     });
     resize.observe(el);
     const projected = new THREE.Vector3();
     let frame = 0,
       dimsShown = true;
     const draw = (now: number) => {
+      frame = requestAnimationFrame(draw);
       motion.tick(now, state.reduced.matches);
       if (state.move) {
+        state.dirty = true;
         const m = state.move,
           t = state.reduced.matches
             ? 1
@@ -528,6 +543,9 @@ export default function FurnitureView({
         if (t === 1) state.move = undefined;
       }
       controls.update();
+      // Nada mudou desde o último quadro: a imagem na tela continua certa.
+      if (!motion.takeChanged() && !state.dirty) return;
+      state.dirty = false;
       // Pés andam com o móvel; cotas são do lugar gravado e esperam parar.
       if (state.feet)
         for (const foot of state.feet.group.children) {
@@ -558,7 +576,6 @@ export default function FurnitureView({
           node.style.transform = `translate(${((projected.x + 1) / 2) * w}px, ${((1 - projected.y) / 2) * h}px) translate(-50%, -50%)`;
         });
       }
-      frame = requestAnimationFrame(draw);
     };
     frame = requestAnimationFrame(draw);
     return () => {
@@ -632,6 +649,7 @@ export default function FurnitureView({
       s.scene.remove(s.ghosts.group);
       s.ghosts.dispose();
       s.ghosts = undefined;
+      s.dirty = true;
     }
     if (!diff?.removed.length) return;
     const group = new THREE.Group();
@@ -650,6 +668,7 @@ export default function FurnitureView({
       group.add(mesh);
     }
     s.scene.add(group);
+    s.dirty = true;
     s.ghosts = {
       group,
       dispose() {
@@ -773,6 +792,7 @@ export default function FurnitureView({
   useEffect(() => {
     const state = runtime.current;
     if (state) state.controls.autoRotate = spin && !state.reduced.matches;
+    if (state) state.dirty = true;
   }, [spin]);
   // Cor do chão e da grade acompanham o tema da página.
   useEffect(() => {
@@ -790,6 +810,7 @@ export default function FurnitureView({
     colors.needsUpdate = true;
     s.ground.material.color.set(c.ground);
     s.ground.material.opacity = c.groundOpacity;
+    s.dirty = true;
   }, [theme]);
   // Sem ambiente informado, uma parede de referência dá escala e fundo; ela
   // não aparece nas cotas de espaço livre nem no enquadramento.
@@ -816,11 +837,13 @@ export default function FurnitureView({
       s.scene.add(s.room.group);
     }
     s.grid.visible = !sceneRoom;
+    s.dirty = true;
   }, [sceneRoom, bounds, theme, mountZ]);
   // Pés: não são peças de corte, vêm da composição. Somem no explodido.
   useEffect(() => {
     const s = runtime.current;
     if (!s) return;
+    s.dirty = true;
     if (s.feet) {
       s.scene.remove(s.feet.group);
       s.feet.dispose();
@@ -840,6 +863,7 @@ export default function FurnitureView({
   useEffect(() => {
     const s = runtime.current;
     if (!s) return;
+    s.dirty = true;
     if (s.dims) {
       s.scene.remove(s.dims.lines);
       s.dims.dispose();
@@ -857,6 +881,8 @@ export default function FurnitureView({
     s.labelEls = labelHost.current
       ? (Array.from(labelHost.current.children) as HTMLSpanElement[])
       : [];
+    // Rótulos novos só ganham lugar no próximo desenho.
+    s.dirty = true;
   }, [dimLabels]);
   useEffect(() => {
     const state = runtime.current;
@@ -875,6 +901,7 @@ export default function FurnitureView({
   useEffect(() => {
     const s = runtime.current;
     if (!s) return;
+    s.dirty = true;
     // Com o ambiente à vista, o quadro inclui o que está na parede perto do
     // móvel (porta, TV, tomada), não o quarto inteiro.
     const box = measuredRoom ? union(bounds, roomFocus(measuredRoom, bounds)) : bounds;

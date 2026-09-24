@@ -105,11 +105,28 @@ export const SPREAD_MM = 190;
 export class FurnitureMotion {
   private hovered: string | null = null;
   setHover(id: string | null) {
+    if (this.hovered === id) return;
     this.hovered = id;
+    this.dirty = true;
   }
   private diff: SceneDiff | null = null;
   setDiff(diff: SceneDiff | null) {
     this.diff = diff;
+    this.dirty = true;
+  }
+  /**
+   * Parado, o quadro não muda: a cena só redesenha quando algo pede. `dirty`
+   * é estado novo para aplicar nas peças; `active`, uma transição ou arrasto
+   * em curso; `changed`, peças mexidas desde o último desenho.
+   */
+  private dirty = true;
+  private active = false;
+  private changed = false;
+  /** As peças mudaram desde a última chamada: a cena precisa redesenhar. */
+  takeChanged() {
+    const changed = this.changed;
+    this.changed = false;
+    return changed;
   }
   /**
    * Móvel em movimento, ainda não gravado: as peças do conjunto andam pelo
@@ -130,6 +147,7 @@ export class FurnitureMotion {
   private lastTick = 0;
   /** Novo alvo do arrasto; `null` solta: o conjunto desliza de volta ao lugar. */
   setDrag(next: { ids: Set<string>; modules: Set<string>; offset: THREE.Vector3; blocked: boolean } | null) {
+    this.dirty = true;
     if (!next) {
       if (this.drag) {
         this.drag.target.set(0, 0, 0);
@@ -152,6 +170,7 @@ export class FurnitureMotion {
    */
   rebaseDrag(delta: THREE.Vector3) {
     if (!this.drag) return;
+    this.dirty = true;
     this.drag.current.sub(delta);
     this.drag.target.set(0, 0, 0);
     this.drag.blocked = false;
@@ -312,20 +331,30 @@ export class FurnitureMotion {
     }
     this.initialized = true;
     if (this.drag) this.drag.rebase = false;
+    this.dirty = true;
     this.tick(now, reduced);
   }
   tick(now: number, reduced = false) {
     const dt = Math.min(Math.max(now - this.lastTick, 0), 50);
     this.lastTick = now;
+    if (!this.dirty && !this.active) return;
+    this.dirty = false;
+    this.changed = true;
+    let active = false;
     if (this.drag) {
       // Amortecimento de mola crítica: ~90% do caminho em 0,15 s.
       const k = reduced ? 1 : 1 - Math.exp(-dt / 65);
       this.drag.current.lerp(this.drag.target, k);
       if (!this.drag.rebase && this.drag.target.lengthSq() === 0 && this.drag.current.lengthSq() < 0.04) this.drag = null;
+      // Chegou ao alvo (móvel parado sob o cursor ou esperando gravar): encaixa
+      // e para de pedir quadros até o próximo alvo.
+      else if (this.drag.current.distanceToSquared(this.drag.target) < 0.0025) this.drag.current.copy(this.drag.target);
+      else active = true;
     }
     for (const [id, e] of this.entries) {
       const t =
         reduced || !e.duration ? 1 : ease((now - e.started) / e.duration);
+      if (t < 1) active = true;
       e.mesh.position.lerpVectors(e.from.position, e.to.position, t);
       e.mesh.rotation.y = THREE.MathUtils.lerp(
         e.from.rotation,
@@ -389,6 +418,7 @@ export class FurnitureMotion {
         this.entries.delete(id);
       }
     }
+    this.active = active;
   }
   pickable() {
     return [...this.entries.values()]

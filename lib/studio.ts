@@ -76,6 +76,21 @@ export function migrateParams(v: Params) {
 export function generateDesign(d: Design) {
   return generateComposition(canonical(d));
 }
+const generated = new WeakMap<object, ReturnType<typeof generateComposition>>();
+/**
+ * `generateDesign` lembrado por objeto: a mesma versão consultada várias vezes
+ * (seleção, nomes, ids vivos) gera uma vez só. Vale para projetos tratados
+ * como imutáveis, como o estado da interface e as revisões gravadas. Não
+ * altere o design depois nem o resultado devolvido.
+ */
+export function designOf(d: Design) {
+  let g = generated.get(d);
+  if (!g) {
+    g = generateDesign(d);
+    generated.set(d, g);
+  }
+  return g;
+}
 export function shelfInfos(d: Design) {
   if (d.modules.length === 1 && d.modules[0].legacyIds)
     return old.shelfInfos(legacyProjection(d));
@@ -115,7 +130,7 @@ export function resolveShelfId(id: string, d: Design) {
   return parts.some((p) => p.id === stable) ? stable : null;
 }
 export function entityIds(d: Design) {
-  const g = generateDesign(d);
+  const g = designOf(d);
   return [
     ...d.modules.map((m) => m.id),
     ...g.cells.map((c) => c.id),
@@ -124,7 +139,7 @@ export function entityIds(d: Design) {
   ];
 }
 export function selectedPartIds(d: Design, selected: readonly string[]) {
-  const g = generateDesign(d),
+  const g = designOf(d),
     cells = new Set<string>();
   const visit = (node: import('./composition').Cell) => {
     cells.add(node.id);

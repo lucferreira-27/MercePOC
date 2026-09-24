@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { Button } from './ui/button';
 import { FinishPicker } from './finish-picker';
 import { materials } from '@/lib/furniture';
@@ -84,7 +84,10 @@ function limitHint(message: string, onLimit: (message: string) => void) {
   };
 }
 
-export function ModularEditor({
+/** Memorizado: um render da página (pulso da IA, aviso) não refaz o painel. */
+export const ModularEditor = memo(ModularEditorPanel);
+
+function ModularEditorPanel({
   design,
   selected,
   onSelect,
@@ -121,7 +124,8 @@ export function ModularEditor({
     } | null>(null),
     /** Renova o formulário do módulo: a `key` sobe a cada edição recusada. */
     [editAttempt, setEditAttempt] = useState(0);
-  const g = generateComposition(design),
+  // Uma geração por versão: antes cada tecla nos campos do painel refazia o móvel.
+  const g = useMemo(() => generateComposition(design), [design]),
     target = selected.at(-1);
   const part = g.parts.find((p) => p.id === target);
   const cell =

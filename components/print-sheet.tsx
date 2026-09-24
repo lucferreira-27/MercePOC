@@ -1,4 +1,5 @@
 /* oxlint-disable next/no-img-element -- A foto da cena é um data URL gerado na hora. */
+import { memo } from 'react';
 import type { ModularPart } from '@/lib/composition';
 import type { Part } from '@/lib/furniture';
 import { money, type Quote } from '@/lib/quote';
@@ -43,7 +44,10 @@ export function groupParts(parts: readonly Part[]) {
   return [...rows.values()].sort((a, b) => a.material.localeCompare(b.material) || b.c * b.l - a.c * a.l);
 }
 
-export function PrintSheet({
+/** Folha de impressão: fica no DOM, escondida; só redesenha quando o projeto muda. */
+export const PrintSheet = memo(PrintSheetView);
+
+function PrintSheetView({
   name,
   version,
   size,
