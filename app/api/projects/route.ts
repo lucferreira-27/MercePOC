@@ -1,4 +1,4 @@
-import { applyShelfOp, applyRequest, create, createDemo, fork, list, get, view, save, revise, seek, remove } from '@/lib/store';
+import { applyShelfOp, applyRequest, create, createDemo, createFromTemplate, fork, list, get, view, save, revise, seek, remove } from '@/lib/store';
 import { sameOrigin } from '@/lib/utils';
 import { designSchema, opSchema } from '@/lib/studio';
 import { z } from 'zod';
@@ -20,6 +20,10 @@ export async function POST(req: Request) {
     const setup = z.object({ action: z.enum(['create', 'demo']) }).safeParse(body);
     if (setup.success)
       return Response.json(setup.data.action === 'demo' ? createDemo() : create());
+    const fromTemplate = z
+      .object({ action: z.literal('template'), template: z.string().min(1).max(40) })
+      .safeParse(body);
+    if (fromTemplate.success) return Response.json(createFromTemplate(fromTemplate.data.template));
     const b = z
       .object({
         id: z.uuid(),

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { defaults, materials, type Part, type MaterialId } from './furniture';
+import { defaults, materials, materialIds, type Part, type MaterialId } from './furniture';
 import * as legacy from './design';
 
 export const PROFILE = {
@@ -82,7 +82,7 @@ export type CellInfo = {
   node: Cell;
 };
 const mid = z.string().min(1).max(100);
-const material = z.enum(['white', 'oak', 'graphite']);
+const material = z.enum(materialIds);
 export function validationMessage(error: z.ZodError) {
   // União de operações recusa sem dizer o campo: cada ramo vira uma lista de
   // falhas e o ramo que aceitou o `kind` é o que diz o campo culpado.

@@ -2,6 +2,8 @@ import { z } from 'zod';
 import {
   buildParts,
   generate,
+  materials,
+  materialIds,
   type MaterialId,
   type Params,
 } from './furniture';
@@ -23,7 +25,7 @@ export const designSchema = z
     width: z.number().min(300).max(1200),
     height: z.number().min(400).max(2400),
     depth: z.number().min(200).max(600),
-    materialId: z.enum(['white', 'oak', 'graphite']),
+    materialId: z.enum(materialIds),
     shelves: z.array(shelfSchema).max(MAX_SHELVES),
   })
   .strict();
@@ -325,7 +327,7 @@ export const opSchema = z.discriminatedUnion('kind', [
       width: z.number().min(300).max(1200).optional(),
       height: z.number().min(400).max(2400).optional(),
       depth: z.number().min(200).max(600).optional(),
-      materialId: z.enum(['white', 'oak', 'graphite']).optional(),
+      materialId: z.enum(materialIds).optional(),
     })
     .strict(),
 ]);
@@ -370,11 +372,9 @@ export function executeRequest(base: Design, ops: ShelfOp[]): RequestResult {
   return { ok: true, design: current };
 }
 
-const MATERIAL_NAMES: Record<MaterialId, string> = {
-  white: 'Branco fosco',
-  oak: 'Carvalho natural',
-  graphite: 'Grafite',
-};
+const MATERIAL_NAMES = Object.fromEntries(
+  materials.map((m) => [m.id, m.name]),
+) as Record<MaterialId, string>;
 
 const mm = (v: number) => `${Math.round(v)} mm`;
 

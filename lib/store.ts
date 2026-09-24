@@ -20,6 +20,7 @@ import { canonical, normalize, executeRequest } from './studio';
 import type { ImageRef } from './images';
 import type { ChatReport, TurnOutcome } from './progress';
 import type { Room } from './room';
+import { buildTemplate, templateById } from './templates';
 export type TurnContext = {
   requestId: string;
   baseRevisionId: string;
@@ -212,6 +213,34 @@ export function create() {
           'Vamos criar sua estante. Comecei com 80 × 180 × 35 cm, quatro prateleiras e carvalho. Descreva o que você quer mudar.',
       },
     ],
+  };
+  database()
+    .prepare('INSERT INTO projects VALUES (?, ?, ?, ?)')
+    .run(p.id, encode(p), 0, new Date().toISOString());
+  return view(p);
+}
+/**
+ * Projeto novo a partir de um modelo pronto. O modelo é a versão 1 e a
+ * primeira mensagem explica o que foi montado; um modelo que traz quarto de
+ * exemplo já abre com o ambiente preenchido.
+ */
+export function createFromTemplate(templateId: string) {
+  const t = templateById(templateId);
+  if (!t) throw new Error('Modelo não encontrado.');
+  const params = normalize(buildTemplate(t));
+  const revisionId = randomUUID();
+  const p: Project = {
+    id: randomUUID(),
+    name: uniqueName(t.name),
+    version: 0,
+    cursor: 0,
+    revisions: [
+      { id: revisionId, number: 1, params, label: `Modelo: ${t.name}`, at: new Date().toISOString() },
+    ],
+    messages: [
+      { id: randomUUID(), role: 'assistant', content: t.intro, revisionId, revision: 1 },
+    ],
+    ...(t.room ? { room: structuredClone(t.room) } : {}),
   };
   database()
     .prepare('INSERT INTO projects VALUES (?, ?, ?, ?)')
