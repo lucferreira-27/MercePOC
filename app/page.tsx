@@ -6,28 +6,52 @@ import { ChatProgress } from '@/components/chat-progress';
 import { ChangeCards } from '@/components/change-cards';
 import { readEvents } from '@/lib/sse';
 import { type Progress, type TextPreview } from '@/lib/progress';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown,
   ArrowUp,
   Box,
+  Boxes,
   Bug,
+  Camera,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Command as CommandIcon,
+  DoorOpen,
   Download,
+  FileJson,
+  FileSpreadsheet,
   FlipHorizontal2,
+  History,
+  Image as ImageIcon,
   ImagePlus,
   Layers,
+  LayoutTemplate,
+  ListTree,
+  MessageSquare,
+  Monitor,
+  Moon,
   Orbit,
+  PanelLeftClose,
+  PanelRightClose,
+  PanelLeft,
+  PanelRight,
+  Pencil,
   Plus,
+  Printer,
+  Receipt,
   Redo2,
+  Ruler,
+  Scan,
+  Scissors,
   Sparkles,
   Square,
+  Sun,
   Undo2,
   X,
   Zap,
-  Scan,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
@@ -51,18 +75,17 @@ import { type Part } from '@/lib/furniture';
 import type { Project, Message, Clarification } from '@/lib/store';
 import { ModularEditor } from '@/components/modular-editor';
 import { ProjectPicker, type ProjectSummary } from '@/components/project-picker';
+import { RoomPanel } from '@/components/room-panel';
+import { QuotePanel } from '@/components/quote-panel';
+import { CutPlanPanel, cutPlanCSV } from '@/components/cut-plan-panel';
+import { CommandPalette, type PaletteAction } from '@/components/command-palette';
+import { TemplateGallery } from '@/components/template-gallery';
+import { PrintSheet, groupParts } from '@/components/print-sheet';
 import { entityIds, canonical, selectedPartIds } from '@/lib/studio';
 import { generateComposition, openingLimit, openingPose, type ModularPart } from '@/lib/composition';
-import {
-  emptyRoom,
-  fitReport,
-  fitSummary,
-  ROOM_LIMITS,
-  type FitReport,
-  type Obstacle,
-  type ObstacleKind,
-  type Room,
-} from '@/lib/room';
+import { fitReport, fitSummary, type Room } from '@/lib/room';
+import { DEFAULT_PRICES, mergePrices, money, quote as buildQuote, type Prices } from '@/lib/quote';
+import { friendlyError } from '@/lib/errors';
 type State = Project & {
   params: Design;
   parts: Part[];
@@ -75,6 +98,22 @@ type State = Project & {
   discarded?: number;
   noop?: boolean;
 };
+type Tab = 'project' | 'room' | 'quote' | 'cut' | 'parts' | 'history';
+type ThemeChoice = 'system' | 'light' | 'dark';
+const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  { id: 'project', label: 'Projeto', icon: <Boxes size={17} /> },
+  { id: 'room', label: 'Ambiente', icon: <DoorOpen size={17} /> },
+  { id: 'quote', label: 'Orçamento', icon: <Receipt size={17} /> },
+  { id: 'cut', label: 'Corte', icon: <Scissors size={17} /> },
+  { id: 'parts', label: 'Peças', icon: <ListTree size={17} /> },
+  { id: 'history', label: 'Versões', icon: <History size={17} /> },
+];
+const VIEWS: { id: ViewMode; label: string; key: string; icon: React.ReactNode }[] = [
+  { id: 'perspective', label: 'Perspectiva', key: '1', icon: <Box size={15} /> },
+  { id: 'front', label: 'Frente', key: '2', icon: <Square size={15} /> },
+  { id: 'side', label: 'Lado', key: '3', icon: <FlipHorizontal2 size={15} /> },
+  { id: 'top', label: 'Topo', key: '4', icon: <ArrowDown size={15} /> },
+];
 function dotLeft(i: number, max: number) {
   return `${((i / Math.max(1, max)) * 100).toFixed(2)}%`;
 }
@@ -93,13 +132,18 @@ async function api<T = State>(path: string, body?: unknown): Promise<T> {
   if (!r.ok) throw new Error(d.error || 'Não foi possível concluir.');
   return d;
 }
-/** Último projeto aberto neste navegador ('' quando é a primeira visita). */
-function storedProjectId() {
+/** Leitura de preferência local: '' quando o navegador bloqueia o storage. */
+function readLocal(key: string) {
   try {
-    return localStorage.getItem('merce-project') ?? '';
+    return localStorage.getItem(key) ?? '';
   } catch {
     return '';
   }
+}
+function writeLocal(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {}
 }
 /**
  * Trava de criação de projeto. O app chega a montar duas vezes na mesma
@@ -118,21 +162,37 @@ function claimProjectCreation() {
 }
 /** Marca o projeto recém-criado: quem montar depois mostra o aviso. */
 function markFreshProject() {
-  try {
-    localStorage.setItem('merce-fresh', '1');
-  } catch {}
+  writeLocal('merce-fresh', '1');
 }
 function download(name: string, content: string, type = 'application/json') {
   const url = URL.createObjectURL(new Blob([content], { type }));
+  downloadUrl(name, url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function downloadUrl(name: string, url: string) {
   const a = document.createElement('a');
   a.href = url;
   a.download = name;
   a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+/** Nome de arquivo a partir do nome do projeto: "Guarda-roupa 2" → guarda-roupa-2. */
+function slug(name: string) {
+  return (
+    name
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'projeto'
+  );
 }
 /** Centímetros com no máximo uma casa, sem zeros à direita: 80 ou 158.2. */
 function cm(millimetres: number) {
   return String(Number((millimetres / 10).toFixed(1)));
+}
+/** Metros com duas casas e vírgula: "2,40". */
+function metres(millimetres: number) {
+  return (millimetres / 1000).toFixed(2).replace('.', ',');
 }
 /**
  * Milímetros para exibição: a divisão de um vão pode dar 185.33333 mm e a
@@ -143,378 +203,10 @@ function mm(millimetres: number) {
 }
 /** Raciocínio exibido no painel de depuração: mantém o fim, que é o que importa. */
 const REASONING_VIEW_CAP = 64 * 1024;
-/**
- * Agrupa peças idênticas para a folha impressa: quatro prateleiras iguais são
- * uma linha com quantidade 4, não quatro linhas com quantidade 1.
- */
-function groupParts(parts: Part[]) {
-  const rows = new Map<
-    string,
-    {
-      key: string;
-      name: string;
-      count: number;
-      duplicates: number;
-      c: number;
-      l: number;
-      thickness: number;
-      material: string;
-      area: number;
-    }
-  >();
-  for (const part of parts) {
-    const key = [part.name, part.c, part.l, part.thickness, part.material].join(
-      '|',
-    );
-    const row = rows.get(key);
-    if (row) {
-      row.count += 1;
-      row.duplicates += 1;
-      row.area += (part.c * part.l) / 1_000_000;
-    } else
-      rows.set(key, {
-        key,
-        name: part.name,
-        count: 1,
-        duplicates: 1,
-        c: part.c,
-        l: part.l,
-        thickness: part.thickness,
-        material: part.material,
-        area: (part.c * part.l) / 1_000_000,
-      });
-  }
-  return [...rows.values()];
-}
-/**
- * Falhas de rede chegam como TypeError ("Failed to fetch") ou "network error"
- * do motor do navegador. A interface é em português: traduzir na fronteira.
- */
-function friendlyError(e: unknown) {
-  const message = e instanceof Error ? e.message : String(e);
-  if (/failed to fetch|network error|load failed|fetch failed|err_/i.test(message))
-    return 'Sem conexão com o estúdio local. Verifique se o servidor está rodando e tente novamente.';
-  if (/aborted|abort/i.test(message) && !/timeout/i.test(message))
-    return 'A conexão foi interrompida antes da resposta. Tente novamente.';
-  return message || 'Não foi possível concluir.';
-}
-
-const OBSTACLE_NAMES: Record<ObstacleKind, string> = {
-  door: 'Porta',
-  window: 'Janela',
-  outlet: 'Tomada',
-  column: 'Coluna',
-  other: 'Outro',
-};
-/** Campos do ambiente enquanto a pessoa digita: número só na hora de salvar. */
-type RoomDraft = {
-  widthMm: string;
-  heightMm: string;
-  depthMm: string;
-  baseboardMm: string;
-};
-type ObstacleDraft = {
-  id: string;
-  kind: ObstacleKind;
-  xMm: string;
-  yMm: string;
-  widthMm: string;
-  heightMm: string;
-};
-
-/** Vazio ou fora do intervalo conta como ausente: a mensagem diz o limite. */
-function draftNumber(raw: string, limit: readonly [number, number]) {
-  const value = Number(raw.trim().replace(',', '.'));
-  if (!raw.trim() || !Number.isFinite(value) || value < limit[0] || value > limit[1])
-    return null;
-  return value;
-}
-
-/** Prévia em metros do campo digitado, para conferir sem fazer conta: "2,87 m". */
-function draftMetres(raw: string) {
-  const value = Number(raw.trim().replace(',', '.'));
-  if (!Number.isFinite(value) || value < 100) return '';
-  return `${(value / 1000).toFixed(2).replace('.', ',')} m`;
-}
-
-/** Monta o ambiente do formulário. Um problema por vez, já em português. */
-function buildRoom(
-  draft: RoomDraft,
-  obstacles: ObstacleDraft[],
-): { room: Room } | { error: string } {
-  const widthMm = draftNumber(draft.widthMm, ROOM_LIMITS.width);
-  if (widthMm === null)
-    return {
-      error: `Largura da parede: informe um valor entre ${ROOM_LIMITS.width[0]} e ${ROOM_LIMITS.width[1]} mm.`,
-    };
-  const heightMm = draftNumber(draft.heightMm, ROOM_LIMITS.height);
-  if (heightMm === null)
-    return {
-      error: `Altura do teto: informe um valor entre ${ROOM_LIMITS.height[0]} e ${ROOM_LIMITS.height[1]} mm.`,
-    };
-  const depthMm = draftNumber(draft.depthMm, ROOM_LIMITS.depth);
-  if (draft.depthMm.trim() && depthMm === null)
-    return {
-      error: `Profundidade: informe um valor entre ${ROOM_LIMITS.depth[0]} e ${ROOM_LIMITS.depth[1]} mm, ou deixe em branco.`,
-    };
-  const baseboardMm = draftNumber(draft.baseboardMm, ROOM_LIMITS.baseboard);
-  if (draft.baseboardMm.trim() && baseboardMm === null)
-    return {
-      error: `Rodapé: informe um valor entre 0 e ${ROOM_LIMITS.baseboard[1]} mm, ou deixe em branco.`,
-    };
-  const list: Obstacle[] = [];
-  for (const [index, item] of obstacles.entries()) {
-    const xMm = draftNumber(item.xMm, ROOM_LIMITS.obstacleX);
-    const yMm = draftNumber(item.yMm, ROOM_LIMITS.obstacleY);
-    const width = draftNumber(item.widthMm, ROOM_LIMITS.obstacleSize);
-    const height = draftNumber(item.heightMm, ROOM_LIMITS.obstacleSize);
-    if (xMm === null || yMm === null || width === null || height === null)
-      return {
-        error: `Obstáculo ${index + 1}: informe x, y, largura e altura em mm (x de ${ROOM_LIMITS.obstacleX[0]} a ${ROOM_LIMITS.obstacleX[1]}, tamanhos a partir de ${ROOM_LIMITS.obstacleSize[0]} mm).`,
-      };
-    list.push({ id: item.id, kind: item.kind, xMm, yMm, widthMm: width, heightMm: height });
-  }
-  return {
-    room: {
-      schemaVersion: 1,
-      widthMm,
-      heightMm,
-      ...(depthMm === null ? {} : { depthMm }),
-      ...(baseboardMm === null ? {} : { baseboardMm }),
-      obstacles: list,
-    },
-  };
-}
-
-function roomDraft(room?: Room): RoomDraft {
-  const base = room ?? emptyRoom();
-  return {
-    widthMm: String(base.widthMm),
-    heightMm: String(base.heightMm),
-    depthMm: base.depthMm === undefined ? '' : String(base.depthMm),
-    baseboardMm: base.baseboardMm === undefined ? '' : String(base.baseboardMm),
-  };
-}
-
-function obstacleDraft(obstacle: Obstacle): ObstacleDraft {
-  return {
-    id: obstacle.id,
-    kind: obstacle.kind,
-    xMm: String(obstacle.xMm),
-    yMm: String(obstacle.yMm),
-    widthMm: String(obstacle.widthMm),
-    heightMm: String(obstacle.heightMm),
-  };
-}
-
-/**
- * Seção Ambiente do painel Ajustes. As medidas vão para o servidor só no botão
- * Salvar: gravar a cada tecla encheria o projeto de versões de digitação.
- */
-function RoomPanel({
-  room,
-  report,
-  summary,
-  busy,
-  onSave,
-}: {
-  room?: Room;
-  report: FitReport | null;
-  summary: string;
-  busy: boolean;
-  onSave: (room: Room) => Promise<void>;
-}) {
-  const [draft, setDraft] = useState<RoomDraft>(() => roomDraft(room));
-  const [obstacles, setObstacles] = useState<ObstacleDraft[]>(() =>
-    (room?.obstacles ?? []).map(obstacleDraft),
-  );
-  const [error, setError] = useState('');
-  const [saved, setSaved] = useState('');
-  // Qualquer digitação invalida "Ambiente salvo.": o campo já não é o salvo.
-  const clear = () => {
-    setSaved('');
-    setError('');
-  };
-  const setField = (key: keyof RoomDraft, value: string) => {
-    clear();
-    setDraft((current) => ({ ...current, [key]: value }));
-  };
-  const setObstacleNumber = (
-    id: string,
-    key: 'xMm' | 'yMm' | 'widthMm' | 'heightMm',
-    value: string,
-  ) => {
-    clear();
-    setObstacles((list) =>
-      list.map((item) => (item.id === id ? { ...item, [key]: value } : item)),
-    );
-  };
-  const addObstacle = () => {
-    clear();
-    setObstacles((list) => [
-      ...list,
-      {
-        id: `ob-${crypto.randomUUID().slice(0, 12)}`,
-        kind: 'door',
-        xMm: '0',
-        yMm: '0',
-        widthMm: '800',
-        heightMm: '2100',
-      },
-    ]);
-  };
-  const save = async () => {
-    const built = buildRoom(draft, obstacles);
-    if ('error' in built) {
-      setSaved('');
-      setError(built.error);
-      return;
-    }
-    setError('');
-    setSaved('');
-    try {
-      await onSave(built.room);
-      setSaved('Ambiente salvo.');
-    } catch (e) {
-      setError(friendlyError(e));
-    }
-  };
-  const fields: [keyof RoomDraft, string, string][] = [
-    ['widthMm', 'Largura da parede (mm)', '3000'],
-    ['heightMm', 'Altura do teto (mm)', '2700'],
-    ['depthMm', 'Profundidade (mm)', '600'],
-    ['baseboardMm', 'Rodapé (mm)', '80'],
-  ];
-  return (
-    <div className="room-panel">
-      <div className="section-label">AMBIENTE</div>
-      {!room && (
-        <p className="shelf-hint">
-          Ambiente ainda não informado. Os campos começam com as medidas de um
-          quarto de exemplo: confira com a trena e salve para ver o encaixe.
-        </p>
-      )}
-      {report && (
-        <div className={'room-verdict' + (report.fits ? '' : ' bad')}>
-          <strong>{summary}</strong>
-          {report.issues.map((issue) => (
-            <p className="field-error" key={issue.code + issue.message}>
-              {issue.message}
-              {issue.detail ? `. ${issue.detail}` : ''}
-            </p>
-          ))}
-          {report.notes.map((note) => (
-            <p className="warning" key={note}>
-              {note}
-            </p>
-          ))}
-        </div>
-      )}
-      <div className="room-fields">
-        {fields.map(([key, label, placeholder]) => (
-          <label key={key}>
-            {label}
-            <input
-              inputMode="numeric"
-              placeholder={placeholder}
-              value={draft[key]}
-              maxLength={6}
-              disabled={busy}
-              onChange={(e) => setField(key, e.target.value)}
-            />
-            <small>{draftMetres(draft[key])}</small>
-          </label>
-        ))}
-      </div>
-      <div className="room-obstacles">
-        <div className="section-label">
-          OBSTÁCULOS
-          <button
-            type="button"
-            className="link-button"
-            disabled={busy || obstacles.length >= ROOM_LIMITS.obstacles}
-            onClick={addObstacle}
-          >
-            Adicionar
-          </button>
-        </div>
-        {obstacles.length === 0 ? (
-          <p className="shelf-hint">
-            Portas, janelas, tomadas e colunas. X conta da esquerda da parede e Y
-            do piso.
-          </p>
-        ) : (
-          obstacles.map((item, index) => (
-            <div className="room-obstacle" key={item.id}>
-              <div className="room-obstacle-head">
-                <select
-                  aria-label={`Tipo do obstáculo ${index + 1}`}
-                  value={item.kind}
-                  disabled={busy}
-                  onChange={(e) => {
-                    clear();
-                    const kind = e.target.value as ObstacleKind;
-                    setObstacles((list) =>
-                      list.map((v) => (v.id === item.id ? { ...v, kind } : v)),
-                    );
-                  }}
-                >
-                  {(Object.keys(OBSTACLE_NAMES) as ObstacleKind[]).map((kind) => (
-                    <option value={kind} key={kind}>
-                      {OBSTACLE_NAMES[kind]}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className="link-button"
-                  disabled={busy}
-                  onClick={() => {
-                    clear();
-                    setObstacles((list) => list.filter((v) => v.id !== item.id));
-                  }}
-                >
-                  Remover
-                </button>
-              </div>
-              <div className="room-fields">
-                {(
-                  [
-                    ['xMm', 'X (mm)'],
-                    ['yMm', 'Y (mm)'],
-                    ['widthMm', 'Largura (mm)'],
-                    ['heightMm', 'Altura (mm)'],
-                  ] as ['xMm' | 'yMm' | 'widthMm' | 'heightMm', string][]
-                ).map(([key, label]) => (
-                  <label key={key}>
-                    {label}
-                    <input
-                      inputMode="numeric"
-                      value={item[key]}
-                      maxLength={6}
-                      disabled={busy}
-                      onChange={(e) => setObstacleNumber(item.id, key, e.target.value)}
-                    />
-                  </label>
-                ))}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-      {error && (
-        <p className="field-error" role="alert">
-          {error}
-        </p>
-      )}
-      <div className="room-save">
-        <Button variant="outline" disabled={busy} onClick={() => void save()}>
-          Salvar ambiente
-        </Button>
-        {saved && <small>{saved}</small>}
-      </div>
-    </div>
-  );
+/** Tecla digitada num campo não é atalho: a pessoa está escrevendo. */
+function typing(target: EventTarget | null) {
+  const el = target as HTMLElement | null;
+  return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
 }
 export default function Home() {
   const [opened,setOpened] = useState<Record<string,number>>({});
@@ -530,7 +222,7 @@ export default function Home() {
     [exploded, setExploded] = useState(false),
     [view, setView] = useState<ViewMode>('perspective'),
     [spin, setSpin] = useState(false),
-    [tab, setTab] = useState('params'),
+    [tab, setTab] = useState<Tab>('project'),
     [exportOpen, setExportOpen] = useState(false),
     [online, setOnline] = useState(false),
     [shelfDelta, setShelfDelta] = useState('50'),
@@ -561,19 +253,55 @@ export default function Home() {
     [confirm, setConfirm] = useState<{ title: string; lines: string[] } | null>(null),
     // Quem observa a preferência é a cena 3D (é ela que gira); o botão apenas
     // reflete o que a cena faria.
-    [reducedMotion, setReducedMotion] = useState(false);
+    [reducedMotion, setReducedMotion] = useState(false),
+    // v2: cena, painéis e ferramentas novas.
+    [showDims, setShowDims] = useState(true),
+    [showRoom, setShowRoom] = useState(true),
+    [chatOpen, setChatOpen] = useState(true),
+    [inspectorOpen, setInspectorOpen] = useState(true),
+    [paletteOpen, setPaletteOpen] = useState(false),
+    [galleryOpen, setGalleryOpen] = useState(false),
+    [frameRequest, setFrameRequest] = useState(0),
+    [zoomRequest, setZoomRequest] = useState<{ id: number; direction: 'in' | 'out' }>(),
+    [snapshotRequest, setSnapshotRequest] = useState(0),
+    [printShot, setPrintShot] = useState<string | null>(null),
+    [themeChoice, setThemeChoice] = useState<ThemeChoice>('system'),
+    [systemDark, setSystemDark] = useState(false),
+    [prices, setPrices] = useState<Prices>(DEFAULT_PRICES),
+    [renaming, setRenaming] = useState(false);
+  const theme = themeChoice === 'system' ? (systemDark ? 'dark' : 'light') : themeChoice;
+  /** Para que serve a próxima foto da cena: baixar o PNG ou ilustrar a impressão. */
+  const snapshotPurpose = useRef<'download' | 'print'>('download');
   // A ação pendente do cartão de confirmação vive num ref: o cartão é render do
   // estado atual e o callback precisa enxergar o mesmo fechamento que o criou.
   const confirmAction = useRef<(() => void) | null>(null);
   // Buffer local do raciocínio exibido: o contrato do evento traz só o pedaço
   // novo, o painel acumula (mantendo o fim).
   const [reasoningView, setReasoningView] = useState('');
-  // Depuração: a transmissão do texto parcial é opcional e lembrada entre sessões.
+  // Preferências deste navegador: depuração ao vivo, tema, painéis, cena e preços.
   useEffect(() => {
+    setLive(readLocal('merce-live') === '1');
+    const t = readLocal('merce-theme');
+    if (t === 'light' || t === 'dark' || t === 'system') setThemeChoice(t);
+    if (readLocal('merce-dims') === '0') setShowDims(false);
+    if (readLocal('merce-room') === '0') setShowRoom(false);
+    if (readLocal('merce-chat') === '0') setChatOpen(false);
+    if (readLocal('merce-inspector') === '0') setInspectorOpen(false);
+    const savedTab = readLocal('merce-tab');
+    if (TABS.some((v) => v.id === savedTab)) setTab(savedTab as Tab);
     try {
-      setLive(localStorage.getItem('merce-live') === '1');
+      const raw = readLocal('merce-prices');
+      if (raw) setPrices(mergePrices(JSON.parse(raw)));
     } catch {}
+    const query = window.matchMedia('(prefers-color-scheme: dark)');
+    setSystemDark(query.matches);
+    const onChange = () => setSystemDark(query.matches);
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
   }, []);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
   // Primeira visita: a marca é consumida uma vez, para o aviso não voltar.
   useEffect(() => {
     try {
@@ -585,11 +313,35 @@ export default function Home() {
   }, []);
   const toggleLive = () =>
     setLive((v) => {
-      try {
-        localStorage.setItem('merce-live', v ? '0' : '1');
-      } catch {}
+      writeLocal('merce-live', v ? '0' : '1');
       return !v;
     });
+  /** Preferência que alterna e fica lembrada neste navegador. */
+  const remembered = (key: string, set: React.Dispatch<React.SetStateAction<boolean>>) => (next?: boolean) =>
+    set((v) => {
+      const value = next ?? !v;
+      writeLocal(key, value ? '1' : '0');
+      return value;
+    });
+  const toggleDims = remembered('merce-dims', setShowDims);
+  const toggleRoom = remembered('merce-room', setShowRoom);
+  const toggleChat = remembered('merce-chat', setChatOpen);
+  const toggleInspector = remembered('merce-inspector', setInspectorOpen);
+  const chooseTab = (next: Tab) => {
+    setTab(next);
+    writeLocal('merce-tab', next);
+    if (!inspectorOpen) toggleInspector(true);
+  };
+  const cycleTheme = () =>
+    setThemeChoice((current) => {
+      const next: ThemeChoice = current === 'system' ? (systemDark ? 'light' : 'dark') : current === 'dark' ? 'light' : 'dark';
+      writeLocal('merce-theme', next);
+      return next;
+    });
+  const updatePrices = (next: Prices) => {
+    setPrices(next);
+    writeLocal('merce-prices', JSON.stringify(next));
+  };
   const scrubCancelled = useRef(false);
   const reasoningBox = useRef<HTMLPreElement>(null);
   // O raciocínio rola junto: o que interessa é o fim, em tempo real.
@@ -702,8 +454,8 @@ export default function Home() {
     }
   }
   const visualParams = p?.revisions[historyPreview ?? p.cursor].params;
-  const visualBounds = useMemo(() => visualParams ? generateComposition(visualParams).bounds : null, [visualParams]);
-  const visualSize = visualBounds ? [0, 1, 2].map(i => visualBounds.max[i] - visualBounds.min[i]) : null;
+  const visualBounds = useMemo(() => (visualParams ? generateComposition(visualParams).bounds : null), [visualParams]);
+  const visualSize = visualBounds ? ([0, 1, 2].map((i) => visualBounds.max[i] - visualBounds.min[i]) as [number, number, number]) : null;
   /**
    * Veredito de encaixe do ambiente, calculado uma vez por render: alimenta a
    * seção Ambiente e o aviso do cabeçalho. Sem ambiente informado não existe
@@ -736,6 +488,12 @@ export default function Home() {
   const historyCount = p?.revisions.length ?? 0;
   const displayParts=useMemo(()=>visualParts.map(part=>openingPose(part as ModularPart,historyPreview!==null?0:opened[(part as ModularPart).motion?.id??'']??0)),[visualParts,opened,historyPreview]);
   const displaySelected=visualParams?selectedPartIds(visualParams,selected):[];
+  // Orçamento e plano de corte sempre da versão exibida: arrastar a linha do
+  // tempo mostra quanto cada versão custava.
+  const quote = useMemo(
+    () => (visualParams ? buildQuote(visualParts as ModularPart[], visualParams.modules.length, prices) : null),
+    [visualParts, visualParams, prices],
+  );
   const [viewNotice,setViewNotice]=useState('');
   const historyMax=Math.max(0,historyCount-1);
   function toggleOpening(id:string){
@@ -745,6 +503,25 @@ export default function Home() {
     const fraction=openingLimit(visualParts as ModularPart[],id,opened);
     setOpened(prev=>({...prev,[id]:fraction}));
     if(fraction<1)setViewNotice(fraction===0?'Abertura bloqueada por outra peça.':'Abertura limitada para evitar colisão com outra peça.');
+  }
+  /** Abre ou fecha todas as frentes de uma vez, respeitando as colisões. */
+  function toggleAllFronts() {
+    if (historyPreview !== null || !p) return;
+    const groups = [...new Set((p.parts as ModularPart[]).filter((v) => v.motion).map((v) => v.motion!.id))];
+    if (!groups.length) {
+      setViewNotice('Este projeto não tem portas nem gavetas.');
+      return;
+    }
+    const anyOpen = groups.some((g) => (opened[g] ?? 0) > 0);
+    const next: Record<string, number> = {};
+    let blocked = false;
+    for (const g of groups) {
+      const target = anyOpen ? 0 : 1;
+      next[g] = openingLimit(p.parts as ModularPart[], g, next, 0, target);
+      if (Math.abs(next[g] - target) > 1e-5) blocked = true;
+    }
+    setOpened(next);
+    setViewNotice(blocked ? 'Algumas frentes pararam antes para não colidir.' : '');
   }
   const historyView = historyPreview ?? p?.cursor ?? 0;
   const messages = useRef<HTMLDivElement>(null);
@@ -787,9 +564,7 @@ export default function Home() {
   const accept = (d: State, options: { dims?: boolean } = {}) => {
     setP(d);
     setHistoryPreview(null);
-    try {
-      localStorage.setItem('merce-project', d.id);
-    } catch {}
+    writeLocal('merce-project', d.id);
 
     const previous=acceptedState.current;
     // Medida geral mudou (editar a largura de um módulo muda a composição
@@ -864,7 +639,7 @@ export default function Home() {
         // Só abre um projeto que este navegador já conhece. Sem memória, abre
         // um projeto NOVO: o mais recente da base pode ser de outra pessoa e
         // abrir sozinho já causou pedido gravado no projeto errado.
-        let mine = all.find((v) => v.id === storedProjectId());
+        let mine = all.find((v) => v.id === readLocal('merce-project'));
         if (!mine && !claimProjectCreation()) {
           // Outra instância da página já está criando um projeto: espera por ele.
           await new Promise((done) => setTimeout(done, 700));
@@ -921,42 +696,80 @@ export default function Home() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [scrubbing]);
-  /** Ctrl/Cmd+Z e Shift+Z: os botões existiam, o atalho não. */
-  const undoRedo = useRef({ undo: () => {}, redo: () => {} });
-  // Sem lista de dependências: o ref sempre aponta para o estado do render
-  // atual, e o listener é registrado uma única vez.
+  /**
+   * Atalhos de teclado. O listener é registrado uma vez e lê o estado do
+   * render atual por um ref: sem isso cada tecla veria o estado da montagem.
+   */
+  const shortcuts = useRef<(e: KeyboardEvent) => void>(() => {});
   useEffect(() => {
-    undoRedo.current = {
-      undo: () => {
-        if (!busy && p && p.cursor > 0) void action('undo');
-      },
-      redo: () => {
-        if (!busy && p && p.cursor < p.revisions.length - 1) void action('redo');
-      },
+    shortcuts.current = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && key === 'k') {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+        return;
+      }
+      if (paletteOpen || galleryOpen) return;
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && (key === 'z' || key === 'y')) {
+        if (typing(e.target)) return;
+        e.preventDefault();
+        if (key === 'y' || e.shiftKey) {
+          if (!busy && p && p.cursor < p.revisions.length - 1) void action('redo');
+        } else if (!busy && p && p.cursor > 0) void action('undo');
+        return;
+      }
+      if (e.ctrlKey || e.metaKey || e.altKey || typing(e.target)) return;
+      const viewKey = VIEWS.find((v) => v.key === key);
+      if (viewKey) setView(viewKey.id);
+      else if (key === 'e') setExploded((v) => !v);
+      else if (key === 'd') toggleDims();
+      else if (key === 'r') toggleRoom();
+      else if (key === 'f') setFrameRequest((v) => v + 1);
+      else if (key === 'o') toggleAllFronts();
+      else if (key === '+' || key === '=') setZoomRequest({ id: Date.now(), direction: 'in' });
+      else if (key === '-') setZoomRequest({ id: Date.now(), direction: 'out' });
+      else if (key === '[') toggleChat();
+      else if (key === ']') toggleInspector();
+      else if (key === '/') {
+        e.preventDefault();
+        if (!chatOpen) toggleChat(true);
+        setTimeout(() => composer.current?.focus(), 30);
+      } else if (key === 'escape' && selected.length) setSelected([]);
     };
   });
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
-      const key = e.key.toLowerCase();
-      if (key !== 'z' && key !== 'y') return;
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA'))
-        return;
-      e.preventDefault();
-      if (key === 'y' || e.shiftKey) undoRedo.current.redo();
-      else undoRedo.current.undo();
-    };
+    const onKey = (e: KeyboardEvent) => shortcuts.current(e);
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
-  /** "Novo" criava sempre "Minha estante": parecia que nada tinha acontecido. */
+  /** Projeto em branco: a estante de sempre, com o aviso de como renomear. */
   async function createProject() {
+    setGalleryOpen(false);
     const created = await action('create');
     if (created) {
       setNotice(
-        `Projeto "${created.name}" criado. Renomeie no campo Nome do projeto, em Ajustes.`,
+        `Projeto "${created.name}" criado. Clique no nome acima do 3D para renomear.`,
       );
+    }
+  }
+  async function createFromTemplate(template: string) {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const created = await api<State>('/api/projects', { action: 'template', template });
+      setGalleryOpen(false);
+      accept(created);
+      setSelected([]);
+      setView('perspective');
+      setExploded(false);
+      setFrameRequest((v) => v + 1);
+      if (created.room) setShowRoom(true);
+      await refresh();
+    } catch (e) {
+      setError(friendlyError(e));
+    } finally {
+      setBusy(false);
     }
   }
   async function action(action: string, extra: object = {}) {
@@ -1027,6 +840,7 @@ export default function Home() {
     const next = await action('room', { room });
     // O painel mostra o motivo no próprio formulário; o aviso geral já saiu.
     if (!next) throw new Error('Não foi possível salvar o ambiente.');
+    setShowRoom(true);
   }
   async function forkFrom(cursor: number) {
     if (busy || !p) return;
@@ -1056,7 +870,7 @@ export default function Home() {
     const delta = Number(shelfDelta);
     return (
       <div className="shelf-panel">
-        <div className="section-label">PRATELEIRAS</div>
+        <div className="section-label">Prateleiras</div>
         {single ? (
           <div className="shelf-card">
             <strong>{single.label}</strong>
@@ -1098,7 +912,7 @@ export default function Home() {
             </div>
           </div>
         ) : (
-          <p className="shelf-hint">
+          <p className="hint">
             {selectedShelves.length > 1
               ? `${selectedShelves.length} prateleiras selecionadas.`
               : 'Selecione uma prateleira no 3D, na lista ou num card da conversa.'}
@@ -1212,6 +1026,7 @@ export default function Home() {
     setError('');
     setNotice('');
     setFailedTurn(null);
+    if (!chatOpen) toggleChat(true);
     setPending(
       replyTo?.optionId
         ? `${message} (escolha: ${
@@ -1354,12 +1169,61 @@ export default function Home() {
       }
     },
   );
+  const onSnapshot = useCallback(
+    (url: string) => {
+      if (snapshotPurpose.current === 'print') {
+        setPrintShot(url);
+        // O React precisa pintar a foto na folha antes de a impressão abrir.
+        setTimeout(() => window.print(), 120);
+      } else downloadUrl(`${slug(p?.name ?? 'projeto')}.png`, url);
+    },
+    [p?.name],
+  );
+  function exportProjectJSON() {
+    if (!p || !quote) return;
+    const rows = groupParts(p.parts);
+    download(
+      `${slug(p.name)}.json`,
+      JSON.stringify(
+        {
+          ...p,
+          schemaVersion: 3,
+          params: canonical(p.params),
+          revisions: p.revisions.map((r) => ({ ...r, params: canonical(r.params) })),
+          // Medidas gerais fora das revisões: quem lê o arquivo
+          // não deve precisar somar módulos para saber o tamanho.
+          resumo: {
+            larguraMm: p.params.width,
+            alturaMm: p.params.height,
+            profundidadeMm: p.params.depth,
+            modulos: p.params.modules.length,
+            pecas: p.parts.length,
+            itensDistintos: rows.length,
+            areaM2: Number(rows.reduce((a, r) => a + r.area, 0).toFixed(4)),
+            versaoExibida: p.cursor + 1,
+            versoesSalvas: p.revisions.length,
+            chapas: quote.counts.sheets,
+            orcamentoEstimado: quote.total,
+            // Ambiente do lugar, o mesmo que o cabeçalho confere.
+            ...(p.room ? { ambiente: p.room } : {}),
+          },
+        },
+        null,
+        2,
+      ),
+    );
+  }
+  const exports: { id: string; label: string; hint: string; icon: React.ReactNode; run: () => void }[] = p && quote
+    ? [
+        { id: 'png', label: 'Foto da vista', hint: 'PNG com cotas', icon: <ImageIcon size={16} />, run: () => { snapshotPurpose.current = 'download'; setSnapshotRequest((v) => v + 1); } },
+        { id: 'print', label: 'Imprimir / PDF', hint: 'Desenho, orçamento, peças e corte', icon: <Printer size={16} />, run: () => { snapshotPurpose.current = 'print'; setSnapshotRequest((v) => v + 1); } },
+        { id: 'csv', label: 'Lista de peças', hint: 'CSV', icon: <FileSpreadsheet size={16} />, run: () => download(`${slug(p.name)}-pecas.csv`, cutCSV(p.params), 'text/csv;charset=utf-8') },
+        { id: 'cut', label: 'Plano de corte', hint: 'CSV com posições', icon: <Scissors size={16} />, run: () => download(`${slug(p.name)}-corte.csv`, cutPlanCSV(quote.plan), 'text/csv;charset=utf-8') },
+        { id: 'cortecloud', label: 'Cortecloud', hint: 'JSON experimental', icon: <FileJson size={16} />, run: () => download(`${slug(p.name)}-cortecloud.json`, JSON.stringify(cortecloud(p.params), null, 2)) },
+        { id: 'json', label: 'Projeto completo', hint: 'JSON com histórico', icon: <FileJson size={16} />, run: exportProjectJSON },
+      ]
+    : [];
   const selectedNames = selected.map((id) => p?.parts.find((v) => v.id === id)?.name ?? p?.params.modules.find(m=>m.id===id)?.name ?? (p ? generateDesign(p.params).cells.find(c=>c.id===id)?.label : null) ?? id);
-  const sheetRows = groupParts(p?.parts ?? []);
-  const areaTotal = sheetRows.reduce((total, row) => total + row.area, 0);
-  const areaM2 = areaTotal
-    .toFixed(2)
-    .replace('.', ',');
   // Entidades vivas desta versão: ids de módulo, compartimento, frente e peça.
   const aliveIds = useMemo(() => (p ? entityIds(p.params) : []), [p]);
   const clarificationAnswered = (id: string) =>
@@ -1373,11 +1237,11 @@ export default function Home() {
     p?.messages.findLast((m) => m.role === 'assistant' && m.suggestions?.length)
       ?.suggestions ?? [];
   const contextualSuggestions=selected.length>1?['Descreva os itens selecionados','Abra as frentes selecionadas']
-    :targetCell?.node.front||targetPart?.kind==='door'||targetPart?.kind==='drawer'?['Abra esta frente','Feche esta frente','Troque esta frente para grafite']
-    :p?.params.modules.some(m=>m.id===selected[0])?['Duplique este módulo','Gire este módulo em 90 graus','Mude este módulo para branco']
+    :targetCell?.node.front||targetPart?.kind==='door'||targetPart?.kind==='drawer'?['Abra esta frente','Feche esta frente','Troque esta frente para nogueira']
+    :p?.params.modules.some(m=>m.id===selected[0])?['Duplique este módulo','Gire este módulo em 90 graus','Mude este módulo para verde sálvia']
     :targetCell&&!targetCell.node.split?['Divida este compartimento em duas colunas','Coloque duas portas neste compartimento','Coloque três gavetas neste compartimento']
     :selected.length?['Distribua as divisões deste compartimento','Deixe 400 mm livres antes desta divisória']
-    :['Adicione um nicho à direita','Crie um gaveteiro de 80 × 90 × 45 cm','Descreva os módulos do projeto'];
+    :['Adicione um nicho à direita','Crie um gaveteiro de 80 × 90 × 45 cm','Troque o acabamento para nogueira'];
   const suggestions = aiSuggestions.length ? aiSuggestions : contextualSuggestions;
   // Pergunta em aberto: o cartão traz as respostas, então os chips de sugestão
   // saem de cena para não competir com a pergunta.
@@ -1415,17 +1279,44 @@ export default function Home() {
       </button>
     );
   };
+  const hasFronts = !!p?.parts.some((v) => (v as ModularPart).motion);
+  const anyOpen = Object.values(opened).some((v) => v > 0);
+  const paletteActions: PaletteAction[] = [
+    ...VIEWS.map((v) => ({ id: 'view-' + v.id, group: 'Vista', label: { perspective: 'Vista em perspectiva', front: 'Vista frontal', side: 'Vista lateral', top: 'Vista de topo' }[v.id], keys: v.key, icon: v.icon, run: () => setView(v.id) })),
+    { id: 'fit', group: 'Vista', label: 'Enquadrar o móvel', keys: 'F', icon: <Scan size={15} />, run: () => setFrameRequest((v) => v + 1) },
+    { id: 'dims', group: 'Vista', label: showDims ? 'Esconder cotas' : 'Mostrar cotas', keys: 'D', icon: <Ruler size={15} />, run: () => toggleDims() },
+    { id: 'room', group: 'Vista', label: showRoom ? 'Esconder o ambiente' : 'Mostrar o ambiente', hint: p?.room ? '' : 'informe em Ambiente', keys: 'R', icon: <DoorOpen size={15} />, disabled: !p?.room, run: () => toggleRoom() },
+    { id: 'explode', group: 'Vista', label: exploded ? 'Juntar as peças' : 'Explodir as peças', keys: 'E', icon: <Layers size={15} />, run: () => setExploded((v) => !v) },
+    { id: 'fronts', group: 'Vista', label: anyOpen ? 'Fechar portas e gavetas' : 'Abrir portas e gavetas', keys: 'O', icon: <DoorOpen size={15} />, disabled: !hasFronts, run: toggleAllFronts },
+    { id: 'theme', group: 'Vista', label: theme === 'dark' ? 'Tema claro' : 'Tema escuro', icon: theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />, run: cycleTheme },
+    ...TABS.map((t) => ({ id: 'tab-' + t.id, group: 'Painéis', label: `Abrir ${t.label}`, icon: t.icon, run: () => chooseTab(t.id) })),
+    { id: 'chat', group: 'Painéis', label: chatOpen ? 'Recolher a conversa' : 'Abrir a conversa', keys: '[', icon: <MessageSquare size={15} />, run: () => toggleChat() },
+    { id: 'inspector', group: 'Painéis', label: inspectorOpen ? 'Recolher o painel lateral' : 'Abrir o painel lateral', keys: ']', icon: <PanelRight size={15} />, run: () => toggleInspector() },
+    { id: 'ask', group: 'Painéis', label: 'Escrever para a IA', keys: '/', icon: <Sparkles size={15} />, run: () => { if (!chatOpen) toggleChat(true); setTimeout(() => composer.current?.focus(), 30); } },
+    { id: 'new', group: 'Projeto', label: 'Novo projeto…', hint: 'em branco ou modelo', icon: <Plus size={15} />, run: () => setGalleryOpen(true) },
+    { id: 'undo', group: 'Projeto', label: 'Desfazer', keys: 'Ctrl Z', icon: <Undo2 size={15} />, disabled: !p || p.cursor === 0 || busy, run: () => void action('undo') },
+    { id: 'redo', group: 'Projeto', label: 'Refazer', keys: 'Ctrl Y', icon: <Redo2 size={15} />, disabled: !p || p.cursor >= p.revisions.length - 1 || busy, run: () => void action('redo') },
+    { id: 'rename', group: 'Projeto', label: 'Renomear projeto', icon: <Pencil size={15} />, run: () => setRenaming(true) },
+    ...exports.map((x) => ({ id: 'export-' + x.id, group: 'Exportar', label: x.label, hint: x.hint, icon: x.icon, run: x.run })),
+  ];
+  const messageCount = p?.messages.length ?? 0;
   return (
-    <main className="studio">
+    <main
+      className={
+        'studio' + (chatOpen ? '' : ' no-chat') + (inspectorOpen ? '' : ' no-inspector')
+      }
+    >
       <header className="topbar">
-        <Link className="brand" href="/">
-          <span className="brand-icon">
-            <Box size={22} />
+        <Link className="brand" href="/" aria-label="Merce, início">
+          <span className="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <rect x="4" y="3" width="16" height="18" rx="1.5" />
+              <path d="M4 9.5h16M12 9.5V21M4 15h8" />
+            </svg>
           </span>
           merce<span className="brand-dot">.</span>
         </Link>
-        <span className="divider" />
-        <span className="workspace-label">Estúdio de móveis</span>
+        <span className="topbar-sep" />
         <ProjectPicker
           projects={projects}
           current={p?.id}
@@ -1433,126 +1324,104 @@ export default function Home() {
           onSelect={(id) => void openProject(id)}
           onDelete={removeProject}
         />
-        <span className="saved">
-          <Check size={14} /> Salvo neste computador
+        <span className="saved" title="Cada alteração é salva neste computador">
+          <Check size={13} /> Salvo
         </span>
-        <Button
-          variant="ghost"
-          onClick={() => void createProject()}
-          disabled={busy}
-        >
-          <Plus />
-          Novo
-        </Button>
-        <div className="export-wrap" ref={exportWrap}>
-          <Button
-            className="export-button"
-            aria-expanded={exportOpen}
-            onClick={() => setExportOpen(!exportOpen)}
-            disabled={!p || busy}
-            title={
-              busy
-                ? 'Aguarde a resposta atual: exportar agora gravaria a versão anterior'
-                : 'Exportar peças, Cortecloud, projeto ou PDF'
-            }
+        <div className="topbar-actions">
+          <button type="button" className="palette-trigger" onClick={() => setPaletteOpen(true)}>
+            <CommandIcon size={14} />
+            <span>Buscar ações</span>
+            <kbd>Ctrl K</kbd>
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            onClick={cycleTheme}
+            title={`Tema: ${themeChoice === 'system' ? 'do sistema' : theme === 'dark' ? 'escuro' : 'claro'}`}
+            aria-label="Alternar tema claro e escuro"
           >
-            <Download />
-            Exportar
+            {themeChoice === 'system' ? <Monitor size={16} /> : theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
+          </button>
+          <Button variant="ghost" className="topbar-new" onClick={() => setGalleryOpen(true)} disabled={busy}>
+            <Plus />
+            Novo
           </Button>
-          {exportOpen && p && (
-            <div className="export-menu">
-              <button
-                onClick={() => {
-                  setExportOpen(false);
-                  download(
-                    'merce-pecas.csv',
-                    cutCSV(p.params),
-                    'text/csv;charset=utf-8',
-                  );
-                }}
-              >
-                Lista de peças · CSV
-              </button>
-              <button
-                onClick={() => {
-                  setExportOpen(false);
-                  download(
-                    'merce-cortecloud.json',
-                    JSON.stringify(cortecloud(p.params), null, 2),
-                  );
-                }}
-              >
-                Cortecloud · JSON
-              </button>
-              <button
-                onClick={() => {
-                  setExportOpen(false);
-                  download(
-                    'merce-projeto.json',
-                    JSON.stringify(
-                      {
-                        ...p,
-                        schemaVersion: 3,
-                        params: canonical(p.params),
-                        revisions: p.revisions.map((r) => ({ ...r, params: canonical(r.params) })),
-                        // Medidas gerais fora das revisões: quem lê o arquivo
-                        // não deve precisar somar módulos para saber o tamanho.
-                        resumo: {
-                          larguraMm: p.params.width,
-                          alturaMm: p.params.height,
-                          profundidadeMm: p.params.depth,
-                          modulos: p.params.modules.length,
-                          pecas: p.parts.length,
-                          itensDistintos: sheetRows.length,
-                          areaM2: Number(areaTotal.toFixed(4)),
-                          versaoExibida: p.cursor + 1,
-                          versoesSalvas: p.revisions.length,
-                          // Ambiente do lugar, o mesmo que o cabeçalho confere.
-                          ...(p.room ? { ambiente: p.room } : {}),
-                        },
-                      },
-                      null,
-                      2,
-                    ),
-                  );
-                }}
-              >
-                Projeto completo · JSON
-              </button>
-              <button
-                onClick={() => {
-                  setExportOpen(false);
-                  window.print();
-                }}
-              >
-                Desenho e peças · Imprimir / PDF
-              </button>
-              <small>
-                Arquivo Cortecloud experimental. Confira materiais e bordas na
-                importação. Não inclui ferragens, furação, instruções de montagem ou certificação de estabilidade.
-              </small>
-            </div>
-          )}
+          <div className="export-wrap" ref={exportWrap}>
+            <Button
+              className="export-button"
+              aria-expanded={exportOpen}
+              onClick={() => setExportOpen(!exportOpen)}
+              disabled={!p || busy}
+              title={
+                busy
+                  ? 'Aguarde a resposta atual: exportar agora gravaria a versão anterior'
+                  : 'Exportar foto, PDF, peças, corte ou projeto'
+              }
+            >
+              <Download />
+              Exportar
+              <ChevronDown size={14} />
+            </Button>
+            {exportOpen && p && (
+              <div className="export-menu" role="menu">
+                {exports.map((x) => (
+                  <button
+                    key={x.id}
+                    role="menuitem"
+                    onClick={() => {
+                      setExportOpen(false);
+                      x.run();
+                    }}
+                  >
+                    <span className="menu-icon">{x.icon}</span>
+                    <span>
+                      {x.label}
+                      <small>{x.hint}</small>
+                    </span>
+                  </button>
+                ))}
+                <p>
+                  Cortecloud experimental. Nada inclui furação, instruções de montagem ou
+                  certificação de estabilidade.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </header>
       <div className="workbench">
-        <aside className="chat-panel">
-          <div className="panel-title">
-            <span>
-              <Sparkles size={18} />
-              Seu projeto começa aqui
+        {chatOpen && (
+        <aside className="chat-panel" aria-label="Conversa com a IA">
+          <div className="panel-head">
+            <span className="assistant-id">
+              <span className="assistant-avatar"><Sparkles size={15} /></span>
+              <span>
+                <strong>Assistente</strong>
+                <small>
+                  <span className={online ? 'live-dot' : 'offline-dot'} />
+                  {fast ? 'Qwen 3.8 27B · rápido' : 'DeepSeek V4.1 Flash'}
+                </small>
+              </span>
             </span>
-            <span className="live-dot" />
+            <button type="button" className="icon-button" aria-label="Recolher a conversa" title="Recolher ( [ )" onClick={() => toggleChat(false)}>
+              <PanelLeftClose size={16} />
+            </button>
           </div>
           <div className="chat-messages" ref={messages} onScroll={onScroll}>
-            <div className="intro">
-              <span className="eyebrow">DA IDEIA ÀS PEÇAS</span>
-              <h1>
-                Vamos dar forma
-                <br />à sua ideia.
-              </h1>
-              <p>Converse, ajuste e veja sua estante ganhar forma.</p>
-            </div>
+            {messageCount <= 1 && (
+              <div className="intro">
+                <span className="eyebrow">Da ideia às peças</span>
+                <h1>O que vamos construir?</h1>
+                <p>
+                  Descreva o móvel, cole uma foto de referência ou comece por um
+                  modelo. Eu desenho, você ajusta, e o orçamento e o plano de
+                  corte saem prontos.
+                </p>
+                <button type="button" className="intro-cta" onClick={() => setGalleryOpen(true)}>
+                  <LayoutTemplate size={15} /> Ver modelos prontos
+                </button>
+              </div>
+            )}
             {p?.messages.map((m, i) => {
               const rev = revisionState(m);
               const clar = m.clarification;
@@ -1560,10 +1429,10 @@ export default function Home() {
               <div className={'message ' + m.role} key={m.id ?? i}>
                 {m.role === 'assistant' && (
                   <span className="avatar">
-                    <Sparkles size={14} />
+                    <Sparkles size={13} />
                   </span>
                 )}
-                <div>
+                <div className="message-body">
                   {m.image && <img className="chat-image" src={m.image.url} alt={m.image.name} loading="lazy" />}
                   {m.report?.highlights?.length ? (
                     <>
@@ -1723,7 +1592,7 @@ export default function Home() {
             })}
             {!p && !error && (
               <>
-                <p>Carregando seu estúdio…</p>
+                <p className="loading-line">Carregando seu estúdio…</p>
                 {/* Só aparece se esta tela continuar aqui: sem JavaScript
                     (pacote trocado no servidor, rede caída) a página ficava
                     carregando para sempre, sem dizer o que fazer. */}
@@ -1737,7 +1606,7 @@ export default function Home() {
             {pending && (
               <>
                 <div className="message user">
-                  <div>{pendingImage && <img className="chat-image" src={pendingImage.url} alt={pendingImage.name} />}{pending}</div>
+                  <div className="message-body">{pendingImage && <img className="chat-image" src={pendingImage.url} alt={pendingImage.name} />}{pending}</div>
                 </div>
                 <ChatProgress events={progress} started={started} />
                 {live && liveText && (
@@ -1864,11 +1733,9 @@ export default function Home() {
             )}
             {p && !openClarification && (
               <div className="suggestions">
-                {aiSuggestions.length === 0 && (
-                  <small className="suggestions-hint">
-                    Primeiros passos para começar a conversa
-                  </small>
-                )}
+                <small className="suggestions-hint">
+                  {aiSuggestions.length ? 'Próximos passos sugeridos' : 'Para começar'}
+                </small>
                 {suggestions.map((v) => (
                   <button
                     key={v}
@@ -1888,7 +1755,7 @@ export default function Home() {
               <output className="notice-banner">
                 <span>
                   {notice ||
-                    'Começamos um projeto novo. Use o seletor ao lado para abrir um projeto antigo.'}
+                    'Começamos um projeto novo. Use o seletor no topo para abrir um projeto antigo.'}
                 </span>
                 <button
                   aria-label="Fechar aviso"
@@ -1904,9 +1771,11 @@ export default function Home() {
             {viewNotice&&<output className="opening-notice">{viewNotice}</output>}
             {selected.length > 0 && (
               <div className="selection-chip">
-                {selected.length === 1
-                  ? `Selecionado: ${selectedNames[0]}`
-                  : `${selected.length} peças selecionadas: ${selectedNames.join(', ')}`}
+                <span>
+                  {selected.length === 1
+                    ? `Selecionado: ${selectedNames[0]}`
+                    : `${selected.length} itens selecionados: ${selectedNames.join(', ')}`}
+                </span>
                 <button
                   aria-label="Limpar seleção"
                   onClick={() => setSelected([])}
@@ -1946,7 +1815,7 @@ export default function Home() {
               <textarea
                 ref={composer}
                 aria-label="Mensagem para o assistente"
-                placeholder="Descreva seu móvel ou uma alteração…"
+                placeholder={selected.length ? 'Peça algo sobre a seleção…' : 'Descreva seu móvel ou uma alteração…'}
                 value={text}
                 maxLength={4000}
                 onChange={(e) => setText(e.target.value)}
@@ -1964,9 +1833,10 @@ export default function Home() {
                     }
                     void send();
                   }
+                  if (e.key === 'Escape') composer.current?.blur();
                 }}
               />
-              <div>
+              <div className="composer-bar">
                 <Button type="button" variant="ghost" size="icon" disabled={busy || !p} title="Anexar imagem (JPG, PNG ou WebP, até 10 MB)" aria-label="Anexar imagem" onClick={() => fileInput.current?.click()}><ImagePlus /></Button>
                 <button
                   type="button"
@@ -1982,7 +1852,7 @@ export default function Home() {
                   }
                   onClick={() => setFast((v) => !v)}
                 >
-                  <Zap size={14} />
+                  <Zap size={13} />
                   Rápido
                 </button>
                 <button
@@ -1999,7 +1869,7 @@ export default function Home() {
                   }
                   onClick={toggleLive}
                 >
-                  <Bug size={14} />
+                  <Bug size={13} />
                   Ao vivo
                 </button>
                 <span
@@ -2019,43 +1889,108 @@ export default function Home() {
                 </Button>
               </div>
             </form>
-            <div className="model-label">
-              <span className={online ? 'live-dot' : 'offline-dot'} />
-              {fast ? 'Qwen 3.8 27B' : 'DeepSeek V4.1 Flash'} <span>{fast ? 'via Cerebras · modo rápido' : 'via Command Code · esforço baixo'}</span>
-            </div>
           </div>
         </aside>
-        <section className="viewport">
-          <div className="viewport-heading">
-            <div>
-              <span className="eyebrow">COMPOSIÇÃO MODULAR</span>
-              <h2 title={p?.name || 'Minha estante'}>{p?.name || 'Minha estante'}</h2>
-              {roomFit && !roomFit.report.fits && (
-                <output className="revision-warning">{roomFit.summary}</output>
+        )}
+        <section className="viewport" aria-label="Modelo 3D">
+          <div className="stage-head">
+            {!chatOpen && (
+              <button type="button" className="icon-button floating-toggle" aria-label="Abrir a conversa" title="Abrir a conversa ( [ )" onClick={() => toggleChat(true)}>
+                <PanelLeft size={16} />
+              </button>
+            )}
+            <div className="stage-title">
+              {renaming && p ? (
+                <input
+                  className="title-input"
+                  ref={(el) => el?.focus()}
+                  defaultValue={p.name}
+                  maxLength={80}
+                  aria-label="Nome do projeto"
+                  onBlur={(e) => {
+                    setRenaming(false);
+                    const name = e.target.value.trim();
+                    if (name && name !== p.name) void action('rename', { name });
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') e.currentTarget.blur();
+                    if (e.key === 'Escape') {
+                      e.currentTarget.value = p.name;
+                      e.currentTarget.blur();
+                    }
+                  }}
+                />
+              ) : (
+                <button
+                  type="button"
+                  className="title-button"
+                  title="Clique para renomear"
+                  disabled={!p || busy}
+                  onClick={() => setRenaming(true)}
+                >
+                  <h2>{p?.name || 'Minha estante'}</h2>
+                  <Pencil size={14} />
+                </button>
+              )}
+              {p && visualSize && (
+                <p className="stage-meta">
+                  <span className={changed.size ? 'changed' : ''}>
+                    {metres(visualSize[0])} × {metres(visualSize[1])} × {metres(visualSize[2])} m
+                  </span>
+                  <i />
+                  {visualParams!.modules.length} {visualParams!.modules.length === 1 ? 'módulo' : 'módulos'}
+                  <i />
+                  {visualParts.length} peças
+                  {quote && (
+                    <>
+                      <i />
+                      <button type="button" className="meta-link" onClick={() => chooseTab('quote')}>
+                        {money(quote.total)}
+                      </button>
+                    </>
+                  )}
+                </p>
               )}
             </div>
-            <span className="revision">
-              Versão {p ? (historyPreview ?? p.cursor) + 1 : 1}
-              {historyPreview !== null && p && historyPreview !== p.cursor ? ' · Prévia' : ''}
-              {p && historyPreview === null && p.cursor < p.revisions.length - 1 && (
-                <>
-                  {` · Editando a versão ${p.cursor + 1} (${p.revisions.length} salvas)`}
-                  <span className="revision-warning">
-                    {' '}
-                    · editar aqui descarta {p.revisions.length - p.cursor - 1} versão
-                    {p.revisions.length - p.cursor - 1 > 1 ? 'ões' : ''} seguinte
-                    {p.revisions.length - p.cursor - 1 > 1 ? 's' : ''}
-                  </span>
-                </>
+            <div className="stage-badges">
+              {roomFit && (
+                <button
+                  type="button"
+                  className={'fit-badge ' + (roomFit.report.fits ? 'ok' : 'bad')}
+                  onClick={() => chooseTab('room')}
+                  title={roomFit.summary}
+                >
+                  <span className="fit-dot" />
+                  {roomFit.report.fits ? 'Cabe no ambiente' : 'Não cabe'}
+                </button>
               )}
-            </span>
+              <span className={'version-badge' + (historyPreview !== null && p && historyPreview !== p.cursor ? ' preview' : '')}>
+                Versão {p ? (historyPreview ?? p.cursor) + 1 : 1}
+                {historyPreview !== null && p && historyPreview !== p.cursor ? ' · prévia' : ''}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="icon-button floating-toggle"
+              aria-label={inspectorOpen ? 'Recolher o painel lateral' : 'Abrir o painel lateral'}
+              title={inspectorOpen ? 'Recolher o painel ( ] )' : 'Abrir o painel ( ] )'}
+              onClick={() => toggleInspector()}
+            >
+              {inspectorOpen ? <PanelRightClose size={16} /> : <PanelRight size={16} />}
+            </button>
           </div>
+          {p && historyPreview === null && p.cursor < p.revisions.length - 1 && (
+            <p className="stage-warning">
+              Editando a versão {p.cursor + 1} de {p.revisions.length}: uma nova edição descarta{' '}
+              {p.revisions.length - p.cursor - 1 === 1 ? 'a versão seguinte' : `as ${p.revisions.length - p.cursor - 1} versões seguintes`}.
+            </p>
+          )}
+          {roomFit && !roomFit.report.fits && <p className="stage-warning bad">{roomFit.summary}</p>}
           {p && (
             <FurnitureView
               params={visualParams!}
               parts={displayParts}
               scrub={scrubbing}
-              dims={false}
               selected={displaySelected}
               onSelect={(id, extend) =>
                 id === null ? setSelected([]) : toggleSelected(id, extend)
@@ -2063,69 +1998,84 @@ export default function Home() {
               exploded={exploded}
               view={view}
               spin={spin}
+              frameRequest={frameRequest}
+              zoomRequest={zoomRequest}
+              room={p.room}
+              showRoom={showRoom && !!p.room}
+              showDims={showDims}
+              theme={theme}
+              snapshotRequest={snapshotRequest}
+              caption={visualSize ? `${p.name} · ${metres(visualSize[0])} × ${metres(visualSize[1])} × ${metres(visualSize[2])} m` : p.name}
+              onSnapshot={onSnapshot}
               onSpinSuppressed={setReducedMotion}
             />
           )}
+          <div className="stage-tools" role="toolbar" aria-label="Ferramentas da cena" aria-orientation="vertical">
+            <button type="button" title="Aproximar (+)" aria-label="Aproximar" onClick={() => setZoomRequest({ id: Date.now(), direction: 'in' })}><ZoomIn size={17} /></button>
+            <button type="button" title="Afastar (−)" aria-label="Afastar" onClick={() => setZoomRequest({ id: Date.now(), direction: 'out' })}><ZoomOut size={17} /></button>
+            <button type="button" title="Enquadrar (F)" aria-label="Enquadrar o móvel" onClick={() => setFrameRequest((v) => v + 1)}><Scan size={17} /></button>
+            <span className="tool-sep" />
+            <button type="button" className={showDims ? 'active' : ''} aria-pressed={showDims} title="Cotas (D)" aria-label="Cotas" onClick={() => toggleDims()}><Ruler size={17} /></button>
+            <button
+              type="button"
+              className={showRoom && p?.room ? 'active' : ''}
+              aria-pressed={showRoom && !!p?.room}
+              title={p?.room ? 'Ambiente no 3D (R)' : 'Informe o ambiente para vê-lo no 3D'}
+              aria-label="Ambiente no 3D"
+              onClick={() => (p?.room ? toggleRoom() : chooseTab('room'))}
+            >
+              <DoorOpen size={17} />
+            </button>
+            <button type="button" className={exploded ? 'active' : ''} aria-pressed={exploded} title="Explodir (E)" aria-label="Explodir" onClick={() => setExploded(!exploded)}><Layers size={17} /></button>
+            <button
+              type="button"
+              className={anyOpen ? 'active' : ''}
+              aria-pressed={anyOpen}
+              disabled={!hasFronts || historyPreview !== null}
+              title={hasFronts ? 'Abrir e fechar frentes (O)' : 'Sem portas ou gavetas'}
+              aria-label="Abrir e fechar frentes"
+              onClick={toggleAllFronts}
+            >
+              <Box size={17} />
+            </button>
+            <button
+              type="button"
+              className={spin && !reducedMotion ? 'active' : ''}
+              aria-pressed={spin && !reducedMotion}
+              disabled={reducedMotion}
+              title={
+                reducedMotion
+                  ? 'Desativado: seu sistema pede menos animação (prefers-reduced-motion)'
+                  : spin
+                    ? 'Girar o modelo: ativo. Clique para parar.'
+                    : 'Girar o modelo continuamente'
+              }
+              aria-label="Girar"
+              onClick={() => setSpin(!spin)}
+            >
+              <Orbit size={17} />
+            </button>
+            <span className="tool-sep" />
+            <button type="button" title="Foto da vista (PNG)" aria-label="Foto da vista" onClick={() => { snapshotPurpose.current = 'download'; setSnapshotRequest((v) => v + 1); }}><Camera size={17} /></button>
+          </div>
           <div className="scene-bottom">
-            <div className="viewport-controls">
-              <span className="control-label">Vista</span>
-              <div className="control-buttons">
+            <fieldset className="view-switch">
+              <legend className="sr-only">Vista</legend>
+              {VIEWS.map((v) => (
                 <button
-                  className={view === 'perspective' ? 'active' : ''}
-                  onClick={() => setView('perspective')}
+                  key={v.id}
+                  type="button"
+                  aria-pressed={view === v.id}
+                  className={view === v.id ? 'active' : ''}
+                  title={`${v.label} (${v.key})`}
+                  onClick={() => setView(v.id)}
                 >
-                  <Box size={16} />
-                  Perspectiva
+                  {v.icon}
+                  <span>{v.label}</span>
                 </button>
-                <button
-                  className={view === 'front' ? 'active' : ''}
-                  onClick={() => setView('front')}
-                >
-                  <Square size={16} />
-                  Frontal
-                </button>
-                <button
-                  className={view === 'side' ? 'active' : ''}
-                  onClick={() => setView('side')}
-                >
-                  <FlipHorizontal2 size={16} />
-                  Lateral
-                </button>
-                <button
-                  className={view === 'top' ? 'active' : ''}
-                  onClick={() => setView('top')}
-                >
-                  <ArrowDown size={16} />
-                  Topo
-                </button>
-                <button
-                  className={exploded ? 'active' : ''}
-                  onClick={() => setExploded(!exploded)}
-                >
-                  <Layers size={16} />
-                  Explodir
-                </button>
-                <button
-                  className={spin && !reducedMotion ? 'rotating' : ''}
-                  aria-pressed={spin && !reducedMotion}
-                  disabled={reducedMotion}
-                  title={
-                    reducedMotion
-                      ? 'Desativado: seu sistema pede menos animação (prefers-reduced-motion)'
-                      : spin
-                        ? 'Girar o modelo: ativo. Clique para parar.'
-                        : 'Girar o modelo continuamente'
-                  }
-                  onClick={() => setSpin(!spin)}
-                >
-                  <Orbit size={16} />
-                  Girar
-                </button>
-              </div>
-            </div>
-            <div className="control-divider" />
+              ))}
+            </fieldset>
             {p && <div className="history-timeline">
-              <span className="control-label">Histórico</span>
               <div className="history-scrub">
                 <button
                   type="button"
@@ -2161,7 +2111,7 @@ export default function Home() {
                           : 'Arraste ou use as setas para ver uma versão anterior'
                       }
                       min={0}
-                      max={historyMax}
+                      max={Math.max(1, historyMax)}
                       step={1}
                       value={[historyView]}
                       // Desabilitar durante o turno tirava o foco do teclado a
@@ -2172,7 +2122,7 @@ export default function Home() {
                         if (busy) return;
                         const v = Array.isArray(value) ? value[0] : value;
                         setScrubbing(true);
-                        queuePreview(v);
+                        queuePreview(Math.min(v, historyMax));
                       }}
                       onValueCommitted={(value) => {
                         if (busy) return;
@@ -2183,7 +2133,7 @@ export default function Home() {
                           setHistoryPreview(null);
                           return;
                         }
-                        seekVersion(Array.isArray(value) ? value[0] : value);
+                        seekVersion(Math.min(Array.isArray(value) ? value[0] : value, historyMax));
                       }}
                     />
                     <div className="history-dots" aria-hidden="true">
@@ -2237,12 +2187,12 @@ export default function Home() {
                 </output>
               )}
             </div>}
-
             <div className="history-actions">
               <Button
                 variant="outline"
                 size="icon"
                 aria-label="Desfazer"
+                title="Desfazer (Ctrl+Z)"
                 disabled={busy || !p || p.cursor === 0}
                 onClick={() => action('undo')}
               >
@@ -2252,6 +2202,7 @@ export default function Home() {
                 variant="outline"
                 size="icon"
                 aria-label="Refazer"
+                title="Refazer (Ctrl+Y)"
                 disabled={busy || !p || p.cursor === p.revisions.length - 1}
                 onClick={() => action('redo')}
               >
@@ -2259,49 +2210,66 @@ export default function Home() {
               </Button>
             </div>
           </div>
-          {p && (
-            <div className="dimension-summary">
-              <span className={changed.has('width') ? 'changed' : ''}>
-                {cm(visualParams!.width)}
-                <small>largura</small>
-              </span>
-              <b>×</b>
-              <span className={changed.has('height') ? 'changed' : ''}>
-                {cm(visualParams!.height)}
-                <small>altura</small>
-              </span>
-              <b>×</b>
-              <span className={changed.has('depth') ? 'changed' : ''}>
-                {cm(visualParams!.depth)}
-                <small>profundidade</small>
-              </span>
-              <i>cm</i>
-            </div>
-          )}
         </section>
-        <aside className="inspector">
-          <nav>
-            {[
-              ['params', 'Ajustes'],
-              ['parts', 'Peças'],
-              ['history', 'Histórico'],
-            ].map(([id, label]) => (
+        {inspectorOpen && (
+        <aside className="inspector" aria-label="Painel do projeto">
+          <div className="inspector-tabs" role="tablist">
+            {TABS.map((t) => (
               <button
-                className={tab === id ? 'active' : ''}
-                onClick={() => setTab(id)}
-                key={id}
+                key={t.id}
+                role="tab"
+                aria-selected={tab === t.id}
+                className={tab === t.id ? 'active' : ''}
+                onClick={() => chooseTab(t.id)}
               >
-                {label}
+                {t.icon}
+                <span>{t.label}</span>
               </button>
             ))}
-          </nav>
+          </div>
           {p && (
-            <div className="inspector-content">
-              {tab === 'params' && <><RoomPanel key={p.id} room={p.room} report={roomFit?.report ?? null} summary={roomFit?.summary ?? ''} busy={busy||historyPreview!==null} onSave={saveRoom}/><ModularEditor design={visualParams!} selected={selected} onSelect={selectMany} onOp={op} onOps={applyOps} busy={busy||historyPreview!==null} onOpen={toggleOpening} opened={opened}/><label className="wide-field">Nome do projeto<input key={p.id+p.name} defaultValue={p.name} maxLength={80} disabled={busy} onBlur={e=>{if(e.target.value.trim()&&e.target.value!==p.name)void action('rename',{name:e.target.value.trim()});}}/></label></>}
-              {tab === 'parts' && p && (
+            <div className="inspector-content" role="tabpanel">
+              {tab === 'project' && (
+                <ModularEditor
+                  design={visualParams!}
+                  selected={selected}
+                  onSelect={selectMany}
+                  onOp={op}
+                  onOps={applyOps}
+                  busy={busy || historyPreview !== null}
+                  onOpen={toggleOpening}
+                  opened={opened}
+                />
+              )}
+              {tab === 'room' && (
+                <RoomPanel
+                  key={p.id}
+                  room={p.room}
+                  report={roomFit?.report ?? null}
+                  summary={roomFit?.summary ?? ''}
+                  busy={busy || historyPreview !== null}
+                  onSave={saveRoom}
+                  showInScene={showRoom && !!p.room}
+                  onToggleScene={(v) => toggleRoom(v)}
+                />
+              )}
+              {tab === 'quote' && quote && (
+                <QuotePanel name={p.name} quote={quote} prices={prices} onPrices={updatePrices} />
+              )}
+              {tab === 'cut' && quote && (
+                <CutPlanPanel
+                  plan={quote.plan}
+                  selected={displaySelected}
+                  onSelect={(id, extend) => toggleSelected(id, extend)}
+                  onDownload={() => download(`${slug(p.name)}-corte.csv`, cutPlanCSV(quote.plan), 'text/csv;charset=utf-8')}
+                />
+              )}
+              {tab === 'parts' && (
                 <>
                   <div className="section-label">
-                    PEÇAS{selected.length > 0 ? ` · ${selected.length} selecionada${selected.length > 1 ? 's' : ''}` : ''}
+                    <span>
+                      {p.parts.length} peças{selected.length > 0 ? ` · ${selected.length} selecionada${selected.length > 1 ? 's' : ''}` : ''}
+                    </span>
                     {selected.length > 0 && (
                       <button type="button" className="link-button" onClick={() => setSelected([])}>
                         limpar
@@ -2311,66 +2279,73 @@ export default function Home() {
                   {p.params.modules.length===1 && p.params.modules[0].legacyIds ? (
                     <ShelfPanel />
                   ) : (
-                    <p className="shelf-hint">
-                      As ferramentas de prateleira desta versão valem para a
-                      estante única original. Neste projeto, use os comandos do
-                      compartimento em Ajustes: Dividir ↕ cria uma prateleira e
-                      Distribuir iguala os vãos.
+                    <p className="hint">
+                      Clique para selecionar; Shift+clique seleciona o módulo inteiro.
+                      Para mexer em prateleiras, use Dividir e Distribuir do
+                      compartimento em Projeto.
                     </p>
                   )}
-                  {p.parts.map((v) => (
-                    <button
-                      className={
-                        'part-row ' + (selected.includes(v.id) ? 'selected' : '')
-                      }
-                      key={v.id}
-                      title="Clique para selecionar · Shift+clique seleciona o módulo inteiro"
-                      onClick={(e) => toggleSelected(v.id, e.shiftKey)}
-                    >
-                      <span>
-                        <strong>{v.name}</strong>
-                        <small>{v.material}</small>
-                      </span>
-                      <code>
-                        {mm(v.c)} × {mm(v.l)} × {mm(v.thickness)}
-                      </code>
-                    </button>
-                  ))}
-                  <p className="warning">
-                    Medidas nominais. O CSV não é um plano de aproveitamento de
-                    chapas. A exportação Cortecloud lista peças; posições de montagem e furação não estão incluídas.
+                  <div className="part-list">
+                    {p.parts.map((v) => (
+                      <button
+                        className={
+                          'part-row ' + (selected.includes(v.id) ? 'selected' : '')
+                        }
+                        key={v.id}
+                        title="Clique para selecionar · Shift+clique seleciona o módulo inteiro"
+                        onClick={(e) => toggleSelected(v.id, e.shiftKey)}
+                      >
+                        <i className="swatch-dot" style={{ '--swatch': (v as ModularPart).color } as React.CSSProperties} />
+                        <span>
+                          <strong>{v.name}</strong>
+                          <small>{v.material}</small>
+                        </span>
+                        <code>
+                          {mm(v.c)} × {mm(v.l)} × {mm(v.thickness)}
+                        </code>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="hint">
+                    Medidas nominais. Veja o aproveitamento de chapas na aba Corte.
+                    Posições de montagem e furação não estão incluídas.
                   </p>
                 </>
               )}
               {tab === 'history' && (
                 <>
-                  <div className="section-label">VERSÕES SALVAS</div>
-                  {p.revisions.map((r, i) => (
-                    <button
-                      disabled={busy}
-                      onClick={() => seekVersion(i)}
-                      className={
-                        'history-row ' + (i === p.cursor ? 'current' : '')
-                      }
-                      key={i}
-                    >
-                      <span>{i + 1}</span>
-                      <div>
-                        <strong>{r.label}</strong>
-                        <small>{new Date(r.at).toLocaleString('pt-BR')}</small>
-                        {i === p.cursor && <em>Versão atual</em>}
-                        {(historyPreview ?? p.cursor) === i && historyPreview !== null && historyPreview !== p.cursor && <em>Prévia exibida</em>}
-                      </div>
-                    </button>
-                  ))}
+                  <div className="section-label">
+                    <span>{p.revisions.length} versões salvas</span>
+                  </div>
+                  <ol className="history-list">
+                    {[...p.revisions.entries()].reverse().map(([i, r]) => (
+                      <li key={i}>
+                        <button
+                          disabled={busy}
+                          onClick={() => seekVersion(i)}
+                          className={
+                            'history-row ' + (i === p.cursor ? 'current' : '')
+                          }
+                        >
+                          <span className="history-num">{i + 1}</span>
+                          <div>
+                            <strong>{r.label}</strong>
+                            <small>{new Date(r.at).toLocaleString('pt-BR')}</small>
+                            {i === p.cursor && <em>Versão atual</em>}
+                            {(historyPreview ?? p.cursor) === i && historyPreview !== null && historyPreview !== p.cursor && <em>Prévia exibida</em>}
+                          </div>
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
                   {p.origin && (
-                    <p className="warning">
+                    <p className="hint">
                       Alternativa criada da versão {p.origin.revision}. Original preservado.
                     </p>
                   )}
                   <div className="fork-box">
-                    <div className="section-label">CRIAR ALTERNATIVA</div>
-                    <p className="shelf-hint">
+                    <div className="section-label">Criar alternativa</div>
+                    <p className="hint">
                       Usa a versão {(historyPreview ?? p?.cursor ?? 0) + 1} atualmente exibida{(historyPreview !== null && historyPreview !== p?.cursor) ? ' (prévia)' : ''}; o original e as versões futuras são preservados.
                     </p>
                     <input
@@ -2385,8 +2360,8 @@ export default function Home() {
                       Criar alternativa desta versão
                     </Button>
                   </div>
-                  <p className="warning">
-                    Arraste o slider ou clique numa versão para voltar. Uma nova edição
+                  <p className="hint">
+                    Arraste a linha do tempo ou clique numa versão para voltar. Uma nova edição
                     substitui o caminho desfeito.
                   </p>
                 </>
@@ -2394,58 +2369,32 @@ export default function Home() {
             </div>
           )}
         </aside>
+        )}
       </div>
-      {p && (
-        <section className="print-sheet">
-          <h1>{p.name}</h1>
-          <p>
-            Composição modular · {p.params.width} × {p.params.height} ×{' '}
-            {p.params.depth} mm · Versão {p.cursor + 1}
-          </p>
-          <p>Vista superior, frentes fechadas.</p>
-          <svg viewBox={`${generateDesign(p.params).bounds.min[0]-30} ${generateDesign(p.params).bounds.min[2]-30} ${p.params.width+60} ${p.params.depth+60}`} width="600" height="300">
-            {p.parts.map(part=><rect key={part.id} x={-part.size[0]/2} y={-part.size[2]/2} width={part.size[0]} height={part.size[2]} transform={`translate(${part.position[0]},${part.position[2]}) rotate(${-(part.rotation??0)*180/Math.PI})`} fill="white" stroke="black" strokeWidth={2}/>) }
-          </svg>
-          <table>
-            <thead>
-              <tr>
-                <th>Peça</th>
-                <th>Quantidade</th>
-                <th>C × L × E (mm)</th>
-                <th>Material</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sheetRows.map((row) => (
-                <tr key={row.key}>
-                  <td>
-                    {row.name}
-                    {row.duplicates > 1 && (
-                      <small className="sheet-note">{row.duplicates} posições</small>
-                    )}
-                  </td>
-                  <td>{row.count}</td>
-                  <td>
-                    {mm(row.c)} × {mm(row.l)} × {mm(row.thickness)}
-                  </td>
-                  <td>{row.material}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <th>{sheetRows.length} itens distintos</th>
-                <th>{p.parts.length} peças</th>
-                <th>{areaM2} m² de chapa</th>
-                <th>Revisão {p.cursor + 1}</th>
-              </tr>
-            </tfoot>
-          </table>
-          <p>
-            Desenho de revisão. Sem furação ou fixações. Conferir medidas,
-            materiais, bordas e estabilidade antes de produzir.
-          </p>
-        </section>
+      <CommandPalette
+        key={paletteOpen ? 'open' : 'closed'}
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        actions={paletteActions}
+        onAsk={(value) => void send(value)}
+      />
+      <TemplateGallery
+        open={galleryOpen}
+        busy={busy}
+        onClose={() => setGalleryOpen(false)}
+        onBlank={() => void createProject()}
+        onPick={(id) => void createFromTemplate(id)}
+      />
+      {p && quote && visualSize && (
+        <PrintSheet
+          name={p.name}
+          version={p.cursor + 1}
+          size={visualSize}
+          moduleCount={p.params.modules.length}
+          parts={p.parts as ModularPart[]}
+          quote={quote}
+          snapshot={printShot}
+        />
       )}
     </main>
   );

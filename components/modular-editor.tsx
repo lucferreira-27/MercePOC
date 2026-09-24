@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Button } from './ui/button';
+import { FinishPicker } from './finish-picker';
 import { materials } from '@/lib/furniture';
 import {
   generateComposition,
@@ -509,16 +510,10 @@ export function ModularEditor({
               </label>
             ))}
           </div>
-          <label>
-            Acabamento
-            <select name="material" defaultValue={m.materialId}>
-              {materials.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="finish-field">
+            <span>Acabamento</span>
+            <FinishPicker name="material" defaultValue={m.materialId} />
+          </div>
           <label>
             Orientação
             <select name="rotation" defaultValue={m.rotation}>
@@ -1008,19 +1003,13 @@ function FrontControls({
         </label>
       )}
       {type !== 'none' && (
-        <label>
-          Material da frente
-          <select
+        <div className="finish-field">
+          <span>Material da frente</span>
+          <FinishPicker
             name="material"
             defaultValue={cell.front?.materialId ?? module.materialId}
-          >
-            {materials.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.name}
-              </option>
-            ))}
-          </select>
-        </label>
+          />
+        </div>
       )}
       {error && (
         <p className="field-error" role="alert">
