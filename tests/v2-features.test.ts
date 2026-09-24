@@ -28,8 +28,8 @@ for (const t of templates)
   void test(`modelo "${t.name}" monta pelo motor e gera peças válidas`, () => {
     const d = buildTemplate(t);
     const g = generateComposition(d);
-    assert.ok(d.modules.length >= 2, 'modelo com mais de um módulo');
-    assert.ok(g.parts.length > 10);
+    assert.ok(d.modules.length >= 1);
+    assert.ok(g.parts.length >= 6);
     for (const p of g.parts) {
       assert.ok(Number.isInteger(p.c * 10), `${p.name}: C em décimo de mm`);
       assert.ok(p.c > 0 && p.l > 0);

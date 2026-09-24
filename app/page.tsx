@@ -83,9 +83,10 @@ import { QuotePanel } from '@/components/quote-panel';
 import { CutPlanPanel, cutPlanCSV } from '@/components/cut-plan-panel';
 import { CommandPalette, type PaletteAction } from '@/components/command-palette';
 import { TemplateGallery } from '@/components/template-gallery';
+import { templates } from '@/lib/templates';
 import { PrintSheet, groupParts } from '@/components/print-sheet';
 import { entityIds, canonical, selectedPartIds } from '@/lib/studio';
-import { generateComposition, openingLimit, openingPose, type ModularPart } from '@/lib/composition';
+import { drawingParts, generateComposition, openingLimit, openingPose, type ModularPart } from '@/lib/composition';
 import { fitReport, fitSummary, type Room } from '@/lib/room';
 import { DEFAULT_PRICES, mergePrices, money, quote as buildQuote, type Prices } from '@/lib/quote';
 import { friendlyError } from '@/lib/errors';
@@ -270,6 +271,8 @@ export default function Home() {
     [inspectorOpen, setInspectorOpen] = useState(true),
     [paletteOpen, setPaletteOpen] = useState(false),
     [galleryOpen, setGalleryOpen] = useState(false),
+    /** A biblioteca abre para começar um projeto ou para somar ao atual. */
+    [galleryMode, setGalleryMode] = useState<'new' | 'add'>('new'),
     [frameRequest, setFrameRequest] = useState(0),
     [zoomRequest, setZoomRequest] = useState<{ id: number; direction: 'in' | 'out' }>(),
     [snapshotRequest, setSnapshotRequest] = useState(0),
@@ -788,6 +791,21 @@ export default function Home() {
       setNotice(
         `Projeto "${created.name}" criado. Clique no nome acima do 3D para renomear.`,
       );
+    }
+  }
+  function openGallery(mode: 'new' | 'add') {
+    setGalleryMode(mode);
+    setGalleryOpen(true);
+  }
+  /** Soma um móvel da biblioteca ao projeto, pelo mesmo contrato do chat. */
+  async function addFromLibrary(asset: string, placement: 'left' | 'right') {
+    const name = templates.find((t) => t.id === asset)?.name ?? 'móvel';
+    try {
+      await applyOps([{ kind: 'asset.add', asset, placement }], `Biblioteca: ${name}`);
+      setGalleryOpen(false);
+      setFrameRequest((v) => v + 1);
+    } catch {
+      // O aviso geral já mostrou o motivo; a biblioteca fica aberta.
     }
   }
   async function createFromTemplate(template: string) {
@@ -1356,7 +1374,7 @@ export default function Home() {
     ...VIEWS.map((v) => ({ id: 'view-' + v.id, group: 'Vista', label: { perspective: 'Vista em perspectiva', front: 'Vista frontal', side: 'Vista lateral', top: 'Vista de topo' }[v.id], keys: v.key, icon: v.icon, run: () => setView(v.id) })),
     { id: 'fit', group: 'Vista', label: 'Enquadrar o móvel', keys: 'F', icon: <Scan size={15} />, run: () => setFrameRequest((v) => v + 1) },
     { id: 'dims', group: 'Vista', label: showDims ? 'Esconder cotas' : 'Mostrar cotas', keys: 'D', icon: <Ruler size={15} />, run: () => toggleDims() },
-    { id: 'room', group: 'Vista', label: showRoom ? 'Esconder o ambiente' : 'Mostrar o ambiente', hint: p?.room ? '' : 'informe em Ambiente', keys: 'R', icon: <DoorOpen size={15} />, disabled: !p?.room, run: () => toggleRoom() },
+    { id: 'room', group: 'Vista', label: showRoom ? 'Esconder a parede e o ambiente' : 'Mostrar a parede e o ambiente', hint: p?.room ? '' : 'parede de referência', keys: 'R', icon: <DoorOpen size={15} />, run: () => toggleRoom() },
     { id: 'explode', group: 'Vista', label: exploded ? 'Juntar as peças' : 'Explodir as peças', keys: 'E', icon: <Layers size={15} />, run: () => setExploded((v) => !v) },
     { id: 'fronts', group: 'Vista', label: anyOpen ? 'Fechar portas e gavetas' : 'Abrir portas e gavetas', keys: 'O', icon: <DoorOpen size={15} />, disabled: !hasFronts, run: toggleAllFronts },
     { id: 'theme', group: 'Vista', label: theme === 'dark' ? 'Tema claro' : 'Tema escuro', icon: theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />, run: cycleTheme },
@@ -1364,7 +1382,8 @@ export default function Home() {
     { id: 'chat', group: 'Painéis', label: chatOpen ? 'Recolher a conversa' : 'Abrir a conversa', keys: '[', icon: <MessageSquare size={15} />, run: () => toggleChat() },
     { id: 'inspector', group: 'Painéis', label: inspectorOpen ? 'Recolher o painel lateral' : 'Abrir o painel lateral', keys: ']', icon: <PanelRight size={15} />, run: () => toggleInspector() },
     { id: 'ask', group: 'Painéis', label: 'Escrever para a IA', keys: '/', icon: <Sparkles size={15} />, run: () => { if (!chatOpen) toggleChat(true); setTimeout(() => composer.current?.focus(), 30); } },
-    { id: 'new', group: 'Projeto', label: 'Novo projeto…', hint: 'em branco ou modelo', icon: <Plus size={15} />, run: () => setGalleryOpen(true) },
+    { id: 'new', group: 'Projeto', label: 'Novo projeto…', hint: 'em branco ou modelo', icon: <Plus size={15} />, run: () => openGallery('new') },
+    { id: 'library', group: 'Projeto', label: 'Adicionar da biblioteca…', hint: 'rack, cozinha, cômoda…', icon: <LayoutTemplate size={15} />, disabled: !p, run: () => openGallery('add') },
     { id: 'undo', group: 'Projeto', label: 'Desfazer', keys: 'Ctrl Z', icon: <Undo2 size={15} />, disabled: !p || p.cursor === 0 || busy, run: () => void action('undo') },
     { id: 'redo', group: 'Projeto', label: 'Refazer', keys: 'Ctrl Y', icon: <Redo2 size={15} />, disabled: !p || p.cursor >= p.revisions.length - 1 || busy, run: () => void action('redo') },
     { id: 'rename', group: 'Projeto', label: 'Renomear projeto', icon: <Pencil size={15} />, run: () => setRenaming(true) },
@@ -1413,7 +1432,7 @@ export default function Home() {
           >
             {themeChoice === 'system' ? <Monitor size={16} /> : theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
           </button>
-          <Button variant="ghost" className="topbar-new" onClick={() => setGalleryOpen(true)} disabled={busy}>
+          <Button variant="ghost" className="topbar-new" onClick={() => openGallery('new')} disabled={busy}>
             <Plus />
             Novo
           </Button>
@@ -1493,11 +1512,11 @@ export default function Home() {
                   prontos a cada versão.
                 </p>
                 <div className="start-cards">
-                  <button type="button" onClick={() => setGalleryOpen(true)}>
+                  <button type="button" onClick={() => openGallery('new')}>
                     <span className="start-icon"><LayoutTemplate size={17} /></span>
                     <span>
                       <strong>Começar de um modelo</strong>
-                      <small>Estante, guarda-roupa, rack, aparador…</small>
+                      <small>Rack de TV, cozinha, guarda-roupa e mais {templates.length - 3}</small>
                     </span>
                   </button>
                   <button
@@ -2138,7 +2157,7 @@ export default function Home() {
               frameRequest={frameRequest}
               zoomRequest={zoomRequest}
               room={p.room}
-              showRoom={showRoom && !!p.room}
+              showRoom={showRoom}
               showDims={showDims}
               theme={theme}
               snapshotRequest={snapshotRequest}
@@ -2155,11 +2174,11 @@ export default function Home() {
             <button type="button" className={showDims ? 'active' : ''} aria-pressed={showDims} title="Cotas (D)" aria-label="Cotas" onClick={() => toggleDims()}><Ruler size={17} /></button>
             <button
               type="button"
-              className={showRoom && p?.room ? 'active' : ''}
-              aria-pressed={showRoom && !!p?.room}
-              title={p?.room ? 'Ambiente no 3D (R)' : 'Informe o ambiente para vê-lo no 3D'}
-              aria-label="Ambiente no 3D"
-              onClick={() => (p?.room ? toggleRoom() : chooseTab('room'))}
+              className={showRoom ? 'active' : ''}
+              aria-pressed={showRoom}
+              title={p?.room ? 'Ambiente no 3D (R)' : 'Parede de referência (R). Informe o ambiente real na aba Ambiente'}
+              aria-label="Parede e ambiente no 3D"
+              onClick={() => toggleRoom()}
             >
               <DoorOpen size={17} />
             </button>
@@ -2373,6 +2392,7 @@ export default function Home() {
                   onSelect={selectMany}
                   onOp={op}
                   onOps={applyOps}
+                  onLibrary={() => openGallery('add')}
                   busy={busy || historyPreview !== null}
                   onOpen={toggleOpening}
                   opened={opened}
@@ -2517,10 +2537,12 @@ export default function Home() {
       />
       <TemplateGallery
         open={galleryOpen}
+        mode={galleryMode}
         busy={busy}
         onClose={() => setGalleryOpen(false)}
         onBlank={() => void createProject()}
         onPick={(id) => void createFromTemplate(id)}
+        onAdd={(id, placement) => void addFromLibrary(id, placement)}
       />
       {p && quote && visualSize && (
         <PrintSheet
@@ -2529,6 +2551,7 @@ export default function Home() {
           size={visualSize}
           moduleCount={p.params.modules.length}
           parts={p.parts as ModularPart[]}
+          drawing={drawingParts(p.params)}
           quote={quote}
           snapshot={printShot}
         />

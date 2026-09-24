@@ -19,10 +19,15 @@ export type Room = {
   heightMm: number;
   depthMm?: number;
   baseboardMm?: number;
+  /**
+   * Onde o móvel começa na parede: distância do canto esquerdo da parede ao
+   * lado esquerdo da composição. Ausente, o móvel encosta no canto.
+   */
+  offsetMm?: number;
   obstacles?: Obstacle[];
 };
 
-export type ObstacleKind = 'door' | 'window' | 'outlet' | 'column' | 'other';
+export type ObstacleKind = 'door' | 'window' | 'outlet' | 'column' | 'tv' | 'other';
 
 export type Obstacle = {
   id: string;
@@ -64,6 +69,7 @@ export const ROOM_LIMITS = {
   height: [200, 20000],
   depth: [200, 20000],
   baseboard: [0, 500],
+  offset: [0, 20000],
   obstacleX: [-20000, 20000],
   obstacleY: [0, 20000],
   obstacleSize: [10, 20000],
@@ -79,7 +85,7 @@ const ON_FLOOR = 5;
 export const obstacleSchema: z.ZodType<Obstacle> = z
   .object({
     id: z.string().trim().min(1).max(100),
-    kind: z.enum(['door', 'window', 'outlet', 'column', 'other']),
+    kind: z.enum(['door', 'window', 'outlet', 'column', 'tv', 'other']),
     label: z.string().trim().min(1).max(80).optional(),
     xMm: z
       .number()
@@ -120,6 +126,11 @@ export const roomSchema: z.ZodType<Room> = z
       .min(ROOM_LIMITS.baseboard[0])
       .max(ROOM_LIMITS.baseboard[1])
       .optional(),
+    offsetMm: z
+      .number()
+      .min(ROOM_LIMITS.offset[0])
+      .max(ROOM_LIMITS.offset[1])
+      .optional(),
     obstacles: z.array(obstacleSchema).max(ROOM_LIMITS.obstacles).optional(),
   })
   .strict();
@@ -137,6 +148,7 @@ const KIND_WORD: Record<ObstacleKind, string> = {
   window: 'A janela',
   outlet: 'A tomada',
   column: 'A coluna',
+  tv: 'A TV',
   other: 'O obstáculo',
 };
 
@@ -215,9 +227,13 @@ export function fitReport(design: Composition, room: Room): FitReport {
   const obstacles = room.obstacles ?? [];
   const crossed = new Set<string>();
   const obstacleIssues: FitIssue[] = [];
+  const offset = room.offsetMm ?? 0;
   for (const obstacle of obstacles) {
-    // O ambiente conta x do canto esquerdo; a composição, do módulo inicial.
-    const minX = obstacle.xMm + g.bounds.min[0];
+    // A TV é da parede, não do móvel: fica na frente do painel e acima do
+    // rack de propósito, então não conta como obstáculo.
+    if (obstacle.kind === 'tv') continue;
+    // O ambiente conta x do canto esquerdo; a composição começa no afastamento.
+    const minX = obstacle.xMm - offset + g.bounds.min[0];
     const maxX = minX + obstacle.widthMm;
     const area: Box = {
       minX,
@@ -245,11 +261,13 @@ export function fitReport(design: Composition, room: Room): FitReport {
       message: `O móvel tem ${metres(height)} de altura e o pé-direito é ${metres(room.heightMm)}`,
       detail: `Passa ${centimetres(height - room.heightMm)} do teto.`,
     });
-  if (width > room.widthMm)
+  if (offset + width > room.widthMm)
     issues.push({
       code: 'too-wide',
-      message: `O móvel tem ${metres(width)} de largura e a parede tem ${metres(room.widthMm)}`,
-      detail: `Passa ${centimetres(width - room.widthMm)} da parede.`,
+      message: offset
+        ? `O móvel começa a ${metres(offset)} do canto e tem ${metres(width)} de largura; a parede tem ${metres(room.widthMm)}`
+        : `O móvel tem ${metres(width)} de largura e a parede tem ${metres(room.widthMm)}`,
+      detail: `Passa ${centimetres(offset + width - room.widthMm)} da parede.`,
     });
   if (room.depthMm !== undefined && depth > room.depthMm)
     issues.push({
@@ -258,7 +276,9 @@ export function fitReport(design: Composition, room: Room): FitReport {
       detail: `Passa ${centimetres(depth - room.depthMm)} do limite do ambiente.`,
     });
   issues.push(...obstacleIssues);
-  if (base > ON_FLOOR)
+  // Painel e módulo suspenso vão presos na parede: não precisam tocar o piso.
+  const hung = design.modules.every((m) => m.kind === 'panel' || m.wall);
+  if (base > ON_FLOOR && !hung)
     issues.push({
       code: 'floor-gap',
       message: `Nenhuma peça apoia no chão: o móvel começa a ${centimetres(base)} do piso`,
@@ -273,15 +293,18 @@ export function fitReport(design: Composition, room: Room): FitReport {
     notes.push(
       `Rodapé de ${plain(room.baseboardMm)}: recue a base do móvel para encostar na parede.`,
     );
-  if (obstacles.length && !crossed.size)
+  const checked = obstacles.filter((o) => o.kind !== 'tv');
+  if (checked.length && !crossed.size)
     notes.push(
-      `${obstacles.length === 1 ? 'Obstáculo conferido' : `${obstacles.length} obstáculos conferidos`}: nenhum cruza o móvel, contado do canto esquerdo da parede.`,
+      `${checked.length === 1 ? 'Obstáculo conferido' : `${checked.length} obstáculos conferidos`}: nenhum cruza o móvel, contado do canto esquerdo da parede.`,
     );
+  if (base > ON_FLOOR && hung)
+    notes.push('Móvel suspenso: confira a fixação na parede e o que passa por dentro dela (fios e canos).');
   for (const obstacle of obstacles) {
     if (obstacle.kind !== 'door' || !obstacle.swingMm || crossed.has(obstacle.id))
       continue;
     // Sem saber o lado da dobradiça, o giro é conferido para os dois lados.
-    const minX = obstacle.xMm + g.bounds.min[0];
+    const minX = obstacle.xMm - offset + g.bounds.min[0];
     const maxX = minX + obstacle.widthMm;
     if (
       minX - obstacle.swingMm <= g.bounds.max[0] &&
@@ -311,7 +334,7 @@ export function fitSummary(
   const width = g.bounds.max[0] - g.bounds.min[0];
   // A folga contada é a menor das duas: é ela que aperta o encaixe.
   const vertical = room.heightMm - height;
-  const horizontal = room.widthMm - width;
+  const horizontal = room.widthMm - (room.offsetMm ?? 0) - width;
   if (vertical <= horizontal)
     return `Cabe: ${metres(room.heightMm)} de parede por ${metres(height)} de móvel, folga de ${centimetres(vertical)}`;
   return `Cabe: ${metres(room.widthMm)} de parede por ${metres(width)} de móvel, folga de ${centimetres(horizontal)}`;

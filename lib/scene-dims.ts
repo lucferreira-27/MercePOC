@@ -71,7 +71,10 @@ export function buildDims(parts: readonly Part[], bounds: SceneBounds, room: Roo
   // Espaço livre até a parede: numa segunda linha, afastada das cotas do
   // móvel, para os rótulos não caírem uns sobre os outros.
   if (room) {
-    const wallEnd = x0 + room.widthMm;
+    const wallBegin = x0 - (room.offsetMm ?? 0);
+    const wallEnd = wallBegin + room.widthMm;
+    if (x0 - wallBegin > 5)
+      dim(new THREE.Vector3(wallBegin, 0, front + 260), new THREE.Vector3(x0, 0, front + 260), new THREE.Vector3(0, 0, 1), `livre ${cmLabel(x0 - wallBegin)}`, 'free');
     if (wallEnd - x1 > 5)
       dim(new THREE.Vector3(x1, 0, front + 260), new THREE.Vector3(wallEnd, 0, front + 260), new THREE.Vector3(0, 0, 1), `livre ${cmLabel(wallEnd - x1)}`, 'free');
     if (room.heightMm - y1 > 5)

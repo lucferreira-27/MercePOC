@@ -30,7 +30,8 @@ const { saveImage } = await import('../lib/images.ts');
 const { planDataUrl } = await import('../lib/plan-render.ts');
 const { interpretStream } = await import('../lib/gateway.ts');
 const { addUsage, emptyUsage, priceOf, MODEL_KEYS } = await import('../lib/models.ts');
-const { executeRequest, generateDesign, entityIds } = await import('../lib/studio.ts');
+const { executeRequest, generateDesign, entityIds, canonical } = await import('../lib/studio.ts');
+const { drawingParts } = await import('../lib/composition.ts');
 const { cases, groups } = await import('./cases.mjs');
 
 const args = process.argv.slice(2);
@@ -305,7 +306,7 @@ for (const benchCase of selected) {
           selection,
           context,
           telemetry,
-          image ? await planDataUrl(generateDesign(before).parts) : undefined,
+          image ? await planDataUrl(drawingParts(canonical(before))) : undefined,
         );
         decision = interpreted.decision;
         row.preview = interpreted.preview;

@@ -47,7 +47,7 @@ export type Part = {
   owners?: string[];
   cellId?: string;
   id: string;
-  kind: 'side' | 'base' | 'top' | 'back' | 'shelf' | 'divider' | 'door' | 'drawer';
+  kind: 'side' | 'base' | 'top' | 'back' | 'shelf' | 'divider' | 'door' | 'drawer' | 'panel';
   name: string;
   size: [number, number, number];
   position: [number, number, number];

@@ -49,6 +49,7 @@ export function PrintSheet({
   size,
   moduleCount,
   parts,
+  drawing = parts,
   quote,
   snapshot,
 }: {
@@ -57,6 +58,8 @@ export function PrintSheet({
   size: [number, number, number];
   moduleCount: number;
   parts: readonly ModularPart[];
+  /** Peças do desenho (com os pés); ausente, desenha as de corte. */
+  drawing?: readonly ModularPart[];
   quote: Quote;
   /** Foto da cena 3D, quando a pessoa tirou uma antes de imprimir. */
   snapshot?: string | null;
@@ -88,11 +91,11 @@ export function PrintSheet({
         ) : (
           <div className="print-views">
             <figure>
-              <PlanThumb parts={parts} view="front" width={420} height={300} />
+              <PlanThumb parts={drawing} view="front" width={420} height={300} />
               <figcaption>Vista frontal, frentes fechadas</figcaption>
             </figure>
             <figure>
-              <PlanThumb parts={parts} view="iso" width={420} height={300} />
+              <PlanThumb parts={drawing} view="iso" width={420} height={300} />
               <figcaption>Vista isométrica</figcaption>
             </figure>
           </div>

@@ -14,6 +14,7 @@ import {
   type Composition,
   type ModularOp,
 } from './composition';
+import { applyAssetOp, assetOpSchema, type AssetOp } from './assets';
 export type Design = Composition & {
   width: number;
   height: number;
@@ -21,7 +22,7 @@ export type Design = Composition & {
   materialId: old.Design['materialId'];
   shelves: old.Shelf[];
 };
-export type ShelfOp = old.ShelfOp | ModularOp;
+export type ShelfOp = old.ShelfOp | ModularOp | AssetOp;
 export function canonical(input: Composition): Composition {
   return compositionSchema.parse(
     JSON.parse(
@@ -59,6 +60,7 @@ export const designSchema = z
 export const opSchema = z.union([
   old.opSchema,
   modularOpSchema,
+  assetOpSchema,
 ]) as z.ZodType<ShelfOp>;
 export function isDesign(v: unknown): v is Design {
   return (
@@ -145,6 +147,7 @@ export function selectedPartIds(d: Design, selected: readonly string[]) {
 }
 export function applyOp(input: Design, op: ShelfOp): Design {
   const d = canonical(input);
+  if (op.kind === 'asset.add') return normalize(applyAssetOp(d, op));
   if (
     op.kind.includes('.') ||
     op.kind === 'connect' ||
@@ -231,7 +234,8 @@ export function executeRequest(base: Design, ops: ShelfOp[]) {
   try {
     let pending: Composition = canonical(d);
     for (const op of ops) {
-      if (
+      if (op.kind === 'asset.add') pending = applyAssetOp(pending, op);
+      else if (
         op.kind.includes('.') ||
         op.kind === 'connect' ||
         op.kind === 'disconnect'

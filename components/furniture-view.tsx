@@ -3,11 +3,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import type { Part } from '@/lib/furniture';
+import { materials, type Part } from '@/lib/furniture';
 import type { Design } from '@/lib/studio';
 import type { Room } from '@/lib/room';
-import { generateComposition } from '@/lib/composition';
-import { buildRoom, roomExtent, type SceneBounds } from '@/lib/scene-room';
+import { feetOf, generateComposition } from '@/lib/composition';
+import { buildFeet, buildRoom, referenceRoom, roomFocus, type SceneBounds } from '@/lib/scene-room';
 import { buildDims, type DimLabel } from '@/lib/scene-dims';
 import {
   FurnitureMotion,
@@ -38,6 +38,7 @@ type Runtime = {
   move?: CameraMove;
   view?: { height: number; width: number; depth: number; mode: ViewMode; frameRequest: number };
   room?: { group: THREE.Group; dispose: () => void };
+  feet?: { group: THREE.Group; dispose: () => void };
   dims?: { lines: THREE.LineSegments; labels: DimLabel[]; dispose: () => void };
   labelEls: HTMLSpanElement[];
 };
@@ -317,6 +318,7 @@ export default function FurnitureView({
       controls.dispose();
       motion.dispose();
       state.room?.dispose();
+      state.feet?.dispose();
       state.dims?.dispose();
       shadowFloor.geometry.dispose();
       shadowFloor.material.dispose();
@@ -376,7 +378,15 @@ export default function FurnitureView({
     s.ground.material.opacity = c.groundOpacity;
   }, [theme]);
   const bounds: SceneBounds = useMemo(() => generateComposition(params).bounds, [params]);
-  const sceneRoom = showRoom ? room : undefined;
+  // Sem ambiente informado, uma parede de referência dá escala e fundo; ela
+  // não aparece nas cotas de espaço livre nem no enquadramento.
+  const sceneRoom = showRoom ? (room ?? referenceRoom(bounds)) : undefined;
+  const measuredRoom = showRoom ? room : undefined;
+  // Frente do que está preso na parede (painel): a TV fica na frente dele.
+  const mountZ = useMemo(
+    () => Math.max(-Infinity, ...parts.filter((p) => p.kind === 'panel').map((p) => p.position[2] + p.size[2] / 2)),
+    [parts],
+  );
   // Ambiente: reconstruído quando o móvel muda de envelope, o ambiente muda
   // ou o tema troca. É pouca geometria; recriar é mais simples que ajustar.
   useEffect(() => {
@@ -386,11 +396,29 @@ export default function FurnitureView({
     if (s.room) s.scene.remove(s.room.group);
     s.room = undefined;
     if (sceneRoom) {
-      s.room = buildRoom(sceneRoom, bounds, theme);
+      s.room = buildRoom(sceneRoom, bounds, theme, mountZ);
       s.scene.add(s.room.group);
     }
     s.grid.visible = !sceneRoom;
-  }, [sceneRoom, bounds, theme]);
+  }, [sceneRoom, bounds, theme, mountZ]);
+  // Pés: não são peças de corte, vêm da composição. Somem no explodido.
+  useEffect(() => {
+    const s = runtime.current;
+    if (!s) return;
+    if (s.feet) {
+      s.scene.remove(s.feet.group);
+      s.feet.dispose();
+      s.feet = undefined;
+    }
+    const feet = exploded ? [] : feetOf(params);
+    if (!feet.length) return;
+    const colorOf = (id: string) => {
+      const m = params.modules.find((v) => v.id === id);
+      return materials.find((v) => v.id === m?.materialId)?.color ?? '#888888';
+    };
+    s.feet = buildFeet(feet, colorOf);
+    s.scene.add(s.feet.group);
+  }, [params, exploded]);
   // Cotas: some no explodido, onde as peças não estão na medida real.
   const [dimLabels, setDimLabels] = useState<DimLabel[]>([]);
   useEffect(() => {
@@ -402,11 +430,11 @@ export default function FurnitureView({
       s.dims = undefined;
     }
     if (showDims && !exploded) {
-      s.dims = buildDims(parts, bounds, sceneRoom, PALETTE[theme].dim);
+      s.dims = buildDims(parts, bounds, measuredRoom, PALETTE[theme].dim);
       s.scene.add(s.dims.lines);
       setDimLabels(s.dims.labels);
     } else setDimLabels([]);
-  }, [showDims, exploded, parts, bounds, sceneRoom, theme]);
+  }, [showDims, exploded, parts, bounds, measuredRoom, theme]);
   useEffect(() => {
     const s = runtime.current;
     if (!s) return;
@@ -431,8 +459,9 @@ export default function FurnitureView({
   useEffect(() => {
     const s = runtime.current;
     if (!s) return;
-    // Com o ambiente à vista, o quadro inclui a parede inteira.
-    const box = sceneRoom ? union(bounds, roomExtent(sceneRoom, bounds)) : bounds;
+    // Com o ambiente à vista, o quadro inclui o que está na parede perto do
+    // móvel (porta, TV, tomada), não o quarto inteiro.
+    const box = measuredRoom ? union(bounds, roomFocus(measuredRoom, bounds)) : bounds;
     // O explodido afasta cada peça do centro do seu módulo: enquadrar pelo
     // tamanho canônico deixava o tampo fora do quadro e sob o selo de medidas.
     const growth = exploded ? SPREAD_MM * 2 : 0;
@@ -511,7 +540,7 @@ export default function FurnitureView({
       mode: view,
       frameRequest,
     };
-  }, [bounds, view, scrub, exploded, frameRequest, sceneRoom]);
+  }, [bounds, view, scrub, exploded, frameRequest, measuredRoom]);
   // Foto da vista: a cena renderizada agora (o buffer WebGL não é preservado)
   // composta com as cotas e uma legenda, num PNG do tamanho da tela.
   // A foto sai uma vez por pedido: legenda ou tema mudando depois não geram

@@ -17,6 +17,12 @@ const sizeHints = [
   'Altura: 200 a 2400 mm.',
   'Profundidade: 200 a 800 mm.',
 ];
+/** Painel de parede: uma chapa de até 2700 × 1800 mm, 15 a 60 de espessura. */
+const panelHints = [
+  'Largura: 200 a 2700 mm (o menor lado até 1800).',
+  'Altura: 200 a 2700 mm (o menor lado até 1800).',
+  'Espessura: 15 a 60 mm.',
+];
 const axisHints = [
   'X: -20000 a 20000 mm.',
   'Y: 0 a 20000 mm.',
@@ -84,10 +90,13 @@ export function ModularEditor({
   onSelect,
   onOp,
   onOps,
+  onLibrary,
   busy,
   onOpen,
   opened,
 }: {
+  /** Abre a biblioteca de móveis prontos para somar ao projeto. */
+  onLibrary?: () => void;
   design: Composition;
   selected: string[];
   /** `extend` é o shift+clique: o pai soma o conjunto à seleção. */
@@ -354,6 +363,20 @@ export function ModularEditor({
           </Button>
         ))}
       </div>
+      {onLibrary && (
+        <button type="button" className="library-button" aria-label="Biblioteca de móveis" disabled={busy} onClick={onLibrary}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+            <rect x="3" y="4" width="7" height="7" rx="1" />
+            <rect x="14" y="4" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <path d="M17.5 14v7M14 17.5h7" />
+          </svg>
+          <span>
+            <strong>Biblioteca de móveis</strong>
+            <small>Rack de TV, cozinha, cômoda, painel… prontos para encaixar</small>
+          </span>
+        </button>
+      )}
       <div className="module-tree" aria-label="Árvore da composição">
         {design.modules.map((mod) => {
           const open = openedSections[mod.id] !== false;
@@ -388,7 +411,38 @@ export function ModularEditor({
                   <path d="M6 9l6 6 6-6" />
                 </svg>
               </button>
-              {open && <div className="tree-children">{tree(mod.root)}</div>}
+              {open && (
+                <div className="tree-children">
+                  {mod.kind === 'panel' ? (
+                    <div className="tree-branch">
+                      <div className="tree-node">
+                        <span className="tree-dot" />
+                        <button
+                          className={'tree-item touch-target ' + (target === mod.id || target === `${mod.id}:panel` ? 'active' : '')}
+                          type="button"
+                          aria-label={`Painel de parede ${mod.name}`}
+                          onClick={() => onSelect([`${mod.id}:panel`])}
+                        >
+                          <span className="tree-thumb">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                              <rect x="3" y="5" width="18" height="12" rx="1" />
+                              <path d="M7 20h10" />
+                            </svg>
+                          </span>
+                          <span className="tree-text">
+                            <strong>Painel de parede</strong>
+                            <small>
+                              {mod.width} × {mod.height} mm · {mod.depth} mm de espessura
+                            </small>
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    tree(mod.root)
+                  )}
+                </div>
+              )}
             </section>
           );
         })}
@@ -450,6 +504,8 @@ export function ModularEditor({
             m.name +
             m.materialId +
             m.back +
+            (m.feet ?? 0) +
+            String(m.wall) +
             editAttempt
           }
           onSubmit={(e) => {
@@ -464,7 +520,13 @@ export function ModularEditor({
                 height: number(data, 'height'),
                 depth: number(data, 'depth'),
                 materialId: formText(data, 'material') as Module['materialId'],
-                back: data.get('back') === 'on',
+                ...(m.kind === 'panel'
+                  ? {}
+                  : {
+                      back: data.get('back') === 'on',
+                      feet: number(data, 'feet'),
+                      wall: data.get('wall') === 'on',
+                    }),
                 rotation: number(data, 'rotation') as Module['rotation'],
                 ...(!design.connections.some((c) => c.child === m.id)
                   ? {
@@ -495,15 +557,15 @@ export function ModularEditor({
           <div className="fields">
             {(['width', 'height', 'depth'] as const).map((k, i) => (
               <label key={k}>
-                {['Largura', 'Altura', 'Profundidade'][i]} (mm)
+                {['Largura', 'Altura', m.kind === 'panel' ? 'Espessura' : 'Profundidade'][i]} (mm)
                 <input
                   type="number"
                   name={k}
                   defaultValue={m[k]}
-                  min={200}
-                  max={[1200, 2400, 800][i]}
+                  min={m.kind === 'panel' && i === 2 ? 15 : 200}
+                  max={(m.kind === 'panel' ? [2700, 2700, 60] : [1200, 2400, 800])[i]}
                   required
-                  {...limitHint(sizeHints[i], (message) =>
+                  {...limitHint((m.kind === 'panel' ? panelHints : sizeHints)[i], (message) =>
                     sayLimit('module', message),
                   )}
                 />
@@ -524,10 +586,35 @@ export function ModularEditor({
               ))}
             </select>
           </label>
-          <label className="check-label">
-            <input name="back" type="checkbox" defaultChecked={m.back} /> Fundo
-            sobreposto de 6 mm
-          </label>
+          {m.kind !== 'panel' && (
+            <>
+              <label className="check-label">
+                <input name="back" type="checkbox" defaultChecked={m.back} /> Fundo
+                sobreposto de 6 mm
+              </label>
+              <div className="fields two">
+                <label>
+                  Pés (mm)
+                  <input
+                    type="number"
+                    name="feet"
+                    min={0}
+                    max={300}
+                    step={10}
+                    defaultValue={m.feet ?? 0}
+                    title="0 tira os pés; de 50 a 300 mm levanta a caixa"
+                    {...limitHint('Pés: 0 (sem pés) ou de 50 a 300 mm.', (message) =>
+                      sayLimit('module', message),
+                    )}
+                  />
+                </label>
+                <label className="check-label inline">
+                  <input name="wall" type="checkbox" defaultChecked={!!m.wall} /> Suspenso,
+                  preso na parede
+                </label>
+              </div>
+            </>
+          )}
           {!design.connections.some((c) => c.child === m.id) && (
             <div className="fields">
               {(['x', 'y', 'z'] as const).map((k, i) => (

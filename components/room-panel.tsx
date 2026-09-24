@@ -17,6 +17,7 @@ const OBSTACLE_NAMES: Record<ObstacleKind, string> = {
   window: 'Janela',
   outlet: 'Tomada',
   column: 'Coluna',
+  tv: 'TV',
   other: 'Outro',
 };
 /** Campos do ambiente enquanto a pessoa digita: número só na hora de salvar. */
@@ -25,10 +26,14 @@ type RoomDraft = {
   heightMm: string;
   depthMm: string;
   baseboardMm: string;
+  offsetMm: string;
 };
 type ObstacleDraft = {
   id: string;
   kind: ObstacleKind;
+  /** Rótulo e giro vêm de fora (modelo, IA) e voltam intactos ao salvar. */
+  label?: string;
+  swingMm?: number;
   xMm: string;
   yMm: string;
   widthMm: string;
@@ -75,6 +80,11 @@ function buildRoom(
     return {
       error: `Rodapé: informe um valor entre 0 e ${ROOM_LIMITS.baseboard[1]} mm, ou deixe em branco.`,
     };
+  const offsetMm = draftNumber(draft.offsetMm, ROOM_LIMITS.offset);
+  if (draft.offsetMm.trim() && offsetMm === null)
+    return {
+      error: `Móvel a partir do canto: informe um valor entre 0 e ${ROOM_LIMITS.offset[1]} mm, ou deixe em branco.`,
+    };
   const list: Obstacle[] = [];
   for (const [index, item] of obstacles.entries()) {
     const xMm = draftNumber(item.xMm, ROOM_LIMITS.obstacleX);
@@ -85,7 +95,16 @@ function buildRoom(
       return {
         error: `Obstáculo ${index + 1}: informe x, y, largura e altura em mm (x de ${ROOM_LIMITS.obstacleX[0]} a ${ROOM_LIMITS.obstacleX[1]}, tamanhos a partir de ${ROOM_LIMITS.obstacleSize[0]} mm).`,
       };
-    list.push({ id: item.id, kind: item.kind, xMm, yMm, widthMm: width, heightMm: height });
+    list.push({
+      id: item.id,
+      kind: item.kind,
+      ...(item.label ? { label: item.label } : {}),
+      xMm,
+      yMm,
+      widthMm: width,
+      heightMm: height,
+      ...(item.swingMm ? { swingMm: item.swingMm } : {}),
+    });
   }
   return {
     room: {
@@ -94,6 +113,7 @@ function buildRoom(
       heightMm,
       ...(depthMm === null ? {} : { depthMm }),
       ...(baseboardMm === null ? {} : { baseboardMm }),
+      ...(offsetMm ? { offsetMm } : {}),
       obstacles: list,
     },
   };
@@ -106,6 +126,7 @@ function roomDraft(room?: Room): RoomDraft {
     heightMm: String(base.heightMm),
     depthMm: base.depthMm === undefined ? '' : String(base.depthMm),
     baseboardMm: base.baseboardMm === undefined ? '' : String(base.baseboardMm),
+    offsetMm: base.offsetMm ? String(base.offsetMm) : '',
   };
 }
 
@@ -113,6 +134,8 @@ function obstacleDraft(obstacle: Obstacle): ObstacleDraft {
   return {
     id: obstacle.id,
     kind: obstacle.kind,
+    label: obstacle.label,
+    swingMm: obstacle.swingMm,
     xMm: String(obstacle.xMm),
     yMm: String(obstacle.yMm),
     widthMm: String(obstacle.widthMm),
@@ -201,6 +224,7 @@ export function RoomPanel({
     ['heightMm', 'Pé-direito (mm)', '2700'],
     ['depthMm', 'Profundidade (mm)', '600'],
     ['baseboardMm', 'Rodapé (mm)', '80'],
+    ['offsetMm', 'Móvel a partir do canto (mm)', '0'],
   ];
   return (
     <div className="room-panel">

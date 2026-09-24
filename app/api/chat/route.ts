@@ -11,7 +11,8 @@ import {
   shelfInfos,
   type ShelfOp,
 } from '@/lib/studio';
-import { entityIds } from '@/lib/studio';
+import { canonical, entityIds } from '@/lib/studio';
+import { drawingParts } from '@/lib/composition';
 import {
   type Progress,
   type TextPreview,
@@ -317,7 +318,7 @@ export async function POST(req: Request) {
       // Turno com foto: a IA recebe também o desenho do projeto atual, para
       // planejar sabendo como a peça está hoje, e não só em milímetros.
       const currentView = image
-        ? await planDataUrl(generateDesign(before).parts)
+        ? await planDataUrl(drawingParts(canonical(before)))
         : undefined;
       let d = await interpretStream(
         before,
@@ -476,7 +477,7 @@ export async function POST(req: Request) {
         try {
           const review = await reviewResult({
             photo: await imageDataUrl(image.id, jpeg ? 'jpeg' : 'webp'),
-            result: await planDataUrl(generateDesign(preview.design).parts),
+            result: await planDataUrl(drawingParts(canonical(preview.design))),
             design: preview.design,
             applied: ops,
             request: b.message,
@@ -512,7 +513,7 @@ export async function POST(req: Request) {
         label: 'Aplicando as alterações',
         detail: 'Conferindo o lote e salvando a nova versão.',
       });
-      if (image) resultImage = await saveImage(await planPng(generateDesign(preview.design).parts), 'resultado.png');
+      if (image) resultImage = await saveImage(await planPng(drawingParts(canonical(preview.design))), 'resultado.png');
       const discarded = revise(p, preview.design, b.message.slice(0,90));
       return { ...finishTurn(userMsg, d.select, ops, null, d), discarded };
 

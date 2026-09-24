@@ -32,6 +32,7 @@ export const groups = {
   tipos: 'Tipos de móvel que o produto declara não suportar',
   sugestoes: 'Próximos passos propostos pela IA para o chip de sugestão',
   foto: 'Foto de referência: estimar a escala e montar o layout, sem recusar',
+  biblioteca: 'Móvel conhecido pedido pelo nome: partir do ativo certo da biblioteca',
 };
 
 const modulos = (design) => design.modules.length;
@@ -755,6 +756,99 @@ export const cases = [
   },
 ];
 
+
+/** Envelope do conjunto em mm, pelas peças geradas. */
+const envelope = (helpers) => {
+  const xs = helpers.parts.flatMap((p) => [p.position[0] - p.size[0] / 2, p.position[0] + p.size[0] / 2]);
+  const ys = helpers.parts.map((p) => p.position[1] + p.size[1] / 2);
+  return { width: Math.round(Math.max(...xs) - Math.min(...xs)), height: Math.round(Math.max(...ys)) };
+};
+const perto = (valor, alvo, folga = 20) => Math.abs(valor - alvo) <= folga;
+cases.push(
+  {
+    id: 'bib-01',
+    group: 'biblioteca',
+    prompt: 'Faz um rack de TV pra mim',
+    expect: {
+      action: ['update'],
+      design: (design, helpers) => {
+        const e = envelope(helpers);
+        if (e.width < 1200) return `rack estreito: ${e.width} mm`;
+        if (e.height > 800) return `alto demais para rack: ${e.height} mm`;
+        return modulos(design) >= 2 ? true : 'rack de um módulo só';
+      },
+    },
+    learned: 'Sem base, a IA montava uma estante e chamava de rack; o ativo rack-tv resolve.',
+  },
+  {
+    id: 'bib-02',
+    group: 'biblioteca',
+    prompt: 'Quero um painel de TV com rack suspenso',
+    expect: {
+      action: ['update'],
+      design: (design) => {
+        if (!design.modules.some((m) => m.kind === 'panel')) return 'sem painel de parede';
+        return design.modules.some((m) => m.kind !== 'panel' && m.position[1] > 200)
+          ? true
+          : 'rack não ficou suspenso';
+      },
+    },
+  },
+  {
+    id: 'bib-03',
+    group: 'biblioteca',
+    prompt: 'Monte uma cômoda de 1 metro de largura com gavetas',
+    expect: {
+      action: ['update'],
+      design: (design, helpers) => {
+        const e = envelope(helpers);
+        if (!perto(e.width, 1000)) return `largura ${e.width} mm (pedido 1000)`;
+        const gavetas = helpers.cells.filter((c) => c.node.front?.type === 'drawers');
+        return gavetas.length ? true : 'sem gavetas';
+      },
+    },
+  },
+  {
+    id: 'bib-04',
+    group: 'biblioteca',
+    prompt: 'Quero uma cozinha de 3 metros com armário aéreo',
+    expect: {
+      action: ['update'],
+      design: (design, helpers) => {
+        const e = envelope(helpers);
+        if (!perto(e.width, 3000)) return `largura ${e.width} mm (pedido 3000)`;
+        return design.modules.some((m) => m.position[1] >= 1200) ? true : 'sem armário aéreo';
+      },
+    },
+  },
+  {
+    id: 'bib-05',
+    group: 'biblioteca',
+    prompt: 'Coloque um criado-mudo encostado à direita desta estante',
+    expect: {
+      action: ['update'],
+      design: (design, helpers) => {
+        if (!design.modules.some((m) => helpers.before.modules.some((b) => b.id === m.id)))
+          return 'a estante original sumiu';
+        return modulos(design) > helpers.before.modules.length ? true : 'nada foi adicionado';
+      },
+    },
+    learned: 'Somar ao projeto usa placement right, sem trocar o que já existe.',
+  },
+  {
+    id: 'bib-06',
+    group: 'biblioteca',
+    prompt: 'Faça um guarda-roupa de 2,80 m de largura',
+    expect: {
+      action: ['update'],
+      design: (design, helpers) => {
+        const e = envelope(helpers);
+        if (!perto(e.width, 2800)) return `largura ${e.width} mm (pedido 2800)`;
+        return e.height >= 2000 ? true : `baixo para guarda-roupa: ${e.height} mm`;
+      },
+    },
+  },
+);
 
 /** Casos que só rodam com modelo (os demais aceitam fixture gravada). */
 export const requiresModel = new Set(['con-01', 'con-02', 'con-03', 'rec-01', 'rec-02', 'rec-03']);
