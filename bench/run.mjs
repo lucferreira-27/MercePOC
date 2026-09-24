@@ -29,6 +29,7 @@ const { applyRequest, create, get, revise, save } = await import('../lib/store.t
 const { saveImage } = await import('../lib/images.ts');
 const { planDataUrl } = await import('../lib/plan-render.ts');
 const { interpretStream } = await import('../lib/gateway.ts');
+const { addUsage, emptyUsage, priceOf, MODEL_KEYS } = await import('../lib/models.ts');
 const { executeRequest, generateDesign, entityIds } = await import('../lib/studio.ts');
 const { cases, groups } = await import('./cases.mjs');
 
@@ -53,6 +54,12 @@ const repeat = Math.max(1, Number(value('repeat', '1')));
 const offline = flag('offline');
 const record = flag('record');
 const fast = flag('fast');
+// --model deepseek|luna|mimo|qwen-fast escolhe o modelo; --fast é o atalho antigo.
+const model = value('model', fast ? 'qwen-fast' : 'deepseek');
+if (!MODEL_KEYS.includes(model)) {
+  console.error(`Modelo desconhecido: ${model}. Use ${MODEL_KEYS.join(', ')}.`);
+  process.exit(1);
+}
 const budgetSeconds = Number(value('budget', '0'));
 const maxCalls = Number(value('max-calls', '0'));
 const pauseMs = Number(value('pause', '400'));
@@ -120,11 +127,13 @@ async function interpretWithRepair(before, revision, messages, selection, contex
       0,
       undefined,
           () => {},
-          fast,
+          model,
           undefined,
           // O app manda o desenho do projeto atual em turno com foto: o
           // benchmark manda o mesmo, senão mede um caminho que ninguém usa.
           currentView,
+          // Custo real: tokens do provedor com a tabela de preço do modelo.
+          (usage) => (telemetry.usage = addUsage(telemetry.usage, usage, priceOf(model, process.env))),
         );
         break;
       } catch (error) {
@@ -232,7 +241,7 @@ for (const benchCase of selected) {
   }
   for (let run = 1; run <= repeat && !stopped; run++) {
     if (pauseMs) await new Promise((done) => setTimeout(done, pauseMs));
-    const telemetry = { latencyMs: 0, calls: 0, retries: 0, networkRetries: 0 };
+    const telemetry = { latencyMs: 0, calls: 0, retries: 0, networkRetries: 0, usage: emptyUsage(model) };
     const row = {
       id: benchCase.id,
       group: benchCase.group,
@@ -389,6 +398,8 @@ for (const benchCase of selected) {
     row.retries = telemetry.retries;
     row.networkRetries = telemetry.networkRetries;
     row.latencyMs = Math.round(telemetry.latencyMs);
+    row.costUsd = telemetry.usage.costUsd;
+    row.tokens = { input: telemetry.usage.inputTokens, cached: telemetry.usage.cachedTokens, output: telemetry.usage.outputTokens };
     results.push(row);
     const mark = row.ok ? 'ok  ' : 'FALHA';
     const sugestoes = row.decision?.suggestions?.length
@@ -437,6 +448,7 @@ const summary = {
   at: new Date().toISOString(),
   offline,
   fast,
+  model,
   cases: results.length,
   skipped,
   passed: results.filter((r) => r.ok).length,
@@ -446,6 +458,7 @@ const summary = {
   retries: results.reduce((a, r) => a + r.retries, 0),
   networkRetries: results.reduce((a, r) => a + r.networkRetries, 0),
   providerMsTotal: providerMs,
+  costUsd: results.reduce((a, r) => a + (r.costUsd ?? 0), 0),
   groups: Object.fromEntries(
     Object.entries(byGroup).map(([name, g]) => [
       name,
@@ -458,9 +471,9 @@ const summary = {
   results,
 };
 
-console.log('\n=== resumo ===');
+console.log(`\n=== resumo (${model}) ===`);
 console.log(
-  `${summary.passed}/${summary.cases} casos (${(summary.passRate * 100).toFixed(0)}%) · latência média ${summary.latencyMs.mean} ms, mediana ${summary.latencyMs.median} ms, p90 ${summary.latencyMs.p90} ms, máx ${summary.latencyMs.max} ms · ${summary.providerCalls.mean} chamada(s) por caso · ${summary.retries} correção(ões)`,
+  `${summary.passed}/${summary.cases} casos (${(summary.passRate * 100).toFixed(0)}%) · latência média ${summary.latencyMs.mean} ms, mediana ${summary.latencyMs.median} ms, p90 ${summary.latencyMs.p90} ms, máx ${summary.latencyMs.max} ms · ${summary.providerCalls.mean} chamada(s) por caso · ${summary.retries} correção(ões) · custo US$ ${summary.costUsd.toFixed(4)} (US$ ${(summary.costUsd / Math.max(1, summary.cases)).toFixed(5)} por caso)`,
 );
 for (const [name, g] of Object.entries(summary.groups))
   console.log(`  ${name.padEnd(14)} ${g.ok}/${g.total}  latência mediana ${g.latency.median} ms${g.retries ? `  correções ${g.retries}` : ''}`);

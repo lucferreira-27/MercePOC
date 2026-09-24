@@ -128,7 +128,7 @@ export type GatewayProfile = {
 };
 
 /**
- * Provedor de cada modelo. DeepSeek e GPT-6 Luna passam pelo mesmo gateway
+ * Provedor de cada modelo. DeepSeek, GPT-6 Luna e MiMo passam pelo mesmo gateway
  * (AI_*); o modo rápido usa outro provedor (AI_FAST_*).
  */
 function profile(choice: ModelChoice): GatewayProfile {
@@ -154,13 +154,15 @@ function profile(choice: ModelChoice): GatewayProfile {
     model:
       key === 'luna'
         ? process.env.AI_LUNA_MODEL || 'gpt-6-luna'
-        : process.env.AI_MODEL || 'deepseek/deepseek-v4.1-flash',
+        : key === 'mimo'
+          ? process.env.AI_MIMO_MODEL || 'xiaomi/mimo-v2.6-flash'
+          : process.env.AI_MODEL || 'deepseek/deepseek-v4.1-flash',
   };
 }
 /** Modelos que este servidor consegue chamar, para o seletor da interface. */
 export function availableModels(): ModelKey[] {
   const out: ModelKey[] = [];
-  if (process.env.AI_API_KEY) out.push('deepseek', 'luna');
+  if (process.env.AI_API_KEY) out.push('deepseek', 'luna', 'mimo');
   if (process.env.AI_FAST_API_KEY) out.push('qwen-fast');
   return out;
 }

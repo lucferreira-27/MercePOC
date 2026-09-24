@@ -11,8 +11,8 @@
  * de modelo e a conta do custo; chaves e URLs ficam em `modelProfile`, que só
  * roda no servidor.
  */
-export type ModelKey = 'deepseek' | 'luna' | 'qwen-fast';
-export const MODEL_KEYS = ['deepseek', 'luna', 'qwen-fast'] as const;
+export type ModelKey = 'deepseek' | 'luna' | 'mimo' | 'qwen-fast';
+export const MODEL_KEYS = ['deepseek', 'luna', 'mimo', 'qwen-fast'] as const;
 
 export type ModelPrice = {
   /** US$ por milhão de tokens de entrada. */
@@ -51,6 +51,14 @@ export const MODELS: ModelInfo[] = [
     vendor: 'Command Code',
     reasoning: 'low',
     price: { input: 0.5, output: 2, cachedInput: 0.05 },
+  },
+  {
+    key: 'mimo',
+    label: 'MiMo V2.6 Flash',
+    blurb: 'Xiaomi: saída barata e cache quase de graça',
+    vendor: 'Command Code',
+    reasoning: 'low',
+    price: { input: 0.14, output: 0.28, cachedInput: 0.0028 },
   },
   {
     key: 'qwen-fast',
