@@ -8,6 +8,14 @@ import { defaults } from '../lib/furniture';
 import { migrateParams, gapsOf } from '../lib/studio';
 import { create, get, save, view } from '../lib/store';
 import { POST } from '../app/api/chat/route';
+/**
+ * O pedido em JSON vem depois do estado do turno na mensagem do usuário (o
+ * bloco fixo de regras fica sozinho no início, para o cache do provedor).
+ */
+function requestOf(content: string) {
+  const marker = 'Pedido deste turno (JSON): ';
+  return content.slice(content.indexOf(marker) + marker.length);
+}
 
 process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-turns-'));
 process.env.AI_API_KEY = 'test-key';
@@ -265,7 +273,7 @@ void test('esclarecimento pendente é informado ao próximo turno e some quando 
     );
     const sent = JSON.parse(bodies[1] ?? '{}') as { messages: { role: string; content: string }[] };
     const userTurn = sent.messages.filter((m) => m.role === 'user').at(-1)!;
-    const payload = JSON.parse(userTurn.content) as {
+    const payload = JSON.parse(requestOf(userTurn.content)) as {
       pending_clarification: string | null;
     };
     assert.equal(payload.pending_clarification, 'Qual medida você quer mudar?');
@@ -292,7 +300,7 @@ void test('esclarecimento pendente é informado ao próximo turno e some quando 
       messages: { role: string; content: string }[];
     };
     const answeredTurn = answered.messages.filter((m) => m.role === 'user').at(-1)!;
-    const after = JSON.parse(answeredTurn.content) as {
+    const after = JSON.parse(requestOf(answeredTurn.content)) as {
       pending_clarification: string | null;
     };
     assert.equal(after.pending_clarification, null);
