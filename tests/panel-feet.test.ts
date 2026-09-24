@@ -67,5 +67,27 @@ void test('vizinho conectado fica na mesma base; painel compartilhado copia os p
   assert.equal(b.feet, 120);
   assert.equal(b.position[1], 0);
   assert.equal(feetOf(d).length, 8);
-  assert.throws(() => applyModularOp(d, { kind: 'module.edit', id: 'b', feet: 0 }), /pés de 120 × 0/);
+});
+
+void test('tirar os pés de um módulo da fileira tira de todos; vizinho solto fica no piso', () => {
+  let d = applyModularOp(single(), { kind: 'module.edit', id: 'a', feet: 150 });
+  d = applyModularOp(d, { kind: 'module.add', id: 'b', preset: 'niche' });
+  d = applyModularOp(d, { kind: 'module.edit', id: 'b', width: 600, height: 500, depth: 450, position: [15000, 0, 0] });
+  d = applyModularOp(d, { kind: 'connect', parent: 'a', child: 'b', side: 'right', shared: true, align: 'front', offset: 0 });
+  d = applyModularOp(d, { kind: 'module.edit', id: 'b', feet: 0 });
+  assert.deepEqual(d.modules.map((m) => m.feet ?? 0), [0, 0]);
+  // Conexão sem painel compartilhado: cada um com seus pés, os dois no piso.
+  let e = applyModularOp(single(), { kind: 'module.add', id: 'c', preset: 'niche' });
+  e = applyModularOp(e, { kind: 'module.edit', id: 'c', width: 600, height: 500, depth: 450, feet: 150, position: [15000, 0, 0] });
+  e = applyModularOp(e, { kind: 'connect', parent: 'a', child: 'c', side: 'right', shared: false, align: 'front', offset: 0 });
+  assert.equal(e.modules.find((m) => m.id === 'c')!.position[1], 0);
+  assert.equal(feetOf(e).length, 4);
+});
+
+void test('erro de schema chega como frase, não como JSON do validador', () => {
+  const d = single();
+  assert.throws(
+    () => applyModularOp(d, { kind: 'module.edit', id: 'a', position: [0, -150, 0] }),
+    (e: Error) => !e.message.trim().startsWith('[') && /Y|posição/i.test(e.message),
+  );
 });

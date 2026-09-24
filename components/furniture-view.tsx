@@ -16,6 +16,7 @@ import {
   SCRUB_MS,
   TRANSITION_MS,
 } from '@/lib/furniture-motion';
+import { DIFF_GLOW } from '@/lib/scene-materials';
 type CameraMove = {
   from: THREE.Vector3;
   to: THREE.Vector3;
@@ -39,6 +40,7 @@ type Runtime = {
   view?: { height: number; width: number; depth: number; mode: ViewMode; frameRequest: number };
   room?: { group: THREE.Group; dispose: () => void };
   feet?: { group: THREE.Group; dispose: () => void };
+  ghosts?: { group: THREE.Group; dispose: () => void };
   dims?: { lines: THREE.LineSegments; labels: DimLabel[]; dispose: () => void };
   labelEls: HTMLSpanElement[];
 };
@@ -82,7 +84,13 @@ export default function FurnitureView({
   caption = '',
   onSnapshot,
   onSpinSuppressed,
+  diff = null,
 }: {
+  /**
+   * Diff do turno na cena: o que entrou e mudou brilha, o que saiu aparece
+   * como fantasma vermelho, e `focus` acende só as peças da linha da conversa.
+   */
+  diff?: { added: string[]; changed: string[]; removed: Part[]; focus?: string[] | null } | null;
   params: Design;
   parts: Part[];
   selected: string[];
@@ -319,6 +327,7 @@ export default function FurnitureView({
       motion.dispose();
       state.room?.dispose();
       state.feet?.dispose();
+      state.ghosts?.dispose();
       state.dims?.dispose();
       shadowFloor.geometry.dispose();
       shadowFloor.material.dispose();
@@ -351,6 +360,52 @@ export default function FurnitureView({
         scrub ? SCRUB_MS : TRANSITION_MS,
       );
   }, [parts, params, exploded, selected, scrub]);
+  // Diff: as marcas vão para o controlador de peças; o que saiu vira um
+  // fantasma translúcido na pose de antes, para a pessoa ver o que foi embora.
+  useEffect(() => {
+    const s = runtime.current;
+    if (!s) return;
+    s.motion.setDiff(
+      diff
+        ? {
+            added: new Set(diff.added),
+            changed: new Set(diff.changed),
+            focus: diff.focus?.length ? new Set(diff.focus) : null,
+          }
+        : null,
+    );
+    if (s.ghosts) {
+      s.scene.remove(s.ghosts.group);
+      s.ghosts.dispose();
+      s.ghosts = undefined;
+    }
+    if (!diff?.removed.length) return;
+    const group = new THREE.Group();
+    group.name = 'removidas';
+    const geo = new THREE.BoxGeometry(1, 1, 1);
+    const edgesGeo = new THREE.EdgesGeometry(geo);
+    const fill = new THREE.MeshBasicMaterial({ color: DIFF_GLOW.removed, transparent: true, opacity: 0.14, depthWrite: false });
+    const line = new THREE.LineBasicMaterial({ color: DIFF_GLOW.removed, transparent: true, opacity: 0.85 });
+    for (const part of diff.removed) {
+      const mesh = new THREE.Mesh(geo, fill);
+      mesh.position.set(...part.position);
+      mesh.rotation.y = part.rotation ?? 0;
+      mesh.scale.set(...part.size);
+      mesh.renderOrder = 3;
+      mesh.add(new THREE.LineSegments(edgesGeo, line));
+      group.add(mesh);
+    }
+    s.scene.add(group);
+    s.ghosts = {
+      group,
+      dispose() {
+        geo.dispose();
+        edgesGeo.dispose();
+        fill.dispose();
+        line.dispose();
+      },
+    };
+  }, [diff]);
   useEffect(() => {
     const state = runtime.current;
     if (state) state.motion.setHover(hover?.id ?? null);

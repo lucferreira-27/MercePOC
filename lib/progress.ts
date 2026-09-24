@@ -21,6 +21,12 @@ export type ChangeHighlight = {
   tool: string;
   title: string;
   summary: string;
+  /** + entrou, − saiu, ~ mudou. Ausente em mensagem antiga: vem da ferramenta. */
+  sign?: '+' | '-' | '~';
+  /** Índices, no lote aplicado, das operações que esta linha conta. */
+  ops?: number[];
+  /** Módulos, compartimentos ou peças que a linha destaca na cena. */
+  targets?: string[];
   /** Dimensões externas em mm, quando a mudança tem tamanho (desenha a peça). */
   size?: [number, number, number];
   measures?: { label: string; value: string }[];

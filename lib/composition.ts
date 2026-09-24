@@ -493,9 +493,10 @@ export function settle(d: Composition, enforce = true) {
       const dz =
         c.align === 'front' ? (m.depth - dep) / 2 : -(m.depth - dep) / 2;
       child.position = point([dx, y, dz], m);
-      // point() já soma os pés do pai; os do filho saem da posição, para as
-      // duas caixas ficarem na mesma base (e os pés iguais no mesmo piso).
-      child.position[1] -= child.feet ?? 0;
+      // Lado a lado, os dois ficam no mesmo piso: a posição é o chão do
+      // módulo e os pés de cada um levantam só a própria caixa. Em cima, o
+      // filho apoia no tampo do pai (point já soma os pés do pai).
+      if (c.side !== 'top') child.position[1] = m.position[1];
       visit(child, next);
     }
   }
@@ -613,12 +614,15 @@ function collide(a: ModularPart, b: ModularPart) {
   return true;
 }
 export function generateComposition(input: Composition, validate = true) {
-  const d = compositionSchema.parse({
+  const parsed = compositionSchema.safeParse({
     schemaVersion: 3,
     profile: input.profile,
     modules: input.modules,
     connections: input.connections,
   });
+  // O validador fala JSON; a pessoa (e a IA no reparo) recebe a frase.
+  if (!parsed.success) throw new Error(validationMessage(parsed.error));
+  const d = parsed.data;
   settle(d);
   const { cells, panels } = layout(d);
   const ids = new Set<string>();
@@ -1195,6 +1199,21 @@ export function applyModularOp(
     const { kind: _, id: __, ...patch } = op;
     if (d.connections.some((c) => c.child === m.id) && op.position)
       throw new Error('Separe o módulo antes de mover sua posição.');
+    // Pés numa fileira de painéis compartilhados valem para a fileira toda:
+    // metade com pés e metade sem é uma lateral que não fecha.
+    if (op.feet !== undefined) {
+      const row = new Set([m.id]);
+      for (let grew = true; grew; ) {
+        grew = false;
+        for (const c of d.connections.filter((c) => c.shared && c.side !== 'top'))
+          for (const [a, b] of [[c.parent, c.child], [c.child, c.parent]])
+            if (row.has(a) && !row.has(b)) {
+              row.add(b);
+              grew = true;
+            }
+      }
+      for (const other of d.modules) if (row.has(other.id) && other.id !== m.id) other.feet = op.feet;
+    }
     if (m.kind !== 'panel')
       resizeCells(
         m.root,
@@ -1354,7 +1373,10 @@ export function applyModularOp(
   }
   settle(d, validate);
   if (validate) generateComposition(d);
-  return compositionSchema.parse(d);
+  // Erro de schema vira frase para a pessoa, não o JSON do validador.
+  const checked = compositionSchema.safeParse(d);
+  if (!checked.success) throw new Error(validationMessage(checked.error));
+  return checked.data;
 }
 /**
  * Pés dos módulos, no mundo: quatro por caixa, recuados 50 mm das laterais e

@@ -1036,136 +1036,6 @@ kbd {
   text-underline-offset: 3px;
 }
 
-/* Cartões de mudança (componente mantido) */
-.change-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0 0 4px;
-  white-space: normal;
-}
-.change-card {
-  padding: 11px 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface-2);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.change-card > strong {
-  font-size: 13px;
-  color: var(--ink);
-}
-.change-card > p {
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--muted);
-}
-.change-card-body {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
-.change-card-sketch {
-  flex: none;
-  width: 88px;
-  height: 88px;
-  border-radius: 8px;
-  background: var(--surface);
-}
-.change-card-data {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-  flex: 1;
-}
-.change-card-measures,
-.change-card-facts {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 0;
-}
-.change-card-measures > div,
-.change-card-facts > div {
-  display: flex;
-  gap: 6px;
-  align-items: baseline;
-  font-size: 11.5px;
-  line-height: 1.45;
-}
-.change-card-measures > div {
-  justify-content: space-between;
-  border-bottom: 1px dashed var(--line);
-  padding-bottom: 1px;
-}
-.change-card-measures dt,
-.change-card-facts dt {
-  color: var(--muted);
-  flex: none;
-}
-.change-card-measures dd,
-.change-card-facts dd {
-  margin: 0;
-  color: var(--ink);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-.change-card-facts > div {
-  justify-content: flex-start;
-}
-.change-card-facts dd {
-  font-weight: 500;
-  text-align: left;
-  min-width: 0;
-}
-.change-card-rows {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-.change-card-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 3px 8px;
-  align-items: baseline;
-}
-.change-row-label {
-  font-size: 11.5px;
-  color: var(--muted);
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.change-row-value {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.change-row-bar {
-  grid-column: 1 / -1;
-  display: flex;
-  height: 6px;
-  border-radius: 3px;
-  overflow: hidden;
-  background: var(--surface-3);
-}
-.change-row-bar .seg {
-  background: var(--accent-line);
-  border-left: 1px solid var(--surface-2);
-}
-.change-row-bar .seg.first {
-  background: var(--accent);
-}
 .part-showcase {
   margin: 12px 0 4px;
   white-space: normal;
@@ -4367,5 +4237,406 @@ kbd {
     margin-top: 12px;
     color: #555;
     font-size: 9.5px;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+ * Mudanças do turno (ChangeSet): o diff do móvel, compacto como o de um editor.
+ * Cabeçalho com contagem e barrinha, uma linha por mudança com o sinal na
+ * calha. Passar o mouse acende as peças na cena; clicar abre o detalhe.
+ * ------------------------------------------------------------------------- */
+.cs {
+  --cs-add: var(--ok);
+  --cs-add-soft: var(--ok-soft);
+  --cs-del: var(--bad);
+  --cs-del-soft: var(--bad-soft);
+  --cs-mod: var(--warn);
+  --cs-mod-soft: var(--warn-soft);
+  --cs-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface);
+  overflow: hidden;
+  font-size: 12.5px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.cs.active {
+  border-color: var(--accent-line);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.cs-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 6px 0 9px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
+}
+.cs-icon {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  flex: none;
+}
+.cs-head strong {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--ink);
+}
+.cs-rev {
+  font: 600 11px/1 var(--cs-mono);
+  color: var(--muted);
+  padding: 3px 5px;
+  border-radius: 5px;
+  background: var(--surface-3);
+}
+.cs-stat {
+  display: inline-flex;
+  gap: 5px;
+  font: 650 11.5px/1 var(--cs-mono);
+  font-variant-numeric: tabular-nums;
+}
+.cs b.add {
+  color: var(--cs-add);
+}
+.cs b.del {
+  color: var(--cs-del);
+}
+.cs b.mod {
+  color: var(--cs-mod);
+}
+.cs-bar {
+  display: inline-flex;
+  gap: 2px;
+}
+.cs-bar i {
+  width: 7px;
+  height: 7px;
+  border-radius: 1.5px;
+  background: var(--line-strong);
+}
+.cs-bar i.add {
+  background: var(--cs-add);
+}
+.cs-bar i.del {
+  background: var(--cs-del);
+}
+.cs-bar i.mod {
+  background: var(--cs-mod);
+  opacity: 0.8;
+}
+.cs-spacer {
+  flex: 1;
+}
+.cs-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.cs-play:hover {
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+.cs-lines {
+  list-style: none;
+  margin: 0;
+  padding: 3px 0;
+}
+.cs-line > button {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 10px 4px 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: var(--ink-2);
+  line-height: 1.4;
+  cursor: pointer;
+}
+.cs-line > button:hover,
+.cs-line > button:focus-visible,
+.cs-line.open > button {
+  background: var(--surface-2);
+}
+.cs-sign {
+  flex: none;
+  width: 22px;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  font: 700 12.5px/1.4 var(--cs-mono);
+}
+.cs-line.add .cs-sign {
+  color: var(--cs-add);
+  box-shadow: inset 2px 0 0 var(--cs-add);
+}
+.cs-line.del .cs-sign {
+  color: var(--cs-del);
+  box-shadow: inset 2px 0 0 var(--cs-del);
+}
+.cs-line.mod .cs-sign {
+  color: var(--cs-mod);
+  box-shadow: inset 2px 0 0 var(--cs-mod);
+}
+.cs-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cs-line.open .cs-text {
+  white-space: normal;
+}
+.cs-meta {
+  flex: none;
+  font: 500 11px/1.4 var(--cs-mono);
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+/* A linha que está tocando na cena agora. */
+.cs-line.now > button {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.cs-line.now .cs-text::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: middle;
+  animation: cs-pulse 0.9s ease-in-out infinite;
+}
+@keyframes cs-pulse {
+  50% {
+    opacity: 0.25;
+    transform: scale(0.7);
+  }
+}
+.cs-detail {
+  display: grid;
+  gap: 6px;
+  margin: 0 10px 6px 22px;
+  padding: 7px 9px;
+  border-left: 2px solid var(--line);
+  border-radius: 0 6px 6px 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.cs-line.add .cs-detail {
+  border-left-color: var(--cs-add);
+  background: color-mix(in srgb, var(--cs-add-soft) 60%, transparent);
+}
+.cs-line.del .cs-detail {
+  border-left-color: var(--cs-del);
+  background: color-mix(in srgb, var(--cs-del-soft) 60%, transparent);
+}
+.cs-line.mod .cs-detail {
+  border-left-color: var(--cs-mod);
+  background: color-mix(in srgb, var(--cs-mod-soft) 60%, transparent);
+}
+.cs-detail p {
+  margin: 0;
+}
+.cs-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.cs-rows li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  align-items: baseline;
+}
+.cs-rows b {
+  font: 600 11.5px/1.3 var(--cs-mono);
+  color: var(--ink-2);
+}
+.cs-split {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 2px;
+  height: 4px;
+}
+.cs-split i {
+  border-radius: 2px;
+  background: var(--accent-line);
+}
+.cs-split i:first-child {
+  background: var(--accent);
+}
+.cs-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+}
+.cs-facts div {
+  display: inline-flex;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 11px;
+}
+.cs-facts dt {
+  color: var(--faint);
+}
+.cs-facts dd {
+  margin: 0;
+  color: var(--ink-2);
+  font-weight: 600;
+}
+.cs-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 26px;
+  padding: 0 8px 0 10px;
+  border-top: 1px dashed var(--line);
+  color: var(--faint);
+  font-size: 11px;
+}
+.cs-parts {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: 500 11px/1 var(--cs-mono);
+}
+.cs-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.cs-more[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+/* Barra da revisão na cena: o que está tocando e a legenda das cores. */
+.review-bar {
+  position: absolute;
+  top: 58px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(560px, calc(100% - 32px));
+  padding: 5px 5px 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow);
+  font-size: 12.5px;
+  color: var(--ink-2);
+  animation: rb-in 0.25s ease-out;
+}
+@keyframes rb-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -6px);
+  }
+}
+.rb-legend {
+  display: inline-flex;
+  gap: 3px;
+  flex: none;
+}
+.rb-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+.rb-legend .add {
+  background: #2fa25c;
+}
+.rb-legend .mod {
+  background: #e0972b;
+}
+.rb-legend .del {
+  background: #e0564f;
+}
+.review-bar.playing .rb-legend i {
+  animation: cs-pulse 0.9s ease-in-out infinite;
+}
+.review-bar.playing .rb-legend .mod {
+  animation-delay: 0.15s;
+}
+.review-bar.playing .rb-legend .del {
+  animation-delay: 0.3s;
+}
+.rb-text {
+  display: flex;
+  gap: 7px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.rb-text b {
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.review-bar button {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--surface-3);
+  color: var(--ink-2);
+}
+.review-bar button:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cs-line.now .cs-text::after,
+  .review-bar.playing .rb-legend i,
+  .review-bar {
+    animation: none;
+  }
+}
+/* No celular a barra de ferramentas ocupa o topo da cena: a revisão desce.
+   Fica no fim do arquivo para vencer a regra base da barra. */
+@media (max-width: 600px) {
+  .review-bar {
+    top: 128px;
+    font-size: 12px;
   }
 }

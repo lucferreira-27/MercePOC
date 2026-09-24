@@ -15,7 +15,8 @@ npm run bench                                  # corpus inteiro, uma vez cada ca
 npm run bench -- --list                        # lista os casos e os grupos
 npm run bench -- --group divisao               # um grupo
 npm run bench -- --id amb-01 --repeat 3        # um caso, três vezes (mede a variância)
-npm run bench -- --fast                        # usa o perfil rápido (Cerebras)
+npm run bench -- --model luna                  # outro modelo: deepseek, luna, mimo ou qwen-fast
+npm run bench -- --fast                        # atalho antigo de --model qwen-fast (Cerebras)
 npm run bench -- --budget 600 --max-calls 40   # teto de tempo e de chamadas
 npm run bench -- --record                      # grava as decisões em bench/fixtures
 npm run bench -- --offline                     # sem rede, contra as fixtures gravadas
@@ -37,6 +38,7 @@ Saídas: `bench/results/*.json` (ignorados no git) e `bench/fixtures/*.json` (ve
 | Latência média, mediana e p90 | Tempo de espera que o usuário sente (a cauda é o que dói) |
 | Chamadas ao provedor por caso | 1 é o normal; 2 ou 3 significa que a validação recusou e o laço de correção entrou |
 | Correções (`retrying`) | Quantas vezes o harness pediu para a IA refazer o lote |
+| Custo (US$) por caso | Tokens do provedor (entrada, cache, saída) vezes a tabela de `lib/models.ts`; `costUsd` e `tokens` em cada resultado |
 | Falhas com a decisão crua | Serve para distinguir erro do modelo de erro do harness |
 
 `--offline` é o modo de regressão do harness: as decisões são as gravadas, então uma mudança na validação, na geometria ou na aplicação que quebre um caso aparece sem gastar chamada de modelo. Ele **não** mede prompt nem modelo, porque a resposta está congelada na fixture.
@@ -69,6 +71,7 @@ A primeira execução completa (38 casos, 1 chamada por caso, mediana 5,1 s) deu
 | **Escopo respeitado** | `rec-01` a `rec-03` (preço, plano de corte, ferragens) responderam sem inventar número em 2,6 a 4,6 s | Classe saudável; manter no corpus como regressão, porque é o tipo de resposta que engana o usuário quando piora |
 | **Layout a partir de foto** | Primeiras tentativas do grupo `foto`: a IA recusava ("não consigo medir a foto"), depois montava o lote em ordem inválida (quatro `module.add` seguidos de `module.edit`, recusado como módulos sobrepostos) e usava `preset:"shelf"` para depois tentar dividir a raiz, que já vem dividida | Medido com perguntas de controle (quantas gavetas, o que está no vão de baixo, quantas colunas), o modelo **vê** a imagem e acertou as três: o que faltava era procedimento. O prompt ganhou o bloco de escala (âncora conhecida, proporção preservada, erro declarado) e as regras do motor que só apareceram montando o layout na mão: um módulo por vez (`add` → `edit` → `connect`), `shared:true` só com altura/profundidade/orientação/acabamento iguais, canto girado só na ponta da fileira, todas as `cell.split` antes de qualquer `front.set`, e `preset:"niche"` para quem vai definir as divisões. Custo medido: 40 a 170 s por cópia (turno longo de propósito: um layout inteiro em uma chamada), contra 5 s de um turno curto |
 | **Chip de sugestão fora do contexto** | grupo `sugestoes` (3 casos): no prompt atual a IA devolve 3 próximos passos por turno, todos citando o que acabou de mudar; no caso de preço ela recusou e sugeriu só o que o produto faz | Este grupo existe para o chip: ele deixou de ser lista fixa e passou a vir da IA. Se a sugestão citar id interno, repetir a resposta ou prometer recurso fora do escopo, o caso reprova aqui, não na conversa do usuário |
+| **Móvel conhecido montado do zero** | Pedido real "faz um rack de TV": sem base, a IA empilhava módulos genéricos e o resultado não parecia um rack | A biblioteca (`lib/assets.ts`) dá 16 móveis paramétricos e o prompt manda começar pelo mais parecido com `asset.add`. Grupo `biblioteca` (6 casos: rack, painel com rack suspenso, cômoda, cozinha, criado-mudo ao lado, guarda-roupa com largura ditada): 6/6 no DeepSeek, ~4 s e US$ 0,0004 por caso. O catálogo entra no bloco fixo do prompt (cache): a entrada sobe ~2,9 mil tokens por turno, quase todos lidos do cache |
 
 O que o benchmark **não** mede: qualidade do texto além das regex, aparência da interface, o cartão de esclarecimento clicando de verdade e o mundo real (paredes, preço, oficina). No grupo `foto` ele também não julga a fidelidade da cópia à imagem (isso é olho humano): mede que a fileira foi montada — vários módulos ligados, vão alto e aberto, coluna de vãos, gavetas — e que a resposta declara a régua, o erro e o que ficou de fora. O fluxo real com a foto anexada no compositor tem verificação própria: `work/qa/verify-foto.mjs`. Essas partes continuam cobertas pela avaliação com personas em navegador real (`work/qa2/`), que é onde os defeitos de fluxo apareceram. O chip clicável, o cartão com as duas respostas sugeridas e o roteiro de etapas têm verificação própria em navegador real: `work/qa/verify-chat-ui.mjs`.
 

@@ -14,7 +14,7 @@ import {
   type Composition,
   type ModularOp,
 } from './composition';
-import { applyAssetOp, assetOpSchema, type AssetOp } from './assets';
+import { applyAssetOp, assetById, assetOpSchema, type AssetOp } from './assets';
 export type Design = Composition & {
   width: number;
   height: number;
@@ -229,20 +229,22 @@ export function applyOp(input: Design, op: ShelfOp): Design {
   }
   throw new Error('Operação não suportada.');
 }
+/**
+ * Um passo do lote sem validar o conjunto: o estado intermediário pode não
+ * fechar (módulo recém-criado ainda sem conexão) e só o resultado do lote
+ * inteiro é validado.
+ */
+export function applyStep(pending: Composition, op: ShelfOp): Composition {
+  if (op.kind === 'asset.add') return applyAssetOp(pending, op);
+  if (op.kind.includes('.') || op.kind === 'connect' || op.kind === 'disconnect')
+    return applyModularOp(pending, op as ModularOp, false);
+  return canonical(applyOp(normalize(pending), op));
+}
 export function executeRequest(base: Design, ops: ShelfOp[]) {
   let d = base;
   try {
     let pending: Composition = canonical(d);
-    for (const op of ops) {
-      if (op.kind === 'asset.add') pending = applyAssetOp(pending, op);
-      else if (
-        op.kind.includes('.') ||
-        op.kind === 'connect' ||
-        op.kind === 'disconnect'
-      )
-        pending = applyModularOp(pending, op as ModularOp, false);
-      else pending = canonical(applyOp(normalize(pending), op));
-    }
+    for (const op of ops) pending = applyStep(pending, op);
     d = normalize(pending);
     return { ok: true as const, design: d };
   } catch (e) {
@@ -303,12 +305,40 @@ export function describeHighlights(
     return `${op.kind}#${i}`;
   };
   const grupos = new Map<string, ShelfOp[]>();
+  const indices = new Map<string, number[]>();
   ops.forEach((op, i) => {
     const chave = groupKey(op, i);
     const atual = grupos.get(chave);
     if (atual) atual.push(op);
     else grupos.set(chave, [op]);
+    indices.set(chave, [...(indices.get(chave) ?? []), i]);
   });
+  /** Ids que existem em algum dos lados: o que a linha pode destacar. */
+  const alive = new Set([
+    ...entityIds(after),
+    ...before.modules.map((m) => m.id),
+  ]);
+  const targetsOf = (lote: ShelfOp[]) => {
+    const ids = new Set<string>();
+    for (const op of lote) {
+      if (op.kind === 'asset.add') {
+        for (const m of after.modules) if (!before.modules.some((b) => b.id === m.id)) ids.add(m.id);
+        continue;
+      }
+      for (const key of ['id', 'newId', 'child', 'parent'] as const) {
+        const v = (op as Record<string, unknown>)[key];
+        if (typeof v === 'string' && alive.has(v)) ids.add(v);
+      }
+      if ('ids' in op && Array.isArray(op.ids)) for (const v of op.ids) if (alive.has(v)) ids.add(v);
+    }
+    return [...ids];
+  };
+  const signFor = (op: ShelfOp): '+' | '-' | '~' => {
+    if (op.kind === 'front.set') return op.type === 'none' ? '-' : '+';
+    if (/remove|disconnect|merge/.test(op.kind)) return '-';
+    if (/add|duplicate|split|asset/.test(op.kind)) return '+';
+    return '~';
+  };
   const cellsAfter = layout(after).cells;
   const cellsBefore = layout(before).cells;
   const name = (d: Design, id: string) =>
@@ -374,8 +404,32 @@ export function describeHighlights(
   const usados = new Set<string>();
   for (const [chave, lote] of grupos) {
     const op = lote[0];
-    void chave;
+    const antes = out.length;
     switch (op.kind) {
+      case 'asset.add': {
+        const novosDoAtivo = after.modules.filter((m) => !before.modules.some((b) => b.id === m.id));
+        const g = generateComposition(canonical(after));
+        const xs = g.parts
+          .filter((p) => p.owners.some((o) => novosDoAtivo.some((m) => m.id === o)))
+          .flatMap((p) => [p.position[0] - p.size[0] / 2, p.position[0] + p.size[0] / 2]);
+        const ys = g.parts
+          .filter((p) => p.owners.some((o) => novosDoAtivo.some((m) => m.id === o)))
+          .map((p) => p.position[1] + p.size[1] / 2);
+        const largura = xs.length ? Math.max(...xs) - Math.min(...xs) : 0;
+        const altura = ys.length ? Math.max(...ys) : 0;
+        const nome = assetById(op.asset)?.name ?? 'Móvel';
+        out.push({
+          tool: op.kind,
+          title: op.placement === 'replace' ? `${nome} no lugar do projeto` : `${nome} adicionado ${op.placement === 'left' ? 'à esquerda' : 'à direita'}`,
+          summary: `${novosDoAtivo.length} ${novosDoAtivo.length === 1 ? 'módulo' : 'módulos'} da biblioteca, ${round2(largura)} × ${round2(altura)} mm${op.placement === 'replace' ? `; saiu o que havia antes (${before.modules.length} ${before.modules.length === 1 ? 'módulo' : 'módulos'})` : ', alinhado pela parede'}.`,
+          measures: [
+            { label: 'Largura', value: mm(largura) },
+            { label: 'Altura', value: mm(altura) },
+          ],
+          facts: novosDoAtivo.slice(0, 6).map((m) => ({ label: m.name, value: dims(m) })),
+        });
+        break;
+      }
       case 'module.add':
       case 'module.duplicate': {
         const pedido = op.kind === 'module.add' ? op.id : op.newId;
@@ -654,7 +708,23 @@ export function describeHighlights(
       default:
         break;
     }
+    // Cada linha nova sabe de onde veio: sinal, operações e o que destacar.
+    for (const line of out.slice(antes)) {
+      line.sign ??= signFor(op);
+      line.ops = indices.get(chave);
+      line.targets = targetsOf(lote);
+    }
   }
+  // Operação sem linha própria (medidas e conexão de um módulo que acabou de
+  // entrar) vai para a linha que já fala daquele módulo: na reprodução todo
+  // passo tem um título.
+  const counted = new Set(out.flatMap((l) => l.ops ?? []));
+  ops.forEach((op, i) => {
+    if (counted.has(i)) return;
+    const ids = targetsOf([op]);
+    const owner = out.find((l) => l.targets?.some((t) => ids.includes(t)));
+    if (owner) owner.ops = [...(owner.ops ?? []), i].sort((a, b) => a - b);
+  });
   return out;
 }
 export function describeDesignChanges(before: Design, after: Design) {
@@ -709,6 +779,14 @@ export function describeDesignChanges(before: Design, after: Design) {
         out.push(`${m.name}: ${field} ${b[key]}° → ${m[key]}°`);
       else out.push(`${m.name}: fundo sobreposto ${m[key] ? 'ligado' : 'desligado'}`);
     }
+    if ((m.feet ?? 0) !== (b.feet ?? 0))
+      out.push(
+        m.feet
+          ? `${m.name}: pés ${b.feet ? `${mm(b.feet)} → ` : 'de '}${mm(m.feet)}`
+          : `${m.name}: sem pés`,
+      );
+    if (!!m.wall !== !!b.wall)
+      out.push(`${m.name}: ${m.wall ? 'suspenso, preso na parede' : 'apoiado no piso'}`);
     if (JSON.stringify(m.position) !== JSON.stringify(b.position))
       out.push(`"${m.name}": posição ajustada`);
     if (JSON.stringify(m.root) !== JSON.stringify(b.root))

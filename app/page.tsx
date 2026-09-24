@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { TurnProgress, turnLabel, type Pulse, type TimedProgress } from '@/components/turn-progress';
 import { ModelPicker } from '@/components/model-picker';
 import { UsageMeter } from '@/components/usage-meter';
-import { ChangeCards } from '@/components/change-cards';
+import { ChangeSet } from '@/components/change-set';
+import { designDiff, partDiff, playbackFrames } from '@/lib/diff';
 import { readEvents } from '@/lib/sse';
 import { type Progress, type TextPreview } from '@/lib/progress';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -55,6 +56,7 @@ import {
   Sun,
   Undo2,
   X,
+  Play,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
@@ -213,6 +215,31 @@ function typing(target: EventTarget | null) {
   const el = target as HTMLElement | null;
   return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
 }
+/**
+ * Peças que entraram, saíram e mudaram em cada turno, guardado por par de
+ * revisões: a conversa inteira não recalcula o diff a cada tecla.
+ */
+const partsStatCache = new Map<string, { added: number; removed: number; changed: number } | null>();
+function partsStatOf(p: State, m: Message) {
+  const base = m.context?.baseRevisionId, result = m.result?.resultRevisionId;
+  if (!base || !result) return null;
+  const key = `${base}>${result}`;
+  if (!partsStatCache.has(key)) {
+    const before = p.revisions.find((r) => r.id === base)?.params;
+    const after = p.revisions.find((r) => r.id === result)?.params;
+    let stat: { added: number; removed: number; changed: number } | null = null;
+    try {
+      if (before && after) {
+        const d = designDiff(before, after);
+        stat = { added: d.added.length, removed: d.removed.length, changed: d.changed.length };
+      }
+    } catch {
+      stat = null;
+    }
+    partsStatCache.set(key, stat);
+  }
+  return partsStatCache.get(key) ?? null;
+}
 export default function Home() {
   const [opened,setOpened] = useState<Record<string,number>>({});
   const [p, setP] = useState<State | null>(null),
@@ -240,6 +267,12 @@ export default function Home() {
     [forkName, setForkName] = useState(''),
     [uploading, setUploading] = useState(false),
     [historyPreview, setHistoryPreview] = useState<number | null>(null),
+    /**
+     * Mudanças de uma mensagem revistas na cena. `frame` -1 é o antes; depois
+     * um quadro por operação. `pinned`: a pessoa pediu, então não some sozinho.
+     */
+    [review, setReview] = useState<{ id: string; frame: number; playing: boolean; pinned: boolean } | null>(null),
+    [reviewFocus, setReviewFocus] = useState<string[] | null>(null),
     [scrubbing, setScrubbing] = useState(false),
     [model, setModel] = useState<ModelKey>('deepseek'),
     [available, setAvailable] = useState<ModelKey[]>([]),
@@ -491,7 +524,37 @@ export default function Home() {
       setBusy(false);
     }
   }
-  const visualParams = p?.revisions[historyPreview ?? p.cursor].params;
+  const reviewId = review?.id ?? null;
+  const reviewIndex = review?.frame ?? 0;
+  const reviewData = useMemo(() => {
+    if (!reviewId || !p) return null;
+    const m = p.messages.find((v) => v.id === reviewId);
+    const before = p.revisions.find((r) => r.id === m?.context?.baseRevisionId)?.params;
+    const after = p.revisions.find((r) => r.id === m?.result?.resultRevisionId)?.params;
+    if (!m || !before || !after) return null;
+    const ops = m.result?.appliedOperations ?? [];
+    return {
+      message: m,
+      before,
+      frames: playbackFrames(before, ops, after),
+      beforeParts: drawingParts(canonical(before)),
+      /** A cena mostra a versão salva quando a revisão já é a vigente. */
+      current: after === p.revisions[p.cursor].params,
+    };
+  }, [reviewId, p]);
+  /** Quadro da reprodução: -1 é o antes, depois um por operação do lote. */
+  const reviewFrame = useMemo(
+    () =>
+      reviewData
+        ? reviewIndex < 0
+          ? { design: reviewData.before, op: -1 }
+          : reviewData.frames[Math.min(reviewIndex, reviewData.frames.length - 1)]
+        : null,
+    [reviewData, reviewIndex],
+  );
+  /** Revendo uma versão que não é a atual, ou no meio da reprodução: só olhar. */
+  const reviewLocked = !!reviewData && (!!review?.playing || !reviewData.current);
+  const visualParams = reviewFrame?.design ?? p?.revisions[historyPreview ?? p.cursor].params;
   const visualBounds = useMemo(() => (visualParams ? generateComposition(visualParams).bounds : null), [visualParams]);
   const visualSize = visualBounds ? ([0, 1, 2].map((i) => visualBounds.max[i] - visualBounds.min[i]) as [number, number, number]) : null;
   /**
@@ -504,12 +567,14 @@ export default function Home() {
     const report = fitReport(visualParams, p.room);
     return { report, summary: fitSummary(visualParams, p.room, report) };
   }, [p?.room, visualParams]);
+  // Chips de prévia são da linha do tempo; na revisão das mudanças quem fala
+  // é o diff na conversa e a barra da cena.
   const previewChanges = useMemo(
     () =>
-      p && visualParams
+      p && visualParams && !reviewData
         ? describeChanges(p.revisions[p.cursor].params, visualParams)
         : [],
-    [p, visualParams],
+    [p, visualParams, reviewData],
   );
   const changed = useMemo(() => {
     if (!p || !visualBounds || historyPreview === null) return new Set<string>();
@@ -520,9 +585,17 @@ export default function Home() {
   }, [p, visualBounds, historyPreview]);
   const visualParts = useMemo(() => {
     if (!p) return [];
+    if (reviewFrame) return generateDesign(reviewFrame.design).parts;
     const rev = p.revisions[historyPreview ?? p.cursor];
     return historyPreview === null || historyPreview === p.cursor ? p.parts : generateDesign(rev.params).parts;
-  }, [p, historyPreview]);
+  }, [p, historyPreview, reviewFrame]);
+  // Diff na cena contra o antes do turno: cresce quadro a quadro na reprodução.
+  const sceneDiff = useMemo(() => {
+    if (!reviewData || !reviewFrame || !visualParams) return null;
+    const d = partDiff(reviewData.beforeParts, drawingParts(canonical(reviewFrame.design)));
+    const focus = reviewFocus?.length ? selectedPartIds(visualParams, reviewFocus) : null;
+    return { ...d, focus };
+  }, [reviewData, reviewFrame, visualParams, reviewFocus]);
   const historyCount = p?.revisions.length ?? 0;
   const displayParts=useMemo(()=>visualParts.map(part=>openingPose(part as ModularPart,historyPreview!==null?0:opened[(part as ModularPart).motion?.id??'']??0)),[visualParts,opened,historyPreview]);
   const displaySelected=visualParams?selectedPartIds(visualParams,selected):[];
@@ -562,6 +635,47 @@ export default function Home() {
     setViewNotice(blocked ? 'Algumas frentes pararam antes para não colidir.' : '');
   }
   const historyView = historyPreview ?? p?.cursor ?? 0;
+  /**
+   * Reprodução: o antes por um instante, depois uma operação por quadro. No
+   * fim a cena fica no resultado com o diff aceso; sem a pessoa ter pedido,
+   * o destaque some sozinho depois de alguns segundos.
+   */
+  useEffect(() => {
+    if (!review || !reviewData) return;
+    if (review.playing) {
+      const last = reviewData.frames.length - 1;
+      const timer = setTimeout(
+        () =>
+          setReview((r) =>
+            r && r.id === review.id
+              ? r.frame >= last
+                ? { ...r, playing: false }
+                : { ...r, frame: r.frame + 1 }
+              : r,
+          ),
+        review.frame < 0 ? 550 : 750,
+      );
+      return () => clearTimeout(timer);
+    }
+    if (!review.pinned) {
+      const timer = setTimeout(() => setReview(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [review, reviewData]);
+  function startReview(id: string, pinned = true) {
+    setReviewFocus(null);
+    setReview({ id, frame: -1, playing: true, pinned });
+  }
+  function stopReview() {
+    setReview(null);
+    setReviewFocus(null);
+  }
+  /** Linha da conversa sob o cursor: a cena mostra o resultado e acende só ela. */
+  function focusLine(id: string, targets: string[] | null) {
+    setReviewFocus(targets);
+    if (targets && (!review || review.id !== id))
+      setReview({ id, frame: Number.MAX_SAFE_INTEGER, playing: false, pinned: false });
+  }
   const messages = useRef<HTMLDivElement>(null);
   const [pinnedToBottom, setPinnedToBottom] = useState(true);
   // Quantas mensagens chegaram depois de a pessoa sair do fim. Rolar para cima
@@ -724,6 +838,15 @@ export default function Home() {
     }
     if (Object.keys(next).length) setThumbs((prev) => ({ ...prev, ...next }));
   }, [p, thumbs]);
+  // Esc sai da revisão das mudanças e volta à versão vigente.
+  useEffect(() => {
+    if (!review) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') stopReview();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [review]);
   useEffect(() => {
     if (!scrubbing) return;
     const onKey = (e: KeyboardEvent) => {
@@ -1171,8 +1294,14 @@ export default function Home() {
             });
         } else if (event === 'done') {
           finalState = JSON.parse(data) as State;
-          accept(finalState, { dims: true });
+          // O bloco de mudanças da resposta já conta as medidas: sem o aviso
+          // de medida geral repetindo a mesma coisa embaixo do campo.
+          accept(finalState);
           completed = true;
+          // Turno que mudou o projeto: a cena mostra a mudança acontecendo.
+          const last = finalState.messages.at(-1);
+          if (last?.role === 'assistant' && last.report?.highlights?.length && last.result?.appliedOperations?.length)
+            startReview(last.id, false);
         } else if (event === 'error') {
           const payload = JSON.parse(data) as { error: string; state?: State };
           // O servidor já salvou o pedido: aceitar o estado mantém a versão em dia.
@@ -1560,7 +1689,21 @@ export default function Home() {
                   {m.image && <img className="chat-image" src={m.image.url} alt={m.image.name} loading="lazy" />}
                   {m.report?.highlights?.length ? (
                     <>
-                      <ChangeCards highlights={m.report.highlights} />
+                      <ChangeSet
+                        lines={m.report.highlights}
+                        revision={m.revision}
+                        parts={partsStatOf(p, m)}
+                        active={review?.id === m.id}
+                        playing={review?.id === m.id && review.playing}
+                        playingOp={review?.id === m.id && review.playing && reviewFrame ? reviewFrame.op : null}
+                        onReplay={m.result?.appliedOperations?.length ? () => startReview(m.id) : undefined}
+                        onStop={() => setReview((r) => (r ? { ...r, playing: false, frame: Number.MAX_SAFE_INTEGER, pinned: true } : r))}
+                        onFocus={(targets) => focusLine(m.id, targets)}
+                        onPick={(targets) => {
+                          setReview({ id: m.id, frame: Number.MAX_SAFE_INTEGER, playing: false, pinned: true });
+                          if (!reviewLocked) setSelected(targets);
+                        }}
+                      />
                       {m.report.prose && <p className="message-prose">{m.report.prose}</p>}
                       {m.report.review && (
                         <div className={'turn-review ' + m.report.review.fidelity}>
@@ -2135,6 +2278,37 @@ export default function Home() {
             </p>
           )}
           {roomFit && !roomFit.report.fits && <p className="stage-warning bad">{roomFit.summary}</p>}
+          {reviewData && review && !pending && (() => {
+            const lines = reviewData.message.report?.highlights ?? [];
+            const total = reviewData.frames.length;
+            const step = review.frame < 0 ? 0 : Math.min(review.frame + 1, total);
+            const now = reviewFrame && reviewFrame.op >= 0 ? lines.find((l) => l.ops?.includes(reviewFrame.op)) : null;
+            return (
+              <output className={'review-bar' + (review.playing ? ' playing' : '')}>
+                <span className="rb-legend" aria-hidden="true">
+                  <i className="add" />
+                  <i className="mod" />
+                  <i className="del" />
+                </span>
+                <span className="rb-text">
+                  {review.playing
+                    ? review.frame < 0
+                      ? 'Antes da mudança'
+                      : `Passo ${step} de ${total}`
+                    : `Mudanças da versão ${reviewData.message.revision ?? ''}`}
+                  {review.playing ? (now ? <b>{now.title}</b> : null) : <b>verde entrou · âmbar mudou · vermelho saiu</b>}
+                </span>
+                {!review.playing && (
+                  <button type="button" onClick={() => startReview(review.id)} title="Rever passo a passo">
+                    <Play size={12} />
+                  </button>
+                )}
+                <button type="button" onClick={stopReview} title="Fechar (Esc)" aria-label="Fechar a revisão das mudanças">
+                  <X size={13} />
+                </button>
+              </output>
+            );
+          })()}
           {pending && (
             <output className="stage-working">
               <span className="tp-orb small" key={pulse?.bytes ?? 0} aria-hidden="true"><i /></span>
@@ -2164,6 +2338,7 @@ export default function Home() {
               caption={visualSize ? `${p.name} · ${metres(visualSize[0])} × ${metres(visualSize[1])} × ${metres(visualSize[2])} m` : p.name}
               onSnapshot={onSnapshot}
               onSpinSuppressed={setReducedMotion}
+              diff={sceneDiff}
             />
           )}
           <div className="stage-tools" role="toolbar" aria-label="Ferramentas da cena" aria-orientation="vertical">
@@ -2393,7 +2568,7 @@ export default function Home() {
                   onOp={op}
                   onOps={applyOps}
                   onLibrary={() => openGallery('add')}
-                  busy={busy || historyPreview !== null}
+                  busy={busy || historyPreview !== null || reviewLocked}
                   onOpen={toggleOpening}
                   opened={opened}
                 />
@@ -2404,7 +2579,7 @@ export default function Home() {
                   room={p.room}
                   report={roomFit?.report ?? null}
                   summary={roomFit?.summary ?? ''}
-                  busy={busy || historyPreview !== null}
+                  busy={busy || historyPreview !== null || reviewLocked}
                   onSave={saveRoom}
                   showInScene={showRoom && !!p.room}
                   onToggleScene={(v) => toggleRoom(v)}

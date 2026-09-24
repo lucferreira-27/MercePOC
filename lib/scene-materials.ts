@@ -3,6 +3,8 @@ import { materials } from './furniture';
 
 /** Brilho da peça selecionada: soma à cor do acabamento, não a substitui. */
 export const SELECTION_GLOW = '#3f9a5c';
+/** Cores do diff na cena: entrou (verde), mudou (âmbar), saiu (vermelho). */
+export const DIFF_GLOW = { added: '#2fa25c', changed: '#e0972b', removed: '#e0564f' } as const;
 
 /** Uma repetição da textura cobre isto em mm: veio ao longo, poros através. */
 const GRAIN_ALONG = 1400;

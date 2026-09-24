@@ -1,6 +1,17 @@
 import * as THREE from 'three';
 import { materials, type Part } from './furniture';
-import { finishTexture, panelUV, SELECTION_GLOW } from './scene-materials';
+import { DIFF_GLOW, finishTexture, panelUV, SELECTION_GLOW } from './scene-materials';
+
+/**
+ * Diff na cena: peças que entraram brilham em verde, as que mudaram em âmbar
+ * e o resto esmaece para a mudança saltar aos olhos. `focus` é a linha da
+ * conversa sob o cursor: só as peças dela ficam acesas.
+ */
+export type SceneDiff = {
+  added: ReadonlySet<string>;
+  changed: ReadonlySet<string>;
+  focus?: ReadonlySet<string> | null;
+};
 /**
  * Arestas: discretas em repouso, na cor de destaque quando o cursor passa ou a
  * peça está selecionada. Antes a aresta escura a 25% desenhava cada painel como
@@ -95,6 +106,10 @@ export class FurnitureMotion {
   private hovered: string | null = null;
   setHover(id: string | null) {
     this.hovered = id;
+  }
+  private diff: SceneDiff | null = null;
+  setDiff(diff: SceneDiff | null) {
+    this.diff = diff;
   }
   constructor(private scene: THREE.Scene) {}
   readonly entries = new Map<string, AnimatedPart>();
@@ -257,11 +272,25 @@ export class FurnitureMotion {
       if (t === 1) e.mesh.position.copy(e.to.position);
       e.mesh.scale.lerpVectors(e.from.size, e.to.size, t);
       e.mesh.material.color.copy(e.from.color).lerp(e.to.color, t);
-      e.mesh.material.opacity = THREE.MathUtils.lerp(
-        e.from.opacity,
-        e.to.opacity,
-        t,
-      );
+      const mark = this.diff
+        ? this.diff.focus?.size
+          ? this.diff.focus.has(id)
+            ? this.diff.added.has(id)
+              ? 'added'
+              : this.diff.changed.has(id)
+                ? 'changed'
+                : 'focus'
+            : null
+          : this.diff.added.has(id)
+            ? 'added'
+            : this.diff.changed.has(id)
+              ? 'changed'
+              : null
+        : null;
+      // Sem marca durante o diff, a peça esmaece: o que mudou salta aos olhos.
+      const fade = this.diff && !mark && !e.selected ? 0.32 : 1;
+      e.mesh.material.opacity =
+        THREE.MathUtils.lerp(e.from.opacity, e.to.opacity, t) * fade;
       const transparent = e.mesh.material.opacity < 0.999;
       if (e.mesh.material.transparent !== transparent) {
         e.mesh.material.transparent = transparent;
@@ -269,11 +298,16 @@ export class FurnitureMotion {
       }
       e.mesh.material.depthWrite = !transparent;
       const hot = id === this.hovered || !!e.selected;
-      e.edge.material.color.set(hot ? EDGE.hot : EDGE.rest);
-      e.edge.material.opacity = (hot ? EDGE.hotOpacity : EDGE.restOpacity) * e.mesh.material.opacity;
-      // Selecionada brilha na cor de destaque sem perder o acabamento.
-      e.mesh.material.emissive.set(e.selected ? SELECTION_GLOW : '#000000');
-      e.mesh.material.emissiveIntensity = e.selected ? 0.42 : 0;
+      const markColor =
+        mark === 'added' ? DIFF_GLOW.added : mark === 'changed' ? DIFF_GLOW.changed : mark === 'focus' ? SELECTION_GLOW : null;
+      e.edge.material.color.set(markColor ?? (hot ? EDGE.hot : EDGE.rest));
+      e.edge.material.opacity =
+        (markColor || hot ? EDGE.hotOpacity : EDGE.restOpacity) * e.mesh.material.opacity;
+      // Selecionada brilha na cor de destaque sem perder o acabamento; no
+      // diff, a cor diz se a peça entrou ou mudou.
+      const glow = e.selected ? SELECTION_GLOW : markColor;
+      e.mesh.material.emissive.set(glow ?? '#000000');
+      e.mesh.material.emissiveIntensity = e.selected ? 0.42 : markColor ? 0.38 : 0;
       if (t === 1 && e.exiting) {
         this.disposeEntry(e);
         this.entries.delete(id);
