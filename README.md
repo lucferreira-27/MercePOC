@@ -61,12 +61,16 @@ Exemplos: “Faz um rack de TV de 2 m em nogueira”; “Quero um painel de TV c
 
 ### Atalhos
 
+No canto da cena, o controle de movimento tem um direcional: arraste o centro como um joystick (mais longe, mais rápido) ou segure as setas. **Girar** e **Mover** escolhem o que o direcional e o arrasto com o botão esquerdo fazem; no Mover, o botão direito gira e, no celular, um dedo move a vista. O botão de recolher (no canto do controle) guarda a escolha.
+
 | Tecla | Ação |
 |---|---|
 | `Ctrl+K` | Paleta de comandos |
 | `/` | Escrever para a IA |
 | `1` `2` `3` `4` | Perspectiva, frontal, lateral, topo |
 | `F` · `+` · `-` | Enquadrar, aproximar, afastar |
+| Setas · `Shift`+setas | Girar a vista, mover a vista (segurar anda sem parar) |
+| `M` | Alternar o arrasto entre girar e mover |
 | `D` · `R` · `E` · `O` | Cotas, ambiente, explodir, abrir/fechar frentes |
 | `[` · `]` | Recolher conversa, recolher painel |
 | `Ctrl+Z` · `Ctrl+Y` | Desfazer, refazer |

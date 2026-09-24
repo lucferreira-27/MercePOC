@@ -2339,6 +2339,7 @@ export default function Home() {
               onSnapshot={onSnapshot}
               onSpinSuppressed={setReducedMotion}
               diff={sceneDiff}
+              keyboard={!paletteOpen && !galleryOpen}
             />
           )}
           <div className="stage-tools" role="toolbar" aria-label="Ferramentas da cena" aria-orientation="vertical">

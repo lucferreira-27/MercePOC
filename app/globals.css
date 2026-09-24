@@ -4640,3 +4640,217 @@ kbd {
     font-size: 12px;
   }
 }
+
+/* ----------------------------------------------------------------------------
+ * Controle de movimento (NavPad): direcional com joystick no canto da cena e
+ * a escolha do que o arrasto faz, girar ou mover.
+ * ------------------------------------------------------------------------- */
+.nav-pad,
+.nav-pad-open {
+  position: absolute;
+  z-index: 4;
+  left: 14px;
+  bottom: 96px;
+}
+.nav-pad {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  padding: 9px 8px 8px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+  user-select: none;
+}
+.nav-ring {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--surface) 0 30%, transparent 31%),
+    var(--surface-3);
+  box-shadow: inset 0 0 0 1px var(--line);
+  touch-action: none;
+  cursor: grab;
+}
+.nav-ring.driving {
+  cursor: grabbing;
+}
+.nav-arrow {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  touch-action: none;
+}
+.nav-arrow:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+.nav-arrow:active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.nav-arrow.up {
+  top: 3px;
+  left: calc(50% - 13px);
+}
+.nav-arrow.down {
+  bottom: 3px;
+  left: calc(50% - 13px);
+}
+.nav-arrow.left {
+  left: 3px;
+  top: calc(50% - 13px);
+}
+.nav-arrow.right {
+  right: 3px;
+  top: calc(50% - 13px);
+}
+.nav-knob {
+  position: absolute;
+  left: calc(50% - 16px);
+  top: calc(50% - 16px);
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow:
+    0 0 0 1px var(--line-strong),
+    0 2px 6px rgb(0 0 0 / 0.14);
+  transition: transform 0.18s cubic-bezier(0.3, 1.4, 0.5, 1);
+  pointer-events: none;
+}
+.nav-ring.driving .nav-knob {
+  transition: none;
+  background: var(--accent);
+  color: var(--surface);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+.nav-modes {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 9px;
+  background: var(--surface-3);
+}
+.nav-modes button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.nav-modes button:hover {
+  color: var(--ink);
+}
+.nav-modes button.active {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+.nav-pad-close {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--faint);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.nav-pad:hover .nav-pad-close,
+.nav-pad-close:focus-visible {
+  opacity: 1;
+}
+.nav-pad-close:hover {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+.nav-pad-open {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+  color: var(--ink-2);
+}
+.nav-pad-open:hover {
+  color: var(--accent);
+}
+@media (hover: none) {
+  .nav-pad-close {
+    opacity: 1;
+  }
+}
+@media (max-width: 960px) {
+  .nav-pad,
+  .nav-pad-open {
+    left: 10px;
+    bottom: 86px;
+  }
+}
+@media (max-width: 1100px) {
+  .nav-ring {
+    width: 84px;
+    height: 84px;
+  }
+  .nav-arrow.up {
+    top: 1px;
+  }
+  .nav-arrow.down {
+    bottom: 1px;
+  }
+  .nav-arrow.left {
+    left: 1px;
+  }
+  .nav-arrow.right {
+    right: 1px;
+  }
+}
+/* No celular o dedo já gira e move a vista: fica só a escolha do que um dedo
+   faz, sem o direcional ocupando a cena pequena. */
+@media (max-width: 600px) {
+  .nav-pad,
+  .nav-pad-open {
+    bottom: 128px;
+  }
+  .nav-pad {
+    padding: 3px;
+    border-radius: 12px;
+  }
+  .nav-ring,
+  .nav-pad-close {
+    display: none;
+  }
+}
+fieldset.nav-pad {
+  margin: 0;
+  min-width: 0;
+}

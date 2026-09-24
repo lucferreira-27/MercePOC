@@ -17,6 +17,7 @@ import {
   TRANSITION_MS,
 } from '@/lib/furniture-motion';
 import { DIFF_GLOW } from '@/lib/scene-materials';
+import { NavPad, type NavMode } from './nav-pad';
 type CameraMove = {
   from: THREE.Vector3;
   to: THREE.Vector3;
@@ -43,7 +44,66 @@ type Runtime = {
   ghosts?: { group: THREE.Group; dispose: () => void };
   dims?: { lines: THREE.LineSegments; labels: DimLabel[]; dispose: () => void };
   labelEls: HTMLSpanElement[];
+  /** Movimento pedido pelo controle e pelas setas: direção na tela, -1 a 1. */
+  nav: { mode: NavMode; pad: [number, number]; key: [number, number]; keySwap: boolean };
 };
+/** Giro com o controle no fim do curso, em radianos por segundo. */
+const NAV_TURN = 1.7;
+/** Deslocamento lateral por segundo, em fração da distância até o móvel. */
+const NAV_SLIDE = 0.75;
+const spherical = new THREE.Spherical();
+const navOffset = new THREE.Vector3();
+const navAxis = new THREE.Vector3();
+
+/**
+ * Anda a câmera pelo controle de movimento: girar em volta do alvo ou mover
+ * câmera e alvo juntos no plano da tela. As direções seguem o arrasto no 3D:
+ * empurrar para a direita gira o móvel para a direita e leva o móvel junto.
+ */
+function driveCamera(s: Runtime, dt: number) {
+  const { mode, pad, key, keySwap } = s.nav;
+  let turnX = 0,
+    turnY = 0,
+    slideX = 0,
+    slideY = 0;
+  // Curva no curso do joystick: perto do centro fica fino para ajustes.
+  const [px, py] = pad.map((v) => v * Math.abs(v));
+  if (mode === 'pan') [slideX, slideY] = [px, py];
+  else [turnX, turnY] = [px, py];
+  if ((mode === 'pan') !== keySwap) [slideX, slideY] = [slideX + key[0], slideY + key[1]];
+  else [turnX, turnY] = [turnX + key[0], turnY + key[1]];
+  if (!turnX && !turnY && !slideX && !slideY) return;
+  s.move = undefined;
+  const { camera, controls } = s;
+  navOffset.copy(camera.position).sub(controls.target);
+  if (turnX || turnY) {
+    spherical.setFromVector3(navOffset);
+    spherical.theta -= turnX * NAV_TURN * dt;
+    spherical.phi = THREE.MathUtils.clamp(spherical.phi - turnY * NAV_TURN * dt, 0.02, controls.maxPolarAngle);
+    navOffset.setFromSpherical(spherical);
+    camera.position.copy(controls.target).add(navOffset);
+  }
+  if (slideX || slideY) {
+    const step = navOffset.length() * NAV_SLIDE * dt;
+    camera.updateMatrix();
+    navAxis.setFromMatrixColumn(camera.matrix, 0).multiplyScalar(-slideX * step);
+    camera.position.add(navAxis);
+    controls.target.add(navAxis);
+    navAxis.setFromMatrixColumn(camera.matrix, 1).multiplyScalar(slideY * step);
+    camera.position.add(navAxis);
+    controls.target.add(navAxis);
+  }
+}
+/** Setas que o controle escuta, e a direção de cada uma na tela. */
+const ARROW_KEYS: Record<string, [number, number]> = {
+  ArrowLeft: [-1, 0],
+  ArrowRight: [1, 0],
+  ArrowUp: [0, -1],
+  ArrowDown: [0, 1],
+};
+/** Onde as setas já têm dono: campos, sliders, listas e menus. */
+const OWNS_ARROWS =
+  'input, textarea, select, [contenteditable="true"], [role="slider"], [role="listbox"], [role="menu"], [role="tablist"], [role="radiogroup"], [role="dialog"], [role="combobox"]';
 const PALETTE = {
   light: { grid: [0xcfc8bb, 0xe4dfd6], ground: '#dcd3c5', dim: '#3c4a3f', groundOpacity: 0.75 },
   dark: { grid: [0x3b3e44, 0x2c2e33], ground: '#2a2d31', dim: '#b9d7bf', groundOpacity: 0.9 },
@@ -85,7 +145,10 @@ export default function FurnitureView({
   onSnapshot,
   onSpinSuppressed,
   diff = null,
+  keyboard = true,
 }: {
+  /** Setas e M movem a vista. Desligado com diálogos abertos por cima. */
+  keyboard?: boolean;
   /**
    * Diff do turno na cena: o que entrou e mudou brilha, o que saiu aparece
    * como fantasma vermelho, e `focus` acende só as peças da linha da conversa.
@@ -226,6 +289,7 @@ export default function FurnitureView({
       ground,
       reduced: window.matchMedia('(prefers-reduced-motion: reduce)'),
       labelEls: [],
+      nav: { mode: 'orbit', pad: [0, 0], key: [0, 0], keySwap: false },
     };
     runtime.current = state;
     controls.addEventListener('start', () => {
@@ -289,9 +353,12 @@ export default function FurnitureView({
     });
     resize.observe(el);
     const projected = new THREE.Vector3();
-    let frame = 0;
+    let frame = 0,
+      last = performance.now();
     const draw = (now: number) => {
       motion.tick(now, state.reduced.matches);
+      driveCamera(state, Math.min(now - last, 50) / 1000);
+      last = now;
       if (state.move) {
         const m = state.move,
           t = state.reduced.matches
@@ -406,11 +473,71 @@ export default function FurnitureView({
       },
     };
   }, [diff]);
+  // Modo do controle: no "Mover" o arrasto com o botão esquerdo (e um dedo
+  // no celular) desliza a vista, e o botão direito passa a girar.
+  const [navMode, setNavMode] = useState<NavMode>('orbit');
+  useEffect(() => {
+    const s = runtime.current;
+    if (!s) return;
+    s.nav.mode = navMode;
+    const pan = navMode === 'pan';
+    s.controls.mouseButtons = {
+      LEFT: pan ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE,
+      MIDDLE: THREE.MOUSE.DOLLY,
+      RIGHT: pan ? THREE.MOUSE.ROTATE : THREE.MOUSE.PAN,
+    };
+    s.controls.touches = { ONE: pan ? THREE.TOUCH.PAN : THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+  }, [navMode]);
+  // Setas: seguram o movimento enquanto pressionadas; Shift troca girar e
+  // mover. M alterna o modo.
+  useEffect(() => {
+    if (!keyboard) return;
+    const held = new Set<string>();
+    const sync = (shift: boolean) => {
+      const s = runtime.current;
+      if (!s) return;
+      const key: [number, number] = [0, 0];
+      for (const k of held) {
+        key[0] += ARROW_KEYS[k][0];
+        key[1] += ARROW_KEYS[k][1];
+      }
+      s.nav.key = key;
+      s.nav.keySwap = shift;
+    };
+    const busy = (e: KeyboardEvent) =>
+      e.ctrlKey || e.metaKey || e.altKey || !!(e.target as HTMLElement | null)?.closest?.(OWNS_ARROWS);
+    const down = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || busy(e)) return;
+      if (ARROW_KEYS[e.key]) {
+        e.preventDefault();
+        held.add(e.key);
+        sync(e.shiftKey);
+      } else if (e.key.toLowerCase() === 'm' && !e.shiftKey && !e.repeat) setNavMode((m) => (m === 'pan' ? 'orbit' : 'pan'));
+      else if (e.key === 'Shift') sync(true);
+    };
+    const up = (e: KeyboardEvent) => {
+      held.delete(e.key);
+      sync(e.key === 'Shift' ? false : e.shiftKey);
+    };
+    const clear = () => {
+      held.clear();
+      sync(false);
+    };
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    window.addEventListener('blur', clear);
+    return () => {
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keyup', up);
+      window.removeEventListener('blur', clear);
+      clear();
+    };
+  }, [keyboard]);
   useEffect(() => {
     const state = runtime.current;
     if (state) state.motion.setHover(hover?.id ?? null);
-    if (host.current) host.current.style.cursor = hover ? 'pointer' : '';
-  }, [hover]);
+    if (host.current) host.current.style.cursor = hover ? 'pointer' : navMode === 'pan' ? 'grab' : '';
+  }, [hover, navMode]);
   useEffect(() => {
     const state = runtime.current;
     if (state) state.controls.autoRotate = spin && !state.reduced.matches;
@@ -658,8 +785,22 @@ export default function FurnitureView({
       ref={host}
       className="scene"
       role="application"
-      aria-label="Modelo 3D interativo. Arraste para girar, use a roda para aproximar, arraste com o botão direito para mover e clique para selecionar peças."
+      aria-label={
+        navMode === 'pan'
+          ? 'Modelo 3D interativo. Arraste para mover a vista, use a roda para aproximar, arraste com o botão direito para girar e clique para selecionar peças. Setas movem a vista; M volta a girar.'
+          : 'Modelo 3D interativo. Arraste para girar, use a roda para aproximar, arraste com o botão direito para mover e clique para selecionar peças. Setas giram a vista; M passa a mover.'
+      }
     >
+      {!error && (
+        <NavPad
+          mode={navMode}
+          onMode={setNavMode}
+          onDrive={(x, y) => {
+            const s = runtime.current;
+            if (s) s.nav.pad = [x, y];
+          }}
+        />
+      )}
       <div className="scene-dims" ref={labelHost} aria-hidden="true">
         {dimLabels.map((label, i) => (
           <span key={i + label.text} className={'dim-label ' + label.tone}>
