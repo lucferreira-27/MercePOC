@@ -2,7 +2,9 @@
 /* oxlint-disable next/no-img-element -- Uploaded references are local, normalized WebP assets. */
 'use client';
 import Link from 'next/link';
-import { ChatProgress } from '@/components/chat-progress';
+import { TurnProgress, turnLabel, type Pulse, type TimedProgress } from '@/components/turn-progress';
+import { ModelPicker } from '@/components/model-picker';
+import { UsageMeter } from '@/components/usage-meter';
 import { ChangeCards } from '@/components/change-cards';
 import { readEvents } from '@/lib/sse';
 import { type Progress, type TextPreview } from '@/lib/progress';
@@ -12,8 +14,8 @@ import {
   ArrowUp,
   Box,
   Boxes,
-  Bug,
   Camera,
+  Copy,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -27,6 +29,7 @@ import {
   History,
   Image as ImageIcon,
   ImagePlus,
+  PenLine,
   Layers,
   LayoutTemplate,
   ListTree,
@@ -48,10 +51,10 @@ import {
   Scissors,
   Sparkles,
   Square,
+  StopCircle,
   Sun,
   Undo2,
   X,
-  Zap,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
@@ -86,6 +89,7 @@ import { generateComposition, openingLimit, openingPose, type ModularPart } from
 import { fitReport, fitSummary, type Room } from '@/lib/room';
 import { DEFAULT_PRICES, mergePrices, money, quote as buildQuote, type Prices } from '@/lib/quote';
 import { friendlyError } from '@/lib/errors';
+import { MODEL_KEYS, modelInfo, tokensLabel, usd, type ModelKey, type TurnUsage } from '@/lib/models';
 type State = Project & {
   params: Design;
   parts: Part[];
@@ -214,7 +218,7 @@ export default function Home() {
     [projects, setProjects] = useState<ProjectSummary[]>([]),
     [text, setText] = useState(''),
     [pending, setPending] = useState(''),
-    [progress, setProgress] = useState<Progress[]>([]),
+    [progress, setProgress] = useState<TimedProgress[]>([]),
     [started, setStarted] = useState(0),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
@@ -236,7 +240,12 @@ export default function Home() {
     [uploading, setUploading] = useState(false),
     [historyPreview, setHistoryPreview] = useState<number | null>(null),
     [scrubbing, setScrubbing] = useState(false),
-    [fast, setFast] = useState(false),
+    [model, setModel] = useState<ModelKey>('deepseek'),
+    [available, setAvailable] = useState<ModelKey[]>([]),
+    [pulse, setPulse] = useState<Pulse | null>(null),
+    [liveUsage, setLiveUsage] = useState<TurnUsage | null>(null),
+    [sessionUsage, setSessionUsage] = useState<TurnUsage[]>([]),
+    [copied, setCopied] = useState(''),
     [live, setLive] = useState(false),
     [liveText, setLiveText] = useState<TextPreview | null>(null),
     // Resposta digitada no cartão de dúvida: o campo é do cartão, não do
@@ -281,6 +290,14 @@ export default function Home() {
   // Preferências deste navegador: depuração ao vivo, tema, painéis, cena e preços.
   useEffect(() => {
     setLive(readLocal('merce-live') === '1');
+    const savedModel = readLocal('merce-model');
+    if ((MODEL_KEYS as readonly string[]).includes(savedModel)) setModel(savedModel as ModelKey);
+    // Custo desta aba: sessionStorage, que some ao fechar a aba e sobrevive ao
+    // recarregamento.
+    try {
+      const raw = sessionStorage.getItem('merce-session-usage');
+      if (raw) setSessionUsage(Object.values(JSON.parse(raw) as Record<string, TurnUsage>));
+    } catch {}
     const t = readLocal('merce-theme');
     if (t === 'light' || t === 'dark' || t === 'system') setThemeChoice(t);
     if (readLocal('merce-dims') === '0') setShowDims(false);
@@ -311,6 +328,24 @@ export default function Home() {
       }
     } catch {}
   }, []);
+  const chooseModel = (key: ModelKey) => {
+    setModel(key);
+    writeLocal('merce-model', key);
+  };
+  /** Soma à conta desta aba o custo de um turno, uma vez por pedido. */
+  const recordSessionUsage = (state: State | undefined, requestId: string) => {
+    const usage = state?.messages.findLast((m) => m.context?.requestId === requestId && m.usage)?.usage
+      ?? state?.messages.findLast((m) => m.role === 'assistant' && m.error && m.usage)?.usage;
+    if (!usage) return;
+    try {
+      const store = JSON.parse(sessionStorage.getItem('merce-session-usage') ?? '{}') as Record<string, TurnUsage>;
+      store[requestId] = usage;
+      sessionStorage.setItem('merce-session-usage', JSON.stringify(store));
+      setSessionUsage(Object.values(store));
+    } catch {
+      setSessionUsage((list) => [...list, usage]);
+    }
+  };
   const toggleLive = () =>
     setLive((v) => {
       writeLocal('merce-live', v ? '0' : '1');
@@ -542,7 +577,9 @@ export default function Home() {
     const el = messages.current;
     if (!el || !pinnedToBottom) return;
     el.scrollTop = el.scrollHeight;
-  }, [p?.messages.length, pending, progress.length, pinnedToBottom]);
+    // O cartão de progresso cresce enquanto a IA trabalha (passos, proposta,
+    // contadores): cada pulso mantém o fim da conversa à vista.
+  }, [p?.messages.length, pending, progress, pulse, liveUsage, pinnedToBottom]);
   useEffect(() => {
     const total = p?.messages.length ?? 0;
     if (pinnedToBottom) {
@@ -657,8 +694,9 @@ export default function Home() {
           );
         }
         await refresh();
-        const h = await api<{ configured: boolean }>('/api/health');
+        const h = await api<{ configured: boolean; models?: ModelKey[] }>('/api/health');
         setOnline(h.configured);
+        if (h.models) setAvailable(h.models);
       } catch (e) {
         setError(friendlyError(e));
       }
@@ -992,6 +1030,13 @@ export default function Home() {
     seekVersion(Math.min(p.revisions.length - 1, Math.max(0, (historyPreview ?? p.cursor) + delta)));
   }
   const draftDuringWait = useRef('');
+  /** Turno em andamento: o botão Parar aborta esta conexão. */
+  const turnAbort = useRef<AbortController | null>(null);
+  const stopped = useRef(false);
+  function stopTurn() {
+    stopped.current = true;
+    turnAbort.current?.abort();
+  }
   async function send(
     value = text,
     replyTo?: { clarificationId: string; optionId?: string },
@@ -1037,13 +1082,20 @@ export default function Home() {
         : message,
     );
     setProgress([]);
+    setPulse(null);
+    setLiveUsage(null);
     setLiveText(null);
     setReasoningView('');
     setStarted(Date.now());
     if (!keepDraft) setText('');
+    const abort = new AbortController();
+    turnAbort.current = abort;
+    stopped.current = false;
+    let finalState: State | undefined;
     try {
       const r = await fetch('/api/chat', {
         method: 'POST',
+        signal: abort.signal,
         headers: {
           'Content-Type': 'application/json',
           Accept: 'text/event-stream',
@@ -1057,7 +1109,7 @@ export default function Home() {
           imageId: sentImage?.id,
           selected,
           requestId,
-          fast,
+          model,
           prices,
           // Responder pelo cartão precisa chegar como resposta de
           // esclarecimento; antes o clique reenviava só o texto da pergunta.
@@ -1077,7 +1129,7 @@ export default function Home() {
       let completed = false;
       await readEvents(r, ({ event, data }) => {
         if (event === 'progress') {
-          const update = JSON.parse(data) as Progress;
+          const update = { ...(JSON.parse(data) as Progress), at: Date.now() };
           setProgress((previous) =>
             // A proposta da IA chega em pedaços: a etapa é atualizada no lugar
             // em vez de encher a lista de "Proposta da IA" repetida.
@@ -1085,6 +1137,10 @@ export default function Home() {
               ? [...previous.slice(0, -1), update]
               : [...previous, update],
           );
+        } else if (event === 'pulse') {
+          setPulse(JSON.parse(data) as Pulse);
+        } else if (event === 'usage') {
+          setLiveUsage(JSON.parse(data) as TurnUsage);
         } else if (event === 'text') {
           const preview = JSON.parse(data) as TextPreview;
           setLiveText((previous) => ({ ...previous, ...preview }));
@@ -1096,13 +1152,15 @@ export default function Home() {
                 : buffered;
             });
         } else if (event === 'done') {
-          accept(JSON.parse(data) as State, { dims: true });
+          finalState = JSON.parse(data) as State;
+          accept(finalState, { dims: true });
           completed = true;
         } else if (event === 'error') {
           const payload = JSON.parse(data) as { error: string; state?: State };
           // O servidor já salvou o pedido: aceitar o estado mantém a versão em dia.
           if (payload.state) {
             serverRecorded = true;
+            finalState = payload.state;
             accept(payload.state, { dims: true });
           }
           throw new Error(payload.error);
@@ -1113,6 +1171,9 @@ export default function Home() {
           'A conexão terminou antes da confirmação. Use “Tentar novamente” — se a resposta já foi salva, ela reaparece sem aplicar duas vezes.',
         );
     } catch (e) {
+      // Parar foi escolha da pessoa: o servidor grava o pedido interrompido
+      // como cartão repetível. Um instante para ele gravar antes de sincronizar.
+      if (stopped.current) await new Promise((done) => setTimeout(done, 700));
       // O servidor é a fonte da verdade. Se outra aba (ou uma ação de timeline)
       // salvou enquanto este turno corria, a versão local ficou para trás e
       // "Tentar novamente" reenviaria a versão velha para sempre. Sincroniza
@@ -1120,7 +1181,12 @@ export default function Home() {
       try {
         const current = await api<State>('/api/projects?id=' + p.id);
         if (current.version !== p.version) accept(current);
+        finalState ??= current;
       } catch {}
+      if (stopped.current) {
+        serverRecorded = true;
+        setNotice('Pedido interrompido. Nada mudou no projeto; use “Tentar novamente” para repetir.');
+      }
       // Sem registro no servidor (falha antes de salvar): cartão local e o
       // texto volta ao campo. Com registro, o histórico já tem o cartão
       // repetível e duplicá-lo confundiria.
@@ -1134,9 +1200,13 @@ export default function Home() {
         if (sentImage) setAttachment(sentImage);
       }
     } finally {
+      recordSessionUsage(finalState, requestId);
+      turnAbort.current = null;
       setPending('');
       setPendingImage(null);
       setProgress([]);
+      setPulse(null);
+      setLiveUsage(null);
       setLiveText(null);
       setReasoningView('');
       setBusy(false);
@@ -1399,11 +1469,16 @@ export default function Home() {
               <span>
                 <strong>Assistente</strong>
                 <small>
-                  <span className={online ? 'live-dot' : 'offline-dot'} />
-                  {fast ? 'Qwen 3.8 27B · rápido' : 'DeepSeek V4.1 Flash'}
+                  <span className={pending ? 'work-dot' : online ? 'live-dot' : 'offline-dot'} />
+                  {pending ? 'Trabalhando no seu pedido…' : online ? `${modelInfo(model).label} · pronto` : 'IA não configurada'}
                 </small>
               </span>
             </span>
+            <UsageMeter
+              conversation={p?.messages.map((m) => m.usage) ?? []}
+              session={sessionUsage}
+              live={liveUsage}
+            />
             <button type="button" className="icon-button" aria-label="Recolher a conversa" title="Recolher ( [ )" onClick={() => toggleChat(false)}>
               <PanelLeftClose size={16} />
             </button>
@@ -1414,13 +1489,42 @@ export default function Home() {
                 <span className="eyebrow">Da ideia às peças</span>
                 <h1>O que vamos construir?</h1>
                 <p>
-                  Descreva o móvel, cole uma foto de referência ou comece por um
-                  modelo. Eu desenho, você ajusta, e o orçamento e o plano de
-                  corte saem prontos.
+                  Eu desenho, você ajusta. Orçamento e plano de corte saem
+                  prontos a cada versão.
                 </p>
-                <button type="button" className="intro-cta" onClick={() => setGalleryOpen(true)}>
-                  <LayoutTemplate size={15} /> Ver modelos prontos
-                </button>
+                <div className="start-cards">
+                  <button type="button" onClick={() => setGalleryOpen(true)}>
+                    <span className="start-icon"><LayoutTemplate size={17} /></span>
+                    <span>
+                      <strong>Começar de um modelo</strong>
+                      <small>Estante, guarda-roupa, rack, aparador…</small>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setText('Quero um móvel de ');
+                      setTimeout(() => {
+                        const el = composer.current;
+                        el?.focus();
+                        el?.setSelectionRange(el.value.length, el.value.length);
+                      }, 20);
+                    }}
+                  >
+                    <span className="start-icon"><PenLine size={17} /></span>
+                    <span>
+                      <strong>Descrever com palavras</strong>
+                      <small>Medidas, portas, gavetas e acabamento</small>
+                    </span>
+                  </button>
+                  <button type="button" disabled={busy || !p} onClick={() => fileInput.current?.click()}>
+                    <span className="start-icon"><ImagePlus size={17} /></span>
+                    <span>
+                      <strong>Copiar de uma foto</strong>
+                      <small>Eu estimo as medidas e digo o erro</small>
+                    </span>
+                  </button>
+                </div>
               </div>
             )}
             {p?.messages.map((m, i) => {
@@ -1574,18 +1678,50 @@ export default function Home() {
                       </div>
                     </div>
                   )}
-                  {m.role === 'assistant' && rev.status === 'found' && (
-                    <button
-                      type="button"
-                      className="link-button view-rev"
-                      disabled={busy}
-                      onClick={() => seekVersion(rev.cursor)}
-                    >
-                      Ver versão {rev.revision.number}
-                    </button>
-                  )}
-                  {m.role === 'assistant' && rev.status === 'dropped' && (
-                    <small className="view-rev dropped">Versão original descartada neste caminho.</small>
+                  {m.role === 'assistant' && (m.usage || m.report || rev.status !== 'unknown') && (
+                    <div className="msg-meta">
+                      {m.usage && (
+                        <span
+                          className="msg-cost"
+                          title={`${m.usage.calls} ${m.usage.calls === 1 ? 'chamada' : 'chamadas'} · ${tokensLabel(m.usage.inputTokens)} de entrada · ${tokensLabel(m.usage.outputTokens)} de saída${m.usage.reasoningTokens ? ` (${tokensLabel(m.usage.reasoningTokens)} de raciocínio)` : ''}`}
+                        >
+                          {modelInfo(m.usage.model).label}
+                          {m.report ? ` · ${(m.report.durationMs / 1000).toFixed(1).replace('.', ',')} s` : ''}
+                          {` · ${tokensLabel(m.usage.inputTokens + m.usage.outputTokens)} tokens · ${usd(m.usage.costUsd)}`}
+                        </span>
+                      )}
+                      <span className="msg-actions">
+                        {(m.report?.prose || m.content) && (
+                          <button
+                            type="button"
+                            title="Copiar o texto da resposta"
+                            aria-label="Copiar o texto da resposta"
+                            onClick={() => {
+                              void navigator.clipboard?.writeText(m.report?.prose || m.content).then(() => {
+                                setCopied(m.id);
+                                setTimeout(() => setCopied(''), 1500);
+                              });
+                            }}
+                          >
+                            {copied === m.id ? <Check size={13} /> : <Copy size={13} />}
+                          </button>
+                        )}
+                        {rev.status === 'found' && (
+                          <button
+                            type="button"
+                            className="msg-version"
+                            disabled={busy}
+                            title="Ver o projeto nesta versão"
+                            onClick={() => seekVersion(rev.cursor)}
+                          >
+                            v{rev.revision.number}
+                          </button>
+                        )}
+                        {rev.status === 'dropped' && (
+                          <small className="dropped" title="Versão original descartada neste caminho">versão descartada</small>
+                        )}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1609,7 +1745,14 @@ export default function Home() {
                 <div className="message user">
                   <div className="message-body">{pendingImage && <img className="chat-image" src={pendingImage.url} alt={pendingImage.name} />}{pending}</div>
                 </div>
-                <ChatProgress events={progress} started={started} />
+                <TurnProgress
+                  events={progress}
+                  started={started}
+                  pulse={pulse}
+                  usage={liveUsage}
+                  model={model}
+                  withPhoto={Boolean(pendingImage)}
+                />
                 {live && liveText && (
                   <div className="answer-stream">
                     <h3>
@@ -1732,26 +1875,24 @@ export default function Home() {
                 </button>
               </div>
             )}
-            {p && !openClarification && (
-              <div className="suggestions">
-                <small className="suggestions-hint">
-                  {aiSuggestions.length ? 'Próximos passos sugeridos' : 'Para começar'}
-                </small>
+          </div>
+          <div className="composer-wrap">
+            {p && !openClarification && !pending && suggestions.length > 0 && (
+              <div className="suggestions" aria-label={aiSuggestions.length ? 'Próximos passos sugeridos' : 'Para começar'}>
                 {suggestions.map((v) => (
                   <button
                     key={v}
+                    type="button"
                     disabled={busy}
                     title="Enviar esta sugestão (o que você digitou continua no campo)"
                     onClick={() => void send(v)}
                   >
+                    {aiSuggestions.length ? <Sparkles size={12} /> : <ArrowUp size={12} />}
                     {v}
-                    <ArrowUp size={14} />
                   </button>
                 ))}
               </div>
             )}
-          </div>
-          <div className="composer-wrap">
             {(notice || freshBoot) && (
               <output className="notice-banner">
                 <span>
@@ -1839,55 +1980,43 @@ export default function Home() {
               />
               <div className="composer-bar">
                 <Button type="button" variant="ghost" size="icon" disabled={busy || !p} title="Anexar imagem (JPG, PNG ou WebP, até 10 MB)" aria-label="Anexar imagem" onClick={() => fileInput.current?.click()}><ImagePlus /></Button>
-                <button
-                  type="button"
-                  className={'fast-toggle' + (fast ? ' on' : '')}
+                <ModelPicker
+                  value={model}
+                  available={available}
+                  onChange={chooseModel}
+                  live={live}
+                  onToggleLive={toggleLive}
                   disabled={busy}
-                  aria-pressed={fast}
-                  title={
-                    busy
-                      ? 'Aguarde a resposta atual para trocar de modelo'
-                      : fast
-                        ? 'Modo rápido ativado (Qwen 3.8 27B via Cerebras)'
-                        : 'Ativar modo rápido (Qwen 3.8 27B via Cerebras)'
-                  }
-                  onClick={() => setFast((v) => !v)}
-                >
-                  <Zap size={13} />
-                  Rápido
-                </button>
-                <button
-                  type="button"
-                  className={'fast-toggle' + (live ? ' on' : '')}
-                  aria-pressed={live}
-                  disabled={busy}
-                  title={
-                    busy
-                      ? 'A transmissão ao vivo vale a partir do próximo turno'
-                      : live
-                        ? 'Transmissão em tempo real ativa (depuração): o texto parcial da IA aparece enquanto chega, sem esperar a validação'
-                        : 'Depuração: mostrar o texto parcial da IA em tempo real, antes da validação'
-                  }
-                  onClick={toggleLive}
-                >
-                  <Bug size={13} />
-                  Ao vivo
-                </button>
+                />
                 <span
                   className="composer-hint"
                   title="Enter envia · Shift+Enter quebra linha · aceita imagem JPG, PNG ou WebP"
                 >
-                  Enter envia
+                  Enter envia · Shift+Enter quebra
                 </span>
-                <Button
-                  type="submit"
-                  size="icon"
-                  className="composer-send"
-                  aria-label="Enviar mensagem"
-                  disabled={busy || !p || (!text.trim() && !attachment)}
-                >
-                  <ArrowUp />
-                </Button>
+                {pending ? (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="composer-send stop"
+                    aria-label="Parar a resposta"
+                    title="Parar: o pedido fica salvo para tentar de novo"
+                    onClick={stopTurn}
+                  >
+                    <StopCircle />
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    size="icon"
+                    className="composer-send"
+                    aria-label="Enviar mensagem"
+                    disabled={busy || !p || (!text.trim() && !attachment)}
+                  >
+                    <ArrowUp />
+                  </Button>
+                )}
               </div>
             </form>
           </div>
@@ -1987,6 +2116,13 @@ export default function Home() {
             </p>
           )}
           {roomFit && !roomFit.report.fits && <p className="stage-warning bad">{roomFit.summary}</p>}
+          {pending && (
+            <output className="stage-working">
+              <span className="tp-orb small" key={pulse?.bytes ?? 0} aria-hidden="true"><i /></span>
+              {turnLabel(progress, pulse)}
+              {liveUsage && <b>{usd(liveUsage.costUsd)}</b>}
+            </output>
+          )}
           {p && (
             <FurnitureView
               params={visualParams!}

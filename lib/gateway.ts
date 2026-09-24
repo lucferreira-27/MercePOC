@@ -8,6 +8,13 @@ import type { Progress, TextPreview } from './progress';
 import { readStringField } from './partial-json';
 import { imageDataUrl } from './images';
 import { materials } from './furniture';
+import { modelInfo, type ModelKey, type ProviderUsage } from './models';
+/** `true`/`false` é o contrato antigo do modo rápido (bench, scripts). */
+export type ModelChoice = ModelKey | boolean;
+function modelKey(choice: ModelChoice | undefined): ModelKey {
+  if (typeof choice === 'string') return choice;
+  return choice ? 'qwen-fast' : 'deepseek';
+}
 /** Nome de cada acabamento: "nogueira" no pedido vira materialId walnut. */
 const FINISHES = materials.map((m) => `${m.id}=${m.name}`).join(', ');
 /**
@@ -120,9 +127,13 @@ export type GatewayProfile = {
   model: string;
 };
 
-/** Provedor padrão (AI_*) vs modo rápido (AI_FAST_*). */
-function profile(fast: boolean): GatewayProfile {
-  if (fast) {
+/**
+ * Provedor de cada modelo. DeepSeek e GPT-6 Luna passam pelo mesmo gateway
+ * (AI_*); o modo rápido usa outro provedor (AI_FAST_*).
+ */
+function profile(choice: ModelChoice): GatewayProfile {
+  const key = modelKey(choice);
+  if (key === 'qwen-fast') {
     const key = process.env.AI_FAST_API_KEY;
     if (!key)
       throw new Error(
@@ -134,14 +145,24 @@ function profile(fast: boolean): GatewayProfile {
       model: process.env.AI_FAST_MODEL || 'qwen-3.8-27b',
     };
   }
-  const key = process.env.AI_API_KEY;
-  if (!key)
+  const secret = process.env.AI_API_KEY;
+  if (!secret)
     throw new Error('Configure AI_API_KEY no arquivo .env do servidor.');
   return {
-    key,
+    key: secret,
     baseUrl: process.env.AI_BASE_URL || 'https://api.commandcode.ai/provider/v1',
-    model: process.env.AI_MODEL || 'deepseek/deepseek-v4.1-flash',
+    model:
+      key === 'luna'
+        ? process.env.AI_LUNA_MODEL || 'gpt-6-luna'
+        : process.env.AI_MODEL || 'deepseek/deepseek-v4.1-flash',
   };
+}
+/** Modelos que este servidor consegue chamar, para o seletor da interface. */
+export function availableModels(): ModelKey[] {
+  const out: ModelKey[] = [];
+  if (process.env.AI_API_KEY) out.push('deepseek', 'luna');
+  if (process.env.AI_FAST_API_KEY) out.push('qwen-fast');
+  return out;
 }
 export async function interpretStream(
   params: Design,
@@ -159,7 +180,7 @@ export async function interpretStream(
   attempt = 0,
   signal?: AbortSignal,
   onText: (preview: TextPreview) => void = () => {},
-  fast = false,
+  model: ModelChoice = false,
   room?: Room,
   /**
    * Desenho do projeto ATUAL (frontal + isométrica) como data URL. A IA vê a
@@ -167,8 +188,12 @@ export async function interpretStream(
    * montado às cegas pode ter a proporção errada e ninguém percebe.
    */
   currentView?: string,
+  /** Tokens de cada chamada, para o custo do turno. */
+  onUsage: (usage: ProviderUsage) => void = () => {},
 ): Promise<z.infer<typeof decisionSchema>> {
-  const prof = profile(fast);
+  const prof = profile(model);
+  const info = modelInfo(modelKey(model));
+  const fast = Boolean(info.fastProfile);
   const { key } = prof;
   onProgress({
     stage: attempt ? 'retrying' : 'connecting',
@@ -266,7 +291,9 @@ ${imageNote}` : requestString,
           model: prof.model,
           // Esforço mínimo no provedor padrão. O gateway da Command Code valida
           // low..max e não tem valor para desligar o raciocínio: 'low' é o piso.
-          ...(fast ? {} : { reasoning_effort: 'low' }),
+          ...(info.reasoning ? { reasoning_effort: info.reasoning } : {}),
+          // O último pedaço do fluxo traz os tokens gastos: é daí que sai o custo.
+          ...(fast ? {} : { stream_options: { include_usage: true } }),
           max_tokens: aiMaxTokens(),
           stream: true,
           messages: [
@@ -338,6 +365,7 @@ ${imageNote}` : requestString,
     if (data === '[DONE]') return;
     const event = JSON.parse(data) as {
       error?: unknown;
+      usage?: ProviderUsage | null;
       choices?: {
         delta?: {
           content?: string;
@@ -353,6 +381,7 @@ ${imageNote}` : requestString,
     };
     if (event.error)
       throw new Error('A conexão com a IA foi interrompida. Tente novamente.');
+    if (event.usage) onUsage(event.usage);
     const delta = event.choices?.[0]?.delta;
     if (!delta) return;
     if (!received) {
@@ -453,8 +482,10 @@ ${imageNote}` : requestString,
         attempt + 1,
         signal,
         onText,
-        fast,
+        model,
         room,
+        undefined,
+        onUsage,
       );
     }
     throw new Error(
@@ -504,16 +535,18 @@ export async function reviewResult(params: {
   design: Design;
   applied: readonly ShelfOp[];
   request: string;
-  fast?: boolean;
+  model?: ModelChoice;
   room?: Room;
   signal?: AbortSignal;
+  onUsage?: (usage: ProviderUsage) => void;
   /** Recebe a resposta crua do provedor: usado para diagnosticar o formato. */
   debug?: (raw: string) => void;
 }): Promise<DesignReview | null> {
-  const prof = profile(Boolean(params.fast));
+  const prof = profile(params.model ?? false);
+  const reviewInfo = modelInfo(modelKey(params.model));
   const body = {
     model: prof.model,
-    ...(params.fast ? {} : { reasoning_effort: 'low' }),
+    ...(reviewInfo.reasoning ? { reasoning_effort: reviewInfo.reasoning } : {}),
     // O mesmo teto da chamada principal: comparar duas imagens gasta
     // raciocínio suficiente para 4000 tokens acabarem antes do veredito, e a
     // resposta chegava vazia.
@@ -556,11 +589,13 @@ export async function reviewResult(params: {
       return null;
     }
     const payload = (await response.json()) as {
+      usage?: ProviderUsage;
       choices?: {
         finish_reason?: string;
         message?: { content?: string; reasoning?: string };
       }[];
     };
+    if (payload.usage) params.onUsage?.(payload.usage);
     const choice = payload.choices?.[0];
     const raw = choice?.message?.content ?? '';
     params.debug?.(raw);

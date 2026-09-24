@@ -22,6 +22,16 @@ import { randomUUID } from 'node:crypto';
 import { getImage, imageDataUrl, saveImage, type ImageRef } from '@/lib/images';
 import { planDataUrl, planPng } from '@/lib/plan-render';
 import { mergePrices, money, quote } from '@/lib/quote';
+import {
+  addUsage,
+  emptyUsage,
+  modelInfo,
+  MODEL_KEYS,
+  priceOf,
+  type ModelKey,
+  type ProviderUsage,
+  type TurnUsage,
+} from '@/lib/models';
 import type { ModularPart } from '@/lib/composition';
 import type { Design } from '@/lib/studio';
 
@@ -95,6 +105,8 @@ export async function POST(req: Request) {
         clarificationId: z.string().trim().min(1).max(64).optional(),
         optionId: z.string().trim().min(1).max(64).optional(),
         fast: z.boolean().optional(),
+        /** Modelo escolhido no compositor; `fast` segue valendo para scripts antigos. */
+        model: z.enum(MODEL_KEYS).optional(),
         // Tabela de preços do navegador: a IA responde "quanto custa" com os
         // mesmos números da aba Orçamento. Formato solto, saneado por mergePrices.
         prices: z.unknown().optional(),
@@ -142,6 +154,19 @@ export async function POST(req: Request) {
         : undefined;
     const before = baseRev.params;
     const quoteNote = quoteSummary(before, b.prices);
+    const modelChoice: ModelKey = b.model ?? (b.fast ? 'qwen-fast' : 'deepseek');
+    const jpeg = Boolean(modelInfo(modelChoice).fastProfile);
+    // Custo do turno: cada chamada ao provedor soma aqui, sai ao vivo para quem
+    // espera e fica gravada na resposta, para o total da sessão sobreviver ao
+    // recarregamento.
+    const price = priceOf(modelChoice, process.env);
+    let turnUsage: TurnUsage = emptyUsage(modelChoice);
+    let usageListener: (usage: TurnUsage) => void = () => {};
+    const recordUsage = (usage: ProviderUsage) => {
+      turnUsage = addUsage(turnUsage, usage, price);
+      usageListener(turnUsage);
+    };
+    const usageField = () => (turnUsage.calls ? { usage: turnUsage } : {});
     const infos = shelfInfos(before);
     const shelfIds = infos.map((s) => s.id);
     const validIds = entityIds(before);
@@ -315,9 +340,10 @@ export async function POST(req: Request) {
         0,
         signal,
         text,
-        Boolean(b.fast),
+        modelChoice,
         p.room,
         currentView,
+        recordUsage,
       );
       signal.throwIfAborted();
       progress({
@@ -397,9 +423,10 @@ export async function POST(req: Request) {
           0,
           signal,
           text,
-          Boolean(b.fast),
+          modelChoice,
           p.room,
           currentView,
+          recordUsage,
         );
         signal.throwIfAborted();
         if (d.refs.length) userMsg.context!.referencedPartIds = d.refs;
@@ -421,6 +448,7 @@ export async function POST(req: Request) {
           revision: baseRev.number,
           context: userMsg.context,
           result: { outcome: 'rejected', resultRevisionId: baseRev.id, appliedOperations: [], attemptedOperations:ops, changes: [] },
+          ...usageField(),
           report: {
             durationMs: Date.now() - started,
             outcome: 'rejected',
@@ -447,14 +475,15 @@ export async function POST(req: Request) {
         });
         try {
           const review = await reviewResult({
-            photo: await imageDataUrl(image.id, b.fast ? 'jpeg' : 'webp'),
+            photo: await imageDataUrl(image.id, jpeg ? 'jpeg' : 'webp'),
             result: await planDataUrl(generateDesign(preview.design).parts),
             design: preview.design,
             applied: ops,
             request: b.message,
-            fast: Boolean(b.fast),
+            model: modelChoice,
             room: p.room,
             signal,
+            onUsage: recordUsage,
           });
           let corrections = 0;
           if (review?.ops.length) {
@@ -555,6 +584,7 @@ export async function POST(req: Request) {
           context: user.context,
           // O desenho que a IA conferiu também fica visível para a pessoa.
           ...(resultImage ? { image: resultImage } : {}),
+          ...usageField(),
           ...(decision?.suggestions?.length
             ? { suggestions: decision.suggestions }
             : {}),
@@ -610,6 +640,7 @@ export async function POST(req: Request) {
           revision: baseRev.number,
           context: user.context,
           clarification: clar,
+          ...usageField(),
           result: { outcome: 'clarification', resultRevisionId: baseRev.id, appliedOperations: [], changes: [] },
           report: {
             durationMs: Date.now() - started,
@@ -648,6 +679,8 @@ export async function POST(req: Request) {
         revision: p.revisions[p.cursor].number,
         retry: { message: b.message, ...(image ? { image } : {}) },
         error: message,
+        // Turno que falhou também gastou: o custo entra no total da sessão.
+        ...usageField(),
       });
       try {
         const state = save(p, version);
@@ -688,6 +721,7 @@ export async function POST(req: Request) {
             }
           }
         };
+        usageListener = (usage) => send('usage', usage);
         const heartbeat = setInterval(
           () => send('heartbeat', { elapsedMs: Date.now() - started }),
           10000,
@@ -709,6 +743,14 @@ export async function POST(req: Request) {
                   attempt: preview.attempt,
                 });
               }
+              // Sinal de vida para a interface, sem conteúdo: quanto já chegou do
+              // provedor (inclui o raciocínio privado, que só é contado).
+              send('pulse', {
+                bytes: preview.bytes ?? 0,
+                reasoning: preview.reasoningTotal ?? 0,
+                answer: preview.answer.length + preview.approach.length,
+                attempt: preview.attempt,
+              });
               if (req.headers.get('x-chat-preview') !== 'hidden')
                 send('text', preview);
             },

@@ -15,6 +15,8 @@ A v1 levava da conversa ao 3D. A v2 leva da ideia ao móvel orçado e pronto par
 - **Plano de corte.** Encaixe em guilhotina por material e espessura, com disco, refilo e veio travado no comprimento da chapa, desenhado chapa a chapa, com aproveitamento e CSV de posições.
 - **Modelos prontos.** Estante de livros, guarda-roupa (com quarto de exemplo), rack com torres, aparador e sapateira, montados pelo motor com o mesmo contrato do chat.
 - **Paleta de comandos.** `Ctrl+K` busca qualquer ação; uma frase que não é comando vira pedido para a IA.
+- **Conversa refeita.** Enquanto a IA trabalha, um cartão mostra o passo real (enviado, pensando, escrevendo, conferindo medidas, comparando com a foto, salvando), o relógio, os dados que chegam do provedor, os tokens e o custo subindo; o 3D mostra o mesmo passo. O botão **Parar** interrompe a resposta sem mexer no projeto e deixa o pedido pronto para repetir. Cada resposta traz no rodapé modelo, tempo, tokens, custo, copiar e a versão. As sugestões ficam em chips logo acima do campo, e a conversa vazia oferece três começos: modelo pronto, descrever ou copiar de uma foto.
+- **Modelos e custo.** O seletor do compositor troca entre DeepSeek V4.1 Flash, **GPT-6 Luna com raciocínio baixo** e Qwen 3.8 27B (rápido), com o preço de cada um à vista. O selo no topo da conversa soma o custo estimado da conversa, por modelo, e o total desta aba em todos os projetos. O gateway conta os tokens (entrada, cache, saída, raciocínio); o preço vem da tabela em `lib/models.ts` e pode ser ajustado no `.env` com `MERCE_PRICE_*`.
 - **Foto e impressão.** Foto PNG da vista com cotas e legenda. Imprimir gera um documento com a foto da vista, orçamento, peças agrupadas e as chapas do plano de corte.
 
 A v1 está na tag `v1`.

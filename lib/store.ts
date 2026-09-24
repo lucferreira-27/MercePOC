@@ -20,6 +20,7 @@ import { canonical, normalize, executeRequest } from './studio';
 import type { ImageRef } from './images';
 import type { ChatReport, TurnOutcome } from './progress';
 import type { Room } from './room';
+import type { TurnUsage } from './models';
 import { buildTemplate, templateById } from './templates';
 export type TurnContext = {
   requestId: string;
@@ -72,6 +73,8 @@ export type Message = {
   /** Turno que falhou antes de aplicar: permite repetir depois de recarregar. */
   retry?: { message: string; image?: ImageRef };
   error?: string;
+  /** Tokens e custo estimado do turno que gerou esta resposta. */
+  usage?: TurnUsage;
 };
 export type Revision = {
   id: string;
