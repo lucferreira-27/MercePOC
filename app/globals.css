@@ -1561,6 +1561,8 @@ kbd {
   gap: 4px;
 }
 .fast-toggle {
+  white-space: nowrap;
+  flex: none;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -3232,8 +3234,8 @@ kbd {
 /* ── Telas menores ─────────────────────────────────────────────────────── */
 @media (max-width: 1360px) {
   :root {
-    --chat-w: 330px;
-    --insp-w: 330px;
+    --chat-w: 316px;
+    --insp-w: 346px;
   }
   .palette-trigger {
     min-width: 0;
@@ -3242,6 +3244,9 @@ kbd {
     display: none;
   }
   .view-switch button span {
+    display: none;
+  }
+  .composer-hint {
     display: none;
   }
 }
