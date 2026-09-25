@@ -95,6 +95,25 @@ void test('plano de corte: peças pequenas dividem a mesma chapa', () => {
   assert.equal(plan.groups[0].parts, 12);
 });
 
+void test('plano de corte: números seguidos no plano e sobras fora das peças', () => {
+  const d = buildTemplate(templates.find((v) => v.id === 'guarda-roupa')!);
+  const plan = cutPlan(generateComposition(d).parts);
+  const numbers = plan.sheets.flatMap((s) => s.placements.map((p) => p.n));
+  assert.deepEqual(numbers, numbers.map((_, i) => i + 1));
+  const s = DEFAULT_SHEET;
+  for (const sheet of plan.sheets)
+    for (const o of sheet.offcuts) {
+      assert.ok(o.w >= 150 && o.h >= 150, 'sobra pequena não entra');
+      assert.ok(o.x >= s.trim && o.x + o.w <= s.length - s.trim + 1e-6);
+      assert.ok(o.y >= s.trim && o.y + o.h <= s.width - s.trim + 1e-6);
+      for (const p of sheet.placements)
+        assert.ok(
+          o.x >= p.x + p.w - 1e-6 || p.x >= o.x + o.w - 1e-6 || o.y >= p.y + p.h - 1e-6 || p.y >= o.y + o.h - 1e-6,
+          `sobra em cima de ${p.name}`,
+        );
+    }
+});
+
 void test('orçamento: dobradiças pela altura, corrediças por gaveta, total com margem', () => {
   assert.deepEqual([600, 900, 901, 1500, 2000, 2300].map(hingesFor), [2, 2, 3, 3, 4, 5]);
   const d = buildTemplate(templates.find((v) => v.id === 'guarda-roupa')!);
@@ -125,4 +144,32 @@ void test('preços salvos antigos ganham os acabamentos novos e ignoram lixo', (
   assert.equal(merged.sheets.oak, 500);
   assert.equal(merged.sheets.walnut, DEFAULT_PRICES.sheets.walnut);
   assert.equal('bogus' in merged.sheets, false);
+});
+
+void test('foto do PDF: o móvel inteiro no quadro, centrado, com margem', async () => {
+  const THREE = await import('three');
+  const { framePrint, PRINT_VIEW } = await import('../lib/print-render');
+  for (const size of [
+    [800, 1800, 350],
+    [3200, 900, 600],
+    [450, 2400, 600],
+  ] as const) {
+    const box = new THREE.Box3(new THREE.Vector3(-size[0] / 2, 0, -size[2] / 2), new THREE.Vector3(size[0] / 2, size[1], size[2] / 2));
+    const camera = new THREE.PerspectiveCamera(PRINT_VIEW.fov, 1920 / 1100, 10, 100000);
+    framePrint(camera, box);
+    camera.updateMatrixWorld();
+    const xs: number[] = [],
+      ys: number[] = [];
+    for (let i = 0; i < 8; i++) {
+      const v = new THREE.Vector3(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).project(camera);
+      xs.push(v.x);
+      ys.push(v.y);
+    }
+    const spanX = (Math.max(...xs) - Math.min(...xs)) / 2,
+      spanY = (Math.max(...ys) - Math.min(...ys)) / 2;
+    assert.ok(Math.abs(Math.max(spanX, spanY) - PRINT_VIEW.margin) < 0.01, `${size.join("x")}: lado justo na margem`);
+    assert.ok(Math.abs(Math.max(...xs) + Math.min(...xs)) < 0.01, `${size.join("x")}: centrado em x`);
+    assert.ok(Math.abs(Math.max(...ys) + Math.min(...ys)) < 0.01, `${size.join("x")}: centrado em y`);
+    assert.ok(camera.position.x > 0 && camera.position.z > 0 && camera.position.y > size[1] / 2, `${size.join("x")}: três quartos, de cima`);
+  }
 });

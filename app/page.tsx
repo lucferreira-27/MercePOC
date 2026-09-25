@@ -13,6 +13,8 @@ import { designDiff, partDiff, playbackFrames } from '@/lib/diff';
 import { readEvents } from '@/lib/sse';
 import { type Progress, type TextPreview } from '@/lib/progress';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
+import { renderPrintShot } from '@/lib/print-render';
 import {
   ArrowDown,
   ArrowUp,
@@ -94,6 +96,8 @@ import { CommandPalette, type PaletteAction } from '@/components/command-palette
 import { TemplateGallery } from '@/components/template-gallery';
 import { templates } from '@/lib/templates';
 import { PrintSheet, groupParts } from '@/components/print-sheet';
+import { PartsPanel } from '@/components/parts-panel';
+import { cutPlan } from '@/lib/cutplan';
 import { entityIds, canonical, selectedPartIds } from '@/lib/studio';
 import { drawingParts, openingLimit, openingPose, type ModularPart } from '@/lib/composition';
 import { emptyRoom, roomChangeLabel, fitReport, fitSummary, freeSpot, obstacleWord, OBSTACLE_LABEL, presetObstacle, roomOffset, wallAt, type Obstacle, type ObstacleKind, type Room } from '@/lib/room';
@@ -214,13 +218,6 @@ function cm(millimetres: number) {
 /** Metros com duas casas e vírgula: "2,40". */
 function metres(millimetres: number) {
   return (millimetres / 1000).toFixed(2).replace('.', ',');
-}
-/**
- * Milímetros para exibição: a divisão de um vão pode dar 185.33333 mm e a
- * tabela não deve mostrar a dízima inteira. Duas casas bastam para cortar.
- */
-function mm(millimetres: number) {
-  return String(Math.round(millimetres * 100) / 100);
 }
 /** Raciocínio exibido no painel de depuração: mantém o fim, que é o que importa. */
 /** Revisão das mudanças: quanto o "antes" fica à vista e cada passo. */
@@ -357,7 +354,6 @@ export default function Home() {
   // todos os botões. As funções continuam conferindo `busy` na hora.
   const busyLook = useDelayedTrue(busy, 300);
   /** Para que serve a próxima foto da cena: baixar o PNG ou ilustrar a impressão. */
-  const snapshotPurpose = useRef<'download' | 'print'>('download');
   // A ação pendente do cartão de confirmação vive num ref: o cartão é render do
   // estado atual e o callback precisa enxergar o mesmo fechamento que o criou.
   const confirmAction = useRef<(() => void) | null>(null);
@@ -662,6 +658,17 @@ export default function Home() {
     () => (visualParams ? buildQuote(visualParts as ModularPart[], visualParams.modules.length, prices) : null),
     [visualParts, visualParams, prices],
   );
+  // Quanto custava a versão anterior à exibida: a mudança mais recente em reais.
+  const shownIndex = p ? (historyPreview ?? p.cursor) : 0;
+  const previousRevision = !reviewFrame && p && shownIndex > 0 ? p.revisions[shownIndex - 1] : null;
+  const previousQuote = useMemo(() => {
+    if (!previousRevision) return null;
+    const d = designOf(previousRevision.params);
+    return { version: shownIndex, total: buildQuote(d.parts as ModularPart[], previousRevision.params.modules.length, prices).total };
+  }, [previousRevision, shownIndex, prices]);
+  // Números do plano de corte do projeto gravado (a lista de peças é dele).
+  const savedParts = p?.parts;
+  const partsPlan = useMemo(() => (savedParts ? cutPlan(savedParts) : null), [savedParts]);
   const [viewNotice,setViewNotice]=useState('');
   const historyMax=Math.max(0,historyCount-1);
   function toggleOpening(id:string){
@@ -1607,15 +1614,28 @@ export default function Home() {
     },
   );
   const onSnapshot = useCallback(
-    (url: string) => {
-      if (snapshotPurpose.current === 'print') {
-        setPrintShot(url);
-        // O React precisa pintar a foto na folha antes de a impressão abrir.
-        setTimeout(() => window.print(), 120);
-      } else downloadUrl(`${slug(p?.name ?? 'projeto')}.png`, url);
-    },
+    (url: string) => downloadUrl(`${slug(p?.name ?? 'projeto')}.png`, url),
     [p?.name],
   );
+  // Foto do PDF: sempre o mesmo ângulo e enquadramento, feita fora da tela a
+  // partir do projeto gravado, não da vista em que a câmera ficou.
+  const shotFor = useRef<unknown>(null);
+  const preparePrint = useEvent(() => {
+    if (!params || shotFor.current === printDrawing) return;
+    shotFor.current = printDrawing;
+    const shot = renderPrintShot(printDrawing, params);
+    flushSync(() => setPrintShot(shot));
+  });
+  function printProject() {
+    preparePrint();
+    // O navegador precisa decodificar a foto antes de montar as páginas.
+    setTimeout(() => window.print(), 150);
+  }
+  // Ctrl+P direto também sai com a foto do projeto atual.
+  useEffect(() => {
+    window.addEventListener('beforeprint', preparePrint);
+    return () => window.removeEventListener('beforeprint', preparePrint);
+  }, [preparePrint]);
   function exportProjectJSON() {
     if (!p || !quote) return;
     const rows = groupParts(p.parts);
@@ -1652,8 +1672,8 @@ export default function Home() {
   }
   const exports: { id: string; label: string; hint: string; icon: React.ReactNode; run: () => void }[] = p && quote
     ? [
-        { id: 'png', label: 'Foto da vista', hint: 'PNG com cotas', icon: <ImageIcon size={16} />, run: () => { snapshotPurpose.current = 'download'; setSnapshotRequest((v) => v + 1); } },
-        { id: 'print', label: 'Imprimir / PDF', hint: 'Desenho, orçamento, peças e corte', icon: <Printer size={16} />, run: () => { snapshotPurpose.current = 'print'; setSnapshotRequest((v) => v + 1); } },
+        { id: 'png', label: 'Foto da vista', hint: 'PNG com cotas', icon: <ImageIcon size={16} />, run: () => setSnapshotRequest((v) => v + 1) },
+        { id: 'print', label: 'Imprimir / PDF', hint: 'Desenho, orçamento, peças e corte', icon: <Printer size={16} />, run: printProject },
         { id: 'csv', label: 'Lista de peças', hint: 'CSV', icon: <FileSpreadsheet size={16} />, run: () => download(`${slug(p.name)}-pecas.csv`, cutCSV(p.params), 'text/csv;charset=utf-8') },
         { id: 'cut', label: 'Plano de corte', hint: 'CSV com posições', icon: <Scissors size={16} />, run: () => download(`${slug(p.name)}-corte.csv`, cutPlanCSV(quote.plan), 'text/csv;charset=utf-8') },
         { id: 'cortecloud', label: 'Cortecloud', hint: 'JSON experimental', icon: <FileJson size={16} />, run: () => download(`${slug(p.name)}-cortecloud.json`, JSON.stringify(cortecloud(p.params), null, 2)) },
@@ -2736,7 +2756,7 @@ export default function Home() {
               <Orbit size={17} />
             </button>
             <span className="tool-sep" />
-            <button type="button" title="Foto da vista (PNG)" aria-label="Foto da vista" onClick={() => { snapshotPurpose.current = 'download'; setSnapshotRequest((v) => v + 1); }}><Camera size={17} /></button>
+            <button type="button" title="Foto da vista (PNG)" aria-label="Foto da vista" onClick={() => setSnapshotRequest((v) => v + 1)}><Camera size={17} /></button>
           </div>
           <div className="scene-bottom">
             <fieldset className="view-switch">
@@ -2960,7 +2980,14 @@ export default function Home() {
                 />
               )}
               {tab === 'quote' && quote && (
-                <QuotePanel name={p.name} quote={quote} prices={prices} onPrices={updatePrices} />
+                <QuotePanel
+                  name={p.name}
+                  quote={quote}
+                  prices={prices}
+                  onPrices={updatePrices}
+                  previous={previousQuote}
+                  onShowParts={(ids) => setSelected(ids)}
+                />
               )}
               {tab === 'cut' && quote && (
                 <CutPlanPanel
@@ -2972,50 +2999,16 @@ export default function Home() {
               )}
               {tab === 'parts' && (
                 <>
-                  <div className="section-label">
-                    <span>
-                      {p.parts.length} peças{selected.length > 0 ? ` · ${selected.length} selecionada${selected.length > 1 ? 's' : ''}` : ''}
-                    </span>
-                    {selected.length > 0 && (
-                      <button type="button" className="link-button" onClick={() => setSelected([])}>
-                        limpar
-                      </button>
-                    )}
-                  </div>
-                  {p.params.modules.length===1 && p.params.modules[0].legacyIds ? (
-                    shelfPanel()
-                  ) : (
-                    <p className="hint">
-                      Clique para selecionar; Shift+clique seleciona o módulo inteiro.
-                      Para mexer em prateleiras, use Dividir e Distribuir do
-                      compartimento em Projeto.
-                    </p>
-                  )}
-                  <div className="part-list">
-                    {p.parts.map((v) => (
-                      <button
-                        className={
-                          'part-row ' + (selected.includes(v.id) ? 'selected' : '')
-                        }
-                        key={v.id}
-                        title="Clique para selecionar · Shift+clique seleciona o módulo inteiro"
-                        onClick={(e) => toggleSelected(v.id, e.shiftKey)}
-                      >
-                        <i className="swatch-dot" style={{ '--swatch': (v as ModularPart).color } as React.CSSProperties} />
-                        <span>
-                          <strong>{v.name}</strong>
-                          <small>{v.material}</small>
-                        </span>
-                        <code>
-                          {mm(v.c)} × {mm(v.l)} × {mm(v.thickness)}
-                        </code>
-                      </button>
-                    ))}
-                  </div>
-                  <p className="hint">
-                    Medidas nominais. Veja o aproveitamento de chapas na aba Corte.
-                    Posições de montagem e furação não estão incluídas.
-                  </p>
+                  {p.params.modules.length === 1 && p.params.modules[0].legacyIds && shelfPanel()}
+                  <PartsPanel
+                    parts={p.parts as ModularPart[]}
+                    plan={partsPlan ?? cutPlan(p.parts)}
+                    selected={displaySelected}
+                    onToggle={(id, extend) => toggleSelected(id, extend)}
+                    onSelectMany={(ids, extend) => setSelected((s) => (extend ? [...new Set([...s, ...ids])] : ids))}
+                    onClear={() => setSelected([])}
+                    edgeMeters={quote?.counts.edgeMeters ?? 0}
+                  />
                 </>
               )}
               {tab === 'history' && (
