@@ -1,5 +1,5 @@
 import { applyObstacleEdits } from '@/lib/room';
-import { applyRequest, get, save, view, revise, type Clarification, type Message } from '@/lib/store';
+import { applyRequest, get, moveCursor, save, settleRoom, view, revise, type Clarification, type Message } from '@/lib/store';
 import { sameOrigin } from '@/lib/utils';
 import { interpretStream, reviewResult } from '@/lib/gateway';
 import { materials } from '@/lib/furniture';
@@ -357,8 +357,8 @@ export async function POST(req: Request) {
             : 'Conferindo o pedido com a versão atual.',
       });
       if(d.refs.length)userMsg.context!.referencedPartIds=d.refs;
-      // Obstáculos na parede: dado do lugar, gravado junto com o turno e sem
-      // versão nova, como quando a pessoa usa o painel Ambiente.
+      // Obstáculos na parede: entram na versão do turno (ou numa própria,
+      // quando o turno não muda o móvel), para o Ctrl+Z desfazer junto.
       if (d.obstacles && (d.obstacles.add.length || d.obstacles.move.length || d.obstacles.remove.length)) {
         const edited = applyObstacleEdits(p.room, d.obstacles, (before as { width?: number }).width ?? 0);
         p.room = edited.room;
@@ -381,13 +381,13 @@ export async function POST(req: Request) {
       }
       if (d.action === 'undo') {
         if (p.cursor === 0) return finishTurn(userMsg, [], [], 'Você já está na primeira versão.', d);
-        p.cursor--;
+        moveCursor(p, p.cursor - 1);
         return finishTurn(userMsg, [], [], null, d, true);
       }
       if (d.action === 'redo') {
         if (p.cursor === p.revisions.length - 1)
           return finishTurn(userMsg, [], [], 'Não há alteração para refazer.', d);
-        p.cursor++;
+        moveCursor(p, p.cursor + 1);
         return finishTurn(userMsg, [], [], null, d, true);
       }
       // update: resolve referências pronominais ("esta/mais 5cm") antes de validar.
@@ -464,6 +464,7 @@ export async function POST(req: Request) {
             changes: [],
           },
         };
+        settleRoom(p);
         p.messages.push(assistant);
         const state = save(p, version);
         version = state.version;
@@ -535,6 +536,7 @@ export async function POST(req: Request) {
         navigated = false,
         forceOutcome?: TurnOutcome,
       ) {
+        settleRoom(p);
         const after = p.revisions[p.cursor].params;
         const changes = navigated
           ? [`Versão ${baseRev.number} → ${p.revisions[p.cursor].number}`]
@@ -632,6 +634,7 @@ export async function POST(req: Request) {
         return { ...state, selected: echo.length ? echo : affected.size ? [...affected] : select.map(id=>resolveShelfId(id,design)??id).filter(id=>entityIds(design).includes(id)) };
       }
       function finishClarify(user: Message, question: string, decision: { action?: string; approach: string } | null) {
+        settleRoom(p);
         const options = (decision as {clarification?:{options:Clarification['options']}} | null)?.clarification?.options ?? infos.map((s) => ({ id: s.id, label: s.label, partIds: [s.id] }));
         const clar: Clarification = {
           id: randomUUID(),

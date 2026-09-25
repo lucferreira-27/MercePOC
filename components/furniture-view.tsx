@@ -5,9 +5,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { materials, type Part } from '@/lib/furniture';
 import type { Design } from '@/lib/studio';
-import type { Room } from '@/lib/room';
+import type { Obstacle, Room } from '@/lib/room';
 import { feetOf, generateComposition } from '@/lib/composition';
-import { buildFeet, buildRoom, obstacleCrosses, referenceRoom, roomFocus, type SceneBounds } from '@/lib/scene-room';
+import { buildFeet, buildRoom, obstacleCrosses, referenceRoom, roomFocus, ROOM_PALETTE, type SceneBounds } from '@/lib/scene-room';
+import { buildObstacle, tintFrame } from '@/lib/scene-obstacles';
+import { Pencil, Trash2, X } from 'lucide-react';
 import { buildDims, type DimLabel } from '@/lib/scene-dims';
 import {
   FurnitureMotion,
@@ -19,7 +21,7 @@ import {
 import { DIFF_GLOW } from '@/lib/scene-materials';
 import type { ModularOp } from '@/lib/composition';
 import { DEFAULT_DRAG_MODE, MOVE_GRID, constrainDrag, lockedAxes, moduleBoxes, moveGroup, moveOp, quickBlock, rotateOp, selectedGroup, shortMm, snapDelta, tryOp, type DragMode, type MoveGroup, type Vec3 } from '@/lib/move';
-import { framed, obstacleOverlap, wallAt } from '@/lib/room';
+import { floorBound, obstacleOverlap, wallAt } from '@/lib/room';
 import { MovePad, type NudgeDir } from './move-pad';
 import { useDelayedTrue } from '@/hooks/use-delayed';
 type CameraMove = {
@@ -45,6 +47,12 @@ type Runtime = {
   move?: CameraMove;
   view?: { height: number; width: number; depth: number; mode: ViewMode; frameRequest: number };
   room?: ReturnType<typeof buildRoom>;
+  /** Obstáculo novo seguindo o cursor na parede, antes do clique que o põe. */
+  placing?: { group: THREE.Group; obstacle: Obstacle; x: number; y: number; blocked: string | null };
+  /** Leva a prévia do obstáculo novo para x, y da parede (mm). */
+  placeTo?: (x: number, y: number) => void;
+  /** Põe o obstáculo novo onde a prévia está, se ali couber. */
+  confirmPlacing?: () => void;
   feet?: { group: THREE.Group; dispose: () => void };
   ghosts?: { group: THREE.Group; dispose: () => void };
   dims?: { lines: THREE.LineSegments; labels: DimLabel[]; dispose: () => void };
@@ -131,6 +139,14 @@ const OBSTACLE_WORD: Record<string, string> = {
   tv: 'TV',
   other: 'Obstáculo',
 };
+const OBSTACLE_ARTICLE: Record<string, string> = {
+  door: 'a porta',
+  window: 'a janela',
+  outlet: 'a tomada',
+  column: 'a coluna',
+  tv: 'a TV',
+  other: 'o obstáculo',
+};
 
 /** Chão de fundo bem abaixo do piso do ambiente: nunca disputa a mesma profundidade. */
 const GROUND_UNDER_ROOM = -40;
@@ -161,8 +177,24 @@ function FurnitureView({
   movable = false,
   onMove,
   onMoveObstacle,
+  selectedObstacle = null,
+  onSelectObstacle,
+  placing = null,
+  onPlace,
+  onCancelPlace,
+  onRemoveObstacle,
+  onEditObstacle,
   keyboard = true,
 }: {
+  /** Obstáculo escolhido na parede (clique nele): moldura e barra de ações. */
+  selectedObstacle?: string | null;
+  onSelectObstacle?: (id: string | null) => void;
+  /** Obstáculo novo esperando lugar: a prévia segue o cursor até o clique. */
+  placing?: Obstacle | null;
+  onPlace?: (o: Obstacle) => void;
+  onCancelPlace?: () => void;
+  onRemoveObstacle?: (id: string) => void;
+  onEditObstacle?: (id: string) => void;
   /** Pode mover o móvel selecionado (fora do explodido, sem turno em curso). */
   movable?: boolean;
   /**
@@ -256,14 +288,15 @@ function FurnitureView({
       // Sem armazenamento o modo vale só nesta aba.
     }
   };
-  const latest = useRef({ params, parts, selected, movable, onMove, onMoveObstacle, wallZ, dragMode });
+  const latest = useRef({ params, parts, selected, movable, onMove, onMoveObstacle, wallZ, dragMode, onSelectObstacle, selectedObstacle, placing, onPlace });
   useEffect(() => {
-    latest.current = { params, parts, selected, movable, onMove, onMoveObstacle, wallZ, dragMode };
-  }, [params, parts, selected, movable, onMove, onMoveObstacle, wallZ, dragMode]);
+    latest.current = { params, parts, selected, movable, onMove, onMoveObstacle, wallZ, dragMode, onSelectObstacle, selectedObstacle, placing, onPlace };
+  }, [params, parts, selected, movable, onMove, onMoveObstacle, wallZ, dragMode, onSelectObstacle, selectedObstacle, placing, onPlace]);
+  const obBar = useRef<HTMLDivElement>(null);
   const lastParams = useRef(params);
   // Ponteiro sobre um obstáculo da parede que dá para arrastar.
   const [overObstacle, setOverObstacle] = useState(false);
-  const [moveTip, setMoveTip] = useState<{ x: number; y: number; text: string; bad: boolean } | null>(null);
+  const [moveTip, setMoveTip] = useState<{ x: number; y: number; text: string; bad: boolean; warn?: boolean } | null>(null);
   const [moveStatus, setMoveStatus] = useState<{ text: string; bad?: boolean } | null>(null);
   const dragging = useRef(false);
   const spinNotice = useRef(onSpinSuppressed);
@@ -476,9 +509,11 @@ function FurnitureView({
     let obArmed: { entry: ObstacleEntry; point: THREE.Vector3 } | null = null;
     let obDrag: { entry: ObstacleEntry; plane: THREE.Plane; from: THREE.Vector3; x: number; y: number; blocked: string | null } | null = null;
     let tipTimer = 0;
+    const cmText = (mm: number) => `${String(Number((mm / 10).toFixed(1))).replace('.', ',')} cm`;
     const obstacleHit = () => {
       const list = state.room?.obstacles ?? [];
-      if (!list.length || !latest.current.onMoveObstacle) return null;
+      const now = latest.current;
+      if (!list.length || (!now.onMoveObstacle && !now.onSelectObstacle)) return null;
       const h = ray.intersectObjects(list.map((v) => v.group), true)[0];
       if (!h) return null;
       let node: THREE.Object3D | null = h.object;
@@ -486,56 +521,75 @@ function FurnitureView({
       const entry = list.find((v) => v.id === node?.userData.obstacleId);
       return entry ? { entry, point: h.point.clone(), distance: h.distance } : null;
     };
+    /**
+     * O lugar serve? Em cima de outro obstáculo não: se atravessariam no 3D e
+     * não existem assim na parede. Na frente do móvel pode (a porta está onde
+     * está na casa), mas avisa: o veredito de encaixe acusa o conflito.
+     */
+    const spotCheck = (o: Obstacle) => {
+      if (!state.room) return { blocked: null, warn: null };
+      const other = obstacleOverlap(o, state.room.obstacles.map((v) => v.obstacle));
+      const now = latest.current;
+      // Pelo vão, como o veredito de encaixe: o aviso e o vermelho concordam.
+      const piece = [...moduleBoxes(now.params)].find(([, b]) => obstacleCrosses(o, [b], state.room!.wall.x0));
+      return {
+        blocked: other ? (other.label ?? OBSTACLE_WORD[other.kind]) : null,
+        warn: piece ? (now.params.modules.find((m) => m.id === piece[0])?.name ?? 'o móvel') : null,
+      };
+    };
+    /** Etiqueta do obstáculo no lugar: onde está, ou por que não pode. */
+    const spotText = (o: Obstacle, check: ReturnType<typeof spotCheck>) =>
+      check.blocked
+        ? `Bate em ${check.blocked}`
+        : `${OBSTACLE_WORD[o.kind]} · ${cmText(o.xMm)} do canto${floorBound(o.kind) ? '' : ` · ${cmText(o.yMm)} do piso`}${check.warn ? ` · na frente de ${check.warn}` : ''}`;
+    /** Ponto da tela sobre o meio do topo do obstáculo, para a etiqueta. */
+    const screenAbove = (g: THREE.Object3D, o: Obstacle) => {
+      const p = new THREE.Vector3(o.widthMm / 2, o.heightMm + 80, 120);
+      g.localToWorld(p).project(camera);
+      return { x: ((p.x + 1) / 2) * el.clientWidth, y: ((1 - p.y) / 2) * el.clientHeight };
+    };
+    const snap = (v: number) => Math.round(v / 10) * 10;
+    const clampSpot = (o: Obstacle, x: number, y: number) => {
+      const wall = state.room!.wall;
+      return {
+        x: THREE.MathUtils.clamp(snap(x), 0, Math.max(0, wall.width - o.widthMm)),
+        y: floorBound(o.kind) ? o.yMm : THREE.MathUtils.clamp(snap(y), 0, Math.max(0, wall.height - o.heightMm)),
+      };
+    };
     const obstacleMove = (e: PointerEvent) => {
       if (!obDrag || !state.room) return;
       aim(e);
       if (!ray.ray.intersectPlane(obDrag.plane, hit)) return;
       const o = obDrag.entry.obstacle;
       const wall = state.room.wall;
-      // Porta e coluna ficam no piso: andam só na horizontal.
-      const floorBound = o.kind === 'door' || o.kind === 'column';
-      const snap = (v: number) => Math.round(v / 10) * 10;
-      obDrag.x = THREE.MathUtils.clamp(snap(o.xMm + hit.x - obDrag.from.x), 0, Math.max(0, wall.width - o.widthMm));
-      obDrag.y = floorBound ? o.yMm : THREE.MathUtils.clamp(snap(o.yMm + hit.y - obDrag.from.y), 0, Math.max(0, wall.height - o.heightMm));
+      const at = clampSpot(o, o.xMm + hit.x - obDrag.from.x, o.yMm + hit.y - obDrag.from.y);
+      obDrag.x = at.x;
+      obDrag.y = at.y;
       obDrag.entry.group.position.x = wall.x0 + obDrag.x;
       obDrag.entry.group.position.y = obDrag.y;
       state.dirty = true;
-      // Em cima de outro obstáculo ou atrás de um móvel não dá: se
-      // atravessariam no 3D (a TV pode ficar sobre rack e painel).
       const moved = { ...o, xMm: obDrag.x, yMm: obDrag.y };
-      const other = obstacleOverlap(moved, state.room.obstacles.map((v) => v.obstacle));
-      const now = latest.current;
-      const piece =
-        o.kind === 'tv'
-          ? undefined
-          : [...moduleBoxes(now.params)].find(([, b]) => {
-              // Com o batente e o caixilho: o desenho ocupa mais que o vão.
-              const f = framed(moved);
-              return obstacleCrosses({ ...moved, xMm: f.x0, yMm: f.y0, widthMm: f.x1 - f.x0, heightMm: f.y1 - f.y0 }, [b], wall.x0);
-            });
-      obDrag.blocked = other
-        ? (other.label ?? OBSTACLE_WORD[other.kind])
-        : piece
-          ? (now.params.modules.find((m) => m.id === piece[0])?.name ?? 'o móvel')
-          : null;
+      const check = spotCheck(moved);
+      obDrag.blocked = check.blocked;
+      tintFrame(obDrag.entry.group, check.blocked ? 'bad' : check.warn ? 'warn' : 'ok');
       const box = el.getBoundingClientRect();
-      const cmText = (mm: number) => `${String(Number((mm / 10).toFixed(1))).replace('.', ',')} cm`;
-      setMoveTip({
-        x: e.clientX - box.left,
-        y: e.clientY - box.top,
-        text: obDrag.blocked
-          ? `Bate em ${obDrag.blocked}`
-          : `${OBSTACLE_WORD[o.kind]} · ${cmText(obDrag.x)} do canto${floorBound ? '' : ` · ${cmText(obDrag.y)} do piso`}`,
-        bad: !!obDrag.blocked,
-      });
+      setMoveTip({ x: e.clientX - box.left, y: e.clientY - box.top, text: spotText(moved, check), bad: !!check.blocked, warn: !!check.warn });
+    };
+    const flashTip = (text: string) => {
+      setMoveTip((tip) => (tip ? { ...tip, text, bad: true, warn: false } : tip));
+      window.clearTimeout(tipTimer);
+      tipTimer = window.setTimeout(() => setMoveTip(null), 1600);
     };
     const obstacleEnd = () => {
       const d = obDrag;
+      const clicked = obArmed?.entry;
       obArmed = null;
       obDrag = null;
       release();
       if (!d) {
         setMoveTip(null);
+        // Segurou e soltou sem arrastar: é um clique, escolhe o obstáculo.
+        if (clicked) latest.current.onSelectObstacle?.(clicked.id);
         return;
       }
       const o = d.entry.obstacle;
@@ -546,23 +600,66 @@ function FurnitureView({
           d.entry.group.position.x = state.room.wall.x0 + o.xMm;
           d.entry.group.position.y = o.yMm;
         }
+        tintFrame(d.entry.group, 'ok');
         state.dirty = true;
-        setMoveTip((tip) => (tip ? { ...tip, text: `Bate em ${d.blocked}: voltou ao lugar`, bad: true } : tip));
-        window.clearTimeout(tipTimer);
-        tipTimer = window.setTimeout(() => setMoveTip(null), 1600);
+        flashTip(`Bate em ${d.blocked}: voltou ao lugar`);
         return;
       }
       setMoveTip(null);
+      latest.current.onSelectObstacle?.(o.id);
       if (d.x !== o.xMm || d.y !== o.yMm) void latest.current.onMoveObstacle?.(o.id, d.x, d.y);
+    };
+    // Obstáculo novo: a prévia anda pela parede com o cursor ou as setas.
+    const placeTo = (x: number, y: number) => {
+      const pl = state.placing;
+      if (!pl || !state.room) return;
+      const at = clampSpot(pl.obstacle, x, y);
+      pl.x = at.x;
+      pl.y = at.y;
+      pl.group.position.x = state.room.wall.x0 + at.x;
+      pl.group.position.y = at.y;
+      const moved = { ...pl.obstacle, xMm: at.x, yMm: at.y };
+      const check = spotCheck(moved);
+      pl.blocked = check.blocked;
+      tintFrame(pl.group, check.blocked ? 'bad' : check.warn ? 'warn' : 'ok');
+      state.dirty = true;
+      const tip = screenAbove(pl.group, moved);
+      window.clearTimeout(tipTimer);
+      // Etiqueta larga não sai da cena na tela estreita.
+      tip.x = Math.min(tip.x, Math.max(8, el.clientWidth - 300));
+      setMoveTip({ ...tip, text: spotText(moved, check), bad: !!check.blocked, warn: !!check.warn });
+    };
+    state.placeTo = placeTo;
+    state.confirmPlacing = () => {
+      const pl = state.placing;
+      if (!pl) return;
+      if (pl.blocked) {
+        flashTip(`Bate em ${pl.blocked}: escolha outro lugar`);
+        return;
+      }
+      setMoveTip(null);
+      latest.current.onPlace?.({ ...pl.obstacle, xMm: pl.x, yMm: pl.y });
+    };
+    const placingMove = (e: PointerEvent) => {
+      const pl = state.placing;
+      if (!pl || !state.room || e.buttons) return;
+      aim(e);
+      const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -state.room.wall.z);
+      if (!ray.ray.intersectPlane(plane, hit)) return;
+      const o = pl.obstacle;
+      // O cursor fica no meio da peça: é onde a pessoa está olhando.
+      placeTo(hit.x - state.room.wall.x0 - o.widthMm / 2, hit.y - o.heightMm / 2);
     };
     const start = (e: PointerEvent) => {
       down = [e.clientX, e.clientY];
       const now = latest.current;
+      // Pondo um obstáculo: o clique é para ele; arrastar ainda gira a vista.
+      if (state.placing) return;
       // Shift é para somar e tirar da seleção: nunca começa um arrasto.
       if (e.button !== 0 || !now.movable || !e.isPrimary || e.shiftKey) return;
       aim(e);
       const first = ray.intersectObjects(motion.pickable(), false)[0];
-      const ob = obstacleHit();
+      const ob = now.onMoveObstacle ? obstacleHit() : null;
       if (ob && (!first || ob.distance < first.distance)) {
         obArmed = { entry: ob.entry, point: ob.point };
         controls.enabled = false;
@@ -620,6 +717,10 @@ function FurnitureView({
       setHover(null);
     };
     const dragMove = (e: PointerEvent) => {
+      if (state.placing) {
+        placingMove(e);
+        return;
+      }
       if (obArmed && Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) {
         obDrag = {
           entry: obArmed.entry,
@@ -675,6 +776,13 @@ function FurnitureView({
       commitPreview();
     };
     const pick = (e: PointerEvent) => {
+      if (state.placing) {
+        if (e.button === 0 && Math.hypot(e.clientX - down[0], e.clientY - down[1]) <= 5) {
+          placingMove(e);
+          state.confirmPlacing?.();
+        }
+        return;
+      }
       if (obArmed || obDrag) {
         obstacleEnd();
         return;
@@ -694,11 +802,15 @@ function FurnitureView({
         ),
         camera,
       );
-      callback.current(
-        ray.intersectObjects(motion.pickable(), false)[0]?.object.userData.id ??
-          null,
-        e.shiftKey,
-      );
+      const first = ray.intersectObjects(motion.pickable(), false)[0];
+      // Obstáculo na frente do móvel (ou sem móvel embaixo): escolhe ele.
+      const ob = obstacleHit();
+      if (ob && (!first || ob.distance < first.distance)) {
+        latest.current.onSelectObstacle?.(ob.entry.id);
+        return;
+      }
+      latest.current.onSelectObstacle?.(null);
+      callback.current(first?.object.userData.id ?? null, e.shiftKey);
     };
     renderer.domElement.addEventListener('pointerdown', start, { capture: true });
     renderer.domElement.addEventListener('pointerup', pick);
@@ -706,6 +818,10 @@ function FurnitureView({
     renderer.domElement.addEventListener('pointermove', dragMove);
     const hover = (e: PointerEvent) => {
       if (drag || obDrag) return;
+      if (state.placing) {
+        setHover(null);
+        return;
+      }
       if (e.pointerType !== 'mouse' || e.buttons !== 0) {
         setHover(null);
         return;
@@ -723,7 +839,7 @@ function FurnitureView({
         null;
       if (!id) {
         setHover(null);
-        setOverObstacle(!!latest.current.movable && !!obstacleHit());
+        setOverObstacle(!!obstacleHit());
         return;
       }
       setOverObstacle(false);
@@ -781,6 +897,15 @@ function FurnitureView({
       shownCamera.copy(camera.position);
       shownTarget.copy(controls.target);
       for (const dispose of state.retired.splice(0)) dispose();
+      // Barra do obstáculo escolhido: acima dele, acompanhando câmera e arrasto.
+      const bar = obBar.current;
+      const chosen = bar && state.room?.obstacles.find((v) => v.id === latest.current.selectedObstacle);
+      if (bar && chosen) {
+        const at = screenAbove(chosen.group, chosen.obstacle);
+        const off = at.x < 0 || at.y < 0 || at.x > el.clientWidth || at.y > el.clientHeight;
+        bar.style.opacity = off ? '0' : '1';
+        bar.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(Math.max(8, at.y))}px) translate(-50%, -100%)`;
+      }
       // Rótulos das cotas: HTML nítido em qualquer zoom, reposicionado a cada
       // quadro direto no DOM, sem passar pelo React.
       if (state.dims && state.labelEls.length) {
@@ -905,8 +1030,18 @@ function FurnitureView({
     if (state) state.motion.setHover(hover?.id ?? null);
     // Sobre uma peça já selecionada, a mão avisa que dá para arrastar.
     if (host.current && !dragging.current)
-      host.current.style.cursor = hover ? (movable && selected.includes(hover.id) ? 'grab' : 'pointer') : overObstacle ? 'grab' : '';
-  }, [hover, movable, selected, overObstacle]);
+      host.current.style.cursor = placing
+        ? 'crosshair'
+        : hover
+          ? movable && selected.includes(hover.id)
+            ? 'grab'
+            : 'pointer'
+          : overObstacle
+            ? movable && onMoveObstacle
+              ? 'grab'
+              : 'pointer'
+            : '';
+  }, [hover, movable, selected, overObstacle, placing, onMoveObstacle]);
   // Mover pelo controle e pelas setas: cada toque anda um passo na prévia e,
   // parado um instante, o lugar novo é gravado numa versão só.
   const target = useMemo(() => selectedGroup(params, parts, selected), [params, parts, selected]);
@@ -1003,6 +1138,7 @@ function FurnitureView({
       const dir = ARROW_KEYS[e.key];
       if (!dir || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
       if ((e.target as HTMLElement | null)?.closest?.(OWNS_ARROWS)) return;
+      if (latest.current.placing) return;
       if (!latest.current.movable || !latest.current.selected.length) return;
       e.preventDefault();
       nudgeKey.current(dir, e.shiftKey);
@@ -1057,7 +1193,7 @@ function FurnitureView({
     }
     s.room = undefined;
     if (sceneRoom) {
-      s.room = buildRoom(sceneRoom, bounds, theme, mountZ, [...moduleBoxes(params).values()]);
+      s.room = buildRoom(sceneRoom, bounds, theme, mountZ, [...moduleBoxes(params).values()], selectedObstacle);
       s.scene.add(s.room.group);
     }
     s.grid.visible = !sceneRoom;
@@ -1066,7 +1202,65 @@ function FurnitureView({
     s.shadowFloor.visible = !sceneRoom;
     s.ground.position.y = sceneRoom ? GROUND_UNDER_ROOM : -1;
     s.dirty = true;
-  }, [sceneRoom, bounds, theme, mountZ, params]);
+  }, [sceneRoom, bounds, theme, mountZ, params, selectedObstacle]);
+  // Obstáculo novo: a prévia translúcida entra na parede no lugar livre que
+  // veio com ele e segue o cursor até o clique (ou Enter).
+  useEffect(() => {
+    const s = runtime.current;
+    if (!s || !placing || !s.room) return;
+    const disposables: { dispose: () => void }[] = [];
+    const group = buildObstacle(placing, {
+      palette: ROOM_PALETTE[theme],
+      theme,
+      bad: false,
+      ghost: true,
+      track: (d) => disposables.push(d),
+    });
+    group.position.set(s.room.wall.x0 + placing.xMm, placing.yMm, s.room.wall.z);
+    s.scene.add(group);
+    s.placing = { group, obstacle: placing, x: placing.xMm, y: placing.yMm, blocked: null };
+    s.placeTo?.(placing.xMm, placing.yMm);
+    return () => {
+      s.scene.remove(group);
+      s.retired.push(() => disposables.forEach((d) => d.dispose()));
+      s.placing = undefined;
+      s.dirty = true;
+      setMoveTip(null);
+    };
+  }, [placing, theme, sceneRoom, bounds]);
+  // Pondo obstáculo: setas andam 10 cm (Shift, 1 cm), Enter põe, Esc desiste.
+  const cancelPlace = useRef(onCancelPlace);
+  useEffect(() => {
+    cancelPlace.current = onCancelPlace;
+  }, [onCancelPlace]);
+  useEffect(() => {
+    if (!placing) return;
+    const down = (e: KeyboardEvent) => {
+      const s = runtime.current;
+      if (!s?.placing || e.ctrlKey || e.metaKey || e.altKey) return;
+      if ((e.target as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+      const step = e.shiftKey ? 10 : 100;
+      const { x, y } = s.placing;
+      const moves: Record<string, [number, number]> = {
+        ArrowLeft: [-step, 0],
+        ArrowRight: [step, 0],
+        ArrowUp: [0, step],
+        ArrowDown: [0, -step],
+      };
+      if (moves[e.key]) {
+        e.preventDefault();
+        s.placeTo?.(x + moves[e.key][0], y + moves[e.key][1]);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        s.confirmPlacing?.();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        cancelPlace.current?.();
+      }
+    };
+    window.addEventListener('keydown', down);
+    return () => window.removeEventListener('keydown', down);
+  }, [placing]);
   // Pés: não são peças de corte, vêm da composição. Somem no explodido.
   useEffect(() => {
     const s = runtime.current;
@@ -1280,6 +1474,7 @@ function FurnitureView({
     snapshotSink.current?.(out.toDataURL('image/png'));
   }, [snapshotRequest, caption, theme]);
   const hoveredPart = hover ? parts.find((v) => v.id === hover.id) : undefined;
+  const chosenObstacle = showRoom && selectedObstacle ? room?.obstacles?.find((o) => o.id === selectedObstacle) : undefined;
   // Gravar o lugar novo trava o controle por ~100 ms: sem este atraso ele
   // piscava apagado a cada movimento.
   const padLocked = useDelayedTrue(!movable, 300);
@@ -1302,9 +1497,43 @@ function FurnitureView({
         />
       )}
       {moveTip && (
-        <output className={'move-tip' + (moveTip.bad ? ' bad' : '')} style={{ left: moveTip.x, top: moveTip.y }}>
+        <output className={'move-tip' + (moveTip.bad ? ' bad' : moveTip.warn ? ' warn' : '')} style={{ left: moveTip.x, top: moveTip.y }}>
           {moveTip.text}
         </output>
+      )}
+      {placing && (
+        <output className="place-hint">
+          <span>
+            <strong>Clique na parede</strong> para pôr {OBSTACLE_ARTICLE[placing.kind]}.
+            <span className="place-keys"> Setas ajustam, Enter confirma.</span>
+          </span>
+          <button type="button" onClick={() => onCancelPlace?.()}>
+            Cancelar <kbd>Esc</kbd>
+          </button>
+        </output>
+      )}
+      {chosenObstacle && !placing && (
+        <div className="ob-bar" ref={obBar} role="toolbar" aria-label={`${OBSTACLE_WORD[chosenObstacle.kind]} escolhida na parede`}>
+          <span className="ob-bar-name">
+            <strong>{chosenObstacle.label ?? OBSTACLE_WORD[chosenObstacle.kind]}</strong>
+            <small>
+              {Math.round(chosenObstacle.widthMm / 10)} × {Math.round(chosenObstacle.heightMm / 10)} cm
+            </small>
+          </span>
+          {onEditObstacle && (
+            <button type="button" title="Editar medidas" aria-label="Editar medidas" onClick={() => onEditObstacle(chosenObstacle.id)}>
+              <Pencil size={14} />
+            </button>
+          )}
+          {onRemoveObstacle && (
+            <button type="button" className="danger" title="Remover (Delete)" aria-label="Remover" onClick={() => onRemoveObstacle(chosenObstacle.id)}>
+              <Trash2 size={14} />
+            </button>
+          )}
+          <button type="button" title="Fechar (Esc)" aria-label="Fechar" onClick={() => onSelectObstacle?.(null)}>
+            <X size={14} />
+          </button>
+        </div>
       )}
       <div className="scene-dims" ref={labelHost} aria-hidden="true">
         {dimLabels.map((label, i) => (

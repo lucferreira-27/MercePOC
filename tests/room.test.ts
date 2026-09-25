@@ -213,7 +213,7 @@ void test('giro da porta vira nota só quando alcança o móvel', () => {
   assert.ok(reaching.notes.some((note) => note.includes('giro de 800 mm')));
 });
 
-void test('a ação room grava o ambiente sem abrir revisão e trava a versão', async () => {
+void test('a ação room grava o ambiente numa versão nova e trava a versão', async () => {
   const created = create();
   const measured = room({
     obstacles: [
@@ -229,7 +229,8 @@ void test('a ação room grava o ambiente sem abrir revisão e trava a versão',
   assert.equal(first.status, 200);
   const state = stateSchema.parse(await first.json());
   assert.deepEqual(state.room, measured);
-  assert.equal(state.revisions.length, 1);
+  // Obstáculo posto entra no histórico: Ctrl+Z desfaz.
+  assert.equal(state.revisions.length, 2);
   assert.equal(state.version, 1);
   assert.deepEqual(get(created.id).room, measured);
   const read = await GET(
@@ -257,7 +258,7 @@ void test('a ação room grava o ambiente sem abrir revisão e trava a versão',
   assert.equal(invalid.status, 400);
   assert.deepEqual(get(created.id).room, measured);
 
-  // Alternativa do mesmo lugar nasce com o ambiente medido.
-  const alternative = fork(created.id, 0, 'Alternativa medida');
+  // Alternativa nasce com o ambiente da versão de onde saiu.
+  const alternative = fork(created.id, 1, 'Alternativa medida');
   assert.deepEqual(alternative.room, measured);
 });

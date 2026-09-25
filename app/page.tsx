@@ -87,7 +87,7 @@ import { type Part } from '@/lib/furniture';
 import type { Project, Message, Clarification } from '@/lib/store';
 import { ModularEditor } from '@/components/modular-editor';
 import { ProjectPicker, type ProjectSummary } from '@/components/project-picker';
-import { RoomPanel } from '@/components/room-panel';
+import { OBSTACLE_ICON, RoomPanel } from '@/components/room-panel';
 import { QuotePanel } from '@/components/quote-panel';
 import { CutPlanPanel, cutPlanCSV } from '@/components/cut-plan-panel';
 import { CommandPalette, type PaletteAction } from '@/components/command-palette';
@@ -96,7 +96,8 @@ import { templates } from '@/lib/templates';
 import { PrintSheet, groupParts } from '@/components/print-sheet';
 import { entityIds, canonical, selectedPartIds } from '@/lib/studio';
 import { drawingParts, openingLimit, openingPose, type ModularPart } from '@/lib/composition';
-import { fitReport, fitSummary, roomOffset, wallAt, type Room } from '@/lib/room';
+import { emptyRoom, roomChangeLabel, fitReport, fitSummary, freeSpot, obstacleWord, OBSTACLE_LABEL, presetObstacle, roomOffset, wallAt, type Obstacle, type ObstacleKind, type Room } from '@/lib/room';
+import { moduleBoxes } from '@/lib/move';
 import { DEFAULT_PRICES, mergePrices, money, quote as buildQuote, type Prices } from '@/lib/quote';
 import { friendlyError } from '@/lib/errors';
 import { MODEL_KEYS, modelInfo, tokensLabel, usd, type ModelKey, type TurnUsage } from '@/lib/models';
@@ -291,6 +292,14 @@ export default function Home() {
     [forkName, setForkName] = useState(''),
     [uploading, setUploading] = useState(false),
     [historyPreview, setHistoryPreview] = useState<number | null>(null),
+    // Obstáculo da parede escolhido (na cena ou na lista do painel).
+    [selectedObstacle, setSelectedObstacle] = useState<string | null>(null),
+    // Obstáculo novo esperando o clique na parede, e a parede onde ele entra.
+    [placing, setPlacing] = useState<{ obstacle: Obstacle; base: Room } | null>(null),
+    // Ambiente com o campo que a pessoa está digitando, antes de gravar.
+    [roomPreview, setRoomPreview] = useState<Room | null>(null),
+    // Aviso curto na cena com "Desfazer": tirar um obstáculo é um clique só.
+    [stageToast, setStageToast] = useState<{ text: string; version: number } | null>(null),
     /**
      * Mudanças de uma mensagem revistas na cena. `frame` -1 é o antes; depois
      * um quadro por operação. `pinned`: a pessoa pediu, então não some sozinho.
@@ -599,11 +608,15 @@ export default function Home() {
    * seção Ambiente e o aviso do cabeçalho. Sem ambiente informado não existe
    * veredito, e o cabeçalho não inventa um.
    */
+  // Ambiente da versão à vista: a prévia do histórico mostra os obstáculos
+  // que aquela versão tinha.
+  const previewRoom = historyPreview === null ? undefined : p?.revisions[historyPreview]?.room;
+  const visualRoom = previewRoom === undefined ? p?.room : (previewRoom ?? undefined);
   const roomFit = useMemo(() => {
-    if (!p?.room || !visualParams) return null;
-    const report = fitReport(visualParams, p.room);
-    return { report, summary: fitSummary(visualParams, p.room, report) };
-  }, [p?.room, visualParams]);
+    if (!visualRoom || !visualParams) return null;
+    const report = fitReport(visualParams, visualRoom);
+    return { report, summary: fitSummary(visualParams, visualRoom, report) };
+  }, [visualRoom, visualParams]);
   // Chips de prévia são da linha do tempo; na revisão das mudanças quem fala
   // é o diff na conversa e a barra da cena.
   const previewChanges = useMemo(
@@ -974,7 +987,12 @@ export default function Home() {
         e.preventDefault();
         if (!chatOpen) toggleChat(true);
         setTimeout(() => composer.current?.focus(), 30);
-      } else if (key === 'escape' && selected.length) setSelected([]);
+      } else if ((key === 'delete' || key === 'backspace') && selectedObstacle && !placing) {
+        e.preventDefault();
+        removeObstacle(selectedObstacle);
+      } else if (key === 'escape' && placing) setPlacing(null);
+      else if (key === 'escape' && selectedObstacle) setSelectedObstacle(null);
+      else if (key === 'escape' && selected.length) setSelected([]);
     };
   });
   useEffect(() => {
@@ -1109,19 +1127,94 @@ export default function Home() {
     }
   }
   /**
-   * Ambiente é dado do lugar, não do móvel: salvar não abre revisão nem
-   * descarta versões futuras, só grava as medidas no projeto.
+   * Grava o ambiente como versão nova (entra no Ctrl+Z e no histórico). Numa
+   * versão antiga, pergunta antes, como as outras edições: as seguintes
+   * seriam descartadas. `after` roda só se gravou.
    */
-  async function saveRoom(room: Room) {
-    // Parede presa: o campo "a partir do canto" reposiciona a parede em x.
+  function roomAction(room: Room, after?: (next: State) => void) {
+    if (!p) return;
+    return guardTruncation(async () => {
+      const next = await action('room', { room });
+      if (next) after?.(next);
+    }, roomChangeLabel(p.room, room));
+  }
+  /** Parede do painel. Parede presa: "a partir do canto" reposiciona em x. */
+  async function saveRoom(room: Room, after?: (next: State) => void) {
     if (p?.room?.anchor) {
       const bounds = designOf(p.params).bounds;
       room = { ...room, anchor: { x: bounds.min[0] - (room.offsetMm ?? 0), z: p.room.anchor.z } };
     }
-    const next = await action('room', { room });
-    // O painel mostra o motivo no próprio formulário; o aviso geral já saiu.
-    if (!next) throw new Error('Não foi possível salvar o ambiente.');
+    await roomAction(room, (next) => {
+      setShowRoom(true);
+      after?.(next);
+    });
+  }
+  /**
+   * Obstáculos novos do ambiente salvo, sem mexer na parede: o arrasto, a
+   * lista e o 3D gravam por aqui.
+   */
+  function saveObstacles(obstacles: Obstacle[], after?: (next: State) => void) {
+    if (!p?.room) return;
+    return roomAction({ ...p.room, obstacles }, after);
+  }
+  /**
+   * Começa a pôr um obstáculo: nasce com as medidas comuns no primeiro lugar
+   * livre da parede (longe do móvel quando dá) e a prévia segue o cursor.
+   */
+  function startPlace(kind: ObstacleKind, base: Room) {
+    if (!p) return;
+    const list = base.obstacles ?? [];
+    let n = 1;
+    while (list.some((o) => o.id === `${kind}-${n}`)) n++;
+    const o = presetObstacle(kind, base, `${kind}-${n}`);
+    const bounds = designOf(p.params).bounds;
+    const x0 = wallAt(base, bounds).x;
+    const boxes = [...moduleBoxes(p.params).values()];
+    const x = freeSpot(o, base, (a, b) =>
+      kind !== 'tv' &&
+      boxes.some(
+        (m) =>
+          Math.min(b, m.max[0] - x0) - Math.max(a, m.min[0] - x0) > 0 &&
+          Math.min(o.yMm + o.heightMm, m.max[1]) - Math.max(o.yMm, m.min[1]) > 0,
+      ),
+    );
+    if (x === null) {
+      setError(`Não há lugar livre na parede para ${obstacleWord({ kind })} de ${o.widthMm / 10} cm. Tire ou afaste um obstáculo.`);
+      return;
+    }
+    setError('');
+    setSelectedObstacle(null);
+    setRoomPreview(null);
     setShowRoom(true);
+    setPlacing({ obstacle: { ...o, xMm: x }, base });
+  }
+  function placeObstacle(o: Obstacle) {
+    const pl = placing;
+    if (!pl || busy) return;
+    const room = { ...pl.base, obstacles: [...(pl.base.obstacles ?? []), o] };
+    // Não gravou: a prévia continua para tentar de novo; o aviso diz o motivo.
+    const done = () => {
+      setPlacing(null);
+      setSelectedObstacle(o.id);
+    };
+    if (p?.room) void saveObstacles(room.obstacles, done);
+    else void saveRoom(room, done);
+  }
+  function removeObstacle(id: string) {
+    if (!p?.room || busy) return;
+    const gone = p.room.obstacles?.find((o) => o.id === id);
+    setSelectedObstacle(null);
+    void saveObstacles(
+      (p.room.obstacles ?? []).filter((o) => o.id !== id),
+      (next) => {
+        const word = gone ? obstacleWord(gone) : 'o obstáculo';
+        setStageToast({ text: `${word[0].toUpperCase()}${word.slice(1)} saiu da parede.`, version: next.version });
+      },
+    );
+  }
+  async function changeObstacle(o: Obstacle) {
+    if (!p?.room) return;
+    await saveObstacles((p.room.obstacles ?? []).map((v) => (v.id === o.id ? o : v)));
   }
   async function forkFrom(cursor: number) {
     if (busy || !p) return;
@@ -1654,6 +1747,19 @@ export default function Home() {
     { id: 'library', group: 'Projeto', label: 'Adicionar da biblioteca…', hint: 'rack, cozinha, cômoda…', icon: <LayoutTemplate size={15} />, disabled: !p, run: () => openGallery('add') },
     { id: 'undo', group: 'Projeto', label: 'Desfazer', keys: 'Ctrl Z', icon: <Undo2 size={15} />, disabled: !p || !canUndo(p) || busy, run: () => void action('undo') },
     { id: 'redo', group: 'Projeto', label: 'Refazer', keys: 'Ctrl Y', icon: <Redo2 size={15} />, disabled: !p || !canRedo(p) || busy, run: () => void action('redo') },
+    ...(Object.keys(OBSTACLE_LABEL) as ObstacleKind[]).map((kind) => ({
+      id: 'obstacle-' + kind,
+      group: 'Ambiente',
+      label: `Pôr ${obstacleWord({ kind }).replace(/^(a|o) /, '')} na parede`,
+      hint: 'clique no 3D onde fica',
+      icon: OBSTACLE_ICON[kind],
+      disabled: !p || busy || historyPreview !== null,
+      run: () => {
+        if (!p) return;
+        chooseTab('room');
+        startPlace(kind, roomForPanel ?? emptyRoom());
+      },
+    })),
     { id: 'rename', group: 'Projeto', label: 'Renomear projeto', icon: <Pencil size={15} />, run: () => setRenaming(true) },
     ...exports.map((x) => ({ id: 'export-' + x.id, group: 'Exportar', label: x.label, hint: x.hint, icon: x.icon, run: x.run })),
   ];
@@ -1664,11 +1770,39 @@ export default function Home() {
     id === null ? setSelected([]) : toggleSelected(id, extend),
   );
   const onMoveFurniture = useEvent(moveFurniture);
-  // Obstáculo arrastado na parede: grava no ambiente, sem versão nova.
+  // Obstáculo arrastado na parede: vira versão; arrastos seguidos do mesmo
+  // obstáculo ficam numa só, e Ctrl+Z volta um a um.
   const onMoveObstacle = useEvent((id: string, xMm: number, yMm: number) => {
     if (!p?.room || busy) return;
-    const room = { ...p.room, obstacles: (p.room.obstacles ?? []).map((o) => (o.id === id ? { ...o, xMm, yMm } : o)) };
-    return action('room', { room });
+    return saveObstacles((p.room.obstacles ?? []).map((o) => (o.id === id ? { ...o, xMm, yMm } : o)));
+  });
+  const onSelectObstacle = useEvent((id: string | null) => {
+    setSelectedObstacle(id);
+    setRoomPreview(null);
+    // Um obstáculo escolhido e o móvel ao mesmo tempo: Delete não saberia qual.
+    if (id) setSelected([]);
+  });
+  const onPlaceObstacle = useEvent(placeObstacle);
+  // O aviso some sozinho, ou quando o projeto muda por outro caminho.
+  useEffect(() => {
+    if (!stageToast) return;
+    const t = window.setTimeout(() => setStageToast(null), 6000);
+    return () => window.clearTimeout(t);
+  }, [stageToast]);
+  const shownVersion = p?.version;
+  useEffect(() => {
+    setStageToast((t) => (t && shownVersion !== undefined && t.version !== shownVersion ? null : t));
+  }, [shownVersion]);
+  // Outro projeto ou uma versão antiga à vista: a prévia do obstáculo novo sai.
+  useEffect(() => {
+    setPlacing(null);
+    setRoomPreview(null);
+  }, [p?.id, historyPreview]);
+  const onCancelPlace = useEvent(() => setPlacing(null));
+  const onRemoveObstacle = useEvent(removeObstacle);
+  const onEditObstacle = useEvent((id: string) => {
+    setSelectedObstacle(id);
+    chooseTab('room');
   });
   const onEditorSelect = useEvent(selectMany);
   const onEditorOp = useEvent(op);
@@ -2516,8 +2650,8 @@ export default function Home() {
               frameRequest={frameRequest}
               steady={!!reviewData}
               zoomRequest={zoomRequest}
-              room={p.room}
-              showRoom={showRoom}
+              room={placing?.base ?? roomPreview ?? visualRoom}
+              showRoom={showRoom || !!placing}
               showDims={showDims}
               theme={theme}
               snapshotRequest={snapshotRequest}
@@ -2528,8 +2662,33 @@ export default function Home() {
               keyboard={!paletteOpen && !galleryOpen}
               movable={!busy && !pending && historyPreview === null && !reviewLocked && !exploded}
               onMove={onMoveFurniture}
-              onMoveObstacle={p.room && showRoom ? onMoveObstacle : undefined}
+              onMoveObstacle={p.room && showRoom && historyPreview === null ? onMoveObstacle : undefined}
+              selectedObstacle={historyPreview === null && p.room?.obstacles?.some((o) => o.id === selectedObstacle) ? selectedObstacle : null}
+              onSelectObstacle={p.room && historyPreview === null ? onSelectObstacle : undefined}
+              placing={placing?.obstacle ?? null}
+              onPlace={onPlaceObstacle}
+              onCancelPlace={onCancelPlace}
+              onRemoveObstacle={busy ? undefined : onRemoveObstacle}
+              onEditObstacle={onEditObstacle}
             />
+          )}
+          {stageToast && (
+            <output className="stage-toast">
+              <span>{stageToast.text}</span>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setStageToast(null);
+                  void action('undo');
+                }}
+              >
+                <Undo2 size={14} /> Desfazer
+              </button>
+              <button type="button" aria-label="Fechar aviso" onClick={() => setStageToast(null)}>
+                <X size={13} />
+              </button>
+            </output>
           )}
           <div className="stage-tools" role="toolbar" aria-label="Ferramentas da cena" aria-orientation="vertical">
             <button type="button" title="Aproximar (+)" aria-label="Aproximar" onClick={() => setZoomRequest({ id: Date.now(), direction: 'in' })}><ZoomIn size={17} /></button>
@@ -2780,9 +2939,9 @@ export default function Home() {
               )}
               {tab === 'room' && (
                 <RoomPanel
-                  // Obstáculo movido na cena ou posto pela IA: o formulário
-                  // recomeça do ambiente salvo, senão salvar o painel desfazia.
-                  key={`${p.id}:${JSON.stringify(p.room?.obstacles ?? [])}`}
+                  // A parede mudou fora do formulário (Ctrl+Z, IA): ele
+                  // recomeça do salvo. Obstáculos não: a lista lê do projeto.
+                  key={`${p.id}:${JSON.stringify({ ...roomForPanel, obstacles: undefined })}`}
                   room={roomForPanel}
                   report={roomFit?.report ?? null}
                   summary={roomFit?.summary ?? ''}
@@ -2790,6 +2949,14 @@ export default function Home() {
                   onSave={saveRoom}
                   showInScene={showRoom && !!p.room}
                   onToggleScene={(v) => toggleRoom(v)}
+                  selectedObstacle={selectedObstacle}
+                  onSelectObstacle={onSelectObstacle}
+                  placingKind={placing?.obstacle.kind ?? null}
+                  onStartPlace={startPlace}
+                  onCancelPlace={onCancelPlace}
+                  onChangeObstacle={changeObstacle}
+                  onRemoveObstacle={onRemoveObstacle}
+                  onPreview={setRoomPreview}
                 />
               )}
               {tab === 'quote' && quote && (
