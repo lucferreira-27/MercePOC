@@ -44,7 +44,7 @@ type Runtime = {
   reduced: MediaQueryList;
   move?: CameraMove;
   view?: { height: number; width: number; depth: number; mode: ViewMode; frameRequest: number };
-  room?: { group: THREE.Group; dispose: () => void };
+  room?: ReturnType<typeof buildRoom>;
   feet?: { group: THREE.Group; dispose: () => void };
   ghosts?: { group: THREE.Group; dispose: () => void };
   dims?: { lines: THREE.LineSegments; labels: DimLabel[]; dispose: () => void };
@@ -123,6 +123,15 @@ function groundTexture() {
   return t;
 }
 
+const OBSTACLE_WORD: Record<string, string> = {
+  door: 'Porta',
+  window: 'Janela',
+  outlet: 'Tomada',
+  column: 'Coluna',
+  tv: 'TV',
+  other: 'Obstáculo',
+};
+
 /** Chão de fundo bem abaixo do piso do ambiente: nunca disputa a mesma profundidade. */
 const GROUND_UNDER_ROOM = -40;
 
@@ -151,6 +160,7 @@ function FurnitureView({
   diff = null,
   movable = false,
   onMove,
+  onMoveObstacle,
   keyboard = true,
 }: {
   /** Pode mover o móvel selecionado (fora do explodido, sem turno em curso). */
@@ -160,6 +170,8 @@ function FurnitureView({
    * projeto andou: com ambiente real, a parede fica onde está.
    */
   onMove?: (op: ModularOp, label: string, shiftX: number) => Promise<unknown>;
+  /** Obstáculo da parede arrastado na cena: novo x e y em mm, pela parede. */
+  onMoveObstacle?: (id: string, xMm: number, yMm: number) => unknown;
   /** Setas movem o móvel selecionado. Desligado com diálogos abertos. */
   keyboard?: boolean;
   /**
@@ -244,11 +256,13 @@ function FurnitureView({
       // Sem armazenamento o modo vale só nesta aba.
     }
   };
-  const latest = useRef({ params, parts, selected, movable, onMove, wallZ, dragMode });
+  const latest = useRef({ params, parts, selected, movable, onMove, onMoveObstacle, wallZ, dragMode });
   useEffect(() => {
-    latest.current = { params, parts, selected, movable, onMove, wallZ, dragMode };
-  }, [params, parts, selected, movable, onMove, wallZ, dragMode]);
+    latest.current = { params, parts, selected, movable, onMove, onMoveObstacle, wallZ, dragMode };
+  }, [params, parts, selected, movable, onMove, onMoveObstacle, wallZ, dragMode]);
   const lastParams = useRef(params);
+  // Ponteiro sobre um obstáculo da parede que dá para arrastar.
+  const [overObstacle, setOverObstacle] = useState(false);
   const [moveTip, setMoveTip] = useState<{ x: number; y: number; text: string; bad: boolean } | null>(null);
   const [moveStatus, setMoveStatus] = useState<{ text: string; bad?: boolean } | null>(null);
   const dragging = useRef(false);
@@ -456,6 +470,54 @@ function FurnitureView({
       dragging.current = false;
       el.style.cursor = '';
     };
+    // Obstáculo da parede: porta, janela, tomada... pega e arrasta pela
+    // parede. Com o móvel na frente, o móvel tem a preferência.
+    type ObstacleEntry = NonNullable<Runtime['room']>['obstacles'][number];
+    let obArmed: { entry: ObstacleEntry; point: THREE.Vector3 } | null = null;
+    let obDrag: { entry: ObstacleEntry; plane: THREE.Plane; from: THREE.Vector3; x: number; y: number } | null = null;
+    const obstacleHit = () => {
+      const list = state.room?.obstacles ?? [];
+      if (!list.length || !latest.current.onMoveObstacle) return null;
+      const h = ray.intersectObjects(list.map((v) => v.group), true)[0];
+      if (!h) return null;
+      let node: THREE.Object3D | null = h.object;
+      while (node && node.userData.obstacleId === undefined) node = node.parent;
+      const entry = list.find((v) => v.id === node?.userData.obstacleId);
+      return entry ? { entry, point: h.point.clone(), distance: h.distance } : null;
+    };
+    const obstacleMove = (e: PointerEvent) => {
+      if (!obDrag || !state.room) return;
+      aim(e);
+      if (!ray.ray.intersectPlane(obDrag.plane, hit)) return;
+      const o = obDrag.entry.obstacle;
+      const wall = state.room.wall;
+      // Porta e coluna ficam no piso: andam só na horizontal.
+      const floorBound = o.kind === 'door' || o.kind === 'column';
+      const snap = (v: number) => Math.round(v / 10) * 10;
+      obDrag.x = THREE.MathUtils.clamp(snap(o.xMm + hit.x - obDrag.from.x), 0, Math.max(0, wall.width - o.widthMm));
+      obDrag.y = floorBound ? o.yMm : THREE.MathUtils.clamp(snap(o.yMm + hit.y - obDrag.from.y), 0, Math.max(0, wall.height - o.heightMm));
+      obDrag.entry.group.position.x = wall.x0 + obDrag.x;
+      obDrag.entry.group.position.y = obDrag.y;
+      state.dirty = true;
+      const box = el.getBoundingClientRect();
+      const cmText = (mm: number) => `${String(Number((mm / 10).toFixed(1))).replace('.', ',')} cm`;
+      setMoveTip({
+        x: e.clientX - box.left,
+        y: e.clientY - box.top,
+        text: `${OBSTACLE_WORD[o.kind]} · ${cmText(obDrag.x)} do canto${floorBound ? '' : ` · ${cmText(obDrag.y)} do piso`}`,
+        bad: false,
+      });
+    };
+    const obstacleEnd = () => {
+      const d = obDrag;
+      obArmed = null;
+      obDrag = null;
+      release();
+      setMoveTip(null);
+      if (!d) return;
+      const o = d.entry.obstacle;
+      if (d.x !== o.xMm || d.y !== o.yMm) void latest.current.onMoveObstacle?.(o.id, d.x, d.y);
+    };
     const start = (e: PointerEvent) => {
       down = [e.clientX, e.clientY];
       const now = latest.current;
@@ -463,6 +525,18 @@ function FurnitureView({
       if (e.button !== 0 || !now.movable || !e.isPrimary || e.shiftKey) return;
       aim(e);
       const first = ray.intersectObjects(motion.pickable(), false)[0];
+      const ob = obstacleHit();
+      if (ob && (!first || ob.distance < first.distance)) {
+        obArmed = { entry: ob.entry, point: ob.point };
+        controls.enabled = false;
+        dragging.current = true;
+        try {
+          renderer.domElement.setPointerCapture(e.pointerId);
+        } catch {
+          // Sem captura o arrasto termina quando o ponteiro sai da cena.
+        }
+        return;
+      }
       const id = first?.object.userData.id as string | undefined;
       if (!first || !id || !now.selected.includes(id)) return;
       const owner = (now.parts.find((p) => p.id === id) as { owners?: string[] } | undefined)?.owners?.[0];
@@ -509,6 +583,22 @@ function FurnitureView({
       setHover(null);
     };
     const dragMove = (e: PointerEvent) => {
+      if (obArmed && Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) {
+        obDrag = {
+          entry: obArmed.entry,
+          plane: new THREE.Plane(new THREE.Vector3(0, 0, 1), -obArmed.point.z),
+          from: obArmed.point,
+          x: obArmed.entry.obstacle.xMm,
+          y: obArmed.entry.obstacle.yMm,
+        };
+        obArmed = null;
+        el.style.cursor = 'grabbing';
+        setHover(null);
+      }
+      if (obDrag) {
+        obstacleMove(e);
+        return;
+      }
       if (armed && Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) begin();
       if (!drag) return;
       aim(e);
@@ -535,6 +625,10 @@ function FurnitureView({
       } else setMoveTip((tip) => (tip ? { ...tip, x, y } : tip));
     };
     const dragEnd = () => {
+      if (obArmed || obDrag) {
+        obstacleEnd();
+        return;
+      }
       if (armed) release();
       if (!drag) return;
       drag = null;
@@ -543,6 +637,10 @@ function FurnitureView({
       commitPreview();
     };
     const pick = (e: PointerEvent) => {
+      if (obArmed || obDrag) {
+        obstacleEnd();
+        return;
+      }
       if (drag) {
         dragEnd();
         return;
@@ -569,7 +667,7 @@ function FurnitureView({
     renderer.domElement.addEventListener('pointercancel', dragEnd);
     renderer.domElement.addEventListener('pointermove', dragMove);
     const hover = (e: PointerEvent) => {
-      if (drag) return;
+      if (drag || obDrag) return;
       if (e.pointerType !== 'mouse' || e.buttons !== 0) {
         setHover(null);
         return;
@@ -587,8 +685,10 @@ function FurnitureView({
         null;
       if (!id) {
         setHover(null);
+        setOverObstacle(!!latest.current.movable && !!obstacleHit());
         return;
       }
+      setOverObstacle(false);
       const box = el.getBoundingClientRect();
       const x = e.clientX - box.left;
       setHover({ id, x, y: Math.min(e.clientY - box.top, box.height - 100), flip: x > box.width - 230 });
@@ -766,8 +866,8 @@ function FurnitureView({
     if (state) state.motion.setHover(hover?.id ?? null);
     // Sobre uma peça já selecionada, a mão avisa que dá para arrastar.
     if (host.current && !dragging.current)
-      host.current.style.cursor = hover ? (movable && selected.includes(hover.id) ? 'grab' : 'pointer') : '';
-  }, [hover, movable, selected]);
+      host.current.style.cursor = hover ? (movable && selected.includes(hover.id) ? 'grab' : 'pointer') : overObstacle ? 'grab' : '';
+  }, [hover, movable, selected, overObstacle]);
   // Mover pelo controle e pelas setas: cada toque anda um passo na prévia e,
   // parado um instante, o lugar novo é gravado numa versão só.
   const target = useMemo(() => selectedGroup(params, parts, selected), [params, parts, selected]);
@@ -912,12 +1012,13 @@ function FurnitureView({
     const s = runtime.current;
     if (!s) return;
     if (s.room) {
-      s.scene.remove(s.room.group);
-      s.retired.push(s.room.dispose);
+      const old = s.room;
+      s.scene.remove(old.group);
+      s.retired.push(() => old.dispose());
     }
     s.room = undefined;
     if (sceneRoom) {
-      s.room = buildRoom(sceneRoom, bounds, theme, mountZ);
+      s.room = buildRoom(sceneRoom, bounds, theme, mountZ, [...moduleBoxes(params).values()]);
       s.scene.add(s.room.group);
     }
     s.grid.visible = !sceneRoom;
@@ -926,7 +1027,7 @@ function FurnitureView({
     s.shadowFloor.visible = !sceneRoom;
     s.ground.position.y = sceneRoom ? GROUND_UNDER_ROOM : -1;
     s.dirty = true;
-  }, [sceneRoom, bounds, theme, mountZ]);
+  }, [sceneRoom, bounds, theme, mountZ, params]);
   // Pés: não são peças de corte, vêm da composição. Somem no explodido.
   useEffect(() => {
     const s = runtime.current;
@@ -1016,6 +1117,9 @@ function FurnitureView({
     // sombra fixa cortava a sombra dos módulos da ponta.
     const reach = Math.max(width, depth, height) * 0.9 + 600;
     Object.assign(s.sun.shadow.camera, { left: -reach, right: reach, top: reach, bottom: -reach, near: 10, far: reach * 6 });
+    // Viés normal do tamanho de um texel da sombra: fixo em 0,6 mm, com o
+    // mapa cobrindo metros, a face lateral iluminada rente ganhava acne.
+    s.sun.shadow.normalBias = ((reach * 2) / s.sun.shadow.mapSize.x) * 0.8;
     s.sun.shadow.camera.updateProjectionMatrix();
     s.sun.target.position.copy(target);
     // Sol alto e pouco à frente: a sombra fica junto da base, como luz de

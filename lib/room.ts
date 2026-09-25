@@ -161,6 +161,82 @@ export const roomSchema: z.ZodType<Room> = z
   .strict();
 
 /**
+ * Obstáculos que a IA pode pôr, mover ou tirar da parede num turno. Não mexem
+ * no móvel nem abrem versão: o ambiente é dado do lugar, como no painel.
+ */
+const obstacleKind = z.enum(['door', 'window', 'outlet', 'column', 'tv', 'other']);
+export const obstacleEditsSchema = z
+  .object({
+    add: z
+      .array(
+        z
+          .object({
+            kind: obstacleKind,
+            label: z.string().trim().min(1).max(80).optional(),
+            xMm: z.number(),
+            yMm: z.number(),
+            widthMm: z.number(),
+            heightMm: z.number(),
+          })
+          .strict(),
+      )
+      .max(8)
+      .default([]),
+    move: z
+      .array(
+        z
+          .object({
+            id: z.string().min(1).max(100),
+            xMm: z.number().optional(),
+            yMm: z.number().optional(),
+            widthMm: z.number().optional(),
+            heightMm: z.number().optional(),
+          })
+          .strict(),
+      )
+      .max(8)
+      .default([]),
+    remove: z.array(z.string().min(1).max(100)).max(8).default([]),
+  })
+  .strict();
+export type ObstacleEdits = z.infer<typeof obstacleEditsSchema>;
+
+/**
+ * Aplica o pedido da IA ao ambiente. Sem ambiente informado, começa um com a
+ * parede de um quarto comum e largura para caber o móvel. Obstáculo fora dos
+ * limites é recusado sem derrubar o turno: volta a lista do que não entrou.
+ */
+export function applyObstacleEdits(room: Room | undefined, edits: ObstacleEdits, furnitureWidthMm = 0) {
+  const base: Room = room ?? { ...emptyRoom(), widthMm: Math.max(3000, Math.ceil((furnitureWidthMm + 1200) / 100) * 100) };
+  const skipped: string[] = [];
+  let list = [...(base.obstacles ?? [])].filter((o) => !edits.remove.includes(o.id));
+  for (const m of edits.move) {
+    const i = list.findIndex((o) => o.id === m.id);
+    if (i < 0) {
+      skipped.push(m.id);
+      continue;
+    }
+    const { id: _id, ...rest } = m;
+    void _id;
+    const next = { ...list[i], ...Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined)) };
+    if (obstacleSchema.safeParse(next).success) list[i] = next;
+    else skipped.push(m.id);
+  }
+  const taken = new Set(list.map((o) => o.id));
+  for (const a of edits.add) {
+    let n = 1;
+    while (taken.has(`${a.kind}-${n}`)) n++;
+    const next = { id: `${a.kind}-${n}`, ...a };
+    if (obstacleSchema.safeParse(next).success && list.length < ROOM_LIMITS.obstacles) {
+      list.push(next);
+      taken.add(next.id);
+    } else skipped.push(a.label ?? a.kind);
+  }
+  list = list.map((o) => ({ ...o, xMm: Math.round(o.xMm), yMm: Math.round(o.yMm) }));
+  return { room: { ...base, obstacles: list }, skipped };
+}
+
+/**
  * Ambiente de partida do formulário: medidas de um quarto comum. Nada é salvo
  * sem passar pelo botão, então quem mede diferente só ajusta os campos.
  */

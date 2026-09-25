@@ -1,0 +1,100 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { applyObstacleEdits, obstacleEditsSchema, type Room } from '../lib/room';
+import { obstacleCrosses } from '../lib/scene-room';
+import { handleSpec } from '../lib/furniture-motion';
+import { moduleSpans } from '../lib/scene-dims';
+import type { Part } from '../lib/furniture';
+
+const room = (): Room => ({
+  schemaVersion: 1,
+  widthMm: 3000,
+  heightMm: 2700,
+  obstacles: [{ id: 'door-1', kind: 'door', xMm: 2000, yMm: 0, widthMm: 800, heightMm: 2100 }],
+});
+
+void test('IA põe, move e tira obstáculos da parede sem mexer no resto', () => {
+  const edits = obstacleEditsSchema.parse({
+    add: [
+      { kind: 'window', xMm: 800.4, yMm: 1000, widthMm: 1200, heightMm: 1000 },
+      { kind: 'door', xMm: 100, yMm: 0, widthMm: 800, heightMm: 2100 },
+    ],
+    move: [{ id: 'door-1', xMm: 2100 }],
+  });
+  const { room: next, skipped } = applyObstacleEdits(room(), edits);
+  assert.deepEqual(skipped, []);
+  assert.deepEqual(
+    next.obstacles?.map((o) => `${o.id}:${o.xMm}`),
+    ['door-1:2100', 'window-1:800', 'door-2:100'],
+    'ids novos não colidem com os existentes e x vira mm inteiro',
+  );
+  assert.equal(next.widthMm, 3000);
+  const removed = applyObstacleEdits(next, obstacleEditsSchema.parse({ remove: ['window-1'] })).room;
+  assert.deepEqual(removed.obstacles?.map((o) => o.id), ['door-1', 'door-2']);
+});
+
+void test('sem ambiente, a IA começa uma parede que cabe o móvel', () => {
+  const { room: made } = applyObstacleEdits(undefined, obstacleEditsSchema.parse({ add: [{ kind: 'outlet', xMm: 300, yMm: 300, widthMm: 80, heightMm: 80 }] }), 3400);
+  assert.equal(made.widthMm, 4600);
+  assert.equal(made.obstacles?.length, 1);
+});
+
+void test('obstáculo inválido ou id desconhecido volta como não aplicado', () => {
+  const { room: next, skipped } = applyObstacleEdits(
+    room(),
+    obstacleEditsSchema.parse({ add: [{ kind: 'window', xMm: 0, yMm: -50, widthMm: 900, heightMm: 900 }], move: [{ id: 'nada', xMm: 10 }] }),
+  );
+  assert.deepEqual(skipped, ['nada', 'window']);
+  assert.equal(next.obstacles?.length, 1);
+});
+
+void test('vermelho só quando cruza um módulo de verdade, não a caixa do conjunto', () => {
+  // Estante alta à esquerda (0..800, até 1800) e rack baixo à direita (1100..2300, até 550).
+  const modules = [
+    { min: [0, 0, 0], max: [800, 1800, 350] },
+    { min: [1100, 0, 0], max: [2300, 550, 350] },
+  ];
+  const window = { id: 'w', kind: 'window' as const, xMm: 1200, yMm: 1100, widthMm: 900, heightMm: 1000 };
+  assert.equal(obstacleCrosses(window, modules, 0), false, 'janela acima do rack');
+  assert.equal(obstacleCrosses({ ...window, xMm: 500 }, modules, 0), true, 'janela sobre a estante');
+});
+
+void test('puxador: porta do lado oposto à dobradiça, gaveta só na frente', () => {
+  const door = {
+    id: 'a:door-l',
+    size: [400, 1700, 18],
+    position: [200, 900, 180],
+    rotation: 0,
+    motion: { id: 'm', type: 'door', pivot: [0, 900, 180] as [number, number, number] },
+  } as unknown as Part;
+  const spec = handleSpec(door as never)!;
+  assert.equal(spec.vertical, true);
+  assert.ok(spec.x > 0, 'dobradiça à esquerda, puxador à direita');
+  assert.equal(spec.y + 900, 1000, 'porta alta: puxador a 1 m do piso');
+  const box = { id: 'a:drawer-0:side-l', size: [18, 150, 400], position: [0, 100, 0], motion: { type: 'drawer', pivot: [0, 0, 0] } };
+  assert.equal(handleSpec(box as never), null);
+  const front = { ...box, id: 'a:drawer-0:front', size: [600, 180, 18] };
+  assert.equal(handleSpec(front as never)?.vertical, false);
+});
+
+void test('cotas de módulo ficam na frente do próprio módulo', () => {
+  const parts = [
+    { id: 'a1', owners: ['a'], size: [800, 1800, 350], position: [400, 900, 0], rotation: 0 },
+    { id: 'b1', owners: ['b'], size: [1200, 550, 350], position: [1700, 275, 700], rotation: 0 },
+  ] as unknown as Part[];
+  const [a, b] = moduleSpans(parts);
+  assert.equal(a.front, 175);
+  assert.equal(b.front, 875);
+});
+
+void test('resposta da IA com obstáculos passa pelo contrato', async () => {
+  const { decisionSchema } = await import('../lib/gateway');
+  const d = decisionSchema.parse({
+    action: 'answer',
+    approach: 'Porta na parede direita.',
+    message: 'Coloquei uma porta de 80 cm.',
+    obstacles: { add: [{ kind: 'door', xMm: 2100, yMm: 0, widthMm: 800, heightMm: 2100 }] },
+  });
+  assert.equal(d.obstacles?.add[0].kind, 'door');
+  assert.deepEqual(d.obstacles?.remove, []);
+});

@@ -6,6 +6,7 @@ import { TurnProgress, turnLabel, type Pulse, type TimedProgress } from '@/compo
 import { ModelPicker } from '@/components/model-picker';
 import { UsageMeter } from '@/components/usage-meter';
 import { ChangeSet } from '@/components/change-set';
+import { PixelMascot } from '@/components/pixel-mascot';
 import { BranchConfirm, type BranchConfirmData } from '@/components/branch-confirm';
 import { canRedo, canUndo, redoIsStep, undoIsStep } from '@/lib/placement';
 import { designDiff, partDiff, playbackFrames } from '@/lib/diff';
@@ -1663,6 +1664,12 @@ export default function Home() {
     id === null ? setSelected([]) : toggleSelected(id, extend),
   );
   const onMoveFurniture = useEvent(moveFurniture);
+  // Obstáculo arrastado na parede: grava no ambiente, sem versão nova.
+  const onMoveObstacle = useEvent((id: string, xMm: number, yMm: number) => {
+    if (!p?.room || busy) return;
+    const room = { ...p.room, obstacles: (p.room.obstacles ?? []).map((o) => (o.id === id ? { ...o, xMm, yMm } : o)) };
+    return action('room', { room });
+  });
   const onEditorSelect = useEvent(selectMany);
   const onEditorOp = useEvent(op);
   const onEditorOps = useEvent(applyOps);
@@ -2475,7 +2482,7 @@ export default function Home() {
           })()}
           {pending && (
             <output className="stage-working">
-              <span className="tp-orb small" key={pulse?.bytes ?? 0} aria-hidden="true"><i /></span>
+              <PixelMascot beat={pulse?.bytes ?? 0} size={1} />
               {turnLabel(progress, pulse)}
               {liveUsage && <b>{usd(liveUsage.costUsd)}</b>}
             </output>
@@ -2521,6 +2528,7 @@ export default function Home() {
               keyboard={!paletteOpen && !galleryOpen}
               movable={!busy && !pending && historyPreview === null && !reviewLocked && !exploded}
               onMove={onMoveFurniture}
+              onMoveObstacle={p.room && showRoom ? onMoveObstacle : undefined}
             />
           )}
           <div className="stage-tools" role="toolbar" aria-label="Ferramentas da cena" aria-orientation="vertical">
@@ -2772,7 +2780,9 @@ export default function Home() {
               )}
               {tab === 'room' && (
                 <RoomPanel
-                  key={p.id}
+                  // Obstáculo movido na cena ou posto pela IA: o formulário
+                  // recomeça do ambiente salvo, senão salvar o painel desfazia.
+                  key={`${p.id}:${JSON.stringify(p.room?.obstacles ?? [])}`}
                   room={roomForPanel}
                   report={roomFit?.report ?? null}
                   summary={roomFit?.summary ?? ''}

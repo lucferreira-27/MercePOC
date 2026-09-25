@@ -36,7 +36,40 @@ type Pose = {
   color: THREE.Color;
   opacity: number;
 };
+/**
+ * Puxador de porta ou gaveta. O grupo é filho da frente (gira e abre junto)
+ * e desfaz a escala da caixa unitária a cada quadro, então a barra fica com a
+ * medida real em mm em qualquer tamanho de frente.
+ */
+type Handle = { group: THREE.Group; local: THREE.Vector3; material: THREE.MeshStandardMaterial; key: string };
+
+/** Onde vai o puxador, no espaço da própria frente (mm a partir do centro). */
+export function handleSpec(part: Part & { motion?: { type: string; pivot: [number, number, number] }; rotation?: number }) {
+  const m = part.motion;
+  if (!m) return null;
+  const [w, h, t] = part.size;
+  if (m.type === 'drawer') {
+    // A gaveta inteira abre junto (laterais, fundo, traseira): só a frente
+    // leva puxador.
+    if (!part.id.endsWith(':front')) return null;
+    const len = THREE.MathUtils.clamp(w * 0.35, 96, 224);
+    return { vertical: false, len, x: 0, y: h > 260 ? h / 2 - 90 : 0, z: t / 2 };
+  }
+  // Porta: do lado oposto à dobradiça, que é o pivô da abertura.
+  const rot = part.rotation ?? 0;
+  const dx = m.pivot[0] - part.position[0],
+    dz = m.pivot[2] - part.position[2];
+  const localX = dx * Math.cos(rot) - dz * Math.sin(rot);
+  const side = localX > 0 ? -1 : 1;
+  const len = THREE.MathUtils.clamp(h * 0.22, 96, 192);
+  const bottom = part.position[1] - h / 2;
+  // Porta alta: puxador a ~1 m do piso; baixa ou aérea, no meio.
+  const y = h > 900 ? THREE.MathUtils.clamp(1000 - bottom - h / 2, -h / 2 + len, h / 2 - len) : 0;
+  return { vertical: true, len, x: side * (w / 2 - 45), y, z: t / 2 };
+}
+
 type AnimatedPart = {
+  handle?: Handle;
   pivot?: THREE.Vector3;
   mesh: THREE.Mesh<THREE.BoxGeometry, THREE.MeshStandardMaterial>;
   edge: THREE.LineSegments<THREE.EdgesGeometry, THREE.LineBasicMaterial>;
@@ -290,6 +323,7 @@ export class FurnitureMotion {
         entry.sizeKey = sizeKey;
       }
       entry.selected = selected.includes(part.id);
+      this.syncHandle(entry, part);
       const motion = (
         part as Part & {
           motion?: { type: string; pivot: [number, number, number] };
@@ -375,6 +409,11 @@ export class FurnitureMotion {
       const dragged = !!this.drag?.ids.has(id);
       if (dragged) e.mesh.position.add(this.drag!.current);
       e.mesh.scale.lerpVectors(e.from.size, e.to.size, t);
+      if (e.handle) {
+        const sc = e.mesh.scale;
+        e.handle.group.scale.set(1 / sc.x, 1 / sc.y, 1 / sc.z);
+        e.handle.group.position.set(e.handle.local.x / sc.x, e.handle.local.y / sc.y, e.handle.local.z / sc.z);
+      }
       e.mesh.material.color.copy(e.from.color).lerp(e.to.color, t);
       const mark = this.diff
         ? this.diff.focus?.size
@@ -401,6 +440,13 @@ export class FurnitureMotion {
         e.mesh.material.needsUpdate = true;
       }
       e.mesh.material.depthWrite = !transparent;
+      if (e.handle) {
+        e.handle.material.opacity = e.mesh.material.opacity;
+        if (e.handle.material.transparent !== transparent) {
+          e.handle.material.transparent = transparent;
+          e.handle.material.needsUpdate = true;
+        }
+      }
       const hot = id === this.hovered || !!e.selected;
       const markColor =
         mark === 'added' ? DIFF_GLOW.added : mark === 'changed' ? DIFF_GLOW.changed : mark === 'focus' ? SELECTION_GLOW : null;
@@ -425,7 +471,43 @@ export class FurnitureMotion {
       .filter((e) => !e.exiting && e.mesh.material.opacity > 0.2)
       .map((e) => e.mesh);
   }
+  /** Cria, refaz ou tira o puxador quando a frente muda de tamanho ou de lado. */
+  private syncHandle(entry: AnimatedPart, part: Part) {
+    const spec = handleSpec(part as Parameters<typeof handleSpec>[0]);
+    const key = spec ? [spec.vertical, spec.len, spec.x, spec.y].map((v) => (typeof v === 'number' ? Math.round(v) : v)).join(':') : '';
+    if (entry.handle?.key === key) return;
+    if (entry.handle) {
+      entry.mesh.remove(entry.handle.group);
+      this.disposeHandle(entry.handle);
+      entry.handle = undefined;
+    }
+    if (!spec) return;
+    const material = new THREE.MeshStandardMaterial({ color: '#b9bfc5', metalness: 0.8, roughness: 0.32 });
+    const group = new THREE.Group();
+    const bar = spec.vertical ? new THREE.BoxGeometry(12, spec.len, 12) : new THREE.BoxGeometry(spec.len, 12, 12);
+    const barMesh = new THREE.Mesh(bar, material);
+    barMesh.position.z = 26;
+    barMesh.castShadow = true;
+    group.add(barMesh);
+    // Dois pés ligam a barra à frente.
+    for (const end of [-1, 1]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 20), material);
+      const along = end * (spec.len / 2 - 10);
+      post.position.set(spec.vertical ? 0 : along, spec.vertical ? along : 0, 10);
+      group.add(post);
+    }
+    entry.mesh.add(group);
+    entry.handle = { group, local: new THREE.Vector3(spec.x, spec.y, spec.z), material, key };
+    this.dirty = true;
+  }
+  private disposeHandle(h: Handle) {
+    h.group.traverse((o) => {
+      if (o instanceof THREE.Mesh) o.geometry.dispose();
+    });
+    h.material.dispose();
+  }
   private disposeEntry(e: AnimatedPart) {
+    if (e.handle) this.disposeHandle(e.handle);
     this.scene.remove(e.mesh);
     e.mesh.geometry.dispose();
     e.mesh.material.dispose();

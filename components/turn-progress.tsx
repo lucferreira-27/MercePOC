@@ -1,4 +1,5 @@
 'use client';
+import { PixelMascot } from './pixel-mascot';
 import { useEffect, useRef, useState } from 'react';
 import { Check, RotateCcw } from 'lucide-react';
 import type { Progress } from '@/lib/progress';
@@ -109,10 +110,11 @@ export function TurnProgress({
   return (
     <output className="turn-progress" aria-live="polite">
       <div className="tp-head">
-        {/* Cada pulso do provedor remonta o indicador e dá uma batida: o
-            movimento acompanha o que está chegando, não é enfeite. */}
-        <span className="tp-orb" key={pulse?.bytes ?? 0} aria-hidden="true">
-          <i />
+        {/* O robô trabalha na bancada enquanto a IA pensa; a luz da antena
+            pisca a cada pulso do provedor, então o movimento ainda acompanha
+            o que está chegando. */}
+        <span className="tp-mascot">
+          <PixelMascot beat={pulse?.bytes ?? 0} size={3} />
         </span>
         <div className="tp-title">
           <strong>{steps[Math.max(0, index)]?.active ?? 'Trabalhando'}</strong>
@@ -121,8 +123,8 @@ export function TurnProgress({
             {info.reasoning ? ' · raciocínio baixo' : ''}
             {retry ? ` · nova tentativa ${retry}` : ''}
           </small>
+          <time className="tp-clock">{clock(elapsed)}</time>
         </div>
-        <time className="tp-clock">{clock(elapsed)}</time>
       </div>
       <ol className="tp-steps">
         {steps.map((s, i) => {

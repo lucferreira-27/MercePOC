@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { Foot } from './composition';
-import { roomOffset, wallAt, type Obstacle, type Room } from './room';
+import { wallAt, type Obstacle, type Room } from './room';
+import { buildObstacle } from './scene-obstacles';
 
 /**
  * O ambiente desenhado na cena 3D, com a mesma convenção do veredito de
@@ -63,12 +64,18 @@ export function referenceRoom(bounds: SceneBounds, homeZ?: number): Room {
 }
 
 /** Obstáculo cruza o envelope do móvel na parede (x ao longo, y do piso). */
-export function obstacleCrosses(o: Obstacle, bounds: SceneBounds, offset = 0) {
+/**
+ * O obstáculo cruza algum módulo, em x e em altura? Por módulo: pela caixa do
+ * conjunto inteiro, uma janela alta sobre um rack baixo ficava vermelha só
+ * porque a estante ao lado era alta.
+ */
+export function obstacleCrosses(o: Obstacle, modules: readonly SceneBounds[], wallX0: number) {
   if (o.kind === 'tv') return false;
-  const minX = bounds.min[0] - offset + o.xMm;
-  return (
-    Math.min(minX + o.widthMm, bounds.max[0]) - Math.max(minX, bounds.min[0]) > 1e-6 &&
-    Math.min(o.yMm + o.heightMm, bounds.max[1]) - Math.max(o.yMm, bounds.min[1]) > 1e-6
+  const minX = wallX0 + o.xMm;
+  return modules.some(
+    (b) =>
+      Math.min(minX + o.widthMm, b.max[0]) - Math.max(minX, b.min[0]) > 1e-6 &&
+      Math.min(o.yMm + o.heightMm, b.max[1]) - Math.max(o.yMm, b.min[1]) > 1e-6,
   );
 }
 
@@ -108,11 +115,20 @@ export function roomFocus(room: Room, bounds: SceneBounds): SceneBounds {
  * `mountZ` é a face da frente do que está preso na parede (painel de TV): a
  * TV vai na frente dele, não atrás.
  */
-export function buildRoom(room: Room, bounds: SceneBounds, theme: 'light' | 'dark', mountZ = -Infinity) {
+/** Folga das paredes laterais para fora do canto, em mm. */
+const SIDE_CLEARANCE = 4;
+
+export function buildRoom(
+  room: Room,
+  bounds: SceneBounds,
+  theme: 'light' | 'dark',
+  mountZ = -Infinity,
+  /** Caixa de cada módulo: o obstáculo só fica vermelho se cruzar uma delas. */
+  modules: readonly SceneBounds[] = [bounds],
+) {
   const c = ROOM_PALETTE[theme];
   const group = new THREE.Group();
   group.name = 'ambiente';
-  const offset = roomOffset(room, bounds);
   const x0 = wallStart(room, bounds);
   const wallZ = wallAt(room, bounds).z - 1;
   const W = room.widthMm;
@@ -145,7 +161,10 @@ export function buildRoom(room: Room, bounds: SceneBounds, theme: 'light' | 'dar
     disposables.push(geo);
     const plane = new THREE.Mesh(geo, m);
     plane.rotation.y = Math.PI / 2;
-    plane.position.set(x0 + (side ? W : 0), H / 2, wallZ + sideDepth / 2);
+    // Um pouco para fora do canto: com o móvel encostado (a partir do canto
+    // = 0) a lateral dele ficava no mesmo plano da parede translúcida e as
+    // duas brigavam pelos mesmos pixels, num pontilhado que mudava ao girar.
+    plane.position.set(x0 + (side ? W + SIDE_CLEARANCE : -SIDE_CLEARANCE), H / 2, wallZ + sideDepth / 2);
     plane.renderOrder = 2;
     group.add(plane);
   }
@@ -161,40 +180,25 @@ export function buildRoom(room: Room, bounds: SceneBounds, theme: 'light' | 'dar
   box([W, 12, 30], [x0 + W / 2, H - 6, wallZ + 15], mat(c.trim));
   if (room.baseboardMm && room.baseboardMm > 0)
     box([W, room.baseboardMm, 14], [x0 + W / 2, room.baseboardMm / 2, wallZ + 7], mat(c.trim));
+  // Obstáculos: cada um num grupo próprio, com o id, para a cena poder
+  // pegar e arrastar. Vermelho só quando cruza um módulo de verdade.
+  const obstacles: { id: string; group: THREE.Group; obstacle: Obstacle }[] = [];
   for (const o of room.obstacles ?? []) {
-    const bad = obstacleCrosses(o, bounds, offset);
-    const ox = x0 + o.xMm + o.widthMm / 2;
-    const oy = o.yMm + o.heightMm / 2;
-    if (o.kind === 'door') {
-      // Vão escuro com batente: a porta é uma abertura na parede.
-      box([o.widthMm, o.heightMm, 4], [ox, oy, wallZ + 2], mat(bad ? c.bad : theme === 'dark' ? '#151618' : '#cfc6b8'));
-      const frame = mat(c.trim);
-      box([50, o.heightMm, 40], [ox - o.widthMm / 2 - 25, oy, wallZ + 20], frame);
-      box([50, o.heightMm, 40], [ox + o.widthMm / 2 + 25, oy, wallZ + 20], frame);
-      box([o.widthMm + 100, 50, 40], [ox, o.yMm + o.heightMm + 25, wallZ + 20], frame);
-    } else if (o.kind === 'window') {
-      box([o.widthMm, o.heightMm, 6], [ox, oy, wallZ + 3], mat(bad ? c.bad : c.glass, { roughness: 0.15, metalness: 0.1 }));
-      const frame = mat(c.trim);
-      box([o.widthMm + 60, 40, 60], [ox, o.yMm - 20, wallZ + 30], frame);
-      box([o.widthMm + 60, 30, 30], [ox, o.yMm + o.heightMm + 15, wallZ + 15], frame);
-      box([30, o.heightMm, 30], [ox, oy, wallZ + 15], frame);
-    } else if (o.kind === 'outlet') {
-      box([Math.max(o.widthMm, 60), Math.max(o.heightMm, 60), 12], [ox, oy, wallZ + 6], mat(bad ? c.bad : '#fbfbf8', { roughness: 0.5 }));
-    } else if (o.kind === 'tv') {
-      // TV de tela plana: caixa escura fina e a tela um pouco mais clara,
-      // quase espelhada, na frente do painel quando houver um.
-      const z = Math.max(wallZ, mountZ) + 18;
-      const body = box([o.widthMm, o.heightMm, 30], [ox, oy, z + 15], mat(theme === 'dark' ? '#0c0d0f' : '#17191c', { roughness: 0.4, metalness: 0.2 }));
-      body.castShadow = true;
-      box([o.widthMm - 16, o.heightMm - 16, 2], [ox, oy + 3, z + 31], mat(theme === 'dark' ? '#1b2129' : '#262c35', { roughness: 0.08, metalness: 0.35 }));
-    } else if (o.kind === 'column') {
-      box([o.widthMm, o.heightMm, 300], [ox, oy, wallZ + 150], mat(bad ? c.bad : c.side));
-    } else {
-      box([o.widthMm, o.heightMm, 40], [ox, oy, wallZ + 20], mat(bad ? c.bad : c.side, { transparent: true, opacity: 0.8 }));
-    }
+    const og = buildObstacle(o, {
+      palette: c,
+      theme,
+      bad: obstacleCrosses(o, modules, x0),
+      track: (d) => disposables.push(d),
+    });
+    og.position.set(x0 + o.xMm, o.yMm, o.kind === 'tv' ? Math.max(wallZ, mountZ) : wallZ);
+    group.add(og);
+    obstacles.push({ id: o.id, group: og, obstacle: o });
   }
   return {
     group,
+    obstacles,
+    /** Onde a parede está no mundo: o arrasto de obstáculo anda nela. */
+    wall: { x0, z: wallZ, width: W, height: H },
     dispose() {
       for (const d of disposables) d.dispose();
     },
