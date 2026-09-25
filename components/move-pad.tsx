@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import type { DragMode } from '@/lib/move';
 import {
   ArrowDownToLine,
   ArrowUpToLine,
@@ -7,6 +8,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  Lock,
+  LockOpen,
   Minimize2,
   Move,
   RotateCw,
@@ -38,6 +41,8 @@ export function MovePad({
   status,
   onNudge,
   onRotate,
+  mode,
+  onMode,
 }: {
   /** Nome do conjunto selecionado; sem seleção, o controle só ensina o gesto. */
   target: string | null;
@@ -45,6 +50,9 @@ export function MovePad({
   status: { text: string; bad?: boolean } | null;
   onNudge: (dir: NudgeDir, big: boolean) => void;
   onRotate: () => void;
+  /** Como o arrasto na cena anda: altura travada e um eixo por vez. */
+  mode: DragMode;
+  onMode: (mode: DragMode) => void;
 }) {
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -143,6 +151,46 @@ export function MovePad({
               {arrow('up', 'move-arrow', 'Subir', <ArrowUpToLine size={14} />)}
               {arrow('down', 'move-arrow', 'Descer', <ArrowDownToLine size={14} />)}
             </div>
+          </div>
+          <div className="move-mode">
+            <button
+              type="button"
+              className={'move-lock' + (mode.lockHeight ? ' on' : '')}
+              aria-pressed={mode.lockHeight}
+              aria-label="Travar a altura"
+              title={
+                mode.lockHeight
+                  ? 'Altura travada: o arrasto desliza no piso. Clique para soltar a altura.'
+                  : 'Altura solta: o arrasto sobe e desce com o cursor. Clique para travar.'
+              }
+              onClick={() => onMode({ ...mode, lockHeight: !mode.lockHeight })}
+            >
+              {mode.lockHeight ? <Lock size={12} /> : <LockOpen size={12} />}
+            </button>
+            <span className="move-seg">
+              <button
+                type="button"
+                aria-pressed={!mode.axis}
+                className={mode.axis ? '' : 'on'}
+                title="Livre: o móvel segue o cursor em qualquer direção"
+                onClick={() => onMode({ ...mode, axis: false })}
+              >
+                Livre
+              </button>
+              <button
+                type="button"
+                aria-pressed={mode.axis}
+                className={mode.axis ? 'on' : ''}
+                title={
+                  mode.lockHeight
+                    ? 'Um eixo: só esquerda e direita ou só frente e fundo, o que o arrasto indicar'
+                    : 'Um eixo: só na horizontal ou só na vertical, o que o arrasto indicar'
+                }
+                onClick={() => onMode({ ...mode, axis: true })}
+              >
+                Um eixo
+              </button>
+            </span>
           </div>
           <output className={'move-status' + (status?.bad ? ' bad' : '')}>
             {status?.text ?? 'Ou arraste o móvel na cena'}

@@ -4553,9 +4553,10 @@ kbd {
   display: flex;
   align-items: center;
   gap: 8px;
-  max-width: min(560px, calc(100% - 32px));
-  padding: 5px 5px 5px 11px;
-  border-radius: 999px;
+  /* Largura fixa: trocar de passo não faz a barra pular de tamanho. */
+  width: min(520px, calc(100% - 32px));
+  padding: 5px 6px;
+  border-radius: 14px;
   border: 1px solid var(--line);
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   backdrop-filter: blur(8px);
@@ -4598,17 +4599,44 @@ kbd {
 .review-bar.playing .rb-legend .del {
   animation-delay: 0.3s;
 }
+.rb-controls {
+  display: inline-flex;
+  gap: 2px;
+  flex: none;
+}
 .rb-text {
-  display: flex;
-  gap: 7px;
+  flex: 1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 7px;
+  row-gap: 4px;
   min-width: 0;
   white-space: nowrap;
+}
+.rb-step {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
 }
 .rb-text b {
   font-weight: 600;
   color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.rb-track {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 3px;
+  height: 4px;
+}
+.rb-track i {
+  flex: 1;
+  border-radius: 2px;
+  background: var(--line-strong);
+  transition: background 0.2s;
+}
+.rb-track i.on {
+  background: var(--accent);
 }
 .review-bar button {
   display: grid;
@@ -4621,7 +4649,21 @@ kbd {
   background: var(--surface-3);
   color: var(--ink-2);
 }
-.review-bar button:hover {
+.review-bar button:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.review-bar button:disabled {
+  opacity: 0.35;
+}
+.rb-controls button {
+  width: 24px;
+  height: 24px;
+  background: none;
+}
+.rb-controls .rb-play {
+  width: 28px;
+  height: 28px;
   background: var(--accent-soft);
   color: var(--accent);
 }
@@ -4782,6 +4824,49 @@ kbd {
   padding: 3px;
   border-radius: 10px;
   background: var(--surface-3);
+}
+.move-mode {
+  display: flex;
+  gap: 4px;
+}
+.move-lock,
+.move-seg button {
+  height: 24px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.move-lock {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  background: var(--surface-3);
+}
+.move-seg {
+  flex: 1;
+  display: flex;
+  gap: 2px;
+  padding: 0;
+  border-radius: 8px;
+  background: var(--surface-3);
+}
+.move-seg button {
+  flex: 1;
+  padding: 0 4px;
+}
+.move-lock:hover,
+.move-seg button:hover {
+  color: var(--ink);
+}
+.move-lock.on,
+.move-seg button.on {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 .move-status {
   display: block;

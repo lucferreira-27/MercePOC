@@ -57,6 +57,8 @@ import {
   Undo2,
   X,
   Play,
+  Pause,
+  RotateCcw,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
@@ -213,6 +215,15 @@ function mm(millimetres: number) {
   return String(Math.round(millimetres * 100) / 100);
 }
 /** Raciocínio exibido no painel de depuração: mantém o fim, que é o que importa. */
+/** Revisão das mudanças: quanto o "antes" fica à vista e cada passo. */
+const REVIEW_BEFORE_MS = 900;
+/**
+ * Poucos passos andam devagar para dar tempo de ver; muitos, mais rápido,
+ * mas nunca antes de a animação de um passo terminar (750 ms).
+ */
+function reviewStepMs(total: number) {
+  return total <= 3 ? 1100 : total <= 8 ? 900 : 750;
+}
 const REASONING_VIEW_CAP = 64 * 1024;
 /** Tecla digitada num campo não é atalho: a pessoa está escrevendo. */
 function typing(target: EventTarget | null) {
@@ -279,6 +290,8 @@ export default function Home() {
      */
     [review, setReview] = useState<{ id: string; frame: number; playing: boolean; pinned: boolean } | null>(null),
     [reviewFocus, setReviewFocus] = useState<string[] | null>(null),
+    // Linha da conversa sob o cursor fora da revisão: só acende as peças.
+    [hoverFocus, setHoverFocus] = useState<string[] | null>(null),
     [scrubbing, setScrubbing] = useState(false),
     [model, setModel] = useState<ModelKey>('deepseek'),
     [available, setAvailable] = useState<ModelKey[]>([]),
@@ -610,11 +623,18 @@ export default function Home() {
   }, [p, historyPreview, reviewFrame]);
   // Diff na cena contra o antes do turno: cresce quadro a quadro na reprodução.
   const sceneDiff = useMemo(() => {
-    if (!reviewData || !reviewFrame || !visualParams) return null;
+    if (!visualParams) return null;
+    if (!reviewData || !reviewFrame) {
+      // Passar o mouse numa linha não mexe na cena: acende as peças dela no
+      // desenho que já está à vista, se ainda existem.
+      if (!hoverFocus?.length) return null;
+      const focus = selectedPartIds(visualParams, hoverFocus);
+      return focus.length ? { added: [], changed: [], removed: [], focus } : null;
+    }
     const d = partDiff(reviewData.beforeParts, drawingParts(canonical(reviewFrame.design)));
     const focus = reviewFocus?.length ? selectedPartIds(visualParams, reviewFocus) : null;
     return { ...d, focus };
-  }, [reviewData, reviewFrame, visualParams, reviewFocus]);
+  }, [reviewData, reviewFrame, visualParams, reviewFocus, hoverFocus]);
   const historyCount = p?.revisions.length ?? 0;
   const displayParts=useMemo(()=>visualParts.map(part=>openingPose(part as ModularPart,historyPreview!==null?0:opened[(part as ModularPart).motion?.id??'']??0)),[visualParts,opened,historyPreview]);
   const displaySelected = useMemo(() => (visualParams ? selectedPartIds(visualParams, selected) : []), [visualParams, selected]);
@@ -668,11 +688,11 @@ export default function Home() {
           setReview((r) =>
             r && r.id === review.id
               ? r.frame >= last
-                ? { ...r, playing: false }
+                ? { ...r, playing: false, frame: last }
                 : { ...r, frame: r.frame + 1 }
               : r,
           ),
-        review.frame < 0 ? 550 : 750,
+        review.frame < 0 ? REVIEW_BEFORE_MS : reviewStepMs(reviewData.frames.length),
       );
       return () => clearTimeout(timer);
     }
@@ -683,17 +703,41 @@ export default function Home() {
   }, [review, reviewData]);
   function startReview(id: string, pinned = true) {
     setReviewFocus(null);
+    setHoverFocus(null);
     setReview({ id, frame: -1, playing: true, pinned });
   }
   function stopReview() {
     setReview(null);
     setReviewFocus(null);
   }
-  /** Linha da conversa sob o cursor: a cena mostra o resultado e acende só ela. */
+  /** Pausa, retoma, ou recomeça do antes quando já chegou ao fim. */
+  function toggleReviewPlay() {
+    if (!reviewData) return;
+    const last = reviewData.frames.length - 1;
+    setReview((r) =>
+      !r
+        ? r
+        : r.playing
+          ? { ...r, playing: false, pinned: true }
+          : { ...r, playing: true, pinned: true, frame: r.frame >= last ? -1 : r.frame },
+    );
+  }
+  /** Um passo para trás ou para a frente, parado. -1 é o antes. */
+  function seekReview(frame: number) {
+    if (!reviewData) return;
+    const last = reviewData.frames.length - 1;
+    setReview((r) => (r ? { ...r, playing: false, pinned: true, frame: Math.max(-1, Math.min(last, frame)) } : r));
+  }
+  /**
+   * Linha da conversa sob o cursor. Passar o mouse nunca abre a revisão nem
+   * troca o desenho da cena: com a revisão desta mensagem aberta, acende a
+   * linha dentro dela; fora dela, acende as peças no que já está à vista.
+   */
   function focusLine(id: string, targets: string[] | null) {
-    setReviewFocus(targets);
-    if (targets && (!review || review.id !== id))
-      setReview({ id, frame: Number.MAX_SAFE_INTEGER, playing: false, pinned: false });
+    if (review?.id === id) {
+      setReviewFocus(targets);
+      setHoverFocus(null);
+    } else setHoverFocus(targets);
   }
   const messages = useRef<HTMLDivElement>(null);
   const [pinnedToBottom, setPinnedToBottom] = useState(true);
@@ -1799,6 +1843,7 @@ export default function Home() {
                         onStop={() => setReview((r) => (r ? { ...r, playing: false, frame: Number.MAX_SAFE_INTEGER, pinned: true } : r))}
                         onFocus={(targets) => focusLine(m.id, targets)}
                         onPick={(targets) => {
+                          setHoverFocus(null);
                           setReview({ id: m.id, frame: Number.MAX_SAFE_INTEGER, playing: false, pinned: true });
                           if (!reviewLocked) setSelected(targets);
                         }}
@@ -2383,28 +2428,47 @@ export default function Home() {
           {reviewData && review && !pending && (() => {
             const lines = reviewData.message.report?.highlights ?? [];
             const total = reviewData.frames.length;
-            const step = review.frame < 0 ? 0 : Math.min(review.frame + 1, total);
+            const last = total - 1;
+            const at = Math.min(review.frame, last);
+            const step = at < 0 ? 0 : at + 1;
             const now = reviewFrame && reviewFrame.op >= 0 ? lines.find((l) => l.ops?.includes(reviewFrame.op)) : null;
+            const done = !review.playing && at >= last;
             return (
               <output className={'review-bar' + (review.playing ? ' playing' : '')}>
+                <span className="rb-controls">
+                  <button type="button" onClick={() => seekReview(at - 1)} disabled={at < 0} title="Passo anterior" aria-label="Passo anterior">
+                    <ChevronLeft size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className="rb-play"
+                    onClick={toggleReviewPlay}
+                    title={review.playing ? 'Pausar' : done ? 'Rever do começo' : 'Continuar'}
+                    aria-label={review.playing ? 'Pausar a revisão' : done ? 'Rever do começo' : 'Continuar a revisão'}
+                  >
+                    {review.playing ? <Pause size={12} /> : done ? <RotateCcw size={12} /> : <Play size={12} />}
+                  </button>
+                  <button type="button" onClick={() => seekReview(at + 1)} disabled={at >= last} title="Próximo passo" aria-label="Próximo passo">
+                    <ChevronRight size={14} />
+                  </button>
+                </span>
+                <span className="rb-text">
+                  <span className="rb-step">
+                    {at < 0 ? 'Antes' : done ? `Versão ${reviewData.message.revision ?? ''}` : `Passo ${step} de ${total}`}
+                  </span>
+                  <b>{at < 0 ? 'como estava antes do pedido' : done ? 'verde entrou · âmbar mudou · vermelho saiu' : (now?.title ?? 'mudança aplicada')}</b>
+                  <span className="rb-track" aria-hidden="true">
+                    {Array.from({ length: Math.min(total, 24) }, (_, i) => {
+                      const frame = total > 24 ? Math.round((i / 23) * last) : i;
+                      return <i key={i} className={frame <= at ? 'on' : ''} />;
+                    })}
+                  </span>
+                </span>
                 <span className="rb-legend" aria-hidden="true">
                   <i className="add" />
                   <i className="mod" />
                   <i className="del" />
                 </span>
-                <span className="rb-text">
-                  {review.playing
-                    ? review.frame < 0
-                      ? 'Antes da mudança'
-                      : `Passo ${step} de ${total}`
-                    : `Mudanças da versão ${reviewData.message.revision ?? ''}`}
-                  {review.playing ? (now ? <b>{now.title}</b> : null) : <b>verde entrou · âmbar mudou · vermelho saiu</b>}
-                </span>
-                {!review.playing && (
-                  <button type="button" onClick={() => startReview(review.id)} title="Rever passo a passo">
-                    <Play size={12} />
-                  </button>
-                )}
                 <button type="button" onClick={stopReview} title="Fechar (Esc)" aria-label="Fechar a revisão das mudanças">
                   <X size={13} />
                 </button>
@@ -2429,6 +2493,7 @@ export default function Home() {
               view={view}
               spin={spin}
               frameRequest={frameRequest}
+              steady={!!reviewData}
               zoomRequest={zoomRequest}
               room={p.room}
               showRoom={showRoom}

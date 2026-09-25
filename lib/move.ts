@@ -22,6 +22,29 @@ export const MOVE_GRID = 10;
 /** Distância em que a borda gruda na borda do vizinho, em mm. */
 export const MOVE_SNAP = 60;
 
+/**
+ * Como o arrasto anda: `lockHeight` segura a altura (o móvel desliza no
+ * piso, o comum) e `axis` deixa só a direção dominante (esquerda/direita,
+ * frente/fundo ou, destravada, altura), para alinhar sem tremer.
+ */
+export type DragMode = { lockHeight: boolean; axis: boolean };
+export const DEFAULT_DRAG_MODE: DragMode = { lockHeight: true, axis: false };
+
+/** Aplica o modo ao deslocamento cru do arrasto. */
+export function constrainDrag(raw: Vec3, mode: DragMode): Vec3 {
+  const out: Vec3 = [raw[0], mode.lockHeight ? 0 : raw[1], raw[2]];
+  if (!mode.axis) return out;
+  let keep = 0;
+  for (const i of [1, 2]) if (Math.abs(out[i]) > Math.abs(out[keep])) keep = i;
+  return out.map((v, i) => (i === keep ? v : 0)) as Vec3;
+}
+
+/** Depois do encaixe: o que o modo travou continua parado. */
+export function lockedAxes(raw: Vec3, mode: DragMode): boolean[] {
+  const c = constrainDrag(raw, mode);
+  return [0, 1, 2].map((i) => (i === 1 && mode.lockHeight) || (mode.axis && c[i] === 0));
+}
+
 export function rootOf(d: Composition, moduleId: string) {
   let id = moduleId;
   for (let guard = 0; guard < d.modules.length; guard++) {
