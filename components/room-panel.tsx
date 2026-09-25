@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { friendlyError } from '@/lib/errors';
 import {
   emptyRoom,
+  obstacleClash,
   ROOM_LIMITS,
   type FitReport,
   type Obstacle,
@@ -106,6 +107,8 @@ function buildRoom(
       ...(item.swingMm ? { swingMm: item.swingMm } : {}),
     });
   }
+  const clash = obstacleClash(list);
+  if (clash) return { error: clash };
   return {
     room: {
       schemaVersion: 1,

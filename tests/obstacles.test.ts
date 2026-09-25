@@ -16,8 +16,8 @@ const room = (): Room => ({
 void test('IA põe, move e tira obstáculos da parede sem mexer no resto', () => {
   const edits = obstacleEditsSchema.parse({
     add: [
-      { kind: 'window', xMm: 800.4, yMm: 1000, widthMm: 1200, heightMm: 1000 },
-      { kind: 'door', xMm: 100, yMm: 0, widthMm: 800, heightMm: 2100 },
+      { kind: 'window', xMm: 900.4, yMm: 1000, widthMm: 800, heightMm: 1000 },
+      { kind: 'outlet', xMm: 200, yMm: 300, widthMm: 80, heightMm: 80 },
     ],
     move: [{ id: 'door-1', xMm: 2100 }],
   });
@@ -25,12 +25,12 @@ void test('IA põe, move e tira obstáculos da parede sem mexer no resto', () =>
   assert.deepEqual(skipped, []);
   assert.deepEqual(
     next.obstacles?.map((o) => `${o.id}:${o.xMm}`),
-    ['door-1:2100', 'window-1:800', 'door-2:100'],
+    ['door-1:2100', 'window-1:900', 'outlet-1:200'],
     'ids novos não colidem com os existentes e x vira mm inteiro',
   );
   assert.equal(next.widthMm, 3000);
   const removed = applyObstacleEdits(next, obstacleEditsSchema.parse({ remove: ['window-1'] })).room;
-  assert.deepEqual(removed.obstacles?.map((o) => o.id), ['door-1', 'door-2']);
+  assert.deepEqual(removed.obstacles?.map((o) => o.id), ['door-1', 'outlet-1']);
 });
 
 void test('sem ambiente, a IA começa uma parede que cabe o móvel', () => {
@@ -109,4 +109,22 @@ void test('obstáculo não pode ocupar o lugar de outro na parede', async () => 
   const door = { id: 'door-1', kind: 'door' as const, xMm: 3250, yMm: 0, widthMm: 800, heightMm: 2100 };
   assert.equal(obstacleOverlap({ ...window, xMm: 2420 }, [door])?.id, 'door-1', 'caixilho e batente se cruzam');
   assert.equal(obstacleOverlap({ ...window, xMm: 2360 }, [door]), null, 'com o batente de folga, cabe');
+});
+
+void test('painel, servidor e IA recusam obstáculo em cima de outro', async () => {
+  const { obstacleClash } = await import('../lib/room');
+  const tv = { id: 'tv-1', kind: 'tv' as const, xMm: 1200, yMm: 1950, widthMm: 700, heightMm: 400 };
+  const win = { id: 'window-1', kind: 'window' as const, xMm: 1500, yMm: 1600, widthMm: 800, heightMm: 900 };
+  assert.equal(obstacleClash([tv, win]), 'A TV bate na janela. Afaste um dos dois na parede.');
+  assert.equal(obstacleClash([tv, { ...win, xMm: 2000 }]), null);
+  const other = { id: 'x', kind: 'other' as const, label: 'Quadro', xMm: 1300, yMm: 2000, widthMm: 100, heightMm: 100 };
+  assert.equal(obstacleClash([{ ...win, xMm: 2000 }, other, tv]), 'O obstáculo "Quadro" bate na TV. Afaste um dos dois na parede.');
+  // IA: pôr ou mover para cima de outro volta como não aplicado.
+  const base: Room = { ...room(), obstacles: [tv] };
+  const r = applyObstacleEdits(
+    base,
+    obstacleEditsSchema.parse({ add: [{ kind: 'window', xMm: 1300, yMm: 1700, widthMm: 800, heightMm: 900 }], move: [{ id: 'tv-1', xMm: 1100 }] }),
+  );
+  assert.deepEqual(r.skipped, ['window'], 'a janela cairia sobre a TV já movida');
+  assert.equal(r.room.obstacles?.find((o) => o.id === 'tv-1')?.xMm, 1100, 'mover para lugar livre continua valendo');
 });

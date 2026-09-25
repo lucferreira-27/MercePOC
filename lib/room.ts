@@ -175,6 +175,36 @@ export function obstacleOverlap(o: Pick<Obstacle, 'id' | 'kind' | 'xMm' | 'yMm' 
     }) ?? null
   );
 }
+/**
+ * Primeiro par de obstáculos no mesmo lugar da parede, como frase: "A janela
+ * bate na TV." Vale para o painel, o servidor e a IA, não só para o arrasto.
+ */
+export function obstacleClash(list: readonly Obstacle[]) {
+  for (let i = 0; i < list.length; i++) {
+    const other = obstacleOverlap(list[i], list.slice(i + 1));
+    if (other) return `${obstacleName(list[i], true)} bate ${obstacleOn(other)}. Afaste um dos dois na parede.`;
+  }
+  return null;
+}
+const NAME: Record<ObstacleKind, [article: string, noun: string]> = {
+  door: ['a', 'porta'],
+  window: ['a', 'janela'],
+  outlet: ['a', 'tomada'],
+  column: ['a', 'coluna'],
+  tv: ['a', 'TV'],
+  other: ['o', 'obstáculo'],
+};
+function obstacleName(o: Obstacle, capital = false) {
+  const [art, noun] = NAME[o.kind];
+  const text = o.label ? `${art === 'a' ? 'a' : 'o'} ${noun} "${o.label}"` : `${art} ${noun}`;
+  return capital ? text[0].toUpperCase() + text.slice(1) : text;
+}
+/** "na TV", "no obstáculo": a preposição concorda com o artigo. */
+function obstacleOn(o: Obstacle) {
+  const name = obstacleName(o);
+  return (name.startsWith('a ') ? 'na ' : 'no ') + name.slice(2);
+}
+
 /** O vão mais o batente ou o caixilho que o desenho põe em volta dele. */
 export const OBSTACLE_FRAME: Partial<Record<ObstacleKind, number>> = { door: 50, window: 30 };
 export function framed(o: Pick<Obstacle, 'kind' | 'xMm' | 'yMm' | 'widthMm' | 'heightMm'>) {
@@ -241,7 +271,7 @@ export function applyObstacleEdits(room: Room | undefined, edits: ObstacleEdits,
     const { id: _id, ...rest } = m;
     void _id;
     const next = { ...list[i], ...Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined)) };
-    if (obstacleSchema.safeParse(next).success) list[i] = next;
+    if (obstacleSchema.safeParse(next).success && !obstacleOverlap(next, list)) list[i] = next;
     else skipped.push(m.id);
   }
   const taken = new Set(list.map((o) => o.id));
@@ -249,7 +279,8 @@ export function applyObstacleEdits(room: Room | undefined, edits: ObstacleEdits,
     let n = 1;
     while (taken.has(`${a.kind}-${n}`)) n++;
     const next = { id: `${a.kind}-${n}`, ...a };
-    if (obstacleSchema.safeParse(next).success && list.length < ROOM_LIMITS.obstacles) {
+    // Em cima de outro obstáculo não entra: volta como "não coube".
+    if (obstacleSchema.safeParse(next).success && list.length < ROOM_LIMITS.obstacles && !obstacleOverlap(next, list)) {
       list.push(next);
       taken.add(next.id);
     } else skipped.push(a.label ?? a.kind);
