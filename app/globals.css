@@ -783,10 +783,6 @@ kbd {
 .intro-cta:hover {
   border-color: var(--accent);
 }
-.loading-line {
-  font-size: 13px;
-  color: var(--muted);
-}
 .boot-hint {
   font-size: 12px;
   line-height: 1.5;
@@ -2161,6 +2157,13 @@ kbd {
   position: absolute;
   inset: 0;
   --stage-top: inherit;
+  /* Entra por cima do carregamento, sem corte seco. */
+  animation: scene-in 0.35s ease-out;
+}
+@keyframes scene-in {
+  from {
+    opacity: 0;
+  }
 }
 .scene canvas {
   display: block;
@@ -4954,5 +4957,230 @@ kbd {
   }
   .move-pad.idle {
     display: none;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+ * Carregamento: a página abre com a forma do estúdio (título, conversa,
+ * painel e a cena com parede, piso e um móvel se montando) em vez de telas
+ * vazias que trocam de conteúdo quando o projeto chega.
+ * ------------------------------------------------------------------------- */
+:root {
+  --room-wall: #f1ede6;
+  --room-floor: #ddd5c8;
+  --sk: color-mix(in srgb, var(--ink) 8%, transparent);
+  --sk-hi: color-mix(in srgb, var(--ink) 14%, transparent);
+}
+:root[data-theme='dark'] {
+  --room-wall: #2b2d31;
+  --room-floor: #1f2023;
+}
+.sk {
+  display: block;
+  border-radius: 7px;
+  background: linear-gradient(90deg, var(--sk) 0%, var(--sk-hi) 45%, var(--sk) 90%) 0 0 / 250% 100%;
+  animation: sk-shine 1.4s ease-in-out infinite;
+}
+@keyframes sk-shine {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -150% 0;
+  }
+}
+.stage-title-skeleton {
+  display: grid;
+  gap: 9px;
+  padding-top: 4px;
+}
+.sk-title {
+  width: 210px;
+  height: 22px;
+}
+.sk-meta {
+  width: 300px;
+  max-width: 60vw;
+  height: 12px;
+}
+.chat-skeleton {
+  display: grid;
+  gap: 18px;
+}
+.sk-msg {
+  display: flex;
+  gap: 9px;
+}
+.sk-msg > span {
+  flex: 1;
+  display: grid;
+  gap: 8px;
+}
+.sk-avatar {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+.sk-line {
+  height: 12px;
+}
+.sk-line.short {
+  width: 60%;
+}
+.sk-bubble {
+  justify-self: end;
+  width: 55%;
+  height: 34px;
+  border-radius: 14px;
+}
+.sk-card {
+  height: 92px;
+  border-radius: 12px;
+}
+.inspector-skeleton {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+.sk-label {
+  width: 90px;
+  height: 11px;
+}
+.sk-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.sk-tile {
+  height: 62px;
+  border-radius: 12px;
+}
+.sk-block {
+  height: 58px;
+  border-radius: 12px;
+}
+.sk-row {
+  height: 40px;
+  border-radius: 10px;
+}
+.sk-row.short {
+  width: 70%;
+}
+.stage-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 18px;
+  pointer-events: none;
+}
+.stage-loading p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.sl-room {
+  position: relative;
+  width: min(420px, 70vw);
+  aspect-ratio: 7 / 5;
+}
+.sl-wall {
+  position: absolute;
+  inset: 0 6% 34% 6%;
+  background: var(--room-wall);
+  border-radius: 4px 4px 0 0;
+}
+.sl-floor {
+  position: absolute;
+  inset: 66% 0 0 0;
+  background: var(--room-floor);
+  clip-path: polygon(6% 0, 94% 0, 100% 100%, 0 100%);
+}
+/* O móvel: contorno que sobe e prateleiras que entram uma a uma, em ciclo. */
+.sl-piece {
+  position: absolute;
+  left: 38%;
+  bottom: 22%;
+  width: 24%;
+  height: 58%;
+  border: 2px solid var(--accent);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  transform-origin: bottom;
+  animation: sl-rise 2.8s ease-in-out infinite;
+}
+.sl-piece i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  animation: sl-shelf 2.8s ease-in-out infinite;
+}
+.sl-piece i:nth-child(1) {
+  bottom: 20%;
+}
+.sl-piece i:nth-child(2) {
+  bottom: 40%;
+  animation-delay: 0.12s;
+}
+.sl-piece i:nth-child(3) {
+  bottom: 60%;
+  animation-delay: 0.24s;
+}
+.sl-piece i:nth-child(4) {
+  bottom: 80%;
+  animation-delay: 0.36s;
+}
+.sl-shadow {
+  position: absolute;
+  left: 34%;
+  bottom: 18%;
+  width: 32%;
+  height: 6%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(0 0 0 / 0.22), transparent);
+}
+@keyframes sl-rise {
+  0% {
+    transform: scaleY(0.02);
+    opacity: 0.3;
+  }
+  30%,
+  85% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 0.3;
+  }
+}
+@keyframes sl-shelf {
+  0%,
+  30% {
+    transform: scaleX(0);
+  }
+  50%,
+  85% {
+    transform: scaleX(1);
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0.3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk,
+  .sl-piece,
+  .sl-piece i,
+  .scene {
+    animation: none;
+  }
+  .sl-piece i {
+    transform: none;
   }
 }
