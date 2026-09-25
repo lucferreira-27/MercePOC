@@ -1,8 +1,8 @@
 'use client';
 import { useState } from 'react';
-import { Check, Copy, RotateCcw } from 'lucide-react';
+import { Check, ChevronDown, Copy, Crosshair, Minus, Plus, RotateCcw } from 'lucide-react';
 import { materials } from '@/lib/furniture';
-import { DEFAULT_PRICES, money, type Prices, type Quote, type QuoteSection } from '@/lib/quote';
+import { DEFAULT_PRICES, money, type PriceRef, type Prices, type Quote, type QuoteLine, type QuoteSection } from '@/lib/quote';
 
 const SECTION_TONE: Record<QuoteSection, string> = {
   Chapas: 'var(--chart-1)',
@@ -10,23 +10,34 @@ const SECTION_TONE: Record<QuoteSection, string> = {
   Ferragens: 'var(--chart-3)',
   'Mão de obra': 'var(--chart-4)',
 };
+const ORDER: QuoteSection[] = ['Chapas', 'Fita de borda', 'Ferragens', 'Mão de obra'];
 
 /** Texto do orçamento para colar numa mensagem ao cliente. */
-function quoteText(name: string, q: Quote) {
-  const lines = [
-    `Orçamento estimado · ${name}`,
-    '',
-    ...q.lines.map(
-      (l) => `${l.label}: ${l.qty} ${l.unit} × ${money(l.unitPrice)} = ${money(l.total)}`,
-    ),
+export function quoteText(name: string, q: Quote) {
+  const lines = [`Orçamento estimado · ${name}`];
+  for (const section of ORDER) {
+    const items = q.lines.filter((l) => l.section === section);
+    if (!items.length) continue;
+    lines.push('', `${section}: ${money(items.reduce((a, l) => a + l.total, 0))}`);
+    for (const l of items) lines.push(`  ${l.label}: ${l.qty} ${l.unit} × ${money(l.unitPrice)} = ${money(l.total)}`);
+  }
+  lines.push(
     '',
     `Custo: ${money(q.cost)}`,
     `Margem: ${money(q.marginValue)}`,
     `Total: ${money(q.total)}`,
     '',
     'Estimativa gerada no Merce. Confirme medidas, materiais e ferragens antes de fechar.',
-  ];
+  );
   return lines.join('\n');
+}
+
+function num(raw: string) {
+  const v = Number(raw.replace(',', '.'));
+  return Number.isFinite(v) && v >= 0 ? v : null;
+}
+function pct(v: number) {
+  return `${Math.round(v * 100)}%`;
 }
 
 export function QuotePanel({
@@ -34,19 +45,30 @@ export function QuotePanel({
   quote: q,
   prices,
   onPrices,
+  previous = null,
+  onShowParts,
 }: {
   name: string;
   quote: Quote;
   prices: Prices;
   onPrices: (next: Prices) => void;
+  /** Total da versão anterior à exibida, para mostrar quanto a última mudança custou. */
+  previous?: { version: number; total: number } | null;
+  /** Acende no móvel as peças que uma linha conta. */
+  onShowParts?: (ids: string[]) => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [closed, setClosed] = useState<QuoteSection[]>([]);
   const set = <K extends keyof Prices>(key: K, value: Prices[K]) => onPrices({ ...prices, [key]: value });
-  const num = (raw: string) => {
-    const v = Number(raw.replace(',', '.'));
-    return Number.isFinite(v) && v >= 0 ? v : null;
-  };
-  const priceField = (key: Exclude<keyof Prices, 'sheets' | 'handles'>, label: string, suffix = 'R$') => (
+  const setRef = (ref: PriceRef, v: number) =>
+    'sheet' in ref
+      ? onPrices({ ...prices, sheets: { ...prices.sheets, [ref.sheet]: v } })
+      : onPrices({ ...prices, [ref.key]: v });
+  const custom = JSON.stringify(prices) !== JSON.stringify(DEFAULT_PRICES);
+  const sectionTotal = q.sections.reduce((a, s) => a + s.total, 0) || 1;
+  const delta = previous ? Math.round((q.total - previous.total) * 100) / 100 : 0;
+  const margin = (v: number) => set('margin', Math.max(0, Math.min(300, Math.round(v))));
+  const priceField = (key: Exclude<keyof Prices, 'sheets' | 'handles'>, label: string, suffix = 'R$', step = 0.5) => (
     <label className="price-field" key={key}>
       <span>{label}</span>
       <span className="price-input">
@@ -54,7 +76,7 @@ export function QuotePanel({
         <input
           type="number"
           min={0}
-          step={key === 'margin' ? 1 : 0.5}
+          step={step}
           value={prices[key]}
           onChange={(e) => {
             const v = num(e.target.value);
@@ -64,15 +86,51 @@ export function QuotePanel({
       </span>
     </label>
   );
-  const sectionTotal = q.sections.reduce((a, s) => a + s.total, 0) || 1;
   return (
     <div className="quote-panel">
       <div className="quote-hero">
-        <span className="eyebrow">Orçamento estimado</span>
+        <div className="quote-hero-top">
+          <span className="eyebrow">Orçamento estimado</span>
+          {previous && (
+            <span
+              className={'quote-delta' + (delta > 0 ? ' up' : delta < 0 ? ' down' : '')}
+              title={`Versão ${previous.version}: ${money(previous.total)}`}
+            >
+              {delta === 0 ? `igual à v${previous.version}` : `${delta > 0 ? '+' : '−'}${money(Math.abs(delta))} vs v${previous.version}`}
+            </span>
+          )}
+        </div>
         <strong className="quote-total">{money(q.total)}</strong>
-        <span className="quote-sub">
-          Custo {money(q.cost)} + margem {prices.margin}% ({money(q.marginValue)})
-        </span>
+        <div className="quote-split">
+          <span>
+            Custo <b>{money(q.cost)}</b>
+          </span>
+          <span className="quote-margin">
+            Margem
+            <span className="stepper" aria-label="Margem sobre o custo">
+              <button type="button" aria-label="Menos 5%" onClick={() => margin(prices.margin - 5)}>
+                <Minus size={12} />
+              </button>
+              <input
+                type="number"
+                min={0}
+                max={300}
+                step={1}
+                aria-label="Margem em %"
+                value={prices.margin}
+                onChange={(e) => {
+                  const v = num(e.target.value);
+                  if (v !== null) margin(v);
+                }}
+              />
+              <em>%</em>
+              <button type="button" aria-label="Mais 5%" onClick={() => margin(prices.margin + 5)}>
+                <Plus size={12} />
+              </button>
+            </span>
+            <b>{money(q.marginValue)}</b>
+          </span>
+        </div>
         <div className="quote-bar" aria-hidden="true">
           {q.sections.map((s) => (
             <span
@@ -86,70 +144,94 @@ export function QuotePanel({
             <li key={s.section}>
               <i style={{ background: SECTION_TONE[s.section] }} />
               {s.section}
+              <span>{pct(s.total / sectionTotal)}</span>
               <b>{money(s.total)}</b>
             </li>
           ))}
         </ul>
-        <button
-          type="button"
-          className="ghost-button"
-          onClick={() => {
-            void navigator.clipboard?.writeText(quoteText(name, q)).then(() => {
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1800);
-            });
-          }}
-        >
-          {copied ? <Check size={14} /> : <Copy size={14} />}
-          {copied ? 'Copiado' : 'Copiar orçamento'}
-        </button>
+        <div className="quote-actions">
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={() => {
+              void navigator.clipboard?.writeText(quoteText(name, q)).then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1800);
+              });
+            }}
+          >
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+            {copied ? 'Copiado' : 'Copiar orçamento'}
+          </button>
+          {custom && (
+            <button type="button" className="link-button" onClick={() => onPrices(structuredClone(DEFAULT_PRICES))}>
+              <RotateCcw size={12} /> preços de partida
+            </button>
+          )}
+        </div>
       </div>
-      <div className="stat-grid">
-        <span><b>{q.counts.modules}</b>módulos</span>
-        <span><b>{q.counts.parts}</b>peças</span>
-        <span><b>{q.counts.sheets}</b>chapas</span>
-        <span><b>{q.counts.doors}</b>portas</span>
-        <span><b>{q.counts.drawers}</b>gavetas</span>
-        <span><b>{q.counts.edgeMeters} m</b>de fita</span>
+      <div className="stat-strip">
+        <span>
+          <b>{q.counts.modules}</b> {q.counts.modules === 1 ? 'módulo' : 'módulos'}
+        </span>
+        <span>
+          <b>{q.counts.parts}</b> peças
+        </span>
+        <span>
+          <b>{q.counts.sheets}</b> {q.counts.sheets === 1 ? 'chapa' : 'chapas'}
+        </span>
+        <span>
+          <b>{q.counts.doors}</b> {q.counts.doors === 1 ? 'porta' : 'portas'}
+        </span>
+        <span>
+          <b>{q.counts.drawers}</b> {q.counts.drawers === 1 ? 'gaveta' : 'gavetas'}
+        </span>
+        <span>
+          <b>{q.counts.edgeMeters} m</b> de fita
+        </span>
       </div>
-      {(['Chapas', 'Fita de borda', 'Ferragens', 'Mão de obra'] as QuoteSection[]).map((section) => {
+      <p className="hint quote-tip">Os unitários são editáveis na linha e valem para todos os projetos.</p>
+      {ORDER.map((section) => {
         const lines = q.lines.filter((l) => l.section === section);
         if (!lines.length) return null;
+        const total = lines.reduce((a, l) => a + l.total, 0);
+        const open = !closed.includes(section);
         return (
-          <section className="quote-section" key={section}>
-            <div className="section-label">
-              <span>
-                <i className="dot" style={{ background: SECTION_TONE[section] }} />
-                {section}
-              </span>
-              <span>{money(lines.reduce((a, l) => a + l.total, 0))}</span>
-            </div>
-            {lines.map((l) => (
-              <div className="quote-line" key={l.label}>
-                <div>
-                  <strong>{l.label}</strong>
-                  <small>
-                    {l.qty} {l.unit} × {money(l.unitPrice)}
-                    {l.note ? ` · ${l.note}` : ''}
-                  </small>
-                </div>
-                <b>{money(l.total)}</b>
-              </div>
-            ))}
+          <section className={'quote-section' + (open ? '' : ' closed')} key={section}>
+            <button
+              type="button"
+              className="quote-section-head"
+              aria-expanded={open}
+              onClick={() => setClosed(open ? [...closed, section] : closed.filter((s) => s !== section))}
+            >
+              <ChevronDown size={14} className="chev" />
+              <i className="dot" style={{ background: SECTION_TONE[section] }} />
+              <span>{section}</span>
+              <small>{pct(total / sectionTotal)}</small>
+              <b>{money(total)}</b>
+            </button>
+            {open &&
+              lines.map((l) => (
+                <Line key={l.label} line={l} onPrice={(v) => l.price && setRef(l.price, v)} onShow={onShowParts} />
+              ))}
           </section>
         );
       })}
       <details className="price-table">
-        <summary>Tabela de preços</summary>
+        <summary>Tabela de preços completa</summary>
         <p className="hint">
-          Valores de partida em reais, salvos neste navegador e usados em todos os projetos.
+          Valores em reais, salvos neste navegador e usados em todos os projetos. Chapas de 15 e 6 mm saem da chapa 18
+          do mesmo acabamento pelo fator.
         </p>
         <div className="section-label">Chapa 18 mm · 2750 × 1840</div>
         <div className="price-grid">
           {materials.map((m) => (
             <label className="price-field" key={m.id}>
               <span>
-                <i className={'swatch-dot' + (m.finish === 'wood' ? ' wood' : '')} style={{ '--swatch': m.color } as React.CSSProperties} />
+                <i
+                  className={'swatch-dot' + (m.finish === 'wood' ? ' wood' : '')}
+                  style={{ '--swatch': m.color } as React.CSSProperties}
+                />
                 {m.name}
               </span>
               <span className="price-input">
@@ -167,6 +249,8 @@ export function QuotePanel({
               </span>
             </label>
           ))}
+          {priceField('factor15', 'Fator chapa 15 mm', '×', 0.01)}
+          {priceField('factor6', 'Fator chapa 6 mm', '×', 0.01)}
         </div>
         <div className="section-label">Ferragens e fita</div>
         <div className="price-grid">
@@ -180,22 +264,74 @@ export function QuotePanel({
           <input type="checkbox" checked={prices.handles} onChange={(e) => set('handles', e.target.checked)} />
           Frentes com puxador
         </label>
-        <div className="section-label">Mão de obra e margem</div>
+        <div className="section-label">Mão de obra</div>
         <div className="price-grid">
           {priceField('labourPerPart', 'Corte e fita (peça)')}
           {priceField('labourPerModule', 'Montagem (módulo)')}
           {priceField('labourPerFront', 'Regulagem (frente)')}
-          {priceField('margin', 'Margem', '%')}
         </div>
         <button type="button" className="ghost-button" onClick={() => onPrices(structuredClone(DEFAULT_PRICES))}>
           <RotateCcw size={14} /> Restaurar valores de partida
         </button>
       </details>
       <p className="hint">
-        Estimativa para conversa inicial: chapas contadas pelo plano de corte, fita nas frentes
-        em 4 bordas e nas demais peças na borda da frente. Não inclui frete, instalação,
-        impostos nem acessórios internos.
+        Estimativa para conversa inicial: chapas contadas pelo plano de corte, fita nas frentes em 4 bordas e nas
+        demais peças na borda da frente. Não inclui frete, instalação, impostos nem acessórios internos.
       </p>
+    </div>
+  );
+}
+
+function Line({
+  line: l,
+  onPrice,
+  onShow,
+}: {
+  line: QuoteLine;
+  onPrice: (v: number) => void;
+  onShow?: (ids: string[]) => void;
+}) {
+  return (
+    <div className="quote-line">
+      <div className="quote-line-main">
+        <strong>{l.label}</strong>
+        <span className="quote-calc">
+          {l.qty} {l.unit} ×{' '}
+          {l.price ? (
+            <span className="inline-price">
+              <em>R$</em>
+              <input
+                type="number"
+                min={0}
+                step={0.5}
+                aria-label={`Unitário de ${l.label}`}
+                value={l.unitPrice}
+                onChange={(e) => {
+                  const v = num(e.target.value);
+                  if (v !== null) onPrice(v);
+                }}
+              />
+            </span>
+          ) : (
+            money(l.unitPrice)
+          )}
+        </span>
+        {l.note && <small>{l.note}</small>}
+      </div>
+      <div className="quote-line-side">
+        <b>{money(l.total)}</b>
+        {onShow && l.parts.length > 0 && (
+          <button
+            type="button"
+            className="icon-button quote-show"
+            title={`Ver no móvel (${l.parts.length} ${l.parts.length === 1 ? 'peça' : 'peças'})`}
+            aria-label={`Ver ${l.label} no móvel`}
+            onClick={() => onShow(l.parts)}
+          >
+            <Crosshair size={14} />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
