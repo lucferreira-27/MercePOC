@@ -1,0 +1,438 @@
+{
+ "id": "op-01",
+ "at": "2026-09-25T15:45:32.115Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Me dá 3 opções de estante para uma parede de 2 m: uma mais barata, uma com portas e uma com gavetas",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_sVzXBaJwsjZ1o3JhWEYW1138",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\": [\"Marcar a parede de 2 m no ambiente\", \"Montar 3 opções de estante: econômica, com portas e com gavetas\", \"Comparar preço, peças e encaixe de cada opção\"]}"
+      }
+     },
+     {
+      "id": "call_01_vhonpLjkdrHyfOS9Zlhk9477",
+      "type": "function",
+      "function": {
+       "name": "room_set",
+       "arguments": "{\"largura\": 2000}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "5|Pedido: Me dá 3 opções de estante para uma parede de 2 m: uma mais barata, uma com portas e uma com gavetas",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_S5h4PH4RienOCAxXbdvn4805",
+      "type": "function",
+      "function": {
+       "name": "options_make",
+       "arguments": "{\"variantes\": [{\"nome\": \"Econômica\", \"pedido\": \"Estante de nichos abertos para parede de 2 m: fileira de 2000 mm de largura, 1800 mm de altura, 300 mm de profundidade, sem portas nem gavetas, material branco fosco, na parede de 2 m.\"}, {\"nome\": \"Com portas\", \"pedido\": \"Estante para parede de 2 m: fileira de 2000 mm de largura, 1800 mm de altura, 350 mm de profundidade em carvalho natural, com portas nas duas partes de baixo e nichos abertos em cima.\"}, {\"nome\": \"Com gavetas\", \"pedido\": \"Estante para parede de 2 m: fileira de 2000 mm de largura, 1800 mm de altura, 350 mm de profundidade em carvalho natural, com gavetas embaixo e nichos abertos em cima.\"}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "2|Pedido: Opção \"Econômica\", uma entre 3 para a pessoa comparar: Estante de nichos abertos para parede de 2 m: fileira de 2000 mm de largura, 1800 mm de altura, 300 mm de profundidade, sem portas nem gavetas, material branco fosco, na parede de 2 m.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem. Ela precisa caber no ambiente do estado (parede, janela, porta, coluna): o resultado do design_apply avisa quando o encaixe piora.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_dL9fAgZdTCcCzuSl9NMW5818",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\": 0, \"largura\": 2000, \"altura\": 1800, \"profundidade\": 300, \"base\": 0, \"tipo\": \"shelf\", \"nome\": \"Estante econômica\", \"desviar_obstaculos\": true, \"folga\": 50, \"substituir\": true, \"frente\": \"none\", \"material\": \"white\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Opção \"Econômica\", uma entre 3 para a pessoa comparar: Estante de nichos abertos para parede de 2 m: fileira de 2000 mm de largura, 1800 mm de altura, 300 mm de profundidade, sem portas nem gavetas, material branco fosco, na parede de 2 m.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem. Ela precisa caber no ambiente do estado (parede, janela, porta, coluna): o resultado do design_apply avisa quando o encaixe piora.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_y10NE0CEIvGV98jrBCWo2220",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Montei a opção Econômica: estante de nichos abertos em branco fosco, 2,00 × 1,80 × 0,30 m, encostada na parede de 2 m, sem portas nem gavetas — ocupa a parede inteira, com 0 cm de folga nas laterais.\", \"sugestoes\": [\"Comparar com opções com portas e gavetas\", \"Ver o orçamento desta versão\", \"Colocar portas nos nichos de baixo\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "2|Pedido: Opção \"Com portas\", uma entre 3 para a pessoa comparar: Estante para parede de 2 m: fileira de 2000 mm de largura, 1800 mm de altura, 350 mm de profundidade em carvalho natural, com portas nas duas partes de baixo e nichos abertos em cima.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem. Ela precisa caber no ambiente do estado (parede, janela, porta, coluna): o resultado do design_apply avisa quando o encaixe piora.",
+   "reply": {
+    "content": "Vou montar a opção direto no rascunho.",
+    "calls": [
+     {
+      "id": "call_00_NOxoJnGA8TTpiP3JXunG8943",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\": 0, \"largura\": 2000, \"altura\": 1800, \"profundidade\": 350, \"base\": 0, \"tipo\": \"niche\", \"nome\": \"Estante\", \"desviar_obstaculos\": true, \"folga\": 50, \"substituir\": true, \"material\": \"oak\", \"material_frente\": \"oak\", \"frente\": \"none\", \"pes\": 0}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Opção \"Com portas\", uma entre 3 para a pessoa comparar: Estante para parede de 2 m: fileira de 2000 mm de largura, 1800 mm de altura, 350 mm de profundidade em carvalho natural, com portas nas duas partes de baixo e nichos abertos em cima.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem. Ela precisa caber no ambiente do estado (parede, janela, porta, coluna): o resultado do design_apply avisa quando o encaixe piora.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_DV1qv9LlIlWUlxavCWxM9488",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"cell.split\", \"id\": \"estante-1:root\", \"axis\": \"y\", \"gapMm\": 600}, {\"kind\": \"front.set\", \"id\": \"estante-1:root:low\", \"type\": \"double\", \"materialId\": \"oak\"}, {\"kind\": \"cell.split\", \"id\": \"estante-2:root\", \"axis\": \"y\", \"gapMm\": 600}, {\"kind\": \"front.set\", \"id\": \"estante-2:root:low\", \"type\": \"double\", \"materialId\": \"oak\"}, {\"kind\": \"cell.split\", \"id\": \"estante-3:root\", \"axis\": \"y\", \"gapMm\": 600}, {\"kind\": \"front.set\", \"id\": \"estante-3:root:low\", \"type\": \"double\", \"materialId\": \"oak\"}], \"rotulo\": \"Opção Com portas\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Opção \"Com portas\", uma entre 3 para a pessoa comparar: Estante para parede de 2 m: fileira de 2000 mm de largura, 1800 mm de altura, 350 mm de profundidade em carvalho natural, com portas nas duas partes de baixo e nichos abertos em cima.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem. Ela precisa caber no ambiente do estado (parede, janela, porta, coluna): o resultado do design_apply avisa quando o encaixe piora.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_KgyLJHFTur4E4I07V5Lk0596",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Opção \\\"Com portas\\\" montada: estante de 2,00 m de largura × 1,80 m de altura × 35 cm de profundidade em carvalho natural, em três corpos divididos ao meio — portas duplas na parte de baixo e nichos abertos em cima, sem pés, encostada na parede dos 2 m (cabe no limite, sem folga).\", \"sugestoes\": [\"Criar as outras 2 opções para comparar\", \"Ver o orçamento e as chapas desta opção\", \"Ajustar a altura das portas de baixo\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "2|Pedido: Opção \"Com gavetas\", uma entre 3 para a pessoa comparar: Estante para parede de 2 m: fileira de 2000 mm de largura, 1800 mm de altura, 350 mm de profundidade em carvalho natural, com gavetas embaixo e nichos abertos em cima.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem. Ela precisa caber no ambiente do estado (parede, janela, porta, coluna): o resultado do design_apply avisa quando o encaixe piora.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_5qU4O6VjZI66h7nW7YQM1696",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"rotulo\": \"Opção Com gavetas: estante 2,00 m\", \"ops\": [{\"kind\": \"module.remove\", \"id\": \"module-1\"}, {\"kind\": \"module.add\", \"id\": \"gav-a\", \"preset\": \"niche\", \"name\": \"Estante gavetas\"}, {\"kind\": \"module.edit\", \"id\": \"gav-a\", \"name\": \"Estante gavetas\", \"width\": 679, \"height\": 1800, \"depth\": 350, \"materialId\": \"oak\", \"feet\": 0, \"position\": [0, 0, 0]}, {\"kind\": \"module.add\", \"id\": \"gav-b\", \"preset\": \"niche\", \"name\": \"Estante gavetas\"}, {\"kind\": \"module.edit\", \"id\": \"gav-b\", \"name\": \"Estante gavetas\", \"width\": 678, \"height\": 1800, \"depth\": 350, \"materialId\": \"oak\", \"feet\": 0}, {\"kind\": \"connect\", \"parent\": \"gav-a\", \"child\": \"gav-b\", \"side\": \"right\", \"shared\": true, \"align\": \"front\", \"offset\": 0}, {\"kind\": \"module.add\", \"id\": \"gav-c\", \"preset\": \"niche\", \"name\": \"Estante gavetas\"}, {\"kind\": \"module.edit\", \"id\": \"gav-c\", \"name\": \"Estante gavetas\", \"width\": 679, \"height\": 1800, \"depth\": 350, \"materialId\": \"oak\", \"feet\": 0}, {\"kind\": \"connect\", \"parent\": \"gav-b\", \"child\": \"gav-c\", \"side\": \"right\", \"shared\": true, \"align\": \"front\", \"offset\": 0}, {\"kind\": \"cell.split\", \"id\": \"gav-a:root\", \"axis\": \"y\", \"gapMm\": 420}, {\"kind\": \"cell.split\", \"id\": \"gav-b:root\", \"axis\": \"y\", \"gapMm\": 420}, {\"kind\": \"cell.split\", \"id\": \"gav-c:root\", \"axis\": \"y\", \"gapMm\": 420}, {\"kind\": \"cell.split\", \"id\": \"gav-a:root:high\", \"axis\": \"y\", \"gapMm\": 672}, {\"kind\": \"cell.split\", \"id\": \"gav-b:root:high\", \"axis\": \"y\", \"gapMm\": 672}, {\"kind\": \"cell.split\", \"id\": \"gav-c:root:high\", \"axis\": \"y\", \"gapMm\": 672}, {\"kind\": \"front.set\", \"id\": \"gav-a:root:low\", \"type\": \"drawers\", \"count\": 3, \"materialId\": \"oak\"}, {\"kind\": \"front.set\", \"id\": \"gav-b:root:low\", \"type\": \"drawers\", \"count\": 3, \"materialId\": \"oak\"}, {\"kind\": \"front.set\", \"id\": \"gav-c:root:low\", \"type\": \"drawers\", \"count\": 3, \"materialId\": \"oak\"}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Opção \"Com gavetas\", uma entre 3 para a pessoa comparar: Estante para parede de 2 m: fileira de 2000 mm de largura, 1800 mm de altura, 350 mm de profundidade em carvalho natural, com gavetas embaixo e nichos abertos em cima.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem. Ela precisa caber no ambiente do estado (parede, janela, porta, coluna): o resultado do design_apply avisa quando o encaixe piora.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_ct8Zg5skYn2BwHIceJmH6479",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\": 0, \"largura\": 2000, \"altura\": 1800, \"profundidade\": 350, \"base\": 0, \"tipo\": \"niche\", \"nome\": \"Estante com gavetas\", \"desviar_obstaculos\": true, \"folga\": 50, \"substituir\": true, \"material\": \"oak\", \"material_frente\": \"oak\", \"frente\": \"none\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Opção \"Com gavetas\", uma entre 3 para a pessoa comparar: Estante para parede de 2 m: fileira de 2000 mm de largura, 1800 mm de altura, 350 mm de profundidade em carvalho natural, com gavetas embaixo e nichos abertos em cima.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem. Ela precisa caber no ambiente do estado (parede, janela, porta, coluna): o resultado do design_apply avisa quando o encaixe piora.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_TJoKv8XD7nxE01ATQoCq9019",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"cell.split\", \"id\": \"estante-com--1:root\", \"axis\": \"y\", \"gapMm\": 420}, {\"kind\": \"cell.split\", \"id\": \"estante-com--2:root\", \"axis\": \"y\", \"gapMm\": 420}, {\"kind\": \"cell.split\", \"id\": \"estante-com--3:root\", \"axis\": \"y\", \"gapMm\": 420}, {\"kind\": \"cell.split\", \"id\": \"estante-com--1:root:high\", \"axis\": \"y\", \"gapMm\": 600}, {\"kind\": \"cell.split\", \"id\": \"estante-com--2:root:high\", \"axis\": \"y\", \"gapMm\": 600}, {\"kind\": \"cell.split\", \"id\": \"estante-com--3:root:high\", \"axis\": \"y\", \"gapMm\": 600}, {\"kind\": \"front.set\", \"id\": \"estante-com--1:root:low\", \"type\": \"drawers\", \"count\": 3, \"materialId\": \"oak\"}, {\"kind\": \"front.set\", \"id\": \"estante-com--2:root:low\", \"type\": \"drawers\", \"count\": 3, \"materialId\": \"oak\"}, {\"kind\": \"front.set\", \"id\": \"estante-com--3:root:low\", \"type\": \"drawers\", \"count\": 3, \"materialId\": \"oak\"}], \"rotulo\": \"Opção Com gavetas: estante 2,00 m\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Opção \"Com gavetas\", uma entre 3 para a pessoa comparar: Estante para parede de 2 m: fileira de 2000 mm de largura, 1800 mm de altura, 350 mm de profundidade em carvalho natural, com gavetas embaixo e nichos abertos em cima.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem. Ela precisa caber no ambiente do estado (parede, janela, porta, coluna): o resultado do design_apply avisa quando o encaixe piora.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_XJVrO6R5tKC490l8YAOS5007",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Opção \\\"Com gavetas\\\": estante de 2,00 m de largura × 1,80 m de altura × 35 cm de profundidade em carvalho natural, formada por três corpos encostados na parede — três gavetas embaixo e nichos abertos em cima em cada corpo. Ela ocupa a parede de 2 m exatamente, sem folga sobrando.\", \"sugestoes\": [\"Gerar as 3 opções para comparar preço\", \"Trocar as gavetas por portas nos corpos\", \"Abrir o orçamento e as chapas desta opção\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "7|Pedido: Me dá 3 opções de estante para uma parede de 2 m: uma mais barata, uma com portas e uma com gavetas",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_9Y0F43DXo2KPEZnuxgBV0562",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Preparei 3 opções para a parede de 2 m, todas com 2,00 m de largura e 1,80 m de altura: Econômica (branco fosco, 30 cm de profundidade, nichos abertos, sem portas nem gavetas) sai R$ 2.268,76 com 25 peças; Com portas (carvalho natural, 35 cm) sai R$ 3.412,75 com 6 portas duplas embaixo e nichos em cima; Com gavetas (carvalho natural, 35 cm) sai R$ 5.076,11 com 9 gavetas embaixo e nichos em cima. As três cabem na parede de 2 m e o móvel atual não mudou — você aplica a que preferir pelo cartão.\", \"sugestoes\": [\"Aplicar a opção Econômica\", \"Aplicar a opção Com portas\", \"Aplicar a opção Com gavetas\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "options",
+      "confidence": 1,
+      "probabilities": {
+       "options": 1,
+       "ask": 0,
+       "view": 0,
+       "build": 0,
+       "edit": 0,
+       "studio": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.64
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.21
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.81
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.24
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.93
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.15
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.01
+     }
+    },
+    "usage": {
+     "input_tokens": 1334,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.74
+     }
+    },
+    "usage": {
+     "input_tokens": 437,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.05
+     }
+    },
+    "usage": {
+     "input_tokens": 666,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

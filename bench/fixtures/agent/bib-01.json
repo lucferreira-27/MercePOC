@@ -1,0 +1,318 @@
+{
+ "id": "bib-01",
+ "at": "2026-09-25T15:37:04.854Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Faz um rack de TV pra mim",
+   "reply": {
+    "content": "Vou trocar o rascunho por um rack de TV no tamanho padrão do catálogo.",
+    "calls": [
+     {
+      "id": "call_00_qzm8U0UgCSFkzbBOGtc43569",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"asset.add\", \"asset\": \"rack-tv\", \"placement\": \"replace\", \"id\": \"rack-tv\", \"width\": 1800, \"height\": 550, \"depth\": 450, \"materialId\": \"oak\", \"frontMaterialId\": \"oak\", \"feet\": 150}], \"rotulo\": \"Rack de TV 180 × 55 × 45 cm\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Faz um rack de TV pra mim",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_kATB7hXfxDm3WU1Yue2L2761",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_nORKAYoOjgXqyWNd4l8u1693",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Faz um rack de TV pra mim",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_jAO9vuUEN14DP3grj0436872",
+      "type": "function",
+      "function": {
+       "name": "select",
+       "arguments": "{\"ids\": [\"rack-tv-r1\", \"rack-tv-r2\", \"rack-tv-r3\"]}"
+      }
+     },
+     {
+      "id": "call_01_msPHHju1YBo7yDVjQxEn9297",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_02_rjDhqPFs1ZkH3U3gWz7L2786",
+      "type": "function",
+      "function": {
+       "name": "quote_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Faz um rack de TV pra mim",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_XRLnYGqca45Ln3CFbiwQ5240",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Pronto: troquei a estante por um rack de TV de 180 × 55 × 45 cm, com pés palito de 15 cm, em carvalho natural — portas nas duas pontas e, no centro, uma gaveta embaixo com nicho aberto em cima. Fica em R$ 2.724,98 (3 módulos, 3 frentes, 1 gaveta). Não usei o tamanho antigo de 80 cm porque o rack padrão do catálogo é mais largo; se quiser, ajusto a largura.\", \"sugestoes\": [\"Ajuste a largura do rack à sua parede\", \"Troque o carvalho por outro acabamento\", \"Gere o PDF com desenho e orçamento\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 1,
+      "probabilities": {
+       "studio": 0,
+       "view": 0,
+       "edit": 0,
+       "options": 0,
+       "build": 1,
+       "ask": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.24
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.97
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.18
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.13
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 1313,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.08
+     }
+    },
+    "usage": {
+     "input_tokens": 416,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.39
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.97
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.42
+     }
+    },
+    "usage": {
+     "input_tokens": 600,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

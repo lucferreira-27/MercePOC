@@ -1,0 +1,344 @@
+{
+ "id": "cop-02",
+ "at": "2026-09-25T15:28:21.145Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Quero quatro cópias iguais deste módulo, cada uma independente.",
+   "reply": {
+    "content": "Vou montar as quatro cópias independentes lado a lado, uma por vez.",
+    "calls": [
+     {
+      "id": "call_00_t9Juvgym5o5EardItLPS3290",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\": [\"Duplicar o módulo como cópia independente\", \"Encostar a 1ª cópia à direita do original\", \"Repetir até completar as quatro cópias\", \"Conferir medidas e encaixe da fileira\", \"Salvar a versão e mostrar na cena\"]}"
+      }
+     },
+     {
+      "id": "call_01_dzxLyqBbgcukiJEYXY4N7612",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"module.duplicate\", \"id\": \"module-1\", \"newId\": \"copia-1\"}, {\"kind\": \"connect\", \"parent\": \"module-1\", \"child\": \"copia-1\", \"side\": \"right\", \"shared\": false, \"align\": \"front\", \"offset\": 0}], \"rotulo\": \"1ª cópia independente\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "5|Pedido: Quero quatro cópias iguais deste módulo, cada uma independente.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_Pu6gCW03v7eu3taZLUfn4927",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"id\": \"copia-1\", \"kind\": \"module.duplicate\", \"newId\": \"copia-2\"}, {\"align\": \"front\", \"child\": \"copia-2\", \"kind\": \"connect\", \"offset\": 0, \"parent\": \"copia-1\", \"shared\": false, \"side\": \"right\"}], \"rotulo\": \"2ª cópia independente\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "7|Pedido: Quero quatro cópias iguais deste módulo, cada uma independente.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_ET_euuLoAkEWSApt8tapJuO5637",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"id\": \"copia-2\", \"kind\": \"module.duplicate\", \"newId\": \"copia-3\"}, {\"align\": \"front\", \"child\": \"copia-3\", \"kind\": \"connect\", \"offset\": 0, \"parent\": \"copia-2\", \"shared\": false, \"side\": \"right\"}], \"rotulo\": \"3ª cópia independente\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "9|Pedido: Quero quatro cópias iguais deste módulo, cada uma independente.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_ET_aqldwcst4ABOA7VNRwxX8897",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"id\": \"copia-3\", \"kind\": \"module.duplicate\", \"newId\": \"copia-4\"}, {\"align\": \"front\", \"child\": \"copia-4\", \"kind\": \"connect\", \"offset\": 0, \"parent\": \"copia-3\", \"shared\": false, \"side\": \"right\"}], \"rotulo\": \"4ª cópia independente\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "11|Pedido: Quero quatro cópias iguais deste módulo, cada uma independente.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_F58ze5VkclrbwWRhzIFB7495",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_hlr3THsu6sgQkluYyJE15374",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "14|Pedido: Quero quatro cópias iguais deste módulo, cada uma independente.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_XBauDZ9mhDQmchzlThU11917",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Fiz quatro cópias iguais da sua estante, todas independentes (cada uma com painéis próprios, sem parede compartilhada), enfileiradas à direita da original: agora são 5 módulos de 80 × 180 × 35 cm, total 4,00 m de largura, mesma altura e profundidade, em carvalho natural. Cada cópia repete as quatro prateleiras e os nove nichos do original.\", \"sugestoes\": [\"Gerar o orçamento das cinco estantes\", \"Gerar o plano de corte das chapas\", \"Exportar o PDF com desenho e peças\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.65,
+      "probabilities": {
+       "build": 0.71,
+       "options": 0.01,
+       "view": 0,
+       "edit": 0.24,
+       "studio": 0.03,
+       "ask": 0.01
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.28
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.37
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.57
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.21
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 1320,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.28
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 423,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.81
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.05
+     }
+    },
+    "usage": {
+     "input_tokens": 578,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

@@ -34,9 +34,15 @@ Plano aprovado: `C:\Users\lucfe\.claude\plans\let-make-the-artetura-glowing-mars
 - `npm run bench -- --agent` roda os casos pelo `runAgentTurn` e traduz o resultado para as ações antigas. `--record` grava as respostas do modelo (pela conversa, para sub-laços em paralelo) e do Jev (pelas perguntas); `--offline` repete sem rede.
 - Grupos só do laço (`agentOnly`): `estudio`, `autoconferencia`, `trabalho-completo`, `opcoes`, com `expect.agent(got)` sobre efeitos, frentes, ambiente, projeto e opções.
 - Casos atualizados ao produto de hoje (orçamento, corte): `rec-01`, `rec-02`, `sug-03`; `lim-03` conta só frentes de gaveta; `nav-02` aceita desfazer e mudar no mesmo pedido.
-- Resultado: BENCH_RESULTADO
+- Resultado (DeepSeek, 25/09, `bench/results/legado.json` e `agente-final.json`, fora do git):
+  - Legado: 48/51 (94%), mediana 5,5 s, US$ 0,001 por caso.
+  - Laço: 59/61 (97%); nos 51 casos comuns passou a acertar `lim-03`, `rec-01`, `rec-02` e errou `div-03` (instável: acertou nas outras 3 rodadas). Mediana 13 s, p90 78 s, US$ 0,003 por caso. `op-01` falhou pela expectativa (medir a parede vira versão), já corrigida.
+  - Offline com as gravações de `bench/fixtures/agent`: 61/61.
+  - O laço é mais lento que o legado (várias chamadas por pedido); o orçamento de tempo (`MAX_MS` 150 s no laço, 60 s por opção) segura a cauda.
 
 ## Pendências conhecidas
+- **Foto no laço:** com duas imagens por etapa o modelo pensa ~40 s por chamada e estoura o tempo antes do layout inteiro. Foto segue pelo caminho antigo (rota e bench); voltar para o laço pede um modelo mais rápido com imagem ou mandar a foto só na primeira etapa.
+- **Latência:** mediana 13 s contra 5,5 s do legado; `div-03`, `tip-01` e os de referência às vezes passam de 1 minuto por chamadas lentas do provedor.
 - **Atalhos perdidos do roteador:** 8 de 57 pedidos de tela vão para o laço (custam alguns segundos, não erram).
 - **Opções e ambiente:** o sub-laço recebe o aviso de encaixe, mas às vezes monta uma opção que não cabe; o cartão mostra "Não cabe no ambiente".
 - **Peitoril baixo inventado:** numa rodada a IA marcou a janela abaixo de 1 m e o balcão desviou dela. `row_build` está certo; `agent-live.mjs` imprime os obstáculos para conferir.

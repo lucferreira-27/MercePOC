@@ -982,8 +982,9 @@ cases.push(
     agentOnly: true,
     prompt: 'Me dá 3 opções de estante para uma parede de 2 m: uma mais barata, uma com portas e uma com gavetas',
     expect: {
-      applied: false,
+      // Medir a parede de 2 m vira versão (ambiente); o móvel é que não muda.
       agent: (got) => {
+        if (got.design.modules.map((m) => `${m.id}:${m.width}`).join() !== 'module-1:800') return 'o móvel mudou; opções não aplicam nada';
         if (got.cards.length < 2) return `${got.cards.length} opção(ões)`;
         if (new Set(got.cards.map((c) => c.total)).size < got.cards.length) return 'opções com o mesmo preço';
         return got.cards.some((c) => c.drawers > 0) ? true : 'nenhuma opção com gavetas';

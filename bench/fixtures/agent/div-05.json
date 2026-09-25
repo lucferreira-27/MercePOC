@@ -1,0 +1,344 @@
+{
+ "id": "div-05",
+ "at": "2026-09-25T15:25:25.471Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Divida este compartimento com 50 mm na coluna da esquerda.",
+   "reply": {
+    "content": "Vou conferir o estado e tentar a divisão pedida.",
+    "calls": [
+     {
+      "id": "call_00_Qz8vbbpslDssJEueNauX2127",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_zvR2cIGjm8fGIoIGvQEd3322",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"cell.split\", \"id\": \"n:root\", \"axis\": \"x\", \"gapMm\": 50}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "5|Pedido: Divida este compartimento com 50 mm na coluna da esquerda.",
+   "reply": {
+    "content": "A divisão a 50 mm não cabe (o vão mínimo é 100 mm). Vou tentar a menor coluna possível e medir.",
+    "calls": [
+     {
+      "id": "call_00_aQA8OcFcHgtuomB7HE2H6999",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"id\": \"n:root\", \"kind\": \"cell.split\", \"axis\": \"x\", \"gapMm\": 118}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "7|Pedido: Divida este compartimento com 50 mm na coluna da esquerda.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_rilHXdVj7ovCTzaYyrMh4014",
+      "type": "function",
+      "function": {
+       "name": "select",
+       "arguments": "{\"ids\": [\"n:root:low\", \"n:root:high\"]}"
+      }
+     },
+     {
+      "id": "call_01_XGnzynSk2mJaCgqsGdVS0266",
+      "type": "function",
+      "function": {
+       "name": "fronts_open",
+       "arguments": "{\"ids\": [], \"abrir\": false}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Divida este compartimento com 50 mm na coluna da esquerda.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_HcyKgr10XyfKhbuJInJf0731",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Divida este compartimento com 50 mm na coluna da esquerda.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_6YAAsEV358HmktGlXaOK8940",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "15|Pedido: Divida este compartimento com 50 mm na coluna da esquerda.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_ISagonVKBMUxSe6QPPCs7338",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Dividi o nicho (80 × 60 × 45 cm) com uma prateleira vertical: vão estreito de 11,8 cm à esquerda e vão largo de 62,8 cm à direita. A coluna de 50 mm não é possível — o perfil de 18 mm deixaria o vão abaixo do mínimo de 10 cm —, então usei a menor coluna que fecha: 11,8 cm.\", \"sugestoes\": [\"Pôr porta de abrir no vão largo\", \"Fazer gavetas na coluna estreita\", \"Alinhar a altura do nicho com a estante\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 0.99,
+      "probabilities": {
+       "build": 0,
+       "edit": 1,
+       "ask": 0,
+       "view": 0,
+       "studio": 0,
+       "options": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.35
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.76
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.5
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.61
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.2
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1321,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.1
+     }
+    },
+    "usage": {
+     "input_tokens": 424,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.18
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.62
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 571,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,302 @@
+{
+ "id": "div-01",
+ "at": "2026-09-25T15:21:22.975Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Divida este compartimento em duas colunas.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_ikJ6svA5cqyqFq38FZsN7880",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"cell.split\", \"id\": \"n:root\", \"axis\": \"x\", \"gapMm\": 382}], \"rotulo\": \"Dividir nicho em duas colunas\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Divida este compartimento em duas colunas.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_24ZLuAHV1s4YiGFFpxAF0368",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_5yqbAmGsiNdSFr67L8Zb6343",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Divida este compartimento em duas colunas.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_GmEIjzYjH6TVgpH4PhqA3943",
+      "type": "function",
+      "function": {
+       "name": "select",
+       "arguments": "{\"ids\": [\"n:root:low\", \"n:root:high\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Divida este compartimento em duas colunas.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_ET_5tyJcy8UO8cM6i43y8tA7930",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Dividi o nicho de 80 × 60 cm em duas colunas, com uma divisão vertical no meio: ficaram dois vãos de ~38 cm de largura por 56 cm de altura, na mesma profundidade de 45 cm. O restante da estante (80 × 180 × 35 cm, com as quatro prateleiras) segue igual.\", \"sugestoes\": [\"Ponha portas nos dois vãos do nicho\", \"Divida também um vão da estante\", \"Alinhe a altura do nicho com a estante\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 1,
+      "probabilities": {
+       "view": 0,
+       "options": 0,
+       "studio": 0,
+       "build": 0,
+       "ask": 0,
+       "edit": 1
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.42
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.2
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.01
+     }
+    },
+    "usage": {
+     "input_tokens": 1316,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 419,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.81
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 560,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}
