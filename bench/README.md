@@ -29,6 +29,19 @@ npm run bench:router                           # roteador do Jev contra bench/ro
 npm run bench:claims                           # conferência da resposta contra bench/claims-cases.mjs
 ```
 
+### Painel (`npm run bench:dash`)
+
+Página para quem desenvolve, gerada de todos os `bench/results/*.json` em `bench/results/painel.html` (uma página só, sem servidor nem rede). Cada rodada com `--out` atualiza o painel sozinha. `npm run bench:dash -- --serve` abre um servidor local em `http://127.0.0.1:4320/` que refaz o painel a cada recarga.
+
+- **Rodadas:** acerto, mediana, p90, máximo, custo por caso, cache, tokens de saída e erros de provedor de cada rodada, com os gráficos qualidade × custo e qualidade × tempo. Marque rodadas para comparar.
+- **Rodada:** números da rodada, acerto por grupo, por que falhou (provedor, harness, ação errada, resposta, resultado do móvel), tempo por caso e a tabela de casos; cada linha abre etapas, resposta, sugestões, tokens e o mesmo caso nas outras rodadas.
+- **Comparar:** rodadas marcadas lado a lado, caso a caso, com o que melhorou e piorou contra a primeira.
+- **Casos:** cada caso em todas as rodadas completas, quantas vezes falhou e quantas vezes trocou de resultado (instável).
+
+"Preço como" recalcula o custo pelos tokens com a tabela de um provedor (Command Code ou OpenCode Zen), para comparar a mesma rodada em outro provedor. Para o painel saber como a rodada foi feita, use `--label "nome"`; provedor, modelo e esforço vão sozinhos para o resultado.
+
+Outras opções úteis: `--ids a,b,c` roda só esses casos; `--photo-loop` manda foto pelo laço (a rota manda pelo caminho antigo); `MERCE_REASONING_EFFORT=none|low|medium|high|xhigh|max` troca o esforço de raciocínio (o Command Code só aceita de `low` para cima).
+
 ### Assistente em laço (`--agent`)
 
 Cada caso roda por `runAgentTurn`, como a rota faz com o modo ligado, e o resultado vira as ações antigas (update, clarify, answer, undo, redo) para as mesmas expectativas valerem. Os grupos `estudio`, `autoconferencia`, `trabalho-completo` e `opcoes` são só do laço (`agentOnly`): o caminho antigo pula. Eles conferem com `expect.agent(got)`, que recebe efeitos (vista, arquivos, preços), frentes abertas, ambiente, projeto (nome, versão aberta), opções montadas e etapas.

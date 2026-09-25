@@ -9,6 +9,7 @@
  *   npm run bench                          # todos os casos, uma vez cada
  *   npm run bench -- --group divisao       # um grupo
  *   npm run bench -- --id amb-01 --repeat 3
+ *   npm run bench -- --ids uni-01,div-03,foto-01
  *   npm run bench -- --record              # grava as decisões em bench/fixtures
  *   npm run bench -- --offline             # roda sem rede, contra as fixtures
  *   npm run bench -- --out bench/results/depois.json
@@ -16,6 +17,7 @@
  *   npm run bench -- --agent               # o assistente em laço (lib/agent)
  *   npm run bench -- --agent --record      # grava respostas do modelo e do Jev
  *   npm run bench -- --agent --offline     # repete as gravações, sem rede
+ *   npm run bench -- --agent --photo-loop  # foto também pelo laço (a rota usa o caminho antigo)
  *
  * Casos com `image` (foto de referência) usam o arquivo indicado no caso. A
  * foto não é versionada: sem o arquivo o caso é pulado, com o motivo impresso,
@@ -31,8 +33,8 @@ process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-bench-'));
 const { applyRequest, create, get, revise, save } = await import('../lib/store.ts');
 const { saveImage } = await import('../lib/images.ts');
 const { planDataUrl } = await import('../lib/plan-render.ts');
-const { interpretStream } = await import('../lib/gateway.ts');
-const { addUsage, emptyUsage, priceOf, MODEL_KEYS } = await import('../lib/models.ts');
+const { interpretStream, profile } = await import('../lib/gateway.ts');
+const { addUsage, emptyUsage, priceOf, modelInfo, reasoningEffort, MODEL_KEYS } = await import('../lib/models.ts');
 const { executeRequest, generateDesign, entityIds, canonical } = await import('../lib/studio.ts');
 const { drawingParts } = await import('../lib/composition.ts');
 const { runAgentTurn } = await import('../lib/agent/turn.ts');
@@ -76,6 +78,8 @@ const networkAttempts = Math.max(1, Number(value('network-attempts', '4')));
 const outFile = value('out');
 const compareFile = value('compare');
 const agent = flag('agent');
+// --photo-loop: com --agent, foto também vai pelo laço (para medir; a rota manda foto pelo caminho antigo).
+const photoLoop = flag('photo-loop');
 // O laço grava outra coisa (a sequência de respostas do modelo e do Jev):
 // pasta própria, para não misturar com as decisões do caminho antigo.
 const fixtureDir = resolve(agent ? 'bench/fixtures/agent' : 'bench/fixtures');
@@ -97,8 +101,14 @@ function loadEnv(file) {
 loadEnv(resolve(value('env', '.env')));
 
 
+// --ids a,b,c: exatamente estes casos (ex.: só os que costumam errar).
+const onlyIds = value('ids') ? new Set(value('ids').split(',').map((v) => v.trim())) : null;
 const selected = cases.filter(
-  (c) => (!onlyGroup || c.group === onlyGroup) && (!onlyId || c.id.includes(onlyId)) && (agent || !c.agentOnly),
+  (c) =>
+    (!onlyGroup || c.group === onlyGroup) &&
+    (!onlyId || c.id.includes(onlyId)) &&
+    (!onlyIds || onlyIds.has(c.id)) &&
+    (agent || !c.agentOnly),
 );
 if (!selected.length) {
   console.error('Nenhum caso selecionado.');
@@ -309,7 +319,7 @@ async function runAgentCase(project, benchCase, image, selection, telemetry, fix
     options,
     deadOptions: options.filter((o) => !(o.partIds ?? []).some((pid) => alive.has(pid))).length,
     suggestions: answer.suggestions ?? [],
-    steps: steps.map((s) => `${s.ok ? '' : '✗'}${s.tool}`),
+    steps: steps.map((s) => ({ tool: s.tool, label: s.label, ok: s.ok, ...(s.detail ? { detail: s.detail } : {}) })),
   };
 }
 
@@ -378,7 +388,7 @@ const skipped = [];
 let stopped = false;
 for (const benchCase of selected) {
   // Foto roda pelo caminho antigo também com --agent: usa as fixtures dele.
-  const fixturePath = join(agent && !benchCase.image ? fixtureDir : resolve('bench/fixtures'), `${benchCase.id}.json`);
+  const fixturePath = join(agent && (!benchCase.image || photoLoop) ? fixtureDir : resolve('bench/fixtures'), `${benchCase.id}.json`);
   if (onlyMissing && existsSync(fixturePath)) {
     console.log(`pulado ${benchCase.id} (fixture já gravada)`);
     continue;
@@ -446,7 +456,7 @@ for (const benchCase of selected) {
 
       const fixtureFile = fixturePath;
       // Foto vai pelo caminho antigo, como na rota (ver app/api/chat/route.ts).
-      if (agent && !image) {
+      if (agent && (!image || photoLoop)) {
         const got = await runAgentCase(project, benchCase, image, selection, telemetry, fixtureFile);
         const generated = generateDesign(got.designAfter);
         row.warnings = generated.warnings ?? [];
@@ -623,6 +633,26 @@ const summary = {
   at: new Date().toISOString(),
   offline,
   agent,
+  // Como a rodada foi feita, para o painel (npm run bench:dash) comparar.
+  label: value('label') || null,
+  provider: (() => {
+    try {
+      return new URL(profile(model).baseUrl).host;
+    } catch {
+      return null;
+    }
+  })(),
+  providerModel: (() => {
+    try {
+      return profile(model).model;
+    } catch {
+      return null;
+    }
+  })(),
+  effort: reasoningEffort(modelInfo(model)) ?? null,
+  photoLoop,
+  price: priceOf(model, process.env),
+  argv: args.join(' '),
   fast,
   model,
   cases: results.length,
@@ -664,6 +694,13 @@ if (outFile) {
   mkdirSync(dirname(outFile), { recursive: true });
   writeFileSync(outFile, JSON.stringify(summary, null, 1));
   console.log(`\nresultado escrito em ${outFile}`);
+  // O painel (bench/results/painel.html) acompanha cada rodada gravada.
+  try {
+    const { buildDashboard } = await import('./dashboard.mjs');
+    await buildDashboard();
+  } catch (e) {
+    console.log(`(painel não atualizado: ${e instanceof Error ? e.message : e})`);
+  }
 }
 
 if (compareFile) {

@@ -70,6 +70,14 @@ export const MODELS: ModelInfo[] = [
   },
 ];
 
+/**
+ * Esforço de raciocínio enviado ao provedor. MERCE_REASONING_EFFORT troca o
+ * do modelo (ex.: "none" no OpenCode Zen, que desliga o raciocínio e mantém
+ * a visão; o Command Code só aceita de "low" para cima).
+ */
+export function reasoningEffort(info: ModelInfo): string | undefined {
+  return process.env.MERCE_REASONING_EFFORT || info.reasoning;
+}
 export function modelInfo(key: string | undefined): ModelInfo {
   return MODELS.find((m) => m.key === key) ?? MODELS[0];
 }

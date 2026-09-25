@@ -1,5 +1,5 @@
 import { aiMaxTokens, aiTimeoutMs, modelKey, profile, type ModelChoice } from '../gateway';
-import { modelInfo, type ProviderUsage } from '../models';
+import { modelInfo, reasoningEffort, type ProviderUsage } from '../models';
 import { readEvents } from '../sse';
 
 /** Mensagem no formato de chat do provedor (compatível com OpenAI). */
@@ -52,7 +52,7 @@ export async function callModel(options: {
       signal: AbortSignal.any([idle.signal, ...(options.signal ? [options.signal] : [])]),
       body: JSON.stringify({
         model: prof.model,
-        ...(info.reasoning ? { reasoning_effort: info.reasoning } : {}),
+        ...(reasoningEffort(info) ? { reasoning_effort: reasoningEffort(info) } : {}),
         ...(fast ? {} : { stream_options: { include_usage: true } }),
         max_tokens: aiMaxTokens(),
         stream: true,

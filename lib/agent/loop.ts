@@ -9,6 +9,8 @@ import { TERMINAL, TOOLS } from './tools';
 /** Tipos de operação do contrato: chamados como ferramenta, viram um design_apply. */
 const OP_KINDS = /^(asset\.add|module\.(add|edit|duplicate|remove)|connect|disconnect|cell\.(split|move|merge|distribute)|front\.set|drawer\.height)$/;
 /** Falha passageira do provedor: vale uma nova tentativa da etapa. */
+/** Esperas entre tentativas da mesma etapa (ms). */
+export const RETRY_WAITS = [2000, 6000];
 const TRANSIENT = /interrompida|429|502|503|504|fetch failed|ECONNRESET|ETIMEDOUT|socket|terminated/i;
 /** Passos a mais quando a IA anuncia um plano (trabalho grande). */
 const PLAN_BONUS = 8;
@@ -76,16 +78,19 @@ export async function runLoop(ctx: AgentContext, o: LoopOptions) {
         onText: o.onText,
         onPulse: o.onPulse,
       });
-    let reply: ModelReply;
-    try {
-      reply = await ask();
-    } catch (e) {
-      // Queda do fluxo ou limite do provedor: uma nova tentativa da mesma
-      // etapa, como o caminho antigo faz. O rascunho não mudou.
-      if (o.signal?.aborted || !TRANSIENT.test((e as Error).message)) throw e;
-      await new Promise((r) => setTimeout(r, 1500));
-      reply = await ask();
+    let reply: ModelReply | undefined;
+    // Queda do fluxo, limite ou provedor fora do ar por instantes: a mesma
+    // etapa de novo, com espera crescente. O rascunho não mudou.
+    for (const wait of [...RETRY_WAITS, -1]) {
+      try {
+        reply = await ask();
+        break;
+      } catch (e) {
+        if (wait < 0 || o.signal?.aborted || !TRANSIENT.test((e as Error).message)) throw e;
+        await new Promise((r) => setTimeout(r, wait));
+      }
     }
+    if (!reply) throw new Error('Sem resposta do provedor.');
     if (reply.content) ctx.emit({ type: 'say', text: reply.content });
     if (!reply.calls.length) {
       // Sem ferramenta: texto puro vale como resposta final; vazio, um lembrete.

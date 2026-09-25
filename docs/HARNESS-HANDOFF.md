@@ -40,6 +40,14 @@ Plano aprovado: `C:\Users\lucfe\.claude\plans\let-make-the-artetura-glowing-mars
   - Offline com as gravações de `bench/fixtures/agent`: 61/61.
   - O laço é mais lento que o legado (várias chamadas por pedido); o orçamento de tempo (`MAX_MS` 150 s no laço, 60 s por opção) segura a cauda.
 
+## Modelo, provedor e esforço (medido em 25/09)
+- **Campeão hoje:** DeepSeek V4.1 Flash com raciocínio ligado, no Command Code (59/61, US$ 0,003 por caso, mediana 13 s, p90 78 s).
+- **Esforço no DeepSeek:** a doc da DeepSeek tem desligado, `low`, `high` (padrão) e `max`. Na prática `low` ≈ `high` nos três proxies testados (Command Code, OpenCode Zen, NanoGPT fixado na DeepSeek). `xhigh` e `max` no Command Code gastam 3× e estouram o tempo do laço: nunca usar.
+- **Desligar o raciocínio:** o Command Code recusa `none` e ignora `thinking: disabled`. No Zen, `reasoning_effort: "none"` desliga e mantém a visão (55/61, mediana 7,9 s). No NanoGPT, sem esforço = desligado; fixar o provedor (`X-Provider: deepseek`), senão cai em provedor sem visão.
+- **GPT-6 Luna:** o esforço importa muito (`low` 4/10 nos casos difíceis, `high` 9/10). Luna `high` completo: 55/61, mediana 11 s; falha pedindo esclarecimento em vez de fazer. No Zen, Luna só existe em `/responses` (o laço fala `/chat/completions`).
+- **Zen:** limite de ~20 pedidos/min no DeepSeek (429 vira 503); o custo depende do cache (48% a 93% entre rodadas; fora do cache custa 50× mais).
+- Tudo no painel: `npm run bench:dash -- --serve`.
+
 ## Pendências conhecidas
 - **Foto no laço:** com duas imagens por etapa o modelo pensa ~40 s por chamada e estoura o tempo antes do layout inteiro. Foto segue pelo caminho antigo (rota e bench); voltar para o laço pede um modelo mais rápido com imagem ou mandar a foto só na primeira etapa.
 - **Latência:** mediana 13 s contra 5,5 s do legado; `div-03`, `tip-01` e os de referência às vezes passam de 1 minuto por chamadas lentas do provedor.

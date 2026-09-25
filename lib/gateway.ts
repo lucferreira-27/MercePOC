@@ -9,7 +9,7 @@ import type { Progress, TextPreview } from './progress';
 import { readStringField } from './partial-json';
 import { imageDataUrl } from './images';
 import { materials } from './furniture';
-import { modelInfo, type ModelKey, type ProviderUsage } from './models';
+import { modelInfo, reasoningEffort, type ModelKey, type ProviderUsage } from './models';
 /** `true`/`false` é o contrato antigo do modo rápido (bench, scripts). */
 export type ModelChoice = ModelKey | boolean;
 export function modelKey(choice: ModelChoice | undefined): ModelKey {
@@ -306,7 +306,7 @@ ${imageNote}` : turnMessage,
           model: prof.model,
           // Esforço mínimo no provedor padrão. O gateway da Command Code valida
           // low..max e não tem valor para desligar o raciocínio: 'low' é o piso.
-          ...(info.reasoning ? { reasoning_effort: info.reasoning } : {}),
+          ...(reasoningEffort(info) ? { reasoning_effort: reasoningEffort(info) } : {}),
           // O último pedaço do fluxo traz os tokens gastos: é daí que sai o custo.
           ...(fast ? {} : { stream_options: { include_usage: true } }),
           max_tokens: aiMaxTokens(),
@@ -568,7 +568,7 @@ export async function reviewResult(params: {
   const reviewInfo = modelInfo(modelKey(params.model));
   const body = {
     model: prof.model,
-    ...(reviewInfo.reasoning ? { reasoning_effort: reviewInfo.reasoning } : {}),
+    ...(reasoningEffort(reviewInfo) ? { reasoning_effort: reasoningEffort(reviewInfo) } : {}),
     // O mesmo teto da chamada principal: comparar duas imagens gasta
     // raciocínio suficiente para 4000 tokens acabarem antes do veredito, e a
     // resposta chegava vazia.
