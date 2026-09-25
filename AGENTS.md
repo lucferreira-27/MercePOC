@@ -18,6 +18,18 @@ Checklist per change:
 - Overlaps: tooltips vs neighboring buttons, labels vs card edges.
 - Compare against the mockup or previous screenshot when one exists.
 
+## Pull requests
+
+- Every PR includes at least one screenshot relevant to the feature, taken
+  from the running app (the same captures used for UI verification). For a
+  visual change show the new state, and before/after when it replaces
+  something. For a behavior fix, show the screen where the fix is visible.
+- Commit the images to `docs/pr/<PR number>/` on the PR branch, cropped to
+  what matters and with descriptive names (`janela-escuro.png`).
+- Embed them in the PR body with a link pinned to the commit, so they render
+  on the private repo:
+  `![descrição](https://github.com/lucferreira-27/MercePOC/blob/<sha>/docs/pr/<n>/arquivo.png?raw=true)`
+
 ## Commands
 
 - `npm test`. node:test suite via tsx (must stay green)

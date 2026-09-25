@@ -919,7 +919,6 @@ kbd {
   gap: 6px;
   margin-top: 10px;
 }
-.confirm-card,
 .failed-turn {
   border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
   background: var(--warn-soft);
@@ -927,12 +926,6 @@ kbd {
   padding: 12px 14px;
   font-size: 13px;
   line-height: 1.5;
-}
-.confirm-card ul {
-  margin: 6px 0 0;
-  padding-left: 18px;
-  color: var(--ink-2);
-  font-size: 12.5px;
 }
 .failed-turn {
   border-color: color-mix(in srgb, var(--bad) 35%, transparent);
@@ -5182,5 +5175,230 @@ kbd {
   }
   .sl-piece i {
     transform: none;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+ * Editar a partir de uma versão antiga: janela no centro com as duas saídas
+ * (alternativa, que não perde nada, e descartar) e as versões que somem.
+ * ------------------------------------------------------------------------- */
+.modal-backdrop.centered {
+  align-items: center;
+  padding: 16px;
+}
+.branch-confirm {
+  width: min(460px, 100%);
+  max-height: calc(100vh - 32px);
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+  animation: bc-in 0.18s ease-out;
+}
+@keyframes bc-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+.bc-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.bc-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.bc-head h2 {
+  margin: 2px 0 0;
+  font-size: 19px;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.bc-lead {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.bc-lead b {
+  color: var(--ink);
+  font-weight: 650;
+}
+.bc-lost {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-3);
+  border: 1px solid var(--line);
+}
+.bc-lost-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.bc-lost-head b {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--bad-soft);
+  color: var(--bad);
+  font-size: 11px;
+}
+.bc-lost ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+  max-height: 136px;
+  overflow-y: auto;
+  /* A lista longa rola: o fim esmaece para mostrar que há mais. */
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent);
+  padding-bottom: 6px;
+}
+.bc-lost li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.bc-num {
+  flex: none;
+  min-width: 30px;
+  font-family: var(--cs-mono, ui-monospace, monospace);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--bad);
+}
+.bc-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--bad) 45%, transparent);
+}
+.bc-choices {
+  display: grid;
+  gap: 8px;
+}
+.bc-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  width: 100%;
+  padding: 12px 13px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.bc-choice > span:last-child {
+  display: grid;
+  gap: 3px;
+}
+.bc-choice strong {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13.5px;
+  font-weight: 650;
+}
+.bc-choice em {
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.bc-choice small {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.bc-choice-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+}
+.bc-choice.keep .bc-choice-icon {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.bc-choice.drop .bc-choice-icon {
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+.bc-choice.keep:hover:not(:disabled),
+.bc-choice.keep:focus-visible {
+  border-color: var(--accent-line);
+  background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface));
+}
+.bc-choice.drop:hover:not(:disabled),
+.bc-choice.drop:focus-visible {
+  border-color: color-mix(in srgb, var(--bad) 45%, transparent);
+  background: color-mix(in srgb, var(--bad-soft) 45%, var(--surface));
+}
+.bc-choice:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.bc-choice:disabled {
+  opacity: 0.55;
+}
+.bc-foot {
+  display: flex;
+  justify-content: flex-end;
+}
+.bc-cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+.bc-cancel:hover {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+.bc-cancel kbd {
+  font-size: 10.5px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+@media (prefers-reduced-motion: reduce) {
+  .branch-confirm {
+    animation: none;
   }
 }
