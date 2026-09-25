@@ -84,15 +84,17 @@ export function buildObstacle(o: Obstacle, kit: Kit) {
     g.add(ball);
   } else if (o.kind === 'window') {
     // Caixilho, vidro recuado, travessa e montante, e o peitoril saliente.
-    box(-30, -30, 0, w + 60, h + 60, 20, trim);
-    box(0, 0, 18, w, h, 4, mat(bad ? c.bad : c.glass, { roughness: 0.08, metalness: 0.3 }));
-    box(-30, -30, 20, w + 60, 40, 40, trim);
-    box(-30, h - 10, 20, w + 60, 40, 40, trim);
-    box(-30, -30, 20, 40, h + 60, 40, trim);
-    box(w - 10, -30, 20, 40, h + 60, 40, trim);
-    box(w / 2 - 15, 0, 20, 30, h, 34, trim);
-    box(0, h * 0.62, 20, w, 26, 34, trim);
-    box(-70, -60, 0, w + 140, 30, 130, trim, true);
+    box(-30, -30, 0, w + 60, h + 60, 14, trim);
+    box(0, 0, 12, w, h, 4, mat(bad ? c.bad : c.glass, { roughness: 0.08, metalness: 0.3 }));
+    // Pouco saliente: caixilho 3 cm e peitoril 6 cm para fora da parede,
+    // como no real; mais que isso cortava o móvel encostado embaixo.
+    box(-30, -30, 18, w + 60, 40, 14, trim);
+    box(-30, h - 10, 18, w + 60, 40, 14, trim);
+    box(-30, -30, 18, 40, h + 60, 14, trim);
+    box(w - 10, -30, 18, 40, h + 60, 14, trim);
+    box(w / 2 - 12, 0, 18, 24, h, 10, trim);
+    box(0, h * 0.62, 18, w, 22, 10, trim);
+    box(-60, -54, 0, w + 120, 24, 60, trim, true);
     // Reflexo diagonal no vidro, bem discreto.
     const shine = mat('#ffffff', { transparent: true, opacity: theme === 'dark' ? 0.08 : 0.22, depthWrite: false });
     for (const [sx, sw] of [
@@ -102,7 +104,7 @@ export function buildObstacle(o: Obstacle, kit: Kit) {
       const geo = new THREE.PlaneGeometry(w * sw, h * 0.5);
       track(geo);
       const m = new THREE.Mesh(geo, shine);
-      m.position.set(w * sx + w * 0.1, h * 0.35, 23);
+      m.position.set(w * sx + w * 0.1, h * 0.35, 17);
       m.rotation.z = -0.5;
       g.add(m);
     }

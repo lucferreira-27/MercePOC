@@ -7,7 +7,7 @@ import { materials, type Part } from '@/lib/furniture';
 import type { Design } from '@/lib/studio';
 import type { Room } from '@/lib/room';
 import { feetOf, generateComposition } from '@/lib/composition';
-import { buildFeet, buildRoom, referenceRoom, roomFocus, type SceneBounds } from '@/lib/scene-room';
+import { buildFeet, buildRoom, obstacleCrosses, referenceRoom, roomFocus, type SceneBounds } from '@/lib/scene-room';
 import { buildDims, type DimLabel } from '@/lib/scene-dims';
 import {
   FurnitureMotion,
@@ -19,7 +19,7 @@ import {
 import { DIFF_GLOW } from '@/lib/scene-materials';
 import type { ModularOp } from '@/lib/composition';
 import { DEFAULT_DRAG_MODE, MOVE_GRID, constrainDrag, lockedAxes, moduleBoxes, moveGroup, moveOp, quickBlock, rotateOp, selectedGroup, shortMm, snapDelta, tryOp, type DragMode, type MoveGroup, type Vec3 } from '@/lib/move';
-import { wallAt } from '@/lib/room';
+import { framed, obstacleOverlap, wallAt } from '@/lib/room';
 import { MovePad, type NudgeDir } from './move-pad';
 import { useDelayedTrue } from '@/hooks/use-delayed';
 type CameraMove = {
@@ -474,7 +474,8 @@ function FurnitureView({
     // parede. Com o móvel na frente, o móvel tem a preferência.
     type ObstacleEntry = NonNullable<Runtime['room']>['obstacles'][number];
     let obArmed: { entry: ObstacleEntry; point: THREE.Vector3 } | null = null;
-    let obDrag: { entry: ObstacleEntry; plane: THREE.Plane; from: THREE.Vector3; x: number; y: number } | null = null;
+    let obDrag: { entry: ObstacleEntry; plane: THREE.Plane; from: THREE.Vector3; x: number; y: number; blocked: string | null } | null = null;
+    let tipTimer = 0;
     const obstacleHit = () => {
       const list = state.room?.obstacles ?? [];
       if (!list.length || !latest.current.onMoveObstacle) return null;
@@ -499,13 +500,33 @@ function FurnitureView({
       obDrag.entry.group.position.x = wall.x0 + obDrag.x;
       obDrag.entry.group.position.y = obDrag.y;
       state.dirty = true;
+      // Em cima de outro obstáculo ou atrás de um móvel não dá: se
+      // atravessariam no 3D (a TV pode ficar sobre rack e painel).
+      const moved = { ...o, xMm: obDrag.x, yMm: obDrag.y };
+      const other = obstacleOverlap(moved, state.room.obstacles.map((v) => v.obstacle));
+      const now = latest.current;
+      const piece =
+        o.kind === 'tv'
+          ? undefined
+          : [...moduleBoxes(now.params)].find(([, b]) => {
+              // Com o batente e o caixilho: o desenho ocupa mais que o vão.
+              const f = framed(moved);
+              return obstacleCrosses({ ...moved, xMm: f.x0, yMm: f.y0, widthMm: f.x1 - f.x0, heightMm: f.y1 - f.y0 }, [b], wall.x0);
+            });
+      obDrag.blocked = other
+        ? (other.label ?? OBSTACLE_WORD[other.kind])
+        : piece
+          ? (now.params.modules.find((m) => m.id === piece[0])?.name ?? 'o móvel')
+          : null;
       const box = el.getBoundingClientRect();
       const cmText = (mm: number) => `${String(Number((mm / 10).toFixed(1))).replace('.', ',')} cm`;
       setMoveTip({
         x: e.clientX - box.left,
         y: e.clientY - box.top,
-        text: `${OBSTACLE_WORD[o.kind]} · ${cmText(obDrag.x)} do canto${floorBound ? '' : ` · ${cmText(obDrag.y)} do piso`}`,
-        bad: false,
+        text: obDrag.blocked
+          ? `Bate em ${obDrag.blocked}`
+          : `${OBSTACLE_WORD[o.kind]} · ${cmText(obDrag.x)} do canto${floorBound ? '' : ` · ${cmText(obDrag.y)} do piso`}`,
+        bad: !!obDrag.blocked,
       });
     };
     const obstacleEnd = () => {
@@ -513,9 +534,25 @@ function FurnitureView({
       obArmed = null;
       obDrag = null;
       release();
-      setMoveTip(null);
-      if (!d) return;
+      if (!d) {
+        setMoveTip(null);
+        return;
+      }
       const o = d.entry.obstacle;
+      if (d.blocked) {
+        // Soltou em cima de outro: volta ao lugar gravado, como o móvel, e a
+        // etiqueta vermelha fica um instante dizendo por quê.
+        if (state.room) {
+          d.entry.group.position.x = state.room.wall.x0 + o.xMm;
+          d.entry.group.position.y = o.yMm;
+        }
+        state.dirty = true;
+        setMoveTip((tip) => (tip ? { ...tip, text: `Bate em ${d.blocked}: voltou ao lugar`, bad: true } : tip));
+        window.clearTimeout(tipTimer);
+        tipTimer = window.setTimeout(() => setMoveTip(null), 1600);
+        return;
+      }
+      setMoveTip(null);
       if (d.x !== o.xMm || d.y !== o.yMm) void latest.current.onMoveObstacle?.(o.id, d.x, d.y);
     };
     const start = (e: PointerEvent) => {
@@ -590,6 +627,7 @@ function FurnitureView({
           from: obArmed.point,
           x: obArmed.entry.obstacle.xMm,
           y: obArmed.entry.obstacle.yMm,
+          blocked: null,
         };
         obArmed = null;
         el.style.cursor = 'grabbing';
@@ -760,6 +798,7 @@ function FurnitureView({
     };
     frame = requestAnimationFrame(draw);
     return () => {
+      window.clearTimeout(tipTimer);
       cancelAnimationFrame(frame);
       resize.disconnect();
       controls.dispose();

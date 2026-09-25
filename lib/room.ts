@@ -161,6 +161,28 @@ export const roomSchema: z.ZodType<Room> = z
   .strict();
 
 /**
+ * Outro obstáculo da parede que ocupa o mesmo lugar. Dois na mesma área
+ * (janela sobre a TV) se atravessam no 3D e não existem assim na parede.
+ */
+export function obstacleOverlap(o: Pick<Obstacle, 'id' | 'kind' | 'xMm' | 'yMm' | 'widthMm' | 'heightMm'>, others: readonly Obstacle[]) {
+  const TOUCH = 1;
+  const a = framed(o);
+  return (
+    others.find((v) => {
+      if (v.id === o.id) return false;
+      const b = framed(v);
+      return Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0) > TOUCH && Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0) > TOUCH;
+    }) ?? null
+  );
+}
+/** O vão mais o batente ou o caixilho que o desenho põe em volta dele. */
+export const OBSTACLE_FRAME: Partial<Record<ObstacleKind, number>> = { door: 50, window: 30 };
+export function framed(o: Pick<Obstacle, 'kind' | 'xMm' | 'yMm' | 'widthMm' | 'heightMm'>) {
+  const f = OBSTACLE_FRAME[o.kind] ?? 0;
+  return { x0: o.xMm - f, x1: o.xMm + o.widthMm + f, y0: Math.max(0, o.yMm - f), y1: o.yMm + o.heightMm + f };
+}
+
+/**
  * Obstáculos que a IA pode pôr, mover ou tirar da parede num turno. Não mexem
  * no móvel nem abrem versão: o ambiente é dado do lugar, como no painel.
  */

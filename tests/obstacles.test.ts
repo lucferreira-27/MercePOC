@@ -98,3 +98,15 @@ void test('resposta da IA com obstáculos passa pelo contrato', async () => {
   assert.equal(d.obstacles?.add[0].kind, 'door');
   assert.deepEqual(d.obstacles?.remove, []);
 });
+
+void test('obstáculo não pode ocupar o lugar de outro na parede', async () => {
+  const { obstacleOverlap } = await import('../lib/room');
+  const tv = { id: 'tv-1', kind: 'tv' as const, xMm: 1200, yMm: 1950, widthMm: 700, heightMm: 400 };
+  const window = { id: 'window-1', kind: 'window' as const, xMm: 2050, yMm: 1150, widthMm: 800, heightMm: 900 };
+  assert.equal(obstacleOverlap({ ...window, xMm: 1470, yMm: 1610 }, [tv, window])?.id, 'tv-1');
+  assert.equal(obstacleOverlap(window, [tv, window]), null, 'no lugar dela, não bate em si mesma');
+  assert.equal(obstacleOverlap({ ...window, xMm: 1930, yMm: 1150 }, [tv, window]), null, 'caixilho encostado na TV não é bater');
+  const door = { id: 'door-1', kind: 'door' as const, xMm: 3250, yMm: 0, widthMm: 800, heightMm: 2100 };
+  assert.equal(obstacleOverlap({ ...window, xMm: 2420 }, [door])?.id, 'door-1', 'caixilho e batente se cruzam');
+  assert.equal(obstacleOverlap({ ...window, xMm: 2360 }, [door]), null, 'com o batente de folga, cabe');
+});
