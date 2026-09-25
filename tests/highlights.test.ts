@@ -21,6 +21,8 @@ import {
 } from '../lib/composition';
 import { create, get } from '../lib/store';
 import { POST } from '../app/api/chat/route';
+// Estes testes cobrem o caminho antigo (uma resposta JSON); o laço tem os seus.
+process.env.MERCE_AGENT = '0';
 
 process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-highlights-'));
 process.env.AI_API_KEY = 'test-key';

@@ -12,12 +12,12 @@ import { materials } from './furniture';
 import { modelInfo, type ModelKey, type ProviderUsage } from './models';
 /** `true`/`false` é o contrato antigo do modo rápido (bench, scripts). */
 export type ModelChoice = ModelKey | boolean;
-function modelKey(choice: ModelChoice | undefined): ModelKey {
+export function modelKey(choice: ModelChoice | undefined): ModelKey {
   if (typeof choice === 'string') return choice;
   return choice ? 'qwen-fast' : 'deepseek';
 }
 /** Nome de cada acabamento: "nogueira" no pedido vira materialId walnut. */
-const FINISHES = materials.map((m) => `${m.id}=${m.name}`).join(', ');
+export const FINISHES = materials.map((m) => `${m.id}=${m.name}`).join(', ');
 /**
  * Tetos por chamada ao provedor.
  *
@@ -30,10 +30,10 @@ const FINISHES = materials.map((m) => `${m.id}=${m.name}`).join(', ');
  * fluxo reinicia o relógio a cada evento, então uma resposta lenta mas viva
  * termina, e uma conexão muda é encerrada.
  */
-function aiTimeoutMs() {
+export function aiTimeoutMs() {
   return Number(process.env.MERCE_AI_TIMEOUT_MS) || 120000;
 }
-function aiMaxTokens() {
+export function aiMaxTokens() {
   return Number(process.env.MERCE_AI_MAX_TOKENS) || 16000;
 }
 /**
@@ -69,7 +69,7 @@ export function normalizeSuggestions(list: readonly string[]): string[] {
  * foto vira o que o motor sabe montar (módulos, divisões, prateleiras,
  * gavetas e portas) e a resposta diz o que ficou de fora.
  */
-const PHOTO_LAYOUT_RULES = `Foto de referência: quando o pedido for copiar, imitar, "fazer parecido" ou "algo assim" a partir de uma imagem, entregue o layout estimado INTEIRO no mesmo turno. Nunca recuse por falta de medida e nunca diga que não consegue medir a foto.
+export const PHOTO_LAYOUT_RULES = `Foto de referência: quando o pedido for copiar, imitar, "fazer parecido" ou "algo assim" a partir de uma imagem, entregue o layout estimado INTEIRO no mesmo turno. Nunca recuse por falta de medida e nunca diga que não consegue medir a foto.
   Escala: ache na imagem objetos de tamanho conhecido e use-os como régua: frente de gaveta ~200 mm, livro ~240 mm, cabide/ombro ~450 mm, cadeira ~450 mm, pé-direito ~2600 mm, rodapé ~150 mm, porta ~2100x800 mm, cama de solteiro 1880x1380 mm. Preserve as PROPORÇÕES da foto entre larguras e entre alturas.
   Medidas: arredonde para 10 mm e respeite o contrato (módulo 200..1200 de largura, 200..2400 de altura, 200..800 de profundidade). Vão mais largo que 1200 mm vira 2 ou 3 módulos ligados com connect shared:true e align:"front", sem painel duplicado.
   Montagem em fileira, um módulo por vez: module.add -> module.edit (nome e medidas) -> connect, e só então o próximo módulo. Nunca adicione vários módulos para editar as medidas depois: dois módulos no mesmo lugar são recusados como sobrepostos. O projeto já tem um módulo: reaproveite-o como primeiro vão (module.edit com medidas e nome) ou, se o layout não usar esse módulo, monte a fileira nova primeiro e remova o antigo NO FIM com module.remove; nunca remova o único módulo do projeto.
@@ -134,7 +134,7 @@ export type GatewayProfile = {
  * Provedor de cada modelo. DeepSeek, GPT-6 Luna e MiMo passam pelo mesmo gateway
  * (AI_*); o modo rápido usa outro provedor (AI_FAST_*).
  */
-function profile(choice: ModelChoice): GatewayProfile {
+export function profile(choice: ModelChoice): GatewayProfile {
   const key = modelKey(choice);
   if (key === 'qwen-fast') {
     const key = process.env.AI_FAST_API_KEY;

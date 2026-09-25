@@ -50,6 +50,7 @@ export type Clarification = {
   pendingOps?: ShelfOp[];
   pendingMessage?: string;
 };
+import type { OptionCard } from './agent/types';
 export type Message = {
   role: 'user' | 'assistant';
   content: string;
@@ -76,6 +77,8 @@ export type Message = {
   error?: string;
   /** Tokens e custo estimado do turno que gerou esta resposta. */
   usage?: TurnUsage;
+  /** Opções montadas para comparar: o cartão aplica ou salva como alternativa. */
+  options?: OptionCard[];
 };
 export type Revision = {
   id: string;

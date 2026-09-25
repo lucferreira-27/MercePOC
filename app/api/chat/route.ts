@@ -24,6 +24,8 @@ import { randomUUID } from 'node:crypto';
 import { getImage, imageDataUrl, saveImage, type ImageRef } from '@/lib/images';
 import { planDataUrl, planPng } from '@/lib/plan-render';
 import { mergePrices, money, quote } from '@/lib/quote';
+import { runAgentTurn } from '@/lib/agent/turn';
+import { UI_TABS, VIEW_MODES, type AgentEvent } from '@/lib/agent/types';
 import {
   addUsage,
   emptyUsage,
@@ -112,6 +114,19 @@ export async function POST(req: Request) {
         // Tabela de preços do navegador: a IA responde "quanto custa" com os
         // mesmos números da aba Orçamento. Formato solto, saneado por mergePrices.
         prices: z.unknown().optional(),
+        /** Assistente em laço (ferramentas); ausente, ligado (MERCE_AGENT=0 no servidor desliga). */
+        agent: z.boolean().optional(),
+        /** O que a pessoa está vendo: vista, aba, toggles e frentes abertas. */
+        ui: z
+          .object({
+            view: z.enum(VIEW_MODES),
+            tab: z.enum(UI_TABS),
+            exploded: z.boolean(),
+            dims: z.boolean(),
+            room: z.boolean(),
+            open: z.array(z.string().max(100)).max(200),
+          })
+          .optional(),
       })
       .parse(await req.json());
     if (!b.message && !b.imageId && !b.optionId)
@@ -207,10 +222,12 @@ export async function POST(req: Request) {
     // O turno que já É a resposta ao esclarecimento não deve receber a
     // pendência de novo: a mensagem atual já nomeia o alvo escolhido.
     const answeringClarification = Boolean(b.clarificationId && b.optionId);
+    const agentMode = b.agent ?? process.env.MERCE_AGENT !== '0';
     const run = async (
       progress: (event: Progress) => void,
       signal: AbortSignal,
       text: (preview: TextPreview) => void = () => {},
+      emit: (event: AgentEvent) => void = () => {},
     ) => {
       // Resposta a esclarecimento pendente: valida e executa a intenção guardada.
       let answeredClarId: string | undefined;
@@ -310,6 +327,41 @@ export async function POST(req: Request) {
       // (ou uma resposta que nunca chega) não pode apagar o pedido.
       version = save(p, version).version;
       persistedUser = true;
+      // Foto fica no caminho antigo: com duas imagens em cada etapa, o modelo
+      // barato pensa ~40 s por chamada e o laço estoura o tempo antes do
+      // layout inteiro; o caminho antigo monta de uma vez e revisa (bench foto).
+      if (agentMode && !image) {
+        // Assistente em laço: a IA usa as ferramentas do estúdio até terminar
+        // e o pedido inteiro vira uma versão. A fala pública dela aparece como
+        // a proposta da etapa, como no caminho antigo.
+        let said = '';
+        const turn = await runAgentTurn({
+          project: p,
+          version,
+          user: userMsg,
+          request: b.message,
+          selected: explicit,
+          ui: b.ui ?? null,
+          prices: mergePrices(b.prices),
+          image,
+          model: modelChoice,
+          requestId,
+          started,
+          signal,
+          progress,
+          emit,
+          onUsage: recordUsage,
+          onText: (content) => {
+            said = content.slice(0, 1200);
+            text({ approach: said, answer: '', attempt: 1 });
+          },
+          onPulse: (bytes, reasoning) => text({ approach: said, answer: '', attempt: 1, bytes, reasoningTotal: reasoning }),
+          usage: usageField,
+        });
+        if (turn.projectId === p.id) version = turn.state.version;
+        confirmed.set(requestId, { projectId: turn.projectId, index: turn.index });
+        return turn.state;
+      }
       // O desenho do resultado e o veredito da conferência entram na resposta
       // como imagem e como leitura, não como se fossem o texto da IA.
       let resultImage: ImageRef | undefined;
@@ -766,6 +818,8 @@ export async function POST(req: Request) {
               if (req.headers.get('x-chat-preview') !== 'hidden')
                 send('text', preview);
             },
+            // Etapas, efeitos e o rascunho ao vivo do assistente em laço.
+            (event) => send('agent', event),
           );
           send('done', result);
         } catch (e) {

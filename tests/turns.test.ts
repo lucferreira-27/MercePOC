@@ -8,6 +8,8 @@ import { defaults } from '../lib/furniture';
 import { migrateParams, gapsOf } from '../lib/studio';
 import { create, get, save, view } from '../lib/store';
 import { POST } from '../app/api/chat/route';
+// Estes testes cobrem o caminho antigo (uma resposta JSON); o laço tem os seus.
+process.env.MERCE_AGENT = '0';
 /**
  * O pedido em JSON vem depois do estado do turno na mensagem do usuário (o
  * bloco fixo de regras fica sozinho no início, para o cache do provedor).
