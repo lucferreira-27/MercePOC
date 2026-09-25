@@ -19,7 +19,7 @@ import {
 import { canonical, normalize, executeRequest } from './studio';
 import type { ImageRef } from './images';
 import type { ChatReport, TurnOutcome } from './progress';
-import type { Room } from './room';
+import { movedObstacle, roomChangeLabel, type Room } from './room';
 import type { TurnUsage } from './models';
 import { buildTemplate, templateById } from './templates';
 import { PLACEMENT_MAX_STEPS, PLACEMENT_MERGE_MS, type Placement, type PlacementStep } from './placement';
@@ -85,6 +85,11 @@ export type Revision = {
   at: string;
   /** Versão feita de movimentos seguidos: os passos para desfazer um a um. */
   placement?: Placement;
+  /**
+   * Ambiente como estava nesta versão (`null`: sem ambiente). Desfazer,
+   * refazer e abrir uma versão trazem de volta os obstáculos dela.
+   */
+  room?: Room | null;
 };
 export type Project = {
   id: string;
@@ -185,6 +190,9 @@ export function get(id: string) {
       ? designSchema.parse(raw)
       : migrateParams(raw as Params);
     if (!rev.id) rev.id = `legacy-${rev.number}`;
+    // Versão de antes do ambiente no histórico: fica com o ambiente atual,
+    // que era o que ela mostrava.
+    if (rev.room === undefined) rev.room = p.room ?? null;
   }
   for (const [index, m] of p.messages.entries()) {
     if (!m.id) m.id = `legacy-message-${index}`;
@@ -397,6 +405,7 @@ export function revise(p: Project, params: Design, label: string) {
     params,
     label: name,
     at: new Date().toISOString(),
+    room: p.room ?? null,
   });
   p.cursor = p.revisions.length - 1;
   return discarded;
@@ -433,6 +442,7 @@ export function applyPlacement(p: Project, ops: ShelfOp[], label: string, root: 
   const before = stepOf(tip.params, root);
   if (
     pl &&
+    !pl.obstacle &&
     before &&
     pl.root === root &&
     p.cursor === p.revisions.length - 1 &&
@@ -441,6 +451,7 @@ export function applyPlacement(p: Project, ops: ShelfOp[], label: string, root: 
   ) {
     generateDesign(result.design);
     tip.params = result.design;
+    tip.room = p.room ?? null;
     tip.placement = {
       root,
       at: new Date(now).toISOString(),
@@ -453,6 +464,36 @@ export function applyPlacement(p: Project, ops: ShelfOp[], label: string, root: 
   p.revisions[p.cursor].placement = { root, at: new Date(now).toISOString(), back: [], ahead: [] };
   return { ok: true as const, noop: false as const, design: result.design, discarded, merged: false };
 }
+/** Onde o que a sequência mexe está agora: a raiz do móvel ou o obstáculo. */
+function stepNow(rev: Revision, pl: Placement): PlacementStep | null {
+  if (!pl.obstacle) return stepOf(rev.params, pl.root);
+  const o = rev.room?.obstacles?.find((v) => v.id === pl.root);
+  return o ? { position: [o.xMm, o.yMm, 0], rotation: 0 } : null;
+}
+/** Leva o móvel ou o obstáculo da sequência ao passo; false se não deu. */
+function stepTo(p: Project, rev: Revision, pl: Placement, step: PlacementStep) {
+  if (pl.obstacle) {
+    if (!rev.room) return false;
+    rev.room = {
+      ...rev.room,
+      obstacles: rev.room.obstacles?.map((o) =>
+        o.id === pl.root ? { ...o, xMm: step.position[0], yMm: step.position[1] } : o,
+      ),
+    };
+    p.room = rev.room;
+    return true;
+  }
+  const params = placeAt(rev.params, pl.root, step);
+  if (!params) return false;
+  rev.params = params;
+  return true;
+}
+/** Muda a versão vigente e traz o ambiente que ela tinha. */
+export function moveCursor(p: Project, cursor: number) {
+  p.cursor = cursor;
+  const room = p.revisions[cursor].room;
+  if (room !== undefined) p.room = room ?? undefined;
+}
 /**
  * Desfazer: na ponta, volta um movimento da sequência; sem passos, a versão
  * anterior. Devolve 'step' ou 'version' para o cliente saber o que andou.
@@ -462,38 +503,84 @@ export function undo(p: Project): 'step' | 'version' | null {
   const pl = rev.placement;
   if (pl?.back.length && p.cursor === p.revisions.length - 1) {
     const target = pl.back[pl.back.length - 1];
-    const now = stepOf(rev.params, pl.root);
-    const params = now ? placeAt(rev.params, pl.root, target) : null;
-    if (params && now) {
-      rev.params = params;
+    const now = stepNow(rev, pl);
+    if (now && stepTo(p, rev, pl, target)) {
       rev.placement = { ...pl, back: pl.back.slice(0, -1), ahead: [...pl.ahead, now] };
       return 'step';
     }
   }
   if (p.cursor === 0) return null;
-  p.cursor -= 1;
+  moveCursor(p, p.cursor - 1);
   return 'version';
 }
 export function redo(p: Project): 'step' | 'version' | null {
   if (p.cursor < p.revisions.length - 1) {
-    p.cursor += 1;
+    moveCursor(p, p.cursor + 1);
     return 'version';
   }
   const rev = p.revisions[p.cursor];
   const pl = rev.placement;
   if (!pl?.ahead.length) return null;
   const target = pl.ahead[pl.ahead.length - 1];
-  const now = stepOf(rev.params, pl.root);
-  const params = now ? placeAt(rev.params, pl.root, target) : null;
-  if (!params || !now) return null;
-  rev.params = params;
+  const now = stepNow(rev, pl);
+  if (!now || !stepTo(p, rev, pl, target)) return null;
   rev.placement = { ...pl, ahead: pl.ahead.slice(0, -1), back: [...pl.back, now] };
   return 'step';
+}
+/**
+ * Mudança no ambiente (painel, arrasto de obstáculo, IA) vira versão, com o
+ * mesmo móvel e o ambiente novo: entra no Ctrl+Z e no histórico. Arrastos
+ * seguidos do mesmo obstáculo juntam numa versão só, como os do móvel.
+ */
+export function reviseRoom(p: Project, room: Room, label: string, now = Date.now()) {
+  const before = p.room;
+  if (JSON.stringify(before ?? null) === JSON.stringify(room)) return { noop: true as const, discarded: 0 };
+  const tip = p.revisions[p.cursor];
+  const moved = movedObstacle(before, room);
+  const pl = tip.placement;
+  const referenced = p.messages.some(
+    (m) => m.revisionId === tip.id || m.result?.resultRevisionId === tip.id || m.context?.baseRevisionId === tip.id,
+  );
+  const was = moved ? before?.obstacles?.find((o) => o.id === moved) : undefined;
+  if (
+    was &&
+    pl?.obstacle &&
+    pl.root === moved &&
+    p.cursor === p.revisions.length - 1 &&
+    now - Date.parse(pl.at) < PLACEMENT_MERGE_MS &&
+    !referenced
+  ) {
+    p.room = room;
+    tip.room = room;
+    tip.placement = {
+      ...pl,
+      at: new Date(now).toISOString(),
+      back: [...pl.back, { position: [was.xMm, was.yMm, 0] as [number, number, number], rotation: 0 }].slice(-PLACEMENT_MAX_STEPS),
+      ahead: [],
+    };
+    return { noop: false as const, discarded: 0, merged: true };
+  }
+  p.room = room;
+  const discarded = revise(p, tip.params, label);
+  if (moved) p.revisions[p.cursor].placement = { root: moved, obstacle: true, at: new Date(now).toISOString(), back: [], ahead: [] };
+  return { noop: false as const, discarded, merged: false };
+}
+/** Turno que mexeu no ambiente sem abrir versão: a mudança vira uma. */
+export function settleRoom(p: Project) {
+  const tip = p.revisions[p.cursor];
+  if (tip.room === undefined || JSON.stringify(tip.room) === JSON.stringify(p.room ?? null)) return 0;
+  const room = p.room;
+  const label = `IA: ${room ? roomChangeLabel(tip.room ?? undefined, room).toLowerCase() : 'tirou o ambiente'}`;
+  // Parte do ambiente da versão, para a sequência de arrastos comparar certo.
+  p.room = tip.room ?? undefined;
+  if (room) return reviseRoom(p, room, label).discarded;
+  p.room = undefined;
+  return revise(p, tip.params, label);
 }
 export function seek(p: Project, cursor: number) {
   if (!Number.isInteger(cursor) || cursor < 0 || cursor >= p.revisions.length)
     throw new Error('Versão inválida.');
-  p.cursor = cursor;
+  moveCursor(p, cursor);
 }
 /**
  * Cria uma alternativa a partir da revisão indicada (snapshot consistente).
@@ -524,7 +611,7 @@ export function fork(id: string, cursor: number, name: string) {
       at: new Date().toISOString(),
     },
     // A alternativa é do mesmo lugar: o ambiente informado continua valendo.
-    ...(src.room ? { room: src.room } : {}),
+    ...(base.room !== undefined ? (base.room ? { room: base.room } : {}) : src.room ? { room: src.room } : {}),
   };
   p.messages.push({
     id: randomUUID(),

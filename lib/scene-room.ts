@@ -125,6 +125,8 @@ export function buildRoom(
   mountZ = -Infinity,
   /** Caixa de cada módulo: o obstáculo só fica vermelho se cruzar uma delas. */
   modules: readonly SceneBounds[] = [bounds],
+  /** Obstáculo escolhido: ganha a moldura de destaque. */
+  selectedId: string | null = null,
 ) {
   const c = ROOM_PALETTE[theme];
   const group = new THREE.Group();
@@ -188,6 +190,7 @@ export function buildRoom(
       palette: c,
       theme,
       bad: obstacleCrosses(o, modules, x0),
+      selected: o.id === selectedId,
       track: (d) => disposables.push(d),
     });
     og.position.set(x0 + o.xMm, o.yMm, o.kind === 'tv' ? Math.max(wallZ, mountZ) : wallZ);

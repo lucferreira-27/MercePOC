@@ -79,6 +79,8 @@ export type FitReport = {
   fits: boolean;
   issues: FitIssue[];
   notes: string[];
+  /** Ids dos obstáculos que cruzam algum módulo: a lista do painel marca. */
+  crossed?: string[];
 };
 
 /**
@@ -212,9 +214,133 @@ export function framed(o: Pick<Obstacle, 'kind' | 'xMm' | 'yMm' | 'widthMm' | 'h
   return { x0: o.xMm - f, x1: o.xMm + o.widthMm + f, y0: Math.max(0, o.yMm - f), y1: o.yMm + o.heightMm + f };
 }
 
+/** Nome de cada tipo na interface: "Porta", "Janela"... */
+export const OBSTACLE_LABEL: Record<ObstacleKind, string> = {
+  door: 'Porta',
+  window: 'Janela',
+  outlet: 'Tomada',
+  tv: 'TV',
+  column: 'Coluna',
+  other: 'Outro',
+};
+
+/**
+ * Tamanho e altura do piso de cada tipo quando a pessoa só escolhe o tipo:
+ * as medidas comuns de obra. Coluna vai do piso ao teto (`heightMm` 0 aqui
+ * vira o pé-direito da parede).
+ */
+export const OBSTACLE_PRESET: Record<ObstacleKind, { widthMm: number; heightMm: number; yMm: number }> = {
+  door: { widthMm: 800, heightMm: 2100, yMm: 0 },
+  window: { widthMm: 1000, heightMm: 1000, yMm: 1100 },
+  outlet: { widthMm: 80, heightMm: 80, yMm: 300 },
+  tv: { widthMm: 1200, heightMm: 700, yMm: 1100 },
+  column: { widthMm: 300, heightMm: 0, yMm: 0 },
+  other: { widthMm: 600, heightMm: 600, yMm: 1000 },
+};
+
+/** Porta e coluna ficam no piso: só andam na horizontal. */
+export function floorBound(kind: ObstacleKind) {
+  return kind === 'door' || kind === 'column';
+}
+
+/** Obstáculo novo do tipo, com as medidas comuns cabendo na parede. */
+export function presetObstacle(kind: ObstacleKind, room: Pick<Room, 'widthMm' | 'heightMm'>, id: string): Obstacle {
+  const p = OBSTACLE_PRESET[kind];
+  const heightMm = Math.min(p.heightMm || room.heightMm, room.heightMm);
+  const widthMm = Math.min(p.widthMm, room.widthMm);
+  return { id, kind, xMm: 0, yMm: Math.max(0, Math.min(p.yMm, room.heightMm - heightMm)), widthMm, heightMm };
+}
+
+/**
+ * Primeiro lugar livre da parede para o obstáculo, na altura dele: sem bater
+ * em outro obstáculo e, se der, sem ficar na frente do móvel (`blocked` diz
+ * onde o móvel está, em x da parede). Procura a partir de `nearX` para os dois
+ * lados; `null` quando a parede não tem espaço.
+ */
+export function freeSpot(
+  o: Obstacle,
+  room: Pick<Room, 'widthMm' | 'obstacles'>,
+  blocked: (x0: number, x1: number) => boolean = () => false,
+  nearX = 0,
+) {
+  const others = (room.obstacles ?? []).filter((v) => v.id !== o.id);
+  const f = OBSTACLE_FRAME[o.kind] ?? 0;
+  const lo = f,
+    hi = room.widthMm - o.widthMm - f;
+  if (hi < lo) return null;
+  const tries: number[] = [];
+  const start = Math.min(hi, Math.max(lo, Math.round(nearX / 50) * 50));
+  for (let d = 0; start - d >= lo || start + d <= hi; d += 50) {
+    if (start + d <= hi) tries.push(start + d);
+    if (d && start - d >= lo) tries.push(start - d);
+  }
+  tries.push(hi);
+  const fits = (x: number) => !obstacleOverlap({ ...o, xMm: x }, others);
+  const x = tries.find((v) => fits(v) && !blocked(v - f, v + o.widthMm + f)) ?? tries.find(fits);
+  return x === undefined ? null : x;
+}
+
+/** Nome com artigo no começo da frase: "a porta", "a janela "Sala"". */
+export function obstacleWord(o: Pick<Obstacle, 'kind' | 'label'>) {
+  return o.label ? `"${o.label}"` : `${NAME[o.kind][0]} ${NAME[o.kind][1]}`;
+}
+
+/**
+ * Único obstáculo que só mudou de lugar (x, y) entre os dois ambientes, com o
+ * resto igual: é o que junta arrastos seguidos numa versão só.
+ */
+export function movedObstacle(before: Room | undefined, after: Room | undefined) {
+  if (!before || !after) return null;
+  const a = before.obstacles ?? [],
+    b = after.obstacles ?? [];
+  if (a.length !== b.length) return null;
+  const { obstacles: _a, ...restA } = before;
+  const { obstacles: _b, ...restB } = after;
+  void _a;
+  void _b;
+  if (JSON.stringify(restA) !== JSON.stringify(restB)) return null;
+  let moved: string | null = null;
+  for (const [i, o] of a.entries()) {
+    const n = b[i];
+    if (n.id !== o.id) return null;
+    if (JSON.stringify(n) === JSON.stringify(o)) continue;
+    if (JSON.stringify({ ...n, xMm: o.xMm, yMm: o.yMm }) !== JSON.stringify(o) || moved) return null;
+    moved = o.id;
+  }
+  return moved;
+}
+
+/**
+ * Rótulo da versão para uma mudança no ambiente, pelo que mudou: "Pôs a
+ * porta", "Moveu a janela", "Tirou a TV", "Mudou as medidas da tomada",
+ * "Medidas da parede".
+ */
+export function roomChangeLabel(before: Room | undefined, after: Room) {
+  const a = before?.obstacles ?? [],
+    b = after.obstacles ?? [];
+  const added = b.filter((o) => !a.some((v) => v.id === o.id));
+  const removed = a.filter((o) => !b.some((v) => v.id === o.id));
+  const changed = b.filter((o) => {
+    const old = a.find((v) => v.id === o.id);
+    return old && JSON.stringify(old) !== JSON.stringify(o);
+  });
+  const one = (verb: string, list: Obstacle[]) =>
+    list.length === 1 ? `${verb} ${obstacleWord(list[0])}` : `${verb} ${list.length} obstáculos`;
+  if (!before) return added.length ? `Ambiente com ${one('', added).trim()}` : 'Medidas do ambiente';
+  if (added.length && !removed.length && !changed.length) return one('Pôs', added);
+  if (removed.length && !added.length && !changed.length) return one('Tirou', removed);
+  if (changed.length && !added.length && !removed.length) {
+    const moved = movedObstacle(before, after);
+    if (moved) return one('Moveu', changed);
+    return changed.length === 1 ? `Mudou ${obstacleWord(changed[0])}` : `Mudou ${changed.length} obstáculos`;
+  }
+  if (added.length || removed.length || changed.length) return 'Obstáculos da parede';
+  return 'Medidas da parede';
+}
+
 /**
  * Obstáculos que a IA pode pôr, mover ou tirar da parede num turno. Não mexem
- * no móvel nem abrem versão: o ambiente é dado do lugar, como no painel.
+ * no móvel; a mudança entra no histórico junto com o turno.
  */
 const obstacleKind = z.enum(['door', 'window', 'outlet', 'column', 'tv', 'other']);
 export const obstacleEditsSchema = z
@@ -483,7 +609,7 @@ export function fitReport(design: Composition, room: Room): FitReport {
         `${obstacle.label ?? KIND_WORD[obstacle.kind]} com giro de ${plain(obstacle.swingMm)}: confira se a folha abre sem bater no móvel.`,
       );
   }
-  return { fits: issues.length === 0, issues, notes };
+  return { fits: issues.length === 0, issues, notes, crossed: [...crossed] };
 }
 
 /**

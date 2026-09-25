@@ -9,8 +9,13 @@ export type Vec3 = [number, number, number];
 /** Onde a raiz do conjunto estava: é só isso que um movimento muda. */
 export type PlacementStep = { position: Vec3; rotation: number };
 export type Placement = {
-  /** Módulo raiz que os movimentos desta versão mexem. */
+  /** Módulo raiz que os movimentos desta versão mexem (ou o obstáculo). */
   root: string;
+  /**
+   * Sequência de arrastos de um obstáculo da parede: `root` é o id dele e o
+   * passo guarda x e y em `position` (z e giro ficam 0).
+   */
+  obstacle?: true;
   /** Último movimento, para saber se o próximo ainda é da mesma sequência. */
   at: string;
   /** Lugares anteriores, do mais antigo ao mais recente: Desfazer tira do fim. */

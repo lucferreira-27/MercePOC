@@ -8,7 +8,7 @@ A v1 levava da conversa ao 3D. A v2 leva da ideia ao móvel orçado e pronto par
 
 - **Visual novo, claro e escuro.** Tokens de cor em `app/globals.css`, paleta de ateliê, tema do sistema ou escolhido no botão da barra superior. Conversa e painel lateral recolhem (`[` e `]`) e a cena ocupa o espaço.
 - **Cena 3D mais real.** Veio de madeira e laminado procedurais, luz de estúdio, sombra suave e chão que some nas bordas. Selecionar uma peça faz ela brilhar sem perder o acabamento.
-- **Ambiente no 3D.** Parede, laterais, rodapé, porta, janela, tomada e coluna desenhados com a mesma conta do veredito de encaixe; obstáculo que cruza um módulo fica vermelho. O cabeçalho da cena diz se cabe. Cada obstáculo tem cara do que é: porta com folha, almofadas, dobradiças e maçaneta; janela com caixilho, travessas e peitoril; tomada de três furos; TV com suporte e LED. Arraste porta, janela, tomada ou TV pela parede direto na cena (porta e coluna só na horizontal), ou peça à IA: "coloque uma porta à direita" põe, move ou tira obstáculos sem abrir versão. Portas e gavetas do móvel têm puxador.
+- **Ambiente no 3D.** Parede, laterais, rodapé, porta, janela, tomada e coluna desenhados com a mesma conta do veredito de encaixe; obstáculo que cruza um módulo fica vermelho. O cabeçalho da cena diz se cabe. Cada obstáculo tem cara do que é: porta com folha, almofadas, dobradiças e maçaneta; janela com caixilho, travessas e peitoril; tomada de três furos; TV com suporte e LED. Portas e gavetas do móvel têm puxador. Veja **Obstáculos na parede** abaixo.
 - **Cotas de volta.** Largura, altura e profundidade gerais, largura de cada módulo e espaço livre até a parede e o teto.
 - **Nove acabamentos.** Branco fosco, areia, carvalho natural, freijó, nogueira, verde sálvia, azul petróleo, grafite e preto fosco, escolhidos por amostra. A IA entende os nomes ("troque para nogueira").
 - **Orçamento.** Chapas contadas pelo plano de corte, fita de borda, dobradiças pela altura da folha, corrediças, puxadores, mão de obra e margem. Tabela de preços editável, salva no navegador, e botão para copiar o orçamento. A IA responde "quanto custa" com os mesmos números.
@@ -61,6 +61,8 @@ Exemplos: “Faz um rack de TV de 2 m em nogueira”; “Quero um painel de TV c
 
 ### Atalhos
 
+**Obstáculos na parede:** na aba **Ambiente**, escolha o tipo (porta, janela, tomada, TV, coluna ou outro). A prévia translúcida aparece no primeiro lugar livre da parede e segue o cursor, com a distância do canto e do piso; clique para pôr (ou ajuste com as setas, 10 cm e 1 cm com Shift, e confirme com Enter; Esc desiste). Sem ambiente salvo, a parede do formulário entra junto. A moldura fica verde no lugar livre, âmbar na frente do móvel (pode, a porta está onde está na casa, e o veredito acusa) e vermelha em cima de outro obstáculo (não pode). Clique num obstáculo na cena ou na lista para escolher: a barra sobre ele tem editar, remover e fechar, e a lista abre as medidas (tipo, nome, do canto, do piso, largura, altura), com prévia no 3D enquanto digita e gravação ao sair do campo. Arraste para mudar de lugar; `Delete` remove, e o aviso na cena tem **Desfazer**. Cada mudança no ambiente é uma versão ("Pôs a porta", "Moveu a janela", "Tirou a TV", "Medidas da parede"): `Ctrl+Z`, `Ctrl+Y` e abrir uma versão no histórico trazem de volta os obstáculos que ela tinha, e arrastos seguidos do mesmo obstáculo ficam numa versão só, desfeitos um a um. A parede tem o próprio botão, dentro do cartão dela. A IA também põe, move e tira obstáculos ("coloque uma porta à direita"), e a mudança entra no histórico.
+
 **Mudar o móvel de lugar:** selecione uma peça dele e arraste-a na cena. O conjunto inteiro anda junto (módulos conectados vão com a raiz), em passos de 1 cm, grudando nas bordas dos vizinhos e voltando ao lugar se bater em outro móvel (fica vermelho). Por padrão a altura fica travada e o arrasto desliza no piso de qualquer ângulo; o cadeado do controle **Mover** solta a altura (o móvel segue o cursor, inclusive para cima) e **Um eixo** deixa só a direção dominante do arrasto. Segurar e soltar sem arrastar é um clique, e Shift+clique tira o móvel da seleção. No canto da cena, o controle **Mover** faz o ajuste fino: setas (1 cm, 10 cm com Shift, seguram e repetem), Subir/Descer e girar 90°. A parede fica parada: no primeiro movimento ela é presa no lugar (também a parede de referência, sem ambiente), então dá para afastar o móvel dela, e desfazer devolve o móvel, não a parede. Para trás, o móvel encosta na parede e para. O móvel desliza até o lugar novo e as cotas voltam quando ele para. Movimentos seguidos do mesmo móvel (arrastar, setas, girar) ficam numa versão só, "Moveu …", com a contagem de movimentos na lista de versões: `Ctrl+Z` volta um movimento por vez e, sem movimentos para voltar, a versão anterior; `Ctrl+Y` refaz. Uma pausa de mais de 2 minutos, outro móvel, outra edição ou um turno da IA começam uma versão nova.
 
 | Tecla | Ação |
@@ -73,7 +75,8 @@ Exemplos: “Faz um rack de TV de 2 m em nogueira”; “Quero um painel de TV c
 | `D` · `R` · `E` · `O` | Cotas, ambiente, explodir, abrir/fechar frentes |
 | `[` · `]` | Recolher conversa, recolher painel |
 | `Ctrl+Z` · `Ctrl+Y` | Desfazer, refazer |
-| `Esc` | Limpar seleção, cancelar prévia do histórico, fechar a revisão das mudanças |
+| `Delete` | Remover o obstáculo escolhido na parede |
+| `Esc` | Limpar seleção, desistir de pôr um obstáculo, cancelar prévia do histórico, fechar a revisão das mudanças |
 
 ## Limites e dados
 

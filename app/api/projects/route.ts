@@ -1,9 +1,9 @@
-import { applyShelfOp, applyRequest, applyPlacement, undo, redo, create, createDemo, createFromTemplate, fork, list, get, view, save, revise, seek, remove } from '@/lib/store';
+import { applyShelfOp, applyRequest, applyPlacement, reviseRoom, undo, redo, create, createDemo, createFromTemplate, fork, list, get, view, save, revise, seek, remove } from '@/lib/store';
 import { sameOrigin } from '@/lib/utils';
 import { designSchema, opSchema } from '@/lib/studio';
 import { z } from 'zod';
 import { validationMessage } from '@/lib/composition';
-import { obstacleClash, roomSchema } from '@/lib/room';
+import { obstacleClash, roomChangeLabel, roomSchema } from '@/lib/room';
 import { placementRoot } from '@/lib/placement';
 export async function GET(req: Request) {
   try {
@@ -62,14 +62,17 @@ export async function POST(req: Request) {
     if(b.action==='ops'){
       if(!b.ops)throw new Error('Informe as operações do pedido.');
       const root = b.placement ? placementRoot(b.ops) : null;
+      // Móvel arrastado com ambiente real: a distância do canto vem junto, e
+      // a versão nova guarda o ambiente com ela.
+      const roomBefore = p.room;
+      if (b.room) p.room = b.room;
       const result = root
         ? applyPlacement(p, b.ops, b.label ?? 'Moveu o móvel', root)
         : applyRequest(p, b.ops, b.label ?? 'Edição de composição');
+      if (!result.ok || result.noop) p.room = roomBefore;
       if(!result.ok)return Response.json({error:result.error},{status:422});
       if(result.noop)return Response.json({...view(p),noop:true,discarded:0});
       discarded = result.discarded;
-      // Móvel arrastado com ambiente real: a distância do canto vem junto.
-      if (b.room) p.room = b.room;
     }
     // Desfazer/refazer: um movimento da sequência antes de trocar de versão.
     let step: 'step' | 'version' | null = null;
@@ -90,8 +93,11 @@ export async function POST(req: Request) {
       // Dois obstáculos no mesmo lugar da parede não existem: recusa com o par.
       const clash = obstacleClash(b.room.obstacles ?? []);
       if (clash) return Response.json({ error: clash }, { status: 422 });
-      // Ambiente é dado do lugar, não do móvel: não abre revisão no histórico.
-      p.room = b.room;
+      // Obstáculo posto, movido ou tirado vira versão: entra no Ctrl+Z e no
+      // histórico. Arrastos seguidos do mesmo obstáculo ficam numa só.
+      const changed = reviseRoom(p, b.room, b.label ?? roomChangeLabel(p.room, b.room));
+      if (changed.noop) return Response.json({ ...view(p), noop: true, discarded: 0 });
+      discarded = changed.discarded;
     }
     if (b.action === 'seek') seek(p, b.cursor ?? -1);
     if (b.action === 'fork')

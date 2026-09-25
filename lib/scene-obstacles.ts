@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Obstacle } from './room';
+import { framed, type Obstacle } from './room';
 import type { RoomPalette } from './scene-room';
 
 /**
@@ -16,7 +16,14 @@ type Kit = {
   bad: boolean;
   /** Materiais e geometrias criados aqui entram na lista para descarte. */
   track: (d: { dispose: () => void }) => void;
+  /** Selecionado: moldura de destaque em volta, visível através do móvel. */
+  selected?: boolean;
+  /** Prévia de onde vai entrar: translúcido, sem sombra. */
+  ghost?: boolean;
 };
+
+/** Cor da moldura de seleção: a da marca; vermelho quando não pode ficar ali. */
+export const FRAME_COLOR = { ok: '#3fae78', warn: '#e0a84a', bad: '#e0605b' };
 
 const LEAF = { light: '#d8ccb6', dark: '#4a4d53' };
 const LEAF_PANEL = { light: '#cdbfa6', dark: '#43464b' };
@@ -152,5 +159,70 @@ export function buildObstacle(o: Obstacle, kit: Kit) {
     track(line);
     m.add(new THREE.LineSegments(edges, line));
   }
+  if (kit.ghost)
+    g.traverse((node) => {
+      const mesh = node as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      mesh.castShadow = false;
+      mesh.receiveShadow = false;
+      for (const m of [mesh.material].flat()) {
+        m.transparent = true;
+        m.opacity = Math.min(m.opacity, 0.55);
+        m.depthWrite = false;
+      }
+    });
+  if (kit.selected || kit.ghost) g.add(selectionFrame(o, track));
   return g;
+}
+
+/**
+ * Moldura de destaque em volta do vão com o batente: quatro faixas e os
+ * cantos, desenhadas por cima de tudo para a peça escolhida aparecer mesmo
+ * atrás do móvel. O material fica em `userData.frame` para trocar a cor.
+ */
+function selectionFrame(o: Obstacle, track: Kit['track']) {
+  const f = framed(o);
+  const x0 = f.x0 - o.xMm - 25,
+    x1 = f.x1 - o.xMm + 25,
+    y0 = f.y0 - o.yMm - 25,
+    y1 = f.y1 - o.yMm + 25;
+  const group = new THREE.Group();
+  group.name = 'moldura';
+  const mat = new THREE.MeshBasicMaterial({ color: FRAME_COLOR.ok, depthTest: false, transparent: true, opacity: 0.95 });
+  const fill = new THREE.MeshBasicMaterial({ color: FRAME_COLOR.ok, depthTest: false, transparent: true, opacity: 0.1, depthWrite: false });
+  track(mat);
+  track(fill);
+  const t = 14,
+    z = 120;
+  const strip = (cx: number, cy: number, w: number, h: number, m: THREE.Material) => {
+    const geo = new THREE.PlaneGeometry(w, h);
+    track(geo);
+    const mesh = new THREE.Mesh(geo, m);
+    mesh.position.set(cx, cy, z);
+    mesh.renderOrder = 20;
+    group.add(mesh);
+  };
+  strip((x0 + x1) / 2, (y0 + y1) / 2, x1 - x0, y1 - y0, fill);
+  strip((x0 + x1) / 2, y0, x1 - x0 + t, t, mat);
+  strip((x0 + x1) / 2, y1, x1 - x0 + t, t, mat);
+  strip(x0, (y0 + y1) / 2, t, y1 - y0 + t, mat);
+  strip(x1, (y0 + y1) / 2, t, y1 - y0 + t, mat);
+  // Cantos quadrados, mais grossos: leem como "alças" de algo selecionado.
+  for (const [cx, cy] of [
+    [x0, y0],
+    [x1, y0],
+    [x0, y1],
+    [x1, y1],
+  ])
+    strip(cx, cy, 60, 60, mat);
+  group.userData.frame = [mat, fill];
+  return group;
+}
+
+/** Pinta a moldura: verde livre, âmbar na frente do móvel, vermelho bate. */
+export function tintFrame(g: THREE.Object3D, tone: keyof typeof FRAME_COLOR) {
+  g.traverse((node) => {
+    const mats = node.userData.frame as THREE.MeshBasicMaterial[] | undefined;
+    if (mats) for (const m of mats) m.color.set(FRAME_COLOR[tone]);
+  });
 }
