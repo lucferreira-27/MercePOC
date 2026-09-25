@@ -18,7 +18,7 @@ import {
 } from '@/lib/furniture-motion';
 import { DIFF_GLOW } from '@/lib/scene-materials';
 import type { ModularOp } from '@/lib/composition';
-import { MOVE_GRID, moduleBoxes, moveGroup, moveOp, quickBlock, rotateOp, selectedGroup, shortMm, snapDelta, tryOp, type MoveGroup, type Vec3 } from '@/lib/move';
+import { DEFAULT_DRAG_MODE, MOVE_GRID, constrainDrag, lockedAxes, moduleBoxes, moveGroup, moveOp, quickBlock, rotateOp, selectedGroup, shortMm, snapDelta, tryOp, type DragMode, type MoveGroup, type Vec3 } from '@/lib/move';
 import { wallAt } from '@/lib/room';
 import { MovePad, type NudgeDir } from './move-pad';
 import { useDelayedTrue } from '@/hooks/use-delayed';
@@ -40,6 +40,7 @@ type Runtime = {
   sun: THREE.DirectionalLight;
   grid: THREE.GridHelper;
   ground: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+  shadowFloor: THREE.Mesh<THREE.PlaneGeometry, THREE.ShadowMaterial>;
   reduced: MediaQueryList;
   move?: CameraMove;
   view?: { height: number; width: number; depth: number; mode: ViewMode; frameRequest: number };
@@ -122,6 +123,9 @@ function groundTexture() {
   return t;
 }
 
+/** Chão de fundo bem abaixo do piso do ambiente: nunca disputa a mesma profundidade. */
+const GROUND_UNDER_ROOM = -40;
+
 export default memo(FurnitureView);
 
 function FurnitureView({
@@ -134,6 +138,7 @@ function FurnitureView({
   spin = false,
   scrub = false,
   frameRequest = 0,
+  steady = false,
   zoomRequest,
   room,
   showRoom = false,
@@ -173,6 +178,11 @@ function FurnitureView({
   scrub?: boolean;
   /** Muda para reenquadrar o móvel inteiro na vista atual. */
   frameRequest?: number;
+  /**
+   * Câmera parada mesmo que o envelope do móvel mude: a revisão das mudanças
+   * troca o desenho passo a passo e reenquadrar a cada passo sacudia a cena.
+   */
+  steady?: boolean;
   zoomRequest?: { id: number; direction: 'in' | 'out' };
   room?: Room;
   showRoom?: boolean;
@@ -217,10 +227,27 @@ function FurnitureView({
   );
   // A parede limita o arrasto para trás: a real, ou a de referência.
   const wallZ = room ? wallAt(room, bounds).z : Math.min(bounds.min[2], homeZ);
-  const latest = useRef({ params, parts, selected, movable, onMove, wallZ });
+  // Modo do arrasto, escolhido no controle de mover e lembrado no navegador.
+  const [dragMode, setDragModeState] = useState<DragMode>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? window.localStorage.getItem('merce.dragmode') : null;
+      return saved ? { ...DEFAULT_DRAG_MODE, ...(JSON.parse(saved) as Partial<DragMode>) } : DEFAULT_DRAG_MODE;
+    } catch {
+      return DEFAULT_DRAG_MODE;
+    }
+  });
+  const setDragMode = (next: DragMode) => {
+    setDragModeState(next);
+    try {
+      window.localStorage.setItem('merce.dragmode', JSON.stringify(next));
+    } catch {
+      // Sem armazenamento o modo vale só nesta aba.
+    }
+  };
+  const latest = useRef({ params, parts, selected, movable, onMove, wallZ, dragMode });
   useEffect(() => {
-    latest.current = { params, parts, selected, movable, onMove, wallZ };
-  }, [params, parts, selected, movable, onMove, wallZ]);
+    latest.current = { params, parts, selected, movable, onMove, wallZ, dragMode };
+  }, [params, parts, selected, movable, onMove, wallZ, dragMode]);
   const lastParams = useRef(params);
   const [moveTip, setMoveTip] = useState<{ x: number; y: number; text: string; bad: boolean } | null>(null);
   const [moveStatus, setMoveStatus] = useState<{ text: string; bad?: boolean } | null>(null);
@@ -251,7 +278,10 @@ function FurnitureView({
     const el = host.current;
     let renderer: THREE.WebGLRenderer;
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      // Profundidade logarítmica: piso, sombra e parede ficam a milímetros um
+      // do outro e, com a câmera a metros, a profundidade linear não separava
+      // as camadas. O piso e as paredes piscavam em faixas ao girar.
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, logarithmicDepthBuffer: true });
     } catch {
       queueMicrotask(() => setError(true));
       return;
@@ -318,6 +348,7 @@ function FurnitureView({
       sun,
       grid,
       ground,
+      shadowFloor,
       reduced: window.matchMedia('(prefers-reduced-motion: reduce)'),
       labelEls: [],
       dirty: true,
@@ -402,21 +433,34 @@ function FurnitureView({
         camera,
       );
     };
-    // Arrasto do móvel: começa numa peça já selecionada. O plano segue a
-    // câmera: de cima, o piso (x e z); de frente, a parede (x e altura).
+    // Arrasto do móvel: começa numa peça já selecionada, mas só vira arrasto
+    // depois de o ponteiro andar alguns pixels. Até lá é um clique, e o
+    // clique (com ou sem Shift) chega à seleção normalmente.
+    let armed: {
+      id: number;
+      point: THREE.Vector3;
+      group: MoveGroup;
+    } | null = null;
     let drag: {
       group: MoveGroup;
       plane: THREE.Plane;
       from: THREE.Vector3;
-      vertical: boolean;
+      mode: DragMode;
       boxes: ReturnType<typeof moduleBoxes>;
       key: string;
     } | null = null;
     const hit = new THREE.Vector3();
+    const release = () => {
+      armed = null;
+      controls.enabled = true;
+      dragging.current = false;
+      el.style.cursor = '';
+    };
     const start = (e: PointerEvent) => {
       down = [e.clientX, e.clientY];
       const now = latest.current;
-      if (e.button !== 0 || !now.movable || !e.isPrimary) return;
+      // Shift é para somar e tirar da seleção: nunca começa um arrasto.
+      if (e.button !== 0 || !now.movable || !e.isPrimary || e.shiftKey) return;
       aim(e);
       const first = ray.intersectObjects(motion.pickable(), false)[0];
       const id = first?.object.userData.id as string | undefined;
@@ -424,23 +468,8 @@ function FurnitureView({
       const owner = (now.parts.find((p) => p.id === id) as { owners?: string[] } | undefined)?.owners?.[0];
       const group = owner ? moveGroup(now.params, owner) : null;
       if (!group) return;
-      const view = camera.getWorldDirection(new THREE.Vector3());
-      const floorView = Math.abs(view.y) > 0.35;
-      const normal = floorView ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(-view.x, 0, -view.z).normalize();
-      // Painel, aéreo e o que já está no alto também sobem e descem.
-      const lifts = group.members.some((mid) => {
-        const m = now.params.modules.find((v) => v.id === mid);
-        return !!m && (m.kind === 'panel' || !!m.wall || m.position[1] > 0);
-      });
-      drag = {
-        group,
-        plane: new THREE.Plane().setFromNormalAndCoplanarPoint(normal, first.point),
-        from: first.point.clone(),
-        vertical: !floorView && lifts,
-        boxes: moduleBoxes(now.params),
-        key: '0,0,0',
-      };
-      // Antes do OrbitControls (ouvinte de captura): o arrasto não gira a câmera.
+      armed = { id: e.pointerId, point: first.point.clone(), group };
+      // Antes do OrbitControls (ouvinte de captura): segurar a peça não gira a câmera.
       controls.enabled = false;
       dragging.current = true;
       try {
@@ -448,18 +477,49 @@ function FurnitureView({
       } catch {
         // Sem captura o arrasto termina quando o ponteiro sai da cena.
       }
+    };
+    /** Passou do limite do clique: escolhe o plano pelo modo e pela câmera. */
+    const begin = () => {
+      if (!armed) return;
+      const mode = latest.current.dragMode;
+      const view = camera.getWorldDirection(new THREE.Vector3());
+      let normal: THREE.Vector3;
+      if (!mode.lockHeight) {
+        // Livre: o plano de frente para a câmera, a peça segue o cursor.
+        normal = view.clone().negate();
+      } else if (Math.abs(view.y) > 0.12) {
+        // Altura travada: desliza no piso, de qualquer ângulo.
+        normal = new THREE.Vector3(0, 1, 0);
+      } else {
+        // Olhando rente ao piso o plano do chão foge para o horizonte: usa o
+        // de pé e descarta a altura.
+        normal = new THREE.Vector3(-view.x, 0, -view.z).normalize();
+      }
+      drag = {
+        group: armed.group,
+        plane: new THREE.Plane().setFromNormalAndCoplanarPoint(normal, armed.point),
+        from: armed.point,
+        mode,
+        boxes: moduleBoxes(latest.current.params),
+        key: '0,0,0',
+      };
+      armed = null;
       el.style.cursor = 'grabbing';
       state.move = undefined;
       setHover(null);
     };
     const dragMove = (e: PointerEvent) => {
+      if (armed && Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) begin();
       if (!drag) return;
       aim(e);
       if (!ray.ray.intersectPlane(drag.plane, hit)) return;
-      const raw = hit.clone().sub(drag.from);
-      if (!drag.vertical) raw.y = 0;
+      const moved = hit.clone().sub(drag.from);
+      const raw = constrainDrag([moved.x, moved.y, moved.z], drag.mode);
       const now = latest.current;
-      const delta = snapDelta(now.params, drag.group, [raw.x, raw.y, raw.z], drag.boxes, now.wallZ);
+      const locked = lockedAxes([moved.x, moved.y, moved.z], drag.mode);
+      const delta = snapDelta(now.params, drag.group, raw, drag.boxes, now.wallZ).map((v, i) =>
+        locked[i] ? 0 : v,
+      ) as Vec3;
       const key = delta.join(',');
       const box = el.getBoundingClientRect();
       const x = e.clientX - box.left,
@@ -475,11 +535,10 @@ function FurnitureView({
       } else setMoveTip((tip) => (tip ? { ...tip, x, y } : tip));
     };
     const dragEnd = () => {
+      if (armed) release();
       if (!drag) return;
       drag = null;
-      controls.enabled = true;
-      dragging.current = false;
-      el.style.cursor = '';
+      release();
       setMoveTip(null);
       commitPreview();
     };
@@ -488,6 +547,8 @@ function FurnitureView({
         dragEnd();
         return;
       }
+      // Segurou e soltou sem arrastar: é um clique na peça.
+      if (armed) release();
       if (Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
       const r = renderer.domElement.getBoundingClientRect();
       ray.setFromCamera(
@@ -860,6 +921,10 @@ function FurnitureView({
       s.scene.add(s.room.group);
     }
     s.grid.visible = !sceneRoom;
+    // Com ambiente o piso dele recebe a sombra: o apanhador de sombra por cima
+    // escurecia duas vezes e brigava com o piso na profundidade.
+    s.shadowFloor.visible = !sceneRoom;
+    s.ground.position.y = sceneRoom ? GROUND_UNDER_ROOM : -1;
     s.dirty = true;
   }, [sceneRoom, bounds, theme, mountZ]);
   // Pés: não são peças de corte, vêm da composição. Somem no explodido.
@@ -957,12 +1022,13 @@ function FurnitureView({
     // ambiente interno, em vez de uma cunha comprida atrás do móvel.
     s.sun.position.copy(target).add(new THREE.Vector3(-reach * 0.35, reach * 2.2, reach * 0.75));
     s.ground.scale.set(Math.max(width, 1200) * 3.2, Math.max(depth, 1200) * 5, 1);
-    s.ground.position.set(target.x, -1, target.z);
+    s.ground.position.set(target.x, s.room ? GROUND_UNDER_ROOM : -1, target.z);
     s.grid.position.set(target.x, -2, target.z);
     let to: THREE.Vector3;
     const resetDirection = !s.view || s.view.mode !== view || s.view.frameRequest !== frameRequest;
     // Móvel arrastado à mão: a câmera fica onde a pessoa deixou (sombra e
     // piso acima já acompanharam). F ou trocar a vista reenquadram.
+    if (!resetDirection && s.view && steady) return;
     if (!resetDirection && s.view && (s.holdFrame ?? 0) > performance.now()) {
       s.holdFrame = undefined;
       s.view = { ...s.view, height, width, depth };
@@ -1013,7 +1079,7 @@ function FurnitureView({
       mode: view,
       frameRequest,
     };
-  }, [bounds, view, scrub, exploded, frameRequest, measuredRoom]);
+  }, [bounds, view, scrub, exploded, frameRequest, measuredRoom, steady]);
   // Foto da vista: a cena renderizada agora (o buffer WebGL não é preservado)
   // composta com as cotas e uma legenda, num PNG do tamanho da tela.
   // A foto sai uma vez por pedido: legenda ou tema mudando depois não geram
@@ -1088,6 +1154,8 @@ function FurnitureView({
           status={moveStatus}
           onNudge={nudge}
           onRotate={rotate}
+          mode={dragMode}
+          onMode={setDragMode}
         />
       )}
       {moveTip && (

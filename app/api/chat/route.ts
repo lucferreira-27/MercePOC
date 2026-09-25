@@ -101,7 +101,7 @@ export async function POST(req: Request) {
         version: z.number().int(),
         message: z.string().trim().max(4000),
         imageId: z.uuid().optional(),
-        selected: z.array(z.string().max(100)).max(20).optional(),
+        selected: z.array(z.string().max(100)).max(1000).optional(),
         requestId: z.string().trim().min(8).max(64).optional(),
         clarificationId: z.string().trim().min(1).max(64).optional(),
         optionId: z.string().trim().min(1).max(64).optional(),

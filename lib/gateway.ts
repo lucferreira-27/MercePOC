@@ -97,11 +97,11 @@ export const decisionSchema = z
       .default([])
       .transform((list) => normalizeSuggestions(list)),
     ops: z.array(opSchema).max(48).default([]),
-    select: z.array(z.string().max(100)).max(20).default([]),
+    select: z.array(z.string().max(100)).max(1000).default([]),
     /** Ids de peças referenciados por "esta/a outra/mais 5cm" neste turno. */
-    refs: z.array(z.string().max(100)).max(20).default([]),
+    refs: z.array(z.string().max(100)).max(1000).default([]),
     view: z
-      .object({ ids: z.array(z.string()).max(20), open: z.boolean() })
+      .object({ ids: z.array(z.string()).max(1000), open: z.boolean() })
       .optional(),
     clarification: z
       .object({

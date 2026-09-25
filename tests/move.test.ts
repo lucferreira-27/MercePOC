@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { applyModularOp, generateComposition, preset, PROFILE, type Composition } from '../lib/composition';
-import { moveGroup, moveOp, moduleBoxes, rotateOp, selectedGroup, snapDelta, tryOp } from '../lib/move';
+import { DEFAULT_DRAG_MODE, constrainDrag, lockedAxes, moveGroup, moveOp, moduleBoxes, rotateOp, selectedGroup, snapDelta, tryOp } from '../lib/move';
 
 /** Nicho "a" na origem e nicho "b" solto à direita, com 400 mm de folga. */
 const pair = (): Composition => {
@@ -144,4 +144,14 @@ void test('reaplicar as mesmas peças durante a prévia não dobra o deslocament
     motion.tick(t);
     assert.ok(Math.abs(motion.entries.get(id)!.mesh.position.x - (home - 300)) < 1, `quadro ${t}: ${motion.entries.get(id)!.mesh.position.x}`);
   }
+});
+
+void test('modo do arrasto: altura travada por padrão, um eixo deixa só a direção dominante', () => {
+  assert.deepEqual(DEFAULT_DRAG_MODE, { lockHeight: true, axis: false });
+  assert.deepEqual(constrainDrag([120, 80, -40], DEFAULT_DRAG_MODE), [120, 0, -40]);
+  assert.deepEqual(constrainDrag([120, 80, -40], { lockHeight: false, axis: false }), [120, 80, -40]);
+  assert.deepEqual(constrainDrag([30, 80, -40], { lockHeight: true, axis: true }), [0, 0, -40]);
+  assert.deepEqual(constrainDrag([30, 80, -40], { lockHeight: false, axis: true }), [0, 80, 0]);
+  assert.deepEqual(lockedAxes([30, 80, -40], { lockHeight: true, axis: true }), [true, true, false]);
+  assert.deepEqual(lockedAxes([30, 80, -40], { lockHeight: true, axis: false }), [false, true, false]);
 });
