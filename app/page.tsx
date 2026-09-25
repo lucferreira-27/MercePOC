@@ -6,6 +6,7 @@ import { TurnProgress, turnLabel, type Pulse, type TimedProgress } from '@/compo
 import { ModelPicker } from '@/components/model-picker';
 import { UsageMeter } from '@/components/usage-meter';
 import { ChangeSet } from '@/components/change-set';
+import { BranchConfirm, type BranchConfirmData } from '@/components/branch-confirm';
 import { designDiff, partDiff, playbackFrames } from '@/lib/diff';
 import { readEvents } from '@/lib/sse';
 import { type Progress, type TextPreview } from '@/lib/progress';
@@ -312,7 +313,7 @@ export default function Home() {
     // Esclarecimento já respondido nesta sessão: o cartão não pode continuar
     // parecendo uma pergunta em aberto enquanto a IA trabalha.
     [answeredClar, setAnsweredClar] = useState(''),
-    [confirm, setConfirm] = useState<{ title: string; lines: string[] } | null>(null),
+    [confirm, setConfirm] = useState<BranchConfirmData | null>(null),
     // Quem observa a preferência é a cena 3D (é ela que gira); o botão apenas
     // reflete o que a cena faria.
     [reducedMotion, setReducedMotion] = useState(false),
@@ -504,18 +505,12 @@ export default function Home() {
     if (!p || p.cursor >= p.revisions.length - 1) {
       return run();
     }
-    const lost = p.revisions.length - p.cursor - 1;
     confirmAction.current = () => void run();
     setConfirm({
-      title: `Editar a partir da versão ${p.cursor + 1} descarta ${lost === 1 ? '1 versão seguinte' : `${lost} versões seguintes`}`,
-      lines: [
-        `${what} cria uma nova versão e apaga ${lost === 1 ? 'a versão' : 'as versões'} ${p.revisions
-          .slice(p.cursor + 1)
-          .map((r) => `${r.number} (${r.label})`)
-          .join(', ')} deste caminho.`,
-        'O que já está desenhado na tela permanece; só o futuro do histórico se perde.',
-        'Criar uma alternativa preserva tudo, num projeto separado.',
-      ],
+      from: p.cursor + 1,
+      next: p.cursor + 2,
+      what,
+      lost: p.revisions.slice(p.cursor + 1).map((r) => ({ number: r.number, label: r.label })),
     });
     return undefined;
   };
@@ -2137,46 +2132,6 @@ export default function Home() {
                 )}
               </>
             )}
-            {confirm && (
-              <div className="confirm-card" role="alertdialog" aria-label={confirm.title}>
-                <p>
-                  <strong>{confirm.title}</strong>
-                </p>
-                <ul>
-                  {confirm.lines.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ul>
-                <div className="confirm-actions">
-                  <Button variant="ghost" disabled={busyLook} onClick={closeConfirm}>
-                    Cancelar
-                  </Button>
-                  <Button
-                    variant="outline"
-                    disabled={busyLook}
-                    title="Preserva este caminho num projeto separado e continua a edição lá"
-                    onClick={() => {
-                      const cursor = p?.cursor ?? 0;
-                      closeConfirm();
-                      void forkFrom(cursor);
-                    }}
-                  >
-                    Criar alternativa
-                  </Button>
-                  <Button
-                    disabled={busyLook}
-                    onClick={() => {
-                      const run = confirmAction.current;
-                      confirmAction.current = null;
-                      setConfirm(null);
-                      run?.();
-                    }}
-                  >
-                    Descartar e continuar
-                  </Button>
-                </div>
-              </div>
-            )}
             {failedTurn && (
               <div className="failed-turn" role="alert">
                 <p><strong>Não enviado:</strong> {failedTurn.text}</p>
@@ -2945,6 +2900,23 @@ export default function Home() {
         actions={paletteActions}
         onAsk={(value) => void send(value)}
       />
+      {confirm && (
+        <BranchConfirm
+          data={confirm}
+          busy={busyLook}
+          onCancel={closeConfirm}
+          onFork={() => {
+            const cursor = p?.cursor ?? 0;
+            closeConfirm();
+            void forkFrom(cursor);
+          }}
+          onDiscard={() => {
+            const run = confirmAction.current;
+            closeConfirm();
+            run?.();
+          }}
+        />
+      )}
       <TemplateGallery
         open={galleryOpen}
         mode={galleryMode}
