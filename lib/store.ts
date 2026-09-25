@@ -22,6 +22,7 @@ import type { ChatReport, TurnOutcome } from './progress';
 import type { Room } from './room';
 import type { TurnUsage } from './models';
 import { buildTemplate, templateById } from './templates';
+import { PLACEMENT_MAX_STEPS, PLACEMENT_MERGE_MS, type Placement, type PlacementStep } from './placement';
 export type TurnContext = {
   requestId: string;
   baseRevisionId: string;
@@ -82,6 +83,8 @@ export type Revision = {
   params: Design;
   label: string;
   at: string;
+  /** Versão feita de movimentos seguidos: os passos para desfazer um a um. */
+  placement?: Placement;
 };
 export type Project = {
   id: string;
@@ -378,6 +381,10 @@ export function revise(p: Project, params: Design, label: string) {
   generateDesign(params);
   const discarded = Math.max(0, p.revisions.length - p.cursor - 1);
   p.revisions = p.revisions.slice(0, p.cursor + 1);
+  // A versão de base ganha uma seguinte: os passos dela congelam. Desfazer
+  // passo a passo só mexe na ponta, nunca numa versão que já tem filhos.
+  const base0 = p.revisions[p.cursor];
+  if (base0?.placement) base0.placement = { ...base0.placement, back: [], ahead: [] };
   // Dois rótulos iguais na lista de versões são indistinguíveis ("Adicionar
   // módulo" duas vezes). O sufixo mantém cada linha identificável.
   const base = label.trim().slice(0, 90) || 'Ajuste de parâmetros';
@@ -393,6 +400,95 @@ export function revise(p: Project, params: Design, label: string) {
   });
   p.cursor = p.revisions.length - 1;
   return discarded;
+}
+/** Lugar atual da raiz: o passo que um movimento ou um desfazer guarda. */
+function stepOf(params: Design, root: string): PlacementStep | null {
+  const m = (params as { modules?: { id: string; position: [number, number, number]; rotation: number }[] }).modules?.find(
+    (v) => v.id === root,
+  );
+  return m ? { position: [...m.position], rotation: m.rotation } : null;
+}
+function placeAt(params: Design, root: string, step: PlacementStep) {
+  const r = executeRequest(params, [
+    { kind: 'module.edit', id: root, position: step.position, rotation: step.rotation as 0 | 90 | 180 | 270 },
+  ] as ShelfOp[]);
+  return r.ok ? r.design : null;
+}
+/**
+ * Movimento do móvel (arrastar, setas, girar). Segue a sequência na versão da
+ * ponta quando ela é de movimentos do mesmo conjunto, recente e ninguém mais
+ * mexeu (nem turno da IA): o lugar anterior vira um passo de desfazer, sem
+ * versão nova. Fora disso abre a versão que começa uma sequência.
+ */
+export function applyPlacement(p: Project, ops: ShelfOp[], label: string, root: string, now = Date.now()) {
+  const tip = p.revisions[p.cursor];
+  const result = executeRequest(tip.params, ops);
+  if (!result.ok) return result;
+  if (JSON.stringify(result.design) === JSON.stringify(tip.params))
+    return { ok: true as const, noop: true as const, design: result.design, discarded: 0 };
+  const pl = tip.placement;
+  const referenced = p.messages.some(
+    (m) => m.revisionId === tip.id || m.result?.resultRevisionId === tip.id || m.context?.baseRevisionId === tip.id,
+  );
+  const before = stepOf(tip.params, root);
+  if (
+    pl &&
+    before &&
+    pl.root === root &&
+    p.cursor === p.revisions.length - 1 &&
+    now - Date.parse(pl.at) < PLACEMENT_MERGE_MS &&
+    !referenced
+  ) {
+    generateDesign(result.design);
+    tip.params = result.design;
+    tip.placement = {
+      root,
+      at: new Date(now).toISOString(),
+      back: [...pl.back, before].slice(-PLACEMENT_MAX_STEPS),
+      ahead: [],
+    };
+    return { ok: true as const, noop: false as const, design: result.design, discarded: 0, merged: true };
+  }
+  const discarded = revise(p, result.design, label);
+  p.revisions[p.cursor].placement = { root, at: new Date(now).toISOString(), back: [], ahead: [] };
+  return { ok: true as const, noop: false as const, design: result.design, discarded, merged: false };
+}
+/**
+ * Desfazer: na ponta, volta um movimento da sequência; sem passos, a versão
+ * anterior. Devolve 'step' ou 'version' para o cliente saber o que andou.
+ */
+export function undo(p: Project): 'step' | 'version' | null {
+  const rev = p.revisions[p.cursor];
+  const pl = rev.placement;
+  if (pl?.back.length && p.cursor === p.revisions.length - 1) {
+    const target = pl.back[pl.back.length - 1];
+    const now = stepOf(rev.params, pl.root);
+    const params = now ? placeAt(rev.params, pl.root, target) : null;
+    if (params && now) {
+      rev.params = params;
+      rev.placement = { ...pl, back: pl.back.slice(0, -1), ahead: [...pl.ahead, now] };
+      return 'step';
+    }
+  }
+  if (p.cursor === 0) return null;
+  p.cursor -= 1;
+  return 'version';
+}
+export function redo(p: Project): 'step' | 'version' | null {
+  if (p.cursor < p.revisions.length - 1) {
+    p.cursor += 1;
+    return 'version';
+  }
+  const rev = p.revisions[p.cursor];
+  const pl = rev.placement;
+  if (!pl?.ahead.length) return null;
+  const target = pl.ahead[pl.ahead.length - 1];
+  const now = stepOf(rev.params, pl.root);
+  const params = now ? placeAt(rev.params, pl.root, target) : null;
+  if (!params || !now) return null;
+  rev.params = params;
+  rev.placement = { ...pl, ahead: pl.ahead.slice(0, -1), back: [...pl.back, now] };
+  return 'step';
 }
 export function seek(p: Project, cursor: number) {
   if (!Number.isInteger(cursor) || cursor < 0 || cursor >= p.revisions.length)

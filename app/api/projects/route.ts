@@ -1,9 +1,10 @@
-import { applyShelfOp, applyRequest, create, createDemo, createFromTemplate, fork, list, get, view, save, revise, seek, remove } from '@/lib/store';
+import { applyShelfOp, applyRequest, applyPlacement, undo, redo, create, createDemo, createFromTemplate, fork, list, get, view, save, revise, seek, remove } from '@/lib/store';
 import { sameOrigin } from '@/lib/utils';
 import { designSchema, opSchema } from '@/lib/studio';
 import { z } from 'zod';
 import { validationMessage } from '@/lib/composition';
 import { roomSchema } from '@/lib/room';
+import { placementRoot } from '@/lib/placement';
 export async function GET(req: Request) {
   try {
     const id = new URL(req.url).searchParams.get('id');
@@ -36,6 +37,8 @@ export async function POST(req: Request) {
         name: z.string().trim().min(1).max(80).optional(),
         design: designSchema.optional(),
         room: roomSchema.optional(),
+        /** Movimento do móvel: segue a sequência na mesma versão quando dá. */
+        placement: z.boolean().optional(),
       })
       .parse(body);
     const p = get(b.id);
@@ -58,16 +61,29 @@ export async function POST(req: Request) {
     }
     if(b.action==='ops'){
       if(!b.ops)throw new Error('Informe as operações do pedido.');
-      const result=applyRequest(p,b.ops,b.label??'Edição de composição');
+      const root = b.placement ? placementRoot(b.ops) : null;
+      const result = root
+        ? applyPlacement(p, b.ops, b.label ?? 'Moveu o móvel', root)
+        : applyRequest(p, b.ops, b.label ?? 'Edição de composição');
       if(!result.ok)return Response.json({error:result.error},{status:422});
       if(result.noop)return Response.json({...view(p),noop:true,discarded:0});
       discarded = result.discarded;
       // Móvel arrastado com ambiente real: a distância do canto vem junto.
       if (b.room) p.room = b.room;
     }
-    if (b.action === 'undo') p.cursor = Math.max(0, p.cursor - 1);
-    if (b.action === 'redo')
-      p.cursor = Math.min(p.revisions.length - 1, p.cursor + 1);
+    // Desfazer/refazer: um movimento da sequência antes de trocar de versão.
+    let step: 'step' | 'version' | null = null;
+    // Passou por uma versão de movimentos: o cliente não anuncia medida geral.
+    let moved = false;
+    if (b.action === 'undo') {
+      const left = p.revisions[p.cursor];
+      step = undo(p);
+      moved = !!left.placement;
+    }
+    if (b.action === 'redo') {
+      step = redo(p);
+      moved = !!p.revisions[p.cursor].placement;
+    }
     if (b.action === 'rename' && b.name) p.name = b.name;
     if (b.action === 'room') {
       if (!b.room) throw new Error('Informe as medidas do ambiente.');
@@ -77,7 +93,7 @@ export async function POST(req: Request) {
     if (b.action === 'seek') seek(p, b.cursor ?? -1);
     if (b.action === 'fork')
       return Response.json(fork(b.id, b.cursor ?? p.cursor, b.name ?? `${p.name} · alternativa`));
-    return Response.json({ ...save(p, b.version), discarded });
+    return Response.json({ ...save(p, b.version), discarded, ...(step === 'step' ? { step: true } : {}), ...(moved ? { moved: true } : {}) });
   } catch (e) {
     return Response.json(
       {
