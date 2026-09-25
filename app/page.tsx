@@ -7,6 +7,7 @@ import { ModelPicker } from '@/components/model-picker';
 import { UsageMeter } from '@/components/usage-meter';
 import { ChangeSet } from '@/components/change-set';
 import { BranchConfirm, type BranchConfirmData } from '@/components/branch-confirm';
+import { canRedo, canUndo, redoIsStep, undoIsStep } from '@/lib/placement';
 import { designDiff, partDiff, playbackFrames } from '@/lib/diff';
 import { readEvents } from '@/lib/sse';
 import { type Progress, type TextPreview } from '@/lib/progress';
@@ -109,6 +110,10 @@ type State = Project & {
   /** Quantas versões futuras a última edição descartou (0 quando não perde nada). */
   discarded?: number;
   noop?: boolean;
+  /** Desfazer/refazer andou um movimento dentro da versão, não de versão. */
+  step?: boolean;
+  /** Desfazer/refazer passou por uma versão de movimentos. */
+  moved?: boolean;
 };
 type Tab = 'project' | 'room' | 'quote' | 'cut' | 'parts' | 'history';
 /** Atualizações do turno ao vivo esperando a próxima leva. */
@@ -948,8 +953,8 @@ export default function Home() {
         if (typing(e.target)) return;
         e.preventDefault();
         if (key === 'y' || e.shiftKey) {
-          if (!busy && p && p.cursor < p.revisions.length - 1) void action('redo');
-        } else if (!busy && p && p.cursor > 0) void action('undo');
+          if (!busy && p && canRedo(p)) void action('redo');
+        } else if (!busy && p && canUndo(p)) void action('undo');
         return;
       }
       if (e.ctrlKey || e.metaKey || e.altKey || typing(e.target)) return;
@@ -1032,7 +1037,8 @@ export default function Home() {
         action,
         ...extra,
       });
-      accept(next, { dims: true });
+      // Voltar um movimento não é mudar de medida: sem o aviso de medida geral.
+      accept(next, { dims: !next.step && !next.moved });
       await refresh();
       return next;
     } catch (e) {
@@ -1049,7 +1055,7 @@ export default function Home() {
     return guardTruncation(() => runOps([operation], label, 'op'), label);
   }
   /** Lote atômico: igualar módulos que compartilham painel exige editar os dois. */
-  async function applyOps(operations: ShelfOp[], label: string, extra: { room?: Room; quiet?: boolean } = {}) {
+  async function applyOps(operations: ShelfOp[], label: string, extra: { room?: Room; quiet?: boolean; placement?: boolean } = {}) {
     if (busy || !p) return;
     return guardTruncation(() => runOps(operations, label, 'ops', extra), label);
   }
@@ -1068,9 +1074,10 @@ export default function Home() {
     }
     // Mudar de lugar não é mudar de medida: sem o aviso de "Medida geral" a
     // cada arrasto (ele entrava e saía do banner e a conversa pulava).
-    await applyOps([operation], label, room ? { room, quiet: true } : { quiet: true });
+    // Movimentos seguidos viram uma versão só, com os passos para desfazer.
+    await applyOps([operation], label, room ? { room, quiet: true, placement: true } : { quiet: true, placement: true });
   }
-  async function runOps(operations: ShelfOp[], label: string, kind: 'op' | 'ops', { quiet, ...extra }: { room?: Room; quiet?: boolean } = {}) {
+  async function runOps(operations: ShelfOp[], label: string, kind: 'op' | 'ops', { quiet, ...extra }: { room?: Room; quiet?: boolean; placement?: boolean } = {}) {
     if (busy || !p) return;
     setBusy(true);
     setError('');
@@ -1644,8 +1651,8 @@ export default function Home() {
     { id: 'ask', group: 'Painéis', label: 'Escrever para a IA', keys: '/', icon: <Sparkles size={15} />, run: () => { if (!chatOpen) toggleChat(true); setTimeout(() => composer.current?.focus(), 30); } },
     { id: 'new', group: 'Projeto', label: 'Novo projeto…', hint: 'em branco ou modelo', icon: <Plus size={15} />, run: () => openGallery('new') },
     { id: 'library', group: 'Projeto', label: 'Adicionar da biblioteca…', hint: 'rack, cozinha, cômoda…', icon: <LayoutTemplate size={15} />, disabled: !p, run: () => openGallery('add') },
-    { id: 'undo', group: 'Projeto', label: 'Desfazer', keys: 'Ctrl Z', icon: <Undo2 size={15} />, disabled: !p || p.cursor === 0 || busy, run: () => void action('undo') },
-    { id: 'redo', group: 'Projeto', label: 'Refazer', keys: 'Ctrl Y', icon: <Redo2 size={15} />, disabled: !p || p.cursor >= p.revisions.length - 1 || busy, run: () => void action('redo') },
+    { id: 'undo', group: 'Projeto', label: 'Desfazer', keys: 'Ctrl Z', icon: <Undo2 size={15} />, disabled: !p || !canUndo(p) || busy, run: () => void action('undo') },
+    { id: 'redo', group: 'Projeto', label: 'Refazer', keys: 'Ctrl Y', icon: <Redo2 size={15} />, disabled: !p || !canRedo(p) || busy, run: () => void action('redo') },
     { id: 'rename', group: 'Projeto', label: 'Renomear projeto', icon: <Pencil size={15} />, run: () => setRenaming(true) },
     ...exports.map((x) => ({ id: 'export-' + x.id, group: 'Exportar', label: x.label, hint: x.hint, icon: x.icon, run: x.run })),
   ];
@@ -2698,8 +2705,8 @@ export default function Home() {
                 variant="outline"
                 size="icon"
                 aria-label="Desfazer"
-                title="Desfazer (Ctrl+Z)"
-                disabled={busyLook || !p || p.cursor === 0}
+                title={p && undoIsStep(p) ? 'Desfazer o último movimento (Ctrl+Z)' : 'Desfazer (Ctrl+Z)'}
+                disabled={busyLook || !p || !canUndo(p)}
                 onClick={() => action('undo')}
               >
                 <Undo2 />
@@ -2708,8 +2715,8 @@ export default function Home() {
                 variant="outline"
                 size="icon"
                 aria-label="Refazer"
-                title="Refazer (Ctrl+Y)"
-                disabled={busyLook || !p || p.cursor === p.revisions.length - 1}
+                title={p && redoIsStep(p) ? 'Refazer o movimento (Ctrl+Y)' : 'Refazer (Ctrl+Y)'}
+                disabled={busyLook || !p || !canRedo(p)}
                 onClick={() => action('redo')}
               >
                 <Redo2 />
@@ -2852,7 +2859,13 @@ export default function Home() {
                           <span className="history-num">{i + 1}</span>
                           <div>
                             <strong>{r.label}</strong>
-                            <small>{new Date(r.at).toLocaleString('pt-BR')}</small>
+                            <small>
+                              {new Date(r.at).toLocaleString('pt-BR')}
+                              {/* Movimentos seguidos ficam dentro da versão: Ctrl+Z volta um a um. */}
+                              {r.placement && r.placement.back.length + r.placement.ahead.length > 0
+                                ? ` · ${r.placement.back.length + r.placement.ahead.length + 1} movimentos`
+                                : ''}
+                            </small>
                             {i === p.cursor && <em>Versão atual</em>}
                             {(historyPreview ?? p.cursor) === i && historyPreview !== null && historyPreview !== p.cursor && <em>Prévia exibida</em>}
                           </div>
