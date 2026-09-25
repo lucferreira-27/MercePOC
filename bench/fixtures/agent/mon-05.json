@@ -1,0 +1,285 @@
+{
+ "id": "mon-05",
+ "at": "2026-09-25T15:21:10.053Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Aumente a largura do módulo da direita para 1 metro e deixe a fileira com 2,20 m.",
+   "reply": {
+    "content": "Vou ajustar os dois módulos da fileira.",
+    "calls": [
+     {
+      "id": "call_00_UHfNZpGVExIgMiwsrkM49612",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"module.edit\", \"id\": \"module-1\", \"width\": 1200}, {\"kind\": \"module.edit\", \"id\": \"b\", \"width\": 1000}], \"rotulo\": \"Fileira com 2,20 m: estante 1,20 m + nicho 1,00 m\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Aumente a largura do módulo da direita para 1 metro e deixe a fileira com 2,20 m.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_FLa7Kk3Og14WwHyMT2864065",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_mRHtXCrZSuaGkhtkdtnD5798",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "7|Pedido: Aumente a largura do módulo da direita para 1 metro e deixe a fileira com 2,20 m.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_WY6FFYNtj1YOPlLfpoNB2307",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"A fileira ficou com 2,20 m: o módulo da esquerda passou para 1,20 m e o da direita para 1,00 m, os dois em carvalho. As quatro prateleiras da estante se redistribuíram automaticamente na largura nova e o nicho da direita continua com 60 cm de altura e 45 cm de profundidade.\", \"sugestoes\": [\"Ponha portas no nicho da direita\", \"Gere o PDF com orçamento e plano de corte\", \"Veja o orçamento atualizado da estante\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 1,
+      "probabilities": {
+       "options": 0,
+       "edit": 1,
+       "build": 0,
+       "view": 0,
+       "studio": 0,
+       "ask": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.91
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.92
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.54
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.9
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.25
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1332,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 435,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.91
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.4
+     }
+    },
+    "usage": {
+     "input_tokens": 562,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

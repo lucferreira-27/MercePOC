@@ -1,0 +1,360 @@
+{
+ "id": "auto-02",
+ "at": "2026-09-25T15:43:17.966Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Monte balcões e aéreos nessa parede e me mande o PDF.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_wsZLeYuAUJ4zb4AwISxz9444",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\": [\"Conferir a parede de 3,20 m e a janela\", \"Montar a fileira de balcões ao longo da parede\", \"Montar a fileira de aéreos desviando da janela\", \"Conferir encaixe e medidas\", \"Gerar o PDF do projeto\"]}"
+      }
+     },
+     {
+      "id": "call_01_YKiRwNu3XXv8Mn6MTXKY9336",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\": 0, \"largura\": 3200, \"altura\": 800, \"profundidade\": 580, \"base\": 0, \"tipo\": \"drawers\", \"nome\": \"Balcão\", \"desviar_obstaculos\": true, \"folga\": 50, \"substituir\": true, \"pes\": 100, \"frente\": \"drawers\", \"gavetas\": 3, \"material\": \"oak\", \"material_frente\": \"oak\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "5|Pedido: Monte balcões e aéreos nessa parede e me mande o PDF.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_yXGscpNiNaP5rplD7kYj3722",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\": 0, \"largura\": 3200, \"altura\": 700, \"profundidade\": 350, \"base\": 1500, \"tipo\": \"niche\", \"nome\": \"Aéreo\", \"desviar_obstaculos\": true, \"folga\": 50, \"substituir\": false, \"pes\": 0, \"frente\": \"double\", \"material\": \"oak\", \"material_frente\": \"oak\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "7|Pedido: Monte balcões e aéreos nessa parede e me mande o PDF.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_6AUiaPlnD07rgWr7VSVi2263",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_b2EwIIieTDLIBG1qgpU90362",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "11|Pedido: Monte balcões e aéreos nessa parede e me mande o PDF.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_IhCkPvlxekMZRXVYAhcZ1613",
+      "type": "function",
+      "function": {
+       "name": "quote_read",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_XOsn1Oor12DdxvzCdISh6347",
+      "type": "function",
+      "function": {
+       "name": "cutplan_read",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_02_KqXjMrLl5Id4yfimIxSN8471",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "15|Pedido: Monte balcões e aéreos nessa parede e me mande o PDF.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_CXTauY689dsOEPHYVOh99088",
+      "type": "function",
+      "function": {
+       "name": "export_file",
+       "arguments": "{\"formato\": \"pdf\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "17|Pedido: Monte balcões e aéreos nessa parede e me mande o PDF.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_IxCAJgKUjxqRbopqOH2w5914",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Montei a parede inteira em carvalho: balcões de 3,20 × 0,80 m de altura por 0,58 m de profundidade, com 3 gavetas em cada módulo (100 mm de pés), e aéreos de 0,70 m de altura por 0,35 m de profundidade a 1,50 m do piso — como a janela (1,00 a 2,20 m, de 1,10 a 2,10 m do piso) ocupa a faixa do meio, os aéreos ficaram em duas partes: 0 a 0,92 m e 2,28 a 3,20 m. Ficou orçado em R$ 10.102,29 (9 chapas, 115 peças, 20 frentes) e o PDF do projeto, orçamento, peças e plano de corte segue junto.\", \"sugestoes\": [\"Trocar as frentes dos aéreos por portas de vidro\", \"Colocar nicho aberto entre os aéreos sobre a janela\", \"Rebaixar o balcão para 0,75 m de altura\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.94,
+      "probabilities": {
+       "view": 0,
+       "options": 0,
+       "edit": 0,
+       "ask": 0,
+       "studio": 0.05,
+       "build": 0.95
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.95
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.35
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.93
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.15
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.3
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.22
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.13
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.23
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.84
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 1322,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.98
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.92
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.05
+     }
+    },
+    "usage": {
+     "input_tokens": 425,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.69
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.54
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 686,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

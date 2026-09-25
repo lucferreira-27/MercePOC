@@ -1,0 +1,302 @@
+{
+ "id": "uni-03",
+ "at": "2026-09-25T15:19:48.116Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: a profundidade tem 45 cm",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_Ky6M9oC8GXeU5nWn0Hsn5684",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"module.edit\", \"id\": \"module-1\", \"depth\": 450}], \"rotulo\": \"Profundidade 45 cm\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: a profundidade tem 45 cm",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_iX6TKUBgp6DlHS09fsB47944",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_DWiG9kNeOUXL8aS7rM497544",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "7|Pedido: a profundidade tem 45 cm",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_im6eLZwr1z6jXIiTCf1J8684",
+      "type": "function",
+      "function": {
+       "name": "quote_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "9|Pedido: a profundidade tem 45 cm",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_og0OHc7SaLHCQ4eDRCT13791",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Ajustei a profundidade da estante para 45 cm. Ela ficou com 80 × 180 × 45 cm, mantendo as quatro prateleiras e o carvalho natural; o total segue em R$ 1.230,63 (1 chapa de 18 mm e 1 de 6 mm).\", \"sugestoes\": [\"Aumente a largura da estante para 1,20 m\", \"Divida um vão com prateleira extra\", \"Gere o PDF com desenho e plano de corte\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 0.68,
+      "probabilities": {
+       "ask": 0.21,
+       "view": 0,
+       "build": 0.05,
+       "options": 0,
+       "edit": 0.74,
+       "studio": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.59
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.15
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.48
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1314,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 417,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.18
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.95
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.05
+     }
+    },
+    "usage": {
+     "input_tokens": 551,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

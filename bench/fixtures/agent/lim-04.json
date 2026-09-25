@@ -1,0 +1,488 @@
+{
+ "id": "lim-04",
+ "at": "2026-09-25T15:27:45.197Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_qZ9OwvheyOzrag4t0NcB7880",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\": [\"Trocar a estante atual por uma fileira de 12 módulos de 1 m\", \"Conferir o desenho e as medidas da fileira\", \"Gerar a versão com o orçamento atualizado\"]}"
+      }
+     },
+     {
+      "id": "call_01_t13fKjOozF7AY151MwNO1955",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\": 0, \"largura\": 12000, \"altura\": 1800, \"profundidade\": 350, \"base\": 0, \"tipo\": \"shelf\", \"nome\": \"Estante\", \"desviar_obstaculos\": true, \"folga\": 50, \"substituir\": true, \"modulos\": 12, \"material\": \"oak\", \"frente\": \"none\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "5|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_toQHs9AGvVF69shsSDSZ9389",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"base\": 0, \"desviar_obstaculos\": true, \"folga\": 50, \"frente\": \"none\", \"altura\": 1800, \"inicio\": 0, \"largura\": 12000, \"largura_max_modulo\": 1000, \"material\": \"oak\", \"modulos\": 12, \"nome\": \"Estante\", \"profundidade\": 350, \"substituir\": true, \"tipo\": \"shelf\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "7|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_k5wn4FPArACBNCQFDkdm8462",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"base\": 0, \"desviar_obstaculos\": true, \"folga\": 50, \"frente\": \"none\", \"altura\": 1800, \"inicio\": 0, \"largura\": 12000, \"largura_max_modulo\": 1000, \"material\": \"oak\", \"nome\": \"Estante\", \"profundidade\": 350, \"substituir\": true, \"tipo\": \"shelf\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "9|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_Uw3Q20lSu0KiBAZBFxs52309",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"altura\": 1800, \"base\": 0, \"desviar_obstaculos\": true, \"folga\": 50, \"frente\": \"none\", \"inicio\": 0, \"largura\": 11500, \"largura_max_modulo\": 1000, \"material\": \"oak\", \"modulos\": 12, \"nome\": \"Estante\", \"profundidade\": 350, \"substituir\": true, \"tipo\": \"shelf\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "11|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_CMpVXyQAMNovHZGbbNb65514",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"altura\": 1800, \"base\": 0, \"desviar_obstaculos\": true, \"folga\": 50, \"frente\": \"none\", \"inicio\": 0, \"largura\": 11000, \"largura_max_modulo\": 1000, \"material\": \"oak\", \"modulos\": 11, \"nome\": \"Estante\", \"profundidade\": 350, \"substituir\": true, \"tipo\": \"shelf\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "13|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_WA3icFkvD0Alp6aCfKP65234",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"altura\": 1800, \"base\": 0, \"desviar_obstaculos\": true, \"folga\": 50, \"frente\": \"none\", \"inicio\": 0, \"largura\": 12000, \"largura_max_modulo\": 1200, \"material\": \"oak\", \"modulos\": 12, \"nome\": \"Estante\", \"profundidade\": 350, \"substituir\": true, \"tipo\": \"shelf\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "15|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_rLbgojdJBiOqUB6305gV0932",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"altura\": 1800, \"base\": 0, \"desviar_obstaculos\": true, \"folga\": 50, \"frente\": \"none\", \"inicio\": 0, \"largura\": 11800, \"largura_max_modulo\": 1000, \"material\": \"oak\", \"modulos\": 12, \"nome\": \"Estante\", \"profundidade\": 350, \"substituir\": true, \"tipo\": \"shelf\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "17|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_3Of3IJ9HqMgBYDuLoEoa8770",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"module.remove\", \"id\": \"module-1\"}], \"rotulo\": \"Limpar a estante antiga para a fileira de 12\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "19|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_N9Ud7AigDfOyjL1MVtOI4536",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "21|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_P5ZbxUjaJfljR4skM0dV2382",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"module.duplicate\", \"id\": \"estante-11\", \"newId\": \"estante-12\"}, {\"kind\": \"connect\", \"parent\": \"estante-11\", \"child\": \"estante-12\", \"side\": \"right\", \"shared\": true, \"align\": \"back\", \"offset\": 0}], \"rotulo\": \"Acrescentar o 12º módulo à fileira\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "23|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_Nq9rtN7f1MqOMEY8gUAP9555",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "25|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_3Ai0QRMQeLaxCqlbvmfC9262",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"module.edit\", \"id\": \"estante-12\", \"name\": \"Estante 12\"}], \"rotulo\": \"Nomear o 12º módulo\"}"
+      }
+     },
+     {
+      "id": "call_01_JSEhFo0Ba1TvrGMbjuVW0841",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "28|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_ET_JuzUktdUj2Y8TksLOfhx4213",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_ET_GyIgpMmNCndubmuI3Kjv0441",
+      "type": "function",
+      "function": {
+       "name": "quote_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "32|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_JfcjDqpPr46bH7nlfczS3903",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Montei a fileira com 12 módulos de estante, um ao lado do outro, com painel compartilhado entre eles: 12,0 m de largura × 1,80 m de altura × 35 cm de profundidade, em carvalho natural, com 4 prateleiras por módulo. Cada módulo ficou com cerca de 1,01 m (o app fecha a conta descontando os painéis compartilhados), e o conjunto saiu por R$ 13.407,07 (10 chapas de 18 mm e 12 de 6 mm). Doze módulos é exatamente o limite do estúdio, então não dá para ir além disso mantendo tudo igual.\", \"sugestoes\": [\"Ponha portas ou gavetas em alguns módulos\", \"Mude a altura ou a profundidade da fileira\", \"Gere o PDF com orçamento e plano de corte\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.97,
+      "probabilities": {
+       "edit": 0.03,
+       "view": 0,
+       "options": 0,
+       "build": 0.97,
+       "studio": 0,
+       "ask": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.23
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.43
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.75
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.75
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.24
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.23
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1323,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 426,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.71
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 635,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

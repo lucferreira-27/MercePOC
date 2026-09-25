@@ -13,6 +13,9 @@
  *   npm run bench -- --offline             # roda sem rede, contra as fixtures
  *   npm run bench -- --out bench/results/depois.json
  *   npm run bench -- --compare bench/results/antes.json
+ *   npm run bench -- --agent               # o assistente em laço (lib/agent)
+ *   npm run bench -- --agent --record      # grava respostas do modelo e do Jev
+ *   npm run bench -- --agent --offline     # repete as gravações, sem rede
  *
  * Casos com `image` (foto de referência) usam o arquivo indicado no caso. A
  * foto não é versionada: sem o arquivo o caso é pulado, com o motivo impresso,
@@ -32,6 +35,10 @@ const { interpretStream } = await import('../lib/gateway.ts');
 const { addUsage, emptyUsage, priceOf, MODEL_KEYS } = await import('../lib/models.ts');
 const { executeRequest, generateDesign, entityIds, canonical } = await import('../lib/studio.ts');
 const { drawingParts } = await import('../lib/composition.ts');
+const { runAgentTurn } = await import('../lib/agent/turn.ts');
+const { DEFAULT_PRICES } = await import('../lib/quote.ts');
+const { callModel } = await import('../lib/agent/model.ts');
+const { fitReport } = await import('../lib/room.ts');
 const { cases, groups } = await import('./cases.mjs');
 
 const args = process.argv.slice(2);
@@ -68,7 +75,12 @@ const onlyMissing = flag('only-missing');
 const networkAttempts = Math.max(1, Number(value('network-attempts', '4')));
 const outFile = value('out');
 const compareFile = value('compare');
-const fixtureDir = resolve('bench/fixtures');
+const agent = flag('agent');
+// O laço grava outra coisa (a sequência de respostas do modelo e do Jev):
+// pasta própria, para não misturar com as decisões do caminho antigo.
+const fixtureDir = resolve(agent ? 'bench/fixtures/agent' : 'bench/fixtures');
+// Offline o Jev responde da gravação; sem chave, askJev nem chamaria o fetch.
+if (agent && offline) process.env.TYPESAFE_API_KEY ||= 'offline';
 
 // O app lê o .env pelo servidor; um script solto não. Carrega aqui para o
 // benchmark usar o mesmo provedor, sem imprimir nenhum valor.
@@ -86,7 +98,7 @@ loadEnv(resolve(value('env', '.env')));
 
 
 const selected = cases.filter(
-  (c) => (!onlyGroup || c.group === onlyGroup) && (!onlyId || c.id.includes(onlyId)),
+  (c) => (!onlyGroup || c.group === onlyGroup) && (!onlyId || c.id.includes(onlyId)) && (agent || !c.agentOnly),
 );
 if (!selected.length) {
   console.error('Nenhum caso selecionado.');
@@ -97,7 +109,26 @@ const startedAll = Date.now();
 let providerCalls = 0;
 let providerMs = 0;
 const realFetch = globalThis.fetch;
+/** Respostas do Jev deste caso: gravadas (--record) ou repetidas (--offline). */
+let jevTape = null;
+const isJev = (url) => String(url).includes('typesafe.ai');
 globalThis.fetch = async (...callArgs) => {
+  if (agent && isJev(callArgs[0]) && jevTape) {
+    // Cada chamada do Jev é identificada pelas perguntas (roteador, pedido,
+    // resposta): chamadas em paralelo não trocam de lugar na repetição.
+    const asked = Object.keys(JSON.parse(callArgs[1]?.body ?? '{}').questions ?? {}).sort().join(',');
+    if (offline) {
+      const i = jevTape.findIndex((t) => t.asked === asked);
+      const body = i >= 0 ? jevTape.splice(i, 1)[0].body : undefined;
+      return body == null
+        ? new Response('sem gravação', { status: 503 })
+        : new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    const response = await realFetch(...callArgs);
+    const body = await response.clone().json().catch(() => null);
+    jevTape.push({ asked, body });
+    return response;
+  }
   providerCalls++;
   const t0 = Date.now();
   try {
@@ -169,6 +200,119 @@ async function interpretWithRepair(before, revision, messages, selection, contex
   return { decision, ops, preview };
 }
 
+/**
+ * Um caso pelo assistente em laço, como a rota faz: grava a mensagem, roda
+ * `runAgentTurn` e traduz o resultado para as ações do caminho antigo
+ * (update, clarify, answer, undo, redo), para as mesmas expectativas valerem.
+ */
+async function runAgentCase(project, benchCase, image, selection, telemetry, fixtureFile) {
+  const revision = project.revisions[project.cursor];
+  const user = {
+    id: 'bench-user',
+    role: 'user',
+    content: benchCase.prompt,
+    revisionId: revision.id,
+    revision: revision.number,
+    ...(image ? { image } : {}),
+    context: { requestId: `bench-${benchCase.id}`, baseRevisionId: revision.id, selectedPartIds: selection, referencedPartIds: selection },
+  };
+  project.messages.push(user);
+  const version = save(project, project.version).version;
+  let replies = [];
+  let tape = { replies: [], jev: [] };
+  if (offline) {
+    if (!existsSync(fixtureFile)) throw new Error('sem fixture gravada (rode com --agent --record)');
+    tape = JSON.parse(readFileSync(fixtureFile, 'utf8'));
+    replies = [...tape.replies];
+    jevTape = [...tape.jev];
+  } else jevTape = [];
+  const t0 = Date.now();
+  // Chamada identificada pelo pedido da conversa e pela posição nela: as
+  // opções rodam sub-laços em paralelo, e a ordem de chegada varia.
+  const keyOf = (messages) => {
+    const first = messages[1]?.content;
+    const text = typeof first === 'string' ? first : (first?.find?.((p) => p.type === 'text')?.text ?? '');
+    return `${messages.length}|${text.slice(text.lastIndexOf('Pedido: '))}`;
+  };
+  const call = offline
+    ? async (o) => {
+        const key = keyOf(o.messages);
+        const i = replies.findIndex((r) => r.key === key);
+        const next = i >= 0 ? replies.splice(i, 1)[0] : replies.shift();
+        if (!next) throw new Error('a gravação acabou antes do laço (o caminho mudou)');
+        return next.reply ?? next;
+      }
+    : async (o) => {
+        const key = keyOf(o.messages);
+        const reply = await callModel(o);
+        tape.replies.push({ key, reply });
+        return reply;
+      };
+  const r = await runAgentTurn({
+    project,
+    version,
+    user,
+    request: benchCase.prompt,
+    selected: selection,
+    ui: null,
+    prices: structuredClone(DEFAULT_PRICES),
+    ...(image ? { image } : {}),
+    model,
+    requestId: `bench-${benchCase.id}`,
+    started: t0,
+    signal: new AbortController().signal,
+    progress: () => {},
+    emit: () => {},
+    onUsage: (usage) => (telemetry.usage = addUsage(telemetry.usage, usage, priceOf(model, process.env))),
+    usage: () => ({ usage: telemetry.usage }),
+    call,
+  });
+  telemetry.latencyMs += Date.now() - t0;
+  telemetry.calls += offline ? tape.replies.length - replies.length : tape.replies.length;
+  if (!offline) tape.jev = jevTape;
+  jevTape = null;
+  if (record && !offline) {
+    mkdirSync(dirname(fixtureFile), { recursive: true });
+    writeFileSync(fixtureFile, JSON.stringify({ id: benchCase.id, at: new Date().toISOString(), model, ...tape }, null, 1));
+  }
+  const final = get(r.projectId);
+  const answer = final.messages.at(-1);
+  const steps = answer.report?.steps ?? [];
+  const did = (tool) => steps.some((s) => s.ok && s.tool === tool);
+  const outcome = answer.result?.outcome;
+  const action =
+    outcome === 'clarification'
+      ? 'clarify'
+      : did('history_undo')
+        ? 'undo'
+        : did('history_redo')
+          ? 'redo'
+          : outcome === 'applied'
+            ? 'update'
+            : 'answer';
+  const designAfter = final.revisions[final.cursor].params;
+  const options = answer.clarification?.options ?? [];
+  const alive = new Set(entityIds(designAfter));
+  const room = final.room;
+  return {
+    design: designAfter,
+    effects: r.state.effects ?? [],
+    fronts: r.state.viewAction ?? null,
+    room,
+    fitIssues: room ? fitReport(designAfter, room).issues.length : 0,
+    project: { name: final.name, cursor: final.cursor, versions: final.revisions.length },
+    cards: answer.options ?? [],
+    action,
+    content: String(answer.content ?? ''),
+    applied: final.revisions[final.cursor].id !== revision.id,
+    designAfter,
+    options,
+    deadOptions: options.filter((o) => !(o.partIds ?? []).some((pid) => alive.has(pid))).length,
+    suggestions: answer.suggestions ?? [],
+    steps: steps.map((s) => `${s.ok ? '' : '✗'}${s.tool}`),
+  };
+}
+
 function evaluate(benchCase, info, helpers) {
   const errors = [];
   const expect = benchCase.expect ?? {};
@@ -189,6 +333,10 @@ function evaluate(benchCase, info, helpers) {
   }
   if (expect.design && info.action === 'update') {
     const verdict = expect.design(helpers.design, helpers, info);
+    if (verdict !== true) errors.push(String(verdict));
+  }
+  if (expect.agent && info.agent) {
+    const verdict = expect.agent(info.agent);
     if (verdict !== true) errors.push(String(verdict));
   }
   if (expect.content) {
@@ -229,7 +377,8 @@ const results = [];
 const skipped = [];
 let stopped = false;
 for (const benchCase of selected) {
-  const fixturePath = join(fixtureDir, `${benchCase.id}.json`);
+  // Foto roda pelo caminho antigo também com --agent: usa as fixtures dele.
+  const fixturePath = join(agent && !benchCase.image ? fixtureDir : resolve('bench/fixtures'), `${benchCase.id}.json`);
   if (onlyMissing && existsSync(fixturePath)) {
     console.log(`pulado ${benchCase.id} (fixture já gravada)`);
     continue;
@@ -261,6 +410,10 @@ for (const benchCase of selected) {
     };
     try {
       const project = get(create().id);
+      if (benchCase.setup?.room) {
+        project.room = benchCase.setup.room;
+        save(project, project.version);
+      }
       if (benchCase.setup?.ops?.length) {
         const applied = applyRequest(project, benchCase.setup.ops, `preparação ${benchCase.id}`);
         if (!applied.ok) throw new Error(`preparação falhou: ${applied.error}`);
@@ -292,6 +445,25 @@ for (const benchCase of selected) {
       };
 
       const fixtureFile = fixturePath;
+      // Foto vai pelo caminho antigo, como na rota (ver app/api/chat/route.ts).
+      if (agent && !image) {
+        const got = await runAgentCase(project, benchCase, image, selection, telemetry, fixtureFile);
+        const generated = generateDesign(got.designAfter);
+        row.warnings = generated.warnings ?? [];
+        row.action = got.action;
+        row.applied = got.applied;
+        row.steps = got.steps;
+        row.decision = { action: got.action, message: got.content, ops: [], refs: [], suggestions: got.suggestions };
+        row.errors.push(
+          ...evaluate(
+            benchCase,
+            { ...got, agent: got },
+            { design: got.designAfter, before, parts: generated.parts, cells: generated.cells, content: got.content },
+          ),
+        );
+        row.ok = row.errors.length === 0;
+        throw null;
+      }
       let decision;
       if (offline) {
         if (!existsSync(fixtureFile)) throw new Error('sem fixture gravada (rode com --record)');
@@ -393,7 +565,9 @@ for (const benchCase of selected) {
       row.errors.push(...evaluate(benchCase, info, helpers));
       row.ok = row.errors.length === 0;
     } catch (e) {
-      row.errors.push(`exceção: ${e instanceof Error ? e.message : String(e)}`);
+      // `throw null` sai do caso do laço, já avaliado.
+      if (e !== null) row.errors.push(`exceção: ${e instanceof Error ? e.message : String(e)}`);
+      jevTape = null;
     }
     row.calls = telemetry.calls;
     row.retries = telemetry.retries;
@@ -448,6 +622,7 @@ for (const row of results) {
 const summary = {
   at: new Date().toISOString(),
   offline,
+  agent,
   fast,
   model,
   cases: results.length,
@@ -472,7 +647,7 @@ const summary = {
   results,
 };
 
-console.log(`\n=== resumo (${model}) ===`);
+console.log(`\n=== resumo (${model}${agent ? ', assistente em laço' : ''}) ===`);
 console.log(
   `${summary.passed}/${summary.cases} casos (${(summary.passRate * 100).toFixed(0)}%) · latência média ${summary.latencyMs.mean} ms, mediana ${summary.latencyMs.median} ms, p90 ${summary.latencyMs.p90} ms, máx ${summary.latencyMs.max} ms · ${summary.providerCalls.mean} chamada(s) por caso · ${summary.retries} correção(ões) · custo US$ ${summary.costUsd.toFixed(4)} (US$ ${(summary.costUsd / Math.max(1, summary.cases)).toFixed(5)} por caso)`,
 );

@@ -1,0 +1,260 @@
+{
+ "id": "con-02",
+ "at": "2026-09-25T15:28:32.576Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Quantas peças o projeto tem hoje?",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_lxRIf8ABHhtigp0L9h429833",
+      "type": "function",
+      "function": {
+       "name": "parts_list",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Quantas peças o projeto tem hoje?",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_qmDtN5kmc3V0KWfWbrHL7751",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"O projeto tem 9 peças: 2 laterais (180 × 34,4 cm), base e tampo (76,4 × 34,4 cm), 1 fundo (180 × 80 cm) e 4 prateleiras (76,2 × 33,4 cm) — 8 em carvalho natural 18 mm e o fundo em 6 mm.\", \"sugestoes\": [\"Ver o plano de corte das 9 peças\", \"Exportar a lista de peças em CSV\", \"Acrescentar mais uma prateleira\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "ask",
+      "confidence": 1,
+      "probabilities": {
+       "edit": 0,
+       "build": 0,
+       "options": 0,
+       "studio": 0,
+       "ask": 1,
+       "view": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.98
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.2
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1314,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 417,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 565,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

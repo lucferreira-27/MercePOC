@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Check, RotateCcw } from 'lucide-react';
 import type { Progress } from '@/lib/progress';
 import { modelInfo, tokensLabel, usd, type ModelKey, type TurnUsage } from '@/lib/models';
+import type { AgentStep } from '@/lib/agent/types';
+import { AgentSteps } from './agent-steps';
 
 /** Sinal de vida do provedor: quanto já chegou, sem o conteúdo privado. */
 export type Pulse = { bytes: number; reasoning: number; answer: number; attempt: number };
@@ -73,6 +75,7 @@ export function TurnProgress({
   usage,
   model,
   withPhoto,
+  agent,
 }: {
   events: TimedProgress[];
   started: number;
@@ -80,6 +83,8 @@ export function TurnProgress({
   usage: TurnUsage | null;
   model: ModelKey;
   withPhoto: boolean;
+  /** Assistente em laço: as ferramentas no lugar das etapas fixas. */
+  agent?: { steps: AgentStep[]; plan: string[]; running: string | null };
 }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -117,7 +122,7 @@ export function TurnProgress({
           <PixelMascot beat={pulse?.bytes ?? 0} size={3} />
         </span>
         <div className="tp-title">
-          <strong>{steps[Math.max(0, index)]?.active ?? 'Trabalhando'}</strong>
+          <strong>{agent ? (agent.running ?? (agent.steps.length ? 'Trabalhando no pedido' : steps[Math.max(0, index)]?.active)) : (steps[Math.max(0, index)]?.active ?? 'Trabalhando')}</strong>
           <small>
             {info.label}
             {info.reasoning ? ' · raciocínio baixo' : ''}
@@ -126,6 +131,9 @@ export function TurnProgress({
           <time className="tp-clock">{clock(elapsed)}</time>
         </div>
       </div>
+      {agent && (agent.steps.length > 0 || agent.running || agent.plan.length > 0) ? (
+        <AgentSteps steps={agent.steps} plan={agent.plan} running={agent.running} />
+      ) : (
       <ol className="tp-steps">
         {steps.map((s, i) => {
           const state = i < index ? 'done' : i === index ? 'active' : 'todo';
@@ -142,6 +150,7 @@ export function TurnProgress({
           );
         })}
       </ol>
+      )}
       {approach && (
         <p className="tp-approach">
           {approach}

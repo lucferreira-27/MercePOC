@@ -16,6 +16,9 @@
  * - expect.content: regex que a resposta tem de conter e que não pode conter.
  * - expect.clarify: mínimos do cartão de esclarecimento (opções reais e vivas).
  * - learned: o que já observamos na prática, para não repetir a descoberta.
+ * - agentOnly: só o assistente em laço (--agent) faz; o caminho antigo pula.
+ * - expect.agent: função (got) => true | string, com o que o laço devolve:
+ *   efeitos, frentes, ambiente, projeto (nome, versão), opções e etapas.
  */
 export const groups = {
   ambiguidade: 'Medida ou alvo ambíguo: precisa perguntar em vez de adivinhar',
@@ -33,6 +36,10 @@ export const groups = {
   sugestoes: 'Próximos passos propostos pela IA para o chip de sugestão',
   foto: 'Foto de referência: estimar a escala e montar o layout, sem recusar',
   biblioteca: 'Móvel conhecido pedido pelo nome: partir do ativo certo da biblioteca',
+  estudio: 'Assistente em laço: câmera, frentes, arquivos, ambiente, preços, versões e nome do projeto',
+  autoconferencia: 'Assistente em laço: confere o próprio trabalho (encaixe, pedido cumprido) antes de responder',
+  'trabalho-completo': 'Assistente em laço: pedido grande do começo ao fim (parede, móveis, vista, arquivo)',
+  opcoes: 'Assistente em laço: opções lado a lado sem mudar o projeto',
 };
 
 const modulos = (design) => design.modules.length;
@@ -403,7 +410,8 @@ export const cases = [
     expect: {
       action: ['clarify', 'update'],
       design: (design, helpers) => {
-        const frentes = helpers.parts.filter((part) => /gaveta/i.test(part.name)).length;
+        // Cada gaveta tem frente, laterais, caixa e fundo: conta só as frentes.
+        const frentes = helpers.parts.filter((part) => /frente gaveta/i.test(part.name)).length;
         return frentes <= 6 ? true : `${frentes} frentes de gaveta`;
       },
       content: { mustMatch: [/6|seis|máximo|limite/i] },
@@ -531,10 +539,12 @@ export const cases = [
     expect: {
       action: ['answer', 'clarify'],
       applied: false,
-      content: { mustNotMatch: [/R\$\s*\d/] },
+      // O valor vem do orçamento do app (tabela de preços da aba Orçamento),
+      // e a resposta diz que é estimativa.
+      content: { mustMatch: [/R\$\s*\d/, /estimad|orçamento|aproximad|tabela|custo|margem/i] },
     },
     learned:
-      'Cinco das seis personas pediram preço. O produto não tem tabela de preços: a resposta honesta é dizer o que não faz e o que levar à loja, nunca inventar valor.',
+      'Cinco das seis personas pediram preço. Antes o produto não tinha tabela e a resposta honesta era recusar; agora a aba Orçamento calcula com a tabela de preços, então a resposta dá o total estimado e diz de onde vem, sem inventar.',
   },
   {
     id: 'rec-02',
@@ -543,9 +553,10 @@ export const cases = [
     expect: {
       action: ['answer', 'clarify'],
       applied: false,
-      content: { mustMatch: [/não|lista de peças|não faz|não calculo|aproveitamento/i] },
+      // A aba Corte calcula o plano: a resposta dá o número de chapas dele.
+      content: { mustMatch: [/\d+\s*chapas?|chapas?[^.]*\d/i] },
     },
-    learned: 'O CSV é lista de peças, não plano de aproveitamento. O produto já avisa isso na interface.',
+    learned: 'Antes o CSV era só lista de peças e a resposta honesta era recusar; agora o plano de corte (aba Corte) conta as chapas, e a resposta usa esse número.',
   },
   {
     id: 'rec-03',
@@ -616,13 +627,16 @@ export const cases = [
     prompt: 'Volte uma versão e deixe a largura com 900 mm.',
     setup: { ops: [{ kind: 'resize', width: 1000 }] },
     expect: {
-      action: ['undo', 'clarify'],
+      // O assistente em laço desfaz e muda a largura no mesmo pedido (update).
+      action: ['undo', 'clarify', 'update'],
       design: (design, helpers, info) =>
         info.action === 'clarify'
           ? true
-          : helpers.design.modules.every((m) => m.width <= 1200)
-            ? true
-            : 'aplicou largura impossível',
+          : !helpers.design.modules.every((m) => m.width <= 1200)
+            ? 'aplicou largura impossível'
+            : info.action === 'update' && helpers.design.width !== 900
+              ? `largura ${helpers.design.width} mm (pedido 900)`
+              : true,
     },
     learned:
       'Foi o P1 da primeira rodada: editar a partir de uma versão antiga descartava 9 versões em silêncio. Hoje a interface confirma o descarte, e o modelo deve preferir desfazer a truncar.',
@@ -695,11 +709,11 @@ export const cases = [
     prompt: 'Quanto custa para fazer este armário?',
     expect: {
       action: ['answer', 'clarify', 'update'],
-      // Preço está fora do escopo declarado: sugerir orçamento seria inventar
-      // recurso que o produto não tem.
-      suggestions: { min: 1, mustNotMatch: [/orçamento|preço|R\$|custa/i] },
+      // O orçamento existe (aba Orçamento, PDF): sugerir abrir ou detalhar é
+      // válido. Continua fora ferragem e furação, que o produto não faz.
+      suggestions: { min: 1, mustNotMatch: [/furação|ferragens? detalhad|mão de obra/i] },
     },
-    learned: 'Cinco de seis personas pediram preço; a sugestão não pode abrir uma porta que o produto não atende.',
+    learned: 'Cinco de seis personas pediram preço. Antes a sugestão não podia citar preço porque o produto não tinha tabela; agora tem, e a sugestão não pode abrir porta para o que continua fora (furação, mão de obra).',
   },
 
   // ---------------------------------------------------------------------- foto
@@ -845,6 +859,135 @@ cases.push(
         const e = envelope(helpers);
         if (!perto(e.width, 2800)) return `largura ${e.width} mm (pedido 2800)`;
         return e.height >= 2000 ? true : `baixo para guarda-roupa: ${e.height} mm`;
+      },
+    },
+  },
+);
+
+// Grupos do assistente em laço: o caminho antigo não mexe em câmera,
+// arquivo, ambiente, preços, versões nem monta opções.
+const efeito = (got, type, extra = {}) => got.effects.some((e) => e.type === type && Object.entries(extra).every(([k, v]) => e[k] === v));
+const janelaNoMeio = { widthMm: 3200, heightMm: 2700, obstacles: [{ id: 'jan', kind: 'window', xMm: 1000, yMm: 1100, widthMm: 1200, heightMm: 1000 }] };
+cases.push(
+  {
+    id: 'est-01',
+    group: 'estudio',
+    agentOnly: true,
+    prompt: 'mostra de frente e abre as gavetas',
+    setup: { ops: [{ kind: 'module.add', id: 'n', preset: 'niche' }, { kind: 'front.set', id: 'n:root', type: 'drawers', count: 3 }] },
+    expect: {
+      applied: false,
+      agent: (got) =>
+        !efeito(got, 'camera', { mode: 'front' }) ? 'não pôs a vista de frente' : !got.fronts?.open ? 'não abriu as gavetas' : true,
+    },
+  },
+  {
+    id: 'est-02',
+    group: 'estudio',
+    agentOnly: true,
+    prompt: 'renomeia o projeto para Cozinha da Ana',
+    expect: { agent: (got) => (got.project.name === 'Cozinha da Ana' ? true : `nome ficou "${got.project.name}"`) },
+  },
+  {
+    id: 'est-03',
+    group: 'estudio',
+    agentOnly: true,
+    prompt: 'gera o PDF e baixa o CSV das peças',
+    expect: {
+      applied: false,
+      agent: (got) =>
+        !efeito(got, 'export', { kind: 'pdf' }) ? 'sem PDF' : !efeito(got, 'export', { kind: 'parts-csv' }) ? 'sem CSV das peças' : true,
+    },
+  },
+  {
+    id: 'est-04',
+    group: 'estudio',
+    agentOnly: true,
+    prompt: 'a parede tem 2,8 m de largura e 2,6 m de altura',
+    expect: {
+      agent: (got) =>
+        got.room?.widthMm === 2800 && got.room?.heightMm === 2600 ? true : `parede ${got.room?.widthMm ?? '-'} × ${got.room?.heightMm ?? '-'}`,
+    },
+  },
+  {
+    id: 'est-05',
+    group: 'estudio',
+    agentOnly: true,
+    prompt: 'sobe a margem para 35%',
+    expect: {
+      applied: false,
+      agent: (got) => (got.effects.some((e) => e.type === 'prices' && e.prices.margin === 35) ? true : 'margem não foi para 35%'),
+    },
+  },
+  {
+    id: 'est-06',
+    group: 'estudio',
+    agentOnly: true,
+    prompt: 'volta para a versão 1',
+    setup: { ops: [{ kind: 'module.edit', id: 'module-1', width: 900 }] },
+    expect: { agent: (got) => (got.project.cursor === 0 ? true : `ficou na versão ${got.project.cursor + 1}`) },
+  },
+  {
+    id: 'auto-01',
+    group: 'autoconferencia',
+    agentOnly: true,
+    prompt: 'Coloque um armário aéreo de 80 cm de largura bem no meio da parede, a 1,5 m do piso.',
+    setup: { room: janelaNoMeio },
+    expect: {
+      action: ['update', 'clarify', 'answer'],
+      // A janela ocupa o meio: ou desvia, ou pergunta, ou diz que não dá.
+      agent: (got) =>
+        got.action !== 'update' || got.fitIssues === 0 || /janela/i.test(got.content)
+          ? true
+          : `aéreo sobre a janela sem avisar (${got.fitIssues} problema(s) de encaixe)`,
+    },
+  },
+  {
+    id: 'auto-02',
+    group: 'autoconferencia',
+    agentOnly: true,
+    prompt: 'Monte balcões e aéreos nessa parede e me mande o PDF.',
+    setup: { room: janelaNoMeio },
+    expect: {
+      action: ['update'],
+      agent: (got) => {
+        if (!got.design.modules.some((m) => m.wall)) return 'sem aéreos';
+        if (!efeito(got, 'export', { kind: 'pdf' })) return 'sem PDF';
+        return got.fitIssues === 0 ? true : `${got.fitIssues} problema(s) de encaixe`;
+      },
+    },
+  },
+  {
+    id: 'tc-01',
+    group: 'trabalho-completo',
+    agentOnly: true,
+    prompt: 'Cozinha para uma parede de 3,2 m com janela de 1,2 m no meio: balcões embaixo e aéreos dos dois lados da janela. Mostre de frente e me mande o PDF',
+    expect: {
+      action: ['update'],
+      agent: (got) => {
+        if (got.room?.widthMm !== 3200) return `parede ${got.room?.widthMm ?? 'sem ambiente'}`;
+        if (!got.room.obstacles?.some((o) => o.kind === 'window')) return 'sem a janela';
+        const floor = got.design.modules.filter((m) => !m.wall);
+        const wall = got.design.modules.filter((m) => m.wall);
+        if (floor.length < 2 || wall.length < 2) return `${floor.length} balcões e ${wall.length} aéreos`;
+        if (got.fitIssues) return `${got.fitIssues} problema(s) de encaixe`;
+        if (!efeito(got, 'camera', { mode: 'front' })) return 'não mostrou de frente';
+        return efeito(got, 'export', { kind: 'pdf' }) ? true : 'sem PDF';
+      },
+    },
+  },
+  {
+    id: 'op-01',
+    group: 'opcoes',
+    agentOnly: true,
+    prompt: 'Me dá 3 opções de estante para uma parede de 2 m: uma mais barata, uma com portas e uma com gavetas',
+    expect: {
+      // Medir a parede de 2 m vira versão (ambiente); o móvel é que não muda.
+      agent: (got) => {
+        if (got.design.modules.map((m) => `${m.id}:${m.width}`).join() !== 'module-1:800') return 'o móvel mudou; opções não aplicam nada';
+        if (got.cards.length < 2) return `${got.cards.length} opção(ões)`;
+        if (new Set(got.cards.map((c) => c.total)).size < got.cards.length) return 'opções com o mesmo preço';
+        return got.cards.some((c) => c.drawers > 0) ? true : 'nenhuma opção com gavetas';
       },
     },
   },

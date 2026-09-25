@@ -77,6 +77,12 @@ export type ChatReport = {
   };
   /** Texto próprio da IA, para a interface não repetir o resumo do diff. */
   prose?: string;
+  /** Ferramentas que o assistente usou no pedido, na ordem, como a conversa conta. */
+  steps?: { tool: string; label: string; ok: boolean; detail?: string }[];
+  /** Plano anunciado para um trabalho grande. */
+  plan?: string[];
+  /** Efeitos na interface (vista, aba, preços, arquivos) que o pedido pediu. */
+  effects?: { type: string }[];
   selected?: SelectedPart[];
 };
 export type TextPreview = {

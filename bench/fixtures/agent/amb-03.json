@@ -1,0 +1,203 @@
+{
+ "id": "amb-03",
+ "at": "2026-09-25T15:18:25.425Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: mova a outra prateleira 5 cm para cima",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_KnklSswyP5PkrRTTqNHb3604",
+      "type": "function",
+      "function": {
+       "name": "ask_user",
+       "arguments": "{\"pergunta\": \"Qual prateleira devo subir 5 cm? Sua estante hoje tem quatro prateleiras, e não ficou claro qual é \\\"a outra\\\".\", \"opcoes\": [{\"rotulo\": \"A mais baixa (a ~36 cm do piso)\", \"ids\": [\"sh-1\"]}, {\"rotulo\": \"A segunda, a ~71 cm do piso\", \"ids\": [\"sh-2\"]}, {\"rotulo\": \"A terceira, a ~107 cm do piso\", \"ids\": [\"sh-3\"]}, {\"rotulo\": \"A mais alta, a ~143 cm do piso\", \"ids\": [\"sh-4\"]}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 1,
+      "probabilities": {
+       "edit": 1,
+       "build": 0,
+       "options": 0,
+       "studio": 0,
+       "ask": 0,
+       "view": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.88
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.5
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.01
+     }
+    },
+    "usage": {
+     "input_tokens": 1317,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 420,
+     "output_tokens": 90
+    }
+   }
+  }
+ ]
+}

@@ -22,7 +22,18 @@ npm run bench -- --record                      # grava as decisões em bench/fix
 npm run bench -- --offline                     # sem rede, contra as fixtures gravadas
 npm run bench -- --out bench/results/depois.json
 npm run bench -- --compare bench/results/baseline.json
+npm run bench -- --agent                       # o assistente em laço (lib/agent), o padrão do app
+npm run bench -- --agent --record              # grava as respostas do modelo e do Jev em bench/fixtures/agent
+npm run bench -- --agent --offline             # repete as gravações do laço, sem rede
+npm run bench:router                           # roteador do Jev contra bench/router-cases.mjs
+npm run bench:claims                           # conferência da resposta contra bench/claims-cases.mjs
 ```
+
+### Assistente em laço (`--agent`)
+
+Cada caso roda por `runAgentTurn`, como a rota faz com o modo ligado, e o resultado vira as ações antigas (update, clarify, answer, undo, redo) para as mesmas expectativas valerem. Os grupos `estudio`, `autoconferencia`, `trabalho-completo` e `opcoes` são só do laço (`agentOnly`): o caminho antigo pula. Eles conferem com `expect.agent(got)`, que recebe efeitos (vista, arquivos, preços), frentes abertas, ambiente, projeto (nome, versão aberta), opções montadas e etapas.
+
+As fixtures do laço (`bench/fixtures/agent/*.json`) guardam a sequência de respostas do modelo, cada uma identificada pelo pedido e pela posição na conversa (as opções rodam sub-laços em paralelo), e as respostas do Jev, identificadas pelas perguntas. Com `--offline` o laço repete tudo sem rede; se o caminho mudou (outra ferramenta, outra conversa), a gravação acaba antes e o caso falha dizendo isso.
 
 O banco usado é temporário (`MERCE_DATA_DIR` em pasta do sistema): a base real de projetos nunca é tocada. A chave do provedor vem do `.env` da raiz, como no app.
 

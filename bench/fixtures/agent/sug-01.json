@@ -1,0 +1,310 @@
+{
+ "id": "sug-01",
+ "at": "2026-09-25T15:33:11.297Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Adicione um nicho à direita da estante.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_3k3v4W2yDFro6XVTEydg1065",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"module.add\", \"preset\": \"niche\", \"id\": \"nicho\", \"name\": \"Nicho\"}, {\"kind\": \"module.edit\", \"id\": \"nicho\", \"name\": \"Nicho\", \"width\": 400, \"height\": 1800, \"depth\": 350, \"materialId\": \"oak\", \"feet\": 0}, {\"kind\": \"connect\", \"parent\": \"module-1\", \"child\": \"nicho\", \"side\": \"right\", \"shared\": true, \"align\": \"front\", \"offset\": 0}], \"rotulo\": \"Adiciona nicho à direita da estante\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Adicione um nicho à direita da estante.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_H8SjKvf5fRuC0O4Sg7Td5052",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_sx8qohQJM48lcH6xjYlc8343",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Adicione um nicho à direita da estante.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_HA9CMs6Xl0uqGRkzbS0o7116",
+      "type": "function",
+      "function": {
+       "name": "select",
+       "arguments": "{\"ids\": [\"nicho\"]}"
+      }
+     },
+     {
+      "id": "call_01_IN0TlhaNnFoLsuBZQNRN5505",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "11|Pedido: Adicione um nicho à direita da estante.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_xYJVW9MNE3X6BBCQorQB2937",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Adicionei um nicho à direita da estante: 40 cm de largura, 180 cm de altura e 35 cm de profundidade, em carvalho natural, com painel compartilhado entre os dois corpos (sem a parede dupla no meio). O conjunto ficou com 118 × 180 × 35 cm. Ele vem como um vão aberto, sem prateleiras — se quiser, eu divido.\", \"sugestoes\": [\"Ponha 4 prateleiras no nicho\", \"Faça o nicho com portas\", \"Gere o PDF com desenho e plano de corte\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 0.93,
+      "probabilities": {
+       "view": 0,
+       "options": 0,
+       "studio": 0,
+       "build": 0.06,
+       "ask": 0,
+       "edit": 0.94
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.7
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.61
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.61
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.13
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.01
+     }
+    },
+    "usage": {
+     "input_tokens": 1316,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 419,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.96
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.08
+     }
+    },
+    "usage": {
+     "input_tokens": 572,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

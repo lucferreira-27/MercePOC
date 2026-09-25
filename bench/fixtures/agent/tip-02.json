@@ -1,0 +1,472 @@
+{
+ "id": "tip-02",
+ "at": "2026-09-25T15:32:42.079Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Faça um tampo de mesa de 1,50 m para o escritório.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_SEdocMRZ1XnsvqkNoO017417",
+      "type": "function",
+      "function": {
+       "name": "options_make",
+       "arguments": "{\"variantes\": [{\"nome\": \"Bancada 1,5 m\", \"pedido\": \"Troque o móvel por um balcão de escritório de 1500 mm de largura, 850 mm de altura e 580 mm de profundidade, com gaveteiro e portas, em carvalho natural com frentes em branco fosco e pés de 100 mm. É a bancada de trabalho de 1,50 m, com tampo próprio na altura de mesa.\"}, {\"nome\": \"Cômoda 1,5 m\", \"pedido\": \"Troque o móvel por uma cômoda de 1500 mm de largura, 900 mm de altura e 450 mm de profundidade, com quatro gavetas por coluna, em carvalho natural e pés de 120 mm, para apoio de 1,50 m no escritório.\"}, {\"nome\": \"Armário escritório 1,5 m\", \"pedido\": \"Troque o móvel por um armário de escritório de 1500 mm de largura, 2000 mm de altura e 400 mm de profundidade, com portas embaixo e nichos abertos em cima, corpo em carvalho natural e frentes em branco fosco.\"}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "2|Pedido: Opção \"Armário escritório 1,5 m\", uma entre 3 para a pessoa comparar: Troque o móvel por um armário de escritório de 1500 mm de largura, 2000 mm de altura e 400 mm de profundidade, com portas embaixo e nichos abertos em cima, corpo em carvalho natural e frentes em branco fosco.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_ee49yKCp9x5iCo23xROS1963",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"asset.add\", \"asset\": \"armario-escritorio\", \"placement\": \"replace\", \"width\": 1500, \"height\": 2000, \"depth\": 400, \"materialId\": \"oak\", \"frontMaterialId\": \"white\"}], \"rotulo\": \"Armário escritório 1,5 m\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "2|Pedido: Opção \"Cômoda 1,5 m\", uma entre 3 para a pessoa comparar: Troque o móvel por uma cômoda de 1500 mm de largura, 900 mm de altura e 450 mm de profundidade, com quatro gavetas por coluna, em carvalho natural e pés de 120 mm, para apoio de 1,50 m no escritório.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_QOXFNtWsm5GAkxsIzCq53672",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"asset.add\", \"asset\": \"comoda\", \"id\": \"comoda-15\", \"placement\": \"replace\", \"width\": 1500, \"height\": 900, \"depth\": 450, \"materialId\": \"oak\", \"frontMaterialId\": \"oak\", \"feet\": 120}], \"rotulo\": \"Opção Cômoda 1,5 m\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Opção \"Armário escritório 1,5 m\", uma entre 3 para a pessoa comparar: Troque o móvel por um armário de escritório de 1500 mm de largura, 2000 mm de altura e 400 mm de profundidade, com portas embaixo e nichos abertos em cima, corpo em carvalho natural e frentes em branco fosco.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_S0yyeZwaO5pHZHzJs8Z61145",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Montei a opção \\\"Armário escritório 1,5 m\\\": armário de escritório de 150 × 200 × 40 cm, com portas embaixo, nichos abertos em cima, corpo em carvalho natural e frentes em branco fosco. É uma das 3 opções para você comparar — as outras ficam nos cartões ao lado.\", \"sugestoes\": [\"Comparar as 3 opções no orçamento\", \"Ajustar medidas do armário\", \"Trocar acabamento das frentes\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Opção \"Cômoda 1,5 m\", uma entre 3 para a pessoa comparar: Troque o móvel por uma cômoda de 1500 mm de largura, 900 mm de altura e 450 mm de profundidade, com quatro gavetas por coluna, em carvalho natural e pés de 120 mm, para apoio de 1,50 m no escritório.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_7VjCoPNhQhF6FJbHmqVM3586",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Montei a opção \\\"Cômoda 1,5 m\\\": cômoda de 150 × 90 × 45 cm em carvalho natural, com quatro gavetas em cada uma das duas colunas (8 no total) e pés de 12 cm — dois corpos encostados formando o apoio de 1,50 m. A estante anterior saiu do lugar nesta versão.\", \"sugestoes\": [\"Compare as outras 2 opções no cartão\", \"Peça 3 opções de cômoda para comparar\", \"Exporte o orçamento desta opção em PDF\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "2|Pedido: Opção \"Bancada 1,5 m\", uma entre 3 para a pessoa comparar: Troque o móvel por um balcão de escritório de 1500 mm de largura, 850 mm de altura e 580 mm de profundidade, com gaveteiro e portas, em carvalho natural com frentes em branco fosco e pés de 100 mm. É a bancada de trabalho de 1,50 m, com tampo próprio na altura de mesa.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_njnBurkfslH8yFazcOiq1883",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"module.remove\", \"id\": \"module-1\"}, {\"kind\": \"module.add\", \"preset\": \"drawers\", \"id\": \"bancada-gav\", \"name\": \"Bancada gaveteiro\"}, {\"kind\": \"module.edit\", \"id\": \"bancada-gav\", \"name\": \"Bancada gaveteiro\", \"width\": 750, \"height\": 850, \"depth\": 580, \"materialId\": \"oak\", \"feet\": 100, \"position\": [0, 0, 0]}, {\"kind\": \"module.add\", \"preset\": \"niche\", \"id\": \"bancada-portas\", \"name\": \"Bancada portas\"}, {\"kind\": \"module.edit\", \"id\": \"bancada-portas\", \"name\": \"Bancada portas\", \"width\": 750, \"height\": 850, \"depth\": 580, \"materialId\": \"oak\", \"feet\": 100}, {\"kind\": \"connect\", \"parent\": \"bancada-gav\", \"child\": \"bancada-portas\", \"side\": \"right\", \"shared\": true, \"align\": \"front\", \"offset\": 0}, {\"kind\": \"front.set\", \"id\": \"bancada-gav:root\", \"type\": \"drawers\", \"count\": 3, \"materialId\": \"white\"}, {\"kind\": \"front.set\", \"id\": \"bancada-portas:root\", \"type\": \"double\", \"materialId\": \"white\"}], \"rotulo\": \"Bancada 1,5 m\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "5|Pedido: Opção \"Bancada 1,5 m\", uma entre 3 para a pessoa comparar: Troque o móvel por um balcão de escritório de 1500 mm de largura, 850 mm de altura e 580 mm de profundidade, com gaveteiro e portas, em carvalho natural com frentes em branco fosco e pés de 100 mm. É a bancada de trabalho de 1,50 m, com tampo próprio na altura de mesa.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_kULz35OlBgwS4dHxIZRR9966",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Não deu para montar a opção \\\"Bancada 1,5 m\\\": a troca foi recusada pela validação porque a estante sairia antes de o balcão entrar, e nada mudou no projeto — ele segue com a estante de 80 × 180 × 35 cm em carvalho natural, com quatro prateleiras. A bancada em si não existe ainda no rascunho; é só pedir de novo que eu monto a peça de 150 × 85 × 58 cm com gaveteiro, portas, frentes em branco fosco e pés de 10 cm.\", \"sugestoes\": [\"Montar a bancada de 1,50 m em carvalho\", \"Deixar a estante com portas e gavetas\", \"Ver o preço da estante atual\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Faça um tampo de mesa de 1,50 m para o escritório.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_dfz5AydndmplzAxJDd161679",
+      "type": "function",
+      "function": {
+       "name": "options_make",
+       "arguments": "{\"variantes\": [{\"nome\": \"Balcão 1,5 m\", \"pedido\": \"Troque o móvel por um balcão de cozinha de 1500 mm de largura, 850 mm de altura e 580 mm de profundidade, com gaveteiro e portas, corpo em carvalho natural e frentes em branco fosco, pés de 100 mm: vira a bancada de trabalho de 1,50 m com tampo na altura de mesa.\"}, {\"nome\": \"Cômoda 1,5 m\", \"pedido\": \"Troque o móvel por uma cômoda de 1500 mm de largura, 900 mm de altura e 450 mm de profundidade, com quatro gavetas por coluna, em carvalho natural e pés de 120 mm, para apoio de 1,50 m no escritório.\"}, {\"nome\": \"Armário escritório 1,5 m\", \"pedido\": \"Troque o móvel por um armário de escritório de 1500 mm de largura, 2000 mm de altura e 400 mm de profundidade, com portas embaixo e nichos abertos em cima, corpo em carvalho natural e frentes em branco fosco.\"}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "2|Pedido: Opção \"Cômoda 1,5 m\", uma entre 3 para a pessoa comparar: Troque o móvel por uma cômoda de 1500 mm de largura, 900 mm de altura e 450 mm de profundidade, com quatro gavetas por coluna, em carvalho natural e pés de 120 mm, para apoio de 1,50 m no escritório.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_mujP9dbGPNICTFrXOk6r0305",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"asset.add\", \"asset\": \"comoda\", \"id\": \"comoda-1500\", \"placement\": \"replace\", \"width\": 1500, \"height\": 900, \"depth\": 450, \"materialId\": \"oak\", \"frontMaterialId\": \"oak\", \"feet\": 120}], \"rotulo\": \"Opção Cômoda 1,5 m\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "2|Pedido: Opção \"Armário escritório 1,5 m\", uma entre 3 para a pessoa comparar: Troque o móvel por um armário de escritório de 1500 mm de largura, 2000 mm de altura e 400 mm de profundidade, com portas embaixo e nichos abertos em cima, corpo em carvalho natural e frentes em branco fosco.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_DaQdPRCECjHmlpc0BqLI0696",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"asset.add\", \"asset\": \"armario-escritorio\", \"id\": \"arm-esc\", \"width\": 1500, \"height\": 2000, \"depth\": 400, \"materialId\": \"oak\", \"frontMaterialId\": \"white\", \"placement\": \"replace\"}], \"rotulo\": \"Opção Armário escritório 1,5 m\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "2|Pedido: Opção \"Balcão 1,5 m\", uma entre 3 para a pessoa comparar: Troque o móvel por um balcão de cozinha de 1500 mm de largura, 850 mm de altura e 580 mm de profundidade, com gaveteiro e portas, corpo em carvalho natural e frentes em branco fosco, pés de 100 mm: vira a bancada de trabalho de 1,50 m com tampo na altura de mesa.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_CpYTs24fi0tkZT0Oeuop2538",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"asset.add\", \"asset\": \"balcao-cozinha\", \"id\": \"balcao-1\", \"placement\": \"replace\", \"width\": 1500, \"height\": 850, \"depth\": 580, \"materialId\": \"oak\", \"frontMaterialId\": \"white\", \"feet\": 100}], \"rotulo\": \"Opção Balcão 1,5 m\"}"
+      }
+     },
+     {
+      "id": "call_01_I1S3ZNXWd6YIWZ01cYQt8026",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Montei a opção \\\"Balcão 1,5 m\\\": balcão de cozinha de 150 cm de largura por 85 cm de altura e 58 cm de profundidade, com gaveteiro e portas, corpo em carvalho natural, frentes em branco fosco e pés de 10 cm — a bancada de trabalho de 1,50 m com o tampo na altura de mesa. Ela está no rascunho só como esta opção, pronta para comparar com as outras duas.\", \"sugestoes\": [\"Ver o preço e as chapas desta opção\", \"Comparar com as outras duas opções\", \"Ajustar gavetas e portas do balcão\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Opção \"Cômoda 1,5 m\", uma entre 3 para a pessoa comparar: Troque o móvel por uma cômoda de 1500 mm de largura, 900 mm de altura e 450 mm de profundidade, com quatro gavetas por coluna, em carvalho natural e pés de 120 mm, para apoio de 1,50 m no escritório.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_F66XbRjcaJRJ1VTWHUiR2298",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Montei a opção \\\"Cômoda 1,5 m\\\": cômoda de 150 × 90 × 45 cm em carvalho natural, com duas colunas de gavetas e pés de 12 cm — um apoio de 1,50 m para o escritório. As outras duas opções ficam nos cartões para você comparar antes de aplicar.\", \"sugestoes\": [\"Aplicar a opção Cômoda 1,5 m\", \"Ver o preço e as chapas desta cômoda\", \"Gerar o plano de corte da cômoda\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Opção \"Armário escritório 1,5 m\", uma entre 3 para a pessoa comparar: Troque o móvel por um armário de escritório de 1500 mm de largura, 2000 mm de altura e 400 mm de profundidade, com portas embaixo e nichos abertos em cima, corpo em carvalho natural e frentes em branco fosco.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_meWruIJ1lF1sDTYFkpFv2018",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Montei a opção \\\"Armário escritório 1,5 m\\\": armário de escritório de 150 × 200 × 40 cm, com portas fechadas na parte de baixo para pastas e nichos abertos em cima, corpo em carvalho natural e frentes em branco fosco — ele substituiu a estante no rascunho.\", \"sugestoes\": [\"Gere o PDF desta opção\", \"Veja as outras 2 opções no cartão\", \"Ponha portas também no nicho de cima\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Faça um tampo de mesa de 1,50 m para o escritório.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_d7dlZ4y1mHskAa4zkM935637",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Tampo de mesa avulso não existe no Merce (sem tampo solto, mesa ou curva), então montei 3 opções de móvel de 1,50 m para o escritório: Balcão 1,5 m — R$ 3.513,38, 4 chapas, 35 peças, 2 portas e 4 gavetas, 150 × 85 × 58 cm, o topo já na altura de mesa; Cômoda 1,5 m — R$ 3.644,33, 3 chapas, 57 peças, 8 gavetas em duas colunas, 150 × 90 × 45 cm; Armário escritório 1,5 m — R$ 3.116,85, 4 chapas, 19 peças, 4 portas embaixo e nichos abertos em cima, 150 × 200 × 40 cm (o mais barato, mas é alto, apoio não é). Todas em carvalho natural com frentes em branco fosco; o móvel atual não mudou — você aplica a que preferir pelo cartão.\", \"sugestoes\": [\"Aplicar a opção Balcão 1,5 m\", \"Aplicar a opção Cômoda 1,5 m\", \"Pedir a bancada com só gavetas à direita\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.99,
+      "probabilities": {
+       "ask": 0,
+       "view": 0,
+       "studio": 0,
+       "edit": 0,
+       "build": 1,
+       "options": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.78
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.57
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.95
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.22
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.21
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.26
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1323,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 426,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.37
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.06
+     }
+    },
+    "usage": {
+     "input_tokens": 740,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

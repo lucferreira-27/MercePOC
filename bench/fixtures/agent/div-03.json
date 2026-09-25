@@ -1,0 +1,394 @@
+{
+ "id": "div-03",
+ "at": "2026-09-25T15:48:19.945Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Divida em duas colunas e coloque uma porta em cada lado.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_M6SwNyI2OuH834c4omPv8731",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Divida em duas colunas e coloque uma porta em cada lado.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_wTODppoxcIOKhmvidGvO0518",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"cell.split\", \"id\": \"n:root\", \"axis\": \"x\", \"gapMm\": 382}], \"rotulo\": \"nicho dividido em duas colunas\"}"
+      }
+     },
+     {
+      "id": "call_01_brXgW7pSQEtq1Zy4PlQ63460",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "7|Pedido: Divida em duas colunas e coloque uma porta em cada lado.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_iSaPUE8DAtgh6btiFiKX3478",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"front.set\", \"id\": \"n:root:low\", \"type\": \"single\", \"hinge\": \"left\"}, {\"kind\": \"front.set\", \"id\": \"n:root:high\", \"type\": \"single\", \"hinge\": \"right\"}], \"rotulo\": \"porta em cada coluna do nicho\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "9|Pedido: Divida em duas colunas e coloque uma porta em cada lado.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_coW8xWH2GJAy0s4d9uO64968",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_ysnIXkc8PWmpESofLxdL4249",
+      "type": "function",
+      "function": {
+       "name": "select",
+       "arguments": "{\"ids\": [\"n\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "13|Pedido: Divida em duas colunas e coloque uma porta em cada lado.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_Qn21z69I9eWH7xpznoYL6571",
+      "type": "function",
+      "function": {
+       "name": "quote_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "15|Pedido: Divida em duas colunas e coloque uma porta em cada lado.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_VCtANDQDUI0y2vnIPyEK4044",
+      "type": "function",
+      "function": {
+       "name": "fronts_open",
+       "arguments": "{\"ids\": [\"front-33e60497-34f\", \"front-604aeef8-48b\"], \"abrir\": true}"
+      }
+     },
+     {
+      "id": "call_01_ssnmtGs9SOidixVQVGE42330",
+      "type": "function",
+      "function": {
+       "name": "view_camera",
+       "arguments": "{\"vista\": \"front\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "18|Pedido: Divida em duas colunas e coloque uma porta em cada lado.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_MUh5PWarDP7KsWTJPQWp8938",
+      "type": "function",
+      "function": {
+       "name": "fronts_open",
+       "arguments": "{\"abrir\": false, \"ids\": [\"front-33e60497-34f\", \"front-604aeef8-48b\"]}"
+      }
+     },
+     {
+      "id": "call_01_vJdtDFiX3Tn6Hj9gMBSI6855",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "21|Pedido: Divida em duas colunas e coloque uma porta em cada lado.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_f3lvZileiDAJfJHOQ1uP9302",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Dividi o módulo de baixo (80 × 60 × 45 cm) em duas colunas de 38 e 36 cm, com uma porta de madeira em cada uma — a da esquerda abre para a esquerda e a da direita para a direita. A estante alta ficou como estava, com os quatro nichos abertos. O orçamento passou para R$ 2.403,24, com 2 chapas de carvalho 18 mm, 1 de 6 mm, 17 peças e 2 frentes.\", \"sugestoes\": [\"Coloque portas também nos nichos da estante alta\", \"Deixe as portas soltas, sem puxador\", \"Gere o PDF com desenho, orçamento e corte\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 0.61,
+      "probabilities": {
+       "build": 0.3,
+       "ask": 0,
+       "edit": 0.68,
+       "view": 0,
+       "studio": 0,
+       "options": 0.02
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.87
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.85
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.69
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.24
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.22
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1319,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 422,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.33
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.15
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.93
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.09
+     }
+    },
+    "usage": {
+     "input_tokens": 594,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

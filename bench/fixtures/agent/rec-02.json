@@ -1,0 +1,318 @@
+{
+ "id": "rec-02",
+ "at": "2026-09-25T15:29:07.882Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Me manda o plano de corte das chapas, com quantas chapas eu compro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_cgTZO21mVZaxae6maMVA2148",
+      "type": "function",
+      "function": {
+       "name": "cutplan_read",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_ogaZ0MAIAKG7MdpYzWEC4089",
+      "type": "function",
+      "function": {
+       "name": "quote_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "5|Pedido: Me manda o plano de corte das chapas, com quantas chapas eu compro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_xtRgHFITrvtmYcKCgQhK1669",
+      "type": "function",
+      "function": {
+       "name": "cutplan_read",
+       "arguments": "{\"chapa\": 1}"
+      }
+     },
+     {
+      "id": "call_01_iimyVBWmuTdbXymzgqV17199",
+      "type": "function",
+      "function": {
+       "name": "cutplan_read",
+       "arguments": "{\"chapa\": 2}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Me manda o plano de corte das chapas, com quantas chapas eu compro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_NWr8Yf928ynL6VmcNUcg8001",
+      "type": "function",
+      "function": {
+       "name": "ui_tab",
+       "arguments": "{\"aba\": \"cut\"}"
+      }
+     },
+     {
+      "id": "call_01_XVwrDXLgmGD2tmNCkWKZ8410",
+      "type": "function",
+      "function": {
+       "name": "export_file",
+       "arguments": "{\"formato\": \"cut-csv\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "11|Pedido: Me manda o plano de corte das chapas, com quantas chapas eu compro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_dPpSzR3bEAbOeQ2qHXQZ1943",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"São 2 chapas para comprar: 1 chapa de Carvalho natural 18 mm (8 peças: 2 laterais de 1800×344, 4 prateleiras de 762×334, base e tampo de 764×344, com 55% de aproveitamento) e 1 chapa de Carvalho natural 6 mm para o fundo de 1800×800 (28%). O plano de corte completo está na aba de corte e saiu também em CSV, com o orçamento de R$ 1.230,63 junto.\", \"sugestoes\": [\"Gerar o PDF do plano de corte\", \"Aumentar o número de prateleiras\", \"Fechar a estante com portas em baixo\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "ask",
+      "confidence": 0.81,
+      "probabilities": {
+       "view": 0,
+       "studio": 0.15,
+       "ask": 0.84,
+       "edit": 0,
+       "build": 0.01,
+       "options": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.85
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.94
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.47
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.25
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.18
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.15
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.22
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 1323,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.63
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 426,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.92
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 610,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,310 @@
+{
+ "id": "mon-06",
+ "at": "2026-09-25T15:32:55.999Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Adicione um nicho de 800 × 600 × 450 mm encostado à direita da estante.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_QDTRuJW4qL1almT4XNM46116",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"module.add\", \"preset\": \"niche\", \"id\": \"nicho-direita\", \"name\": \"Nicho\"}, {\"kind\": \"module.edit\", \"id\": \"nicho-direita\", \"width\": 800, \"height\": 600, \"depth\": 450, \"materialId\": \"oak\"}, {\"kind\": \"connect\", \"parent\": \"module-1\", \"child\": \"nicho-direita\", \"side\": \"right\", \"shared\": false, \"align\": \"front\", \"offset\": 0}], \"rotulo\": \"Nicho 80x60x45 à direita da estante\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Adicione um nicho de 800 × 600 × 450 mm encostado à direita da estante.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_RMuBRByQfBcZyGGgKGrg4730",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_GNoUa8HQyYtYs1MTxpx81062",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "7|Pedido: Adicione um nicho de 800 × 600 × 450 mm encostado à direita da estante.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_AEa5staPTmeMbK2RZOcL1564",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_lij67p3JUDJ4PhzTkadl9413",
+      "type": "function",
+      "function": {
+       "name": "select",
+       "arguments": "{\"ids\": [\"nicho-direita\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "11|Pedido: Adicione um nicho de 800 × 600 × 450 mm encostado à direita da estante.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_1aa2ixYBAULU3SDkTmAN1518",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Adicionei um nicho de 80 × 60 × 45 cm encostado à direita da estante, no mesmo carvalho natural, ligado sem painel compartilhado. O conjunto ficou com 160 cm de largura total e 180 cm de altura — o nicho é mais fundo (45 cm) que a estante (35 cm) e ficou alinhado pela frente.\", \"sugestoes\": [\"Divida o nicho ao meio com uma prateleira\", \"Coloque portas ou gavetas no nicho\", \"Exporte o PDF com desenho e orçamento\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 0.46,
+      "probabilities": {
+       "build": 0.45,
+       "edit": 0.55,
+       "ask": 0,
+       "view": 0,
+       "studio": 0,
+       "options": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.73
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.88
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.52
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1335,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 438,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.96
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 566,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}
