@@ -331,6 +331,9 @@ export default function Home() {
     [printShot, setPrintShot] = useState<string | null>(null),
     [themeChoice, setThemeChoice] = useState<ThemeChoice>('system'),
     [systemDark, setSystemDark] = useState(false),
+    // As preferências salvas já foram lidas: antes disso o tema do estado é o
+    // padrão e não pode sobrescrever o que o script do <head> aplicou.
+    [prefsReady, setPrefsReady] = useState(false),
     [prices, setPrices] = useState<Prices>(DEFAULT_PRICES),
     [renaming, setRenaming] = useState(false);
   const theme = themeChoice === 'system' ? (systemDark ? 'dark' : 'light') : themeChoice;
@@ -372,11 +375,12 @@ export default function Home() {
     setSystemDark(query.matches);
     const onChange = () => setSystemDark(query.matches);
     query.addEventListener('change', onChange);
+    setPrefsReady(true);
     return () => query.removeEventListener('change', onChange);
   }, []);
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-  }, [theme]);
+    if (prefsReady) document.documentElement.dataset.theme = theme;
+  }, [theme, prefsReady]);
   // Primeira visita: a marca é consumida uma vez, para o aviso não voltar.
   useEffect(() => {
     try {
@@ -778,7 +782,9 @@ export default function Home() {
   };
   const acceptedState=useRef({p,opened});
   useEffect(()=>{acceptedState.current={p,opened};},[p,opened]);
-  const accept = (d: State, options: { dims?: boolean } = {}) => {
+  /** Aplica o estado do servidor. Devolve o aviso que deixou no banner, se deixou. */
+  const accept = (d: State, options: { dims?: boolean } = {}): string | null => {
+    let said: string | null = null;
     setP(d);
     setHistoryPreview(null);
     writeLocal('merce-project', d.id);
@@ -793,15 +799,15 @@ export default function Home() {
       const moved = labels
         .map((label, i) => (before[i] !== after[i] ? `${label} total ${cm(before[i])} → ${cm(after[i])} cm` : ''))
         .filter(Boolean);
-      if (moved.length) setNotice(`Medida geral: ${moved.join('; ')}.`);
+      if (moved.length) said = `Medida geral: ${moved.join('; ')}.`;
     }
     if (d.discarded) {
-      setNotice(
+      said =
         d.discarded === 1
           ? 'Esta edição descartou 1 versão seguinte do caminho.'
-          : `Esta edição descartou ${d.discarded} versões seguintes do caminho.`,
-      );
+          : `Esta edição descartou ${d.discarded} versões seguintes do caminho.`;
     }
+    if (said) setNotice(said);
     const sameRevision=previous.p?.id===d.id&&previous.p.revisions[previous.p.cursor].id===d.revisions[d.cursor].id;
     const nextOpen:Record<string,number>=sameRevision?{...previous.opened}:{};
     let blocked=false;
@@ -816,6 +822,7 @@ export default function Home() {
         const alive = s.filter((id) => entityIds(d.params).includes(id));
         return alive.length === s.length ? s : alive;
       });
+    return said;
   };
   /**
    * Conjunto que um shift+clique puxa: a peça traz o módulo inteiro, o
@@ -1047,7 +1054,7 @@ export default function Home() {
     return guardTruncation(() => runOps([operation], label, 'op'), label);
   }
   /** Lote atômico: igualar módulos que compartilham painel exige editar os dois. */
-  async function applyOps(operations: ShelfOp[], label: string, extra: { room?: Room } = {}) {
+  async function applyOps(operations: ShelfOp[], label: string, extra: { room?: Room; quiet?: boolean } = {}) {
     if (busy || !p) return;
     return guardTruncation(() => runOps(operations, label, 'ops', extra), label);
   }
@@ -1064,20 +1071,24 @@ export default function Home() {
       const anchor = p.room.anchor ?? wallAt(p.room, before);
       room = { ...p.room, anchor, offsetMm: Math.max(0, Math.round(roomOffset({ ...p.room, anchor }, before) + shiftX)) };
     }
-    await applyOps([operation], label, room ? { room } : {});
+    // Mudar de lugar não é mudar de medida: sem o aviso de "Medida geral" a
+    // cada arrasto (ele entrava e saía do banner e a conversa pulava).
+    await applyOps([operation], label, room ? { room, quiet: true } : { quiet: true });
   }
-  async function runOps(operations: ShelfOp[], label: string, kind: 'op' | 'ops', extra: { room?: Room } = {}) {
+  async function runOps(operations: ShelfOp[], label: string, kind: 'op' | 'ops', { quiet, ...extra }: { room?: Room; quiet?: boolean } = {}) {
     if (busy || !p) return;
     setBusy(true);
     setError('');
-    setNotice('');
     const before = p.params.modules.map((m) => m.id);
     try {
       const next =
         kind === 'op'
           ? await api<State>('/api/projects', { id: p.id, version: p.version, action: 'op', op: operations[0], label })
           : await api<State>('/api/projects', { id: p.id, version: p.version, action: 'ops', ops: operations, label, ...extra });
-      accept(next, { dims: true });
+      // O aviso antigo sai no mesmo quadro em que o novo entra: limpar antes do
+      // pedido e preencher depois fazia o banner sumir e voltar, e a conversa
+      // encolhia e esticava a cada edição.
+      if (!accept(next, { dims: !quiet })) setNotice('');
       // Um módulo novo passa a ser a seleção: sem isso o painel continuava
       // mostrando o módulo anterior e o recém-criado parecia inexistente.
       if (operations.some((v) => v.kind === 'module.add' || v.kind === 'module.duplicate')) {
@@ -1686,9 +1697,11 @@ export default function Home() {
           onSelect={(id) => void openProject(id)}
           onDelete={removeProject}
         />
-        <span className="saved" title="Cada alteração é salva neste computador">
-          <Check size={13} /> Salvo
-        </span>
+        {p && (
+          <span className="saved" title="Cada alteração é salva neste computador">
+            <Check size={13} /> Salvo
+          </span>
+        )}
         <div className="topbar-actions">
           <button type="button" className="palette-trigger" onClick={() => setPaletteOpen(true)}>
             <CommandIcon size={14} />
@@ -1775,7 +1788,7 @@ export default function Home() {
             </button>
           </div>
           <div className="chat-messages" ref={messages} onScroll={onScroll}>
-            {messageCount <= 1 && (
+            {p && messageCount <= 1 && (
               <div className="intro">
                 <span className="eyebrow">Da ideia às peças</span>
                 <h1>O que vamos construir?</h1>
@@ -2035,7 +2048,23 @@ export default function Home() {
             })}
             {!p && !error && (
               <>
-                <p className="loading-line">Carregando seu estúdio…</p>
+                <div className="chat-skeleton" aria-hidden="true">
+                  <div className="sk-msg">
+                    <i className="sk sk-avatar" />
+                    <span>
+                      <i className="sk sk-line" />
+                      <i className="sk sk-line short" />
+                    </span>
+                  </div>
+                  <i className="sk sk-bubble" />
+                  <div className="sk-msg">
+                    <i className="sk sk-avatar" />
+                    <span>
+                      <i className="sk sk-card" />
+                      <i className="sk sk-line" />
+                    </span>
+                  </div>
+                </div>
                 {/* Só aparece se esta tela continuar aqui: sem JavaScript
                     (pacote trocado no servidor, rede caída) a página ficava
                     carregando para sempre, sem dizer o que fazer. */}
@@ -2359,6 +2388,11 @@ export default function Home() {
                     }
                   }}
                 />
+              ) : !p ? (
+                <span className="stage-title-skeleton" aria-hidden="true">
+                  <i className="sk sk-title" />
+                  <i className="sk sk-meta" />
+                </span>
               ) : (
                 <button
                   type="button"
@@ -2403,10 +2437,12 @@ export default function Home() {
                   {roomFit.report.fits ? 'Cabe no ambiente' : 'Não cabe'}
                 </button>
               )}
-              <span className={'version-badge' + (historyPreview !== null && p && historyPreview !== p.cursor ? ' preview' : '')}>
-                Versão {p ? (historyPreview ?? p.cursor) + 1 : 1}
-                {historyPreview !== null && p && historyPreview !== p.cursor ? ' · prévia' : ''}
-              </span>
+              {p && (
+                <span className={'version-badge' + (historyPreview !== null && historyPreview !== p.cursor ? ' preview' : '')}>
+                  Versão {(historyPreview ?? p.cursor) + 1}
+                  {historyPreview !== null && historyPreview !== p.cursor ? ' · prévia' : ''}
+                </span>
+              )}
             </div>
             <button
               type="button"
@@ -2480,6 +2516,22 @@ export default function Home() {
               <span className="tp-orb small" key={pulse?.bytes ?? 0} aria-hidden="true"><i /></span>
               {turnLabel(progress, pulse)}
               {liveUsage && <b>{usd(liveUsage.costUsd)}</b>}
+            </output>
+          )}
+          {!p && !error && (
+            <output className="stage-loading" aria-label="Montando o estúdio">
+              <div className="sl-room" aria-hidden="true">
+                <i className="sl-wall" />
+                <i className="sl-floor" />
+                <span className="sl-piece">
+                  <i />
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                <i className="sl-shadow" />
+              </div>
+              <p>Montando o estúdio…</p>
             </output>
           )}
           {p && (
@@ -2726,6 +2778,21 @@ export default function Home() {
               </button>
             ))}
           </div>
+          {!p && !error && (
+            <div className="inspector-skeleton" aria-hidden="true">
+              <i className="sk sk-label" />
+              <span className="sk-grid">
+                <i className="sk sk-tile" />
+                <i className="sk sk-tile" />
+                <i className="sk sk-tile" />
+                <i className="sk sk-tile" />
+              </span>
+              <i className="sk sk-block" />
+              <i className="sk sk-row" />
+              <i className="sk sk-row" />
+              <i className="sk sk-row short" />
+            </div>
+          )}
           {p && (
             <div className="inspector-content" role="tabpanel">
               {tab === 'project' && (

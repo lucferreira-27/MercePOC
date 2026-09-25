@@ -24,4 +24,4 @@ Checklist per change:
 - `npm run lint`. oxlint over app/lib/components/hooks/tests
 - `npx tsc --noEmit`. typecheck (includes `work/` scratch files)
 - `npm run dev`. dev server on :4310 for visual checks
-- Depois de `npm run build`, reinicie o servidor antes de verificar: o `vinext start` continua servindo o pacote antigo e a página trava em "Carregando seu estúdio" (o cliente não hidrata)
+- Depois de `npm run build`, reinicie o servidor antes de verificar: o `vinext start` continua servindo o pacote antigo e a página trava em "Montando o estúdio" (o cliente não hidrata)
