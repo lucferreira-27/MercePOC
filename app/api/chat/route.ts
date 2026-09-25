@@ -1,3 +1,4 @@
+import { applyObstacleEdits } from '@/lib/room';
 import { applyRequest, get, save, view, revise, type Clarification, type Message } from '@/lib/store';
 import { sameOrigin } from '@/lib/utils';
 import { interpretStream, reviewResult } from '@/lib/gateway';
@@ -356,6 +357,13 @@ export async function POST(req: Request) {
             : 'Conferindo o pedido com a versão atual.',
       });
       if(d.refs.length)userMsg.context!.referencedPartIds=d.refs;
+      // Obstáculos na parede: dado do lugar, gravado junto com o turno e sem
+      // versão nova, como quando a pessoa usa o painel Ambiente.
+      if (d.obstacles && (d.obstacles.add.length || d.obstacles.move.length || d.obstacles.remove.length)) {
+        const edited = applyObstacleEdits(p.room, d.obstacles, (before as { width?: number }).width ?? 0);
+        p.room = edited.room;
+        if (edited.skipped.length) d.message = `${d.message} (Não coube na parede: ${edited.skipped.join(', ')}.)`;
+      }
       // Peça referenciada sumiu: nunca substituir — pedir esclarecimento.
       if (dangling.length && /suba|desça|mova|remova|vão|cm|mm|esta|essa/i.test(b.message)) {
         return finishClarify(userMsg, `A peça referenciada (${dangling.join(', ')}) já não existe nesta versão. Qual módulo ou compartimento você quer usar?`, null);

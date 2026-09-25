@@ -3,7 +3,7 @@ import { sameOrigin } from '@/lib/utils';
 import { designSchema, opSchema } from '@/lib/studio';
 import { z } from 'zod';
 import { validationMessage } from '@/lib/composition';
-import { roomSchema } from '@/lib/room';
+import { obstacleClash, roomSchema } from '@/lib/room';
 import { placementRoot } from '@/lib/placement';
 export async function GET(req: Request) {
   try {
@@ -87,6 +87,9 @@ export async function POST(req: Request) {
     if (b.action === 'rename' && b.name) p.name = b.name;
     if (b.action === 'room') {
       if (!b.room) throw new Error('Informe as medidas do ambiente.');
+      // Dois obstáculos no mesmo lugar da parede não existem: recusa com o par.
+      const clash = obstacleClash(b.room.obstacles ?? []);
+      if (clash) return Response.json({ error: clash }, { status: 422 });
       // Ambiente é dado do lugar, não do móvel: não abre revisão no histórico.
       p.room = b.room;
     }

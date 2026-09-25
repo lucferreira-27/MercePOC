@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { opSchema, type Design, type ShelfOp, canonical } from './studio';
 import { assetCatalogForPrompt } from './assets';
 import { layout, validationMessage } from './composition';
-import { fitSummary, type Room } from './room';
+import { fitSummary, obstacleEditsSchema, type Room } from './room';
 import type { Message, TurnContext } from './store';
 import { readEvents } from './sse';
 import type { Progress, TextPreview } from './progress';
@@ -103,6 +103,8 @@ export const decisionSchema = z
     view: z
       .object({ ids: z.array(z.string()).max(1000), open: z.boolean() })
       .optional(),
+    /** Porta, janela, tomada, coluna ou TV na parede: não mexe no móvel. */
+    obstacles: obstacleEditsSchema.optional(),
     clarification: z
       .object({
         question: z.string().min(1).max(500),
@@ -326,6 +328,7 @@ ${assetCatalogForPrompt()}
   Painel de parede e pés: module.add preset "panel" cria uma chapa presa na parede (painel de TV, cabeceira): largura e altura até 2700 (o menor lado até 1800), depth é a espessura (15..60 mm), sem compartimentos nem frentes, não usa connect; posicione com module.edit position (y é a altura da base). module.edit feet (50..300 mm, 0 tira) põe pés na caixa, que sobe junto: height é a altura da CAIXA e a altura total fica height + feet (um nicho de 55 cm de altura total com pés de 15 cm leva height 400); vizinhos com painel compartilhado têm os mesmos pés. module.edit wall:true marca módulo suspenso preso na parede (aéreo, rack suspenso).
   Limites: 12 módulos, 200 painéis físicos, 32 compartimentos livres por módulo; módulo largura200..1200 altura200..2400 profundidade200..800 mm; vãos livres mínimos100 mm;1..6gavetas. Orientações0,90,180,270. Não truncar pedidos. Perfil demonstrativo18mm corpo/frentes, fundo6mm, folgas2mm, caixa15mm, lateral13mm, recuo20mm. Não suporta curvas, inclinados, recortes, portas deslizantes/basculantes, tampos avulsos, mesas ou canto com interior contínuo.
   Referências: menção explícita atual > seleção explícita (selected_ids, na mensagem do turno) > referência inequívoca anterior > esclarecimento. refs lista IDs usados. select destaca entidades sem substituir seleção explícita. Ambiguidade exige action clarify e clarification:{question,options:[{id,label,partIds:[id]}]} com opções reais (partIds usa ids reais de módulo, compartimento, frente ou prateleira, nunca o rótulo). Medida sem eixo ("2 metros", "deixe com 900", "aumente 10 cm") é ambígua quando o móvel tem mais de uma medida plausível: use clarify com as opções (largura, altura, profundidade) em vez de escolher por conta própria.
+  Ambiente: para pôr, mover ou tirar porta, janela, tomada, coluna, TV ou outro obstáculo da parede use obstacles:{add:[{kind:"door|window|outlet|column|tv|other",label?,xMm,yMm,widthMm,heightMm}],move:[{id,xMm?,yMm?,widthMm?,heightMm?}],remove:[id]}, em mm, x a partir do canto esquerdo da parede e y a partir do piso, com os ids do ambiente informado. Não abre versão nem mexe no móvel: quando o pedido for só isso use action answer sem ops. Sem medida dita, use as comuns: porta 800 × 2100 no piso, janela 1200 × 1000 a 1000 do piso, tomada 80 × 80 a 300 do piso, interruptor 80 × 120 a 1100 (other), TV de 55 polegadas 1230 × 710 com o centro a 1300 do piso, coluna 300 × pé-direito.
   Ações informativas usam answer sem ops. Abrir/fechar usa answer e view:{ids:[id da peça móvel, compartimento ou módulo],open:true|false}, sem ops/revisão. Mostrar usa answer e select. undo/redo sem ops. Para simples mudança use somente as operações pedidas. Envie no máximo48 operações. Preserve contexto de histórico sem repetir pedidos antigos; atenda current_request. Converta cm/m para mm. Nunca cite identificadores internos (module-1, sh-3, a:root, connection-2, PRATELEIRA 2 em maiúsculas) na resposta ao usuário: descreva a peça pela posição, nome ou medida. Diga apenas o que as operações realmente fazem: não prometa peças, nomes ou materiais que as ops não criam. Não prometa fabricação ou estabilidade garantidas.
   Sugestões: suggestions são as próximas ações que fazem sentido NESTE projeto depois deste turno, 2 ou 3 frases curtas (até 60 caracteres) no imperativo, começando por um verbo (por exemplo "Coloque duas portas neste vão"). Use o contexto do pedido, das medidas e do histórico, e varie o eixo em vez de repetir a mesma coisa. Sem ids internos, sem repetir a pergunta ou a resposta, sem prometer recurso fora do escopo. Com action clarify devolva suggestions vazio: o app mostra as opções da pergunta.${fast ? ' Responda somente o JSON com action, approach, message, ops, select, refs, suggestions e clarification. Nunca substitua o objeto por texto livre. Use o histórico apenas como contexto; atenda ao current_request com base na revisão atual. Escreva approach e message antes de ops.' : ''}`,
             },
