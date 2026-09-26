@@ -396,10 +396,6 @@ export function planPieces(design: Design, room: Room | undefined, pieces: reado
     const widths = count > 1 ? splitWidths(r.width + (count - 1) * PROFILE.panel, count) : [r.width];
     const wx = scene.origin.x + r.box.x0 + widths[0] / 2;
     const wz = scene.origin.z + r.box.d0 + r.depth / 2;
-    // Apoia em outro módulo (sem folga, logo acima de um módulo de piso) não é suspenso.
-    const resting = scene.modules.some(
-      (m) => m.kind === 'box' && Math.abs(m.y1 - r.box.y0) < 1 && Math.min(m.x1, r.box.x1) - Math.max(m.x0, r.box.x0) > 0.5 && Math.min(m.d1, r.box.d1) - Math.max(m.d0, r.box.d0) > 0.5,
-    );
     const ids: string[] = [];
     let cells: string[][] = [];
     for (const [i, width] of widths.entries()) {
@@ -419,7 +415,9 @@ export function planPieces(design: Design, room: Room | undefined, pieces: reado
         depth: r.depth,
         ...(finishOf(piece) ? { materialId: finishOf(piece) } : {}),
         ...(r.feet ? { feet: r.feet } : {}),
-        ...(r.hung && !resting && !flatPiece ? { wall: true } : {}),
+        // Fora do piso é preso na parede, mesmo apoiado em outro módulo:
+        // estante em cima de balcão também leva fixação contra tombar.
+        ...(r.hung && !flatPiece ? { wall: true } : {}),
         ...(i === 0 ? { position: [wx, r.box.y0, wz] as [number, number, number] } : {}),
       });
       if (i > 0) ops.push({ kind: 'connect', parent: ids[i - 1], child: mid, side: 'right', shared: true, align: 'back', offset: 0 });

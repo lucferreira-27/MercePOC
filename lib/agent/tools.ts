@@ -154,7 +154,11 @@ const designApply = tool({
     const r = executeRequest(before, a.ops as ShelfOp[]);
     if (!r.ok) {
       ctx.attempted.push({ ops: a.ops as ShelfOp[], error: r.error });
-      return fail(`Recusado pela validação, nada mudou: ${r.error}`, 'Proposta recusada pela validação; corrigindo');
+      // "move" das prateleiras antigas com id de módulo: o erro do motor não diz o caminho.
+      const hint = /prateleira horizontal/.test(r.error) && (a.ops as ShelfOp[]).some((o) => o.kind === 'move' || o.kind === 'gap')
+        ? ' move e gap servem só para prateleiras (sh-N); para mudar um módulo de lugar use modify mover.'
+        : '';
+      return fail(`Recusado pela validação, nada mudou: ${r.error}${hint}`, 'Proposta recusada pela validação; corrigindo');
     }
     if (JSON.stringify(r.design) === JSON.stringify(before)) return ok('Sem efeito: o projeto já estava assim.', 'Nada a mudar');
     ctx.setDesign(r.design, a.ops as ShelfOp[]);
@@ -325,6 +329,8 @@ const modifyTool = tool({
   running: (a) => a.rotulo ?? 'Ajustando os módulos',
   run: (ctx, a) => {
     const plan = planModify(ctx.design, ctx.room, a);
+    // Tudo já estava como pedido: sem efeito, como no design_apply.
+    if (!('error' in plan) && !plan.ops.length) return ok(`Sem efeito: ${plan.lines.join(' ')}`, 'Nada a mudar');
     if ('error' in plan) {
       ctx.attempted.push({ ops: [], error: plan.error });
       return fail(`Nada mudou: ${plan.error}`, 'Edição não coube; ajustando');

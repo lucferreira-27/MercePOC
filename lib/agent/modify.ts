@@ -22,6 +22,10 @@ export const modifySchema = z
           .object({
             id: z.string().max(100),
             onde: whereSchema.describe('Como em place; sem de, x e y ausentes ficam como estão e o fundo vai para a parede (ou o painel)'),
+            sozinho: z
+              .boolean()
+              .optional()
+              .describe('Solta o módulo dos vizinhos e move só ele; sem isto o conjunto ligado anda junto, como no arrasto'),
           })
           .strict(),
       )
@@ -69,6 +73,17 @@ export function sharedRow(d: Composition, id: string) {
         }
   }
   return [...row];
+}
+
+/** A raiz do conjunto ligado: o módulo que não é filho de ninguém. */
+function rootOf(d: Composition, id: string) {
+  let cur = id;
+  for (let i = 0; i < 20; i++) {
+    const up = d.connections.find((c) => c.child === cur);
+    if (!up) return cur;
+    cur = up.parent;
+  }
+  return cur;
 }
 
 /** O módulo e os que andam com ele (filhos das conexões). */
@@ -156,11 +171,20 @@ export function planModify(design: Design, room: Room | undefined, a: Modify): {
   // Mover: onde a peça fica pela mesma conta das peças novas, ignorando ela e quem anda junto.
   if (a.mover?.length) {
     const scene = sceneOf(design, room);
+    const moved = new Set<string>();
     for (const e of a.mover) {
       const m = byId(design, e.id);
       if (!m) return missing(e.id);
       const cur = scene.modules.find((v) => v.id === m.id)!;
-      const group = groupOf(design, m.id);
+      // Como no arrasto: o conjunto ligado anda junto, pela raiz. Mover um
+      // aéreo do meio da fileira soltava ele e batia no vizinho torto.
+      const root = e.sozinho ? m.id : rootOf(design, m.id);
+      const group = groupOf(design, root);
+      if (!e.sozinho && moved.has(root)) {
+        lines.push(`${m.name}: anda junto com o conjunto já movido.`);
+        continue;
+      }
+      moved.add(root);
       const where = { ...e.onde };
       if (!where.de) {
         where.x ??= cur.x0;
@@ -185,14 +209,18 @@ export function planModify(design: Design, room: Room | undefined, a: Modify): {
         lines.push(`${m.name}: já estava nesse lugar.`);
         continue;
       }
-      // Filho de uma conexão sai dela para andar sozinho (e leva os filhos dele).
-      const parent = design.connections.find((c) => c.child === m.id);
+      // Sozinho: sai da conexão (e leva os filhos dele). Junto: anda a raiz.
+      const parent = e.sozinho ? design.connections.find((c) => c.child === m.id) : undefined;
       if (parent) ops.push({ kind: 'disconnect', child: m.id });
-      ops.push({ kind: 'module.edit', id: m.id, position: [m.position[0] + dx, m.position[1] + dy, m.position[2] + dz] });
+      const lead = design.modules.find((v) => v.id === root)!;
+      ops.push({ kind: 'module.edit', id: lead.id, position: [lead.position[0] + dx, lead.position[1] + dy, lead.position[2] + dz] });
       // O suspenso que desce ao piso deixa de ser suspenso, e vice-versa.
-      if (!isFlat(m)) {
-        const wall = r.box.y0 > 5;
-        if (!!m.wall !== wall) ops.push({ kind: 'module.edit', id: m.id, wall });
+      for (const id of group) {
+        const v = design.modules.find((x) => x.id === id)!;
+        const box = scene.modules.find((x) => x.id === id);
+        if (isFlat(v) || !box) continue;
+        const wall = box.y0 + dy > 5;
+        if (!!v.wall !== wall) ops.push({ kind: 'module.edit', id, wall });
       }
       lines.push(
         `${m.name}${group.size > 1 ? ` (com ${group.size - 1} ligado${group.size > 2 ? 's' : ''})` : ''}: agora em x ${Math.round(r.box.x0)}–${Math.round(r.box.x1)}, y ${Math.round(r.box.y0)}–${Math.round(r.box.y1)} mm, ${r.box.d0 === 0 ? 'encostado na parede' : `preso no ${r.surface}`}${parent ? '; saiu da conexão com o vizinho' : ''}.`,
@@ -205,6 +233,6 @@ export function planModify(design: Design, room: Room | undefined, a: Modify): {
     ops.push({ kind: 'module.remove', id: m.id });
     lines.push(`${m.name}: removido (quem estava ligado a ele ficou no lugar).`);
   }
-  if (!ops.length) return { error: 'Nada para fazer: diga remover, mover, medidas ou interior.' };
+  if (!ops.length && !lines.length) return { error: 'Nada para fazer: diga remover, mover, medidas ou interior.' };
   return { ops, lines };
 }

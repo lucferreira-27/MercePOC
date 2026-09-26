@@ -267,3 +267,23 @@ void test('place: campos opcionais preenchidos com zero não mandam a peça para
   assert.ok(!plan.ops.some((o) => o.kind === 'front.set' && o.type !== 'drawers'), 'porta inteira não cobre as gavetas');
   assert.match(plan.placed[0].notes.join(' '), /porta inteira ignorada/);
 });
+
+void test('modify mover: mexer num módulo da fileira leva o conjunto, como o arrasto; sozinho solta', async () => {
+  const { planModify } = await import('../lib/agent/modify');
+  const { executeRequest } = await import('../lib/studio');
+  const d = normalize(scene('cozinha-baguncada').design);
+  const plan = planModify(d, undefined, { mover: [{ id: 'c-a3', onde: { y: 1500 } }, { id: 'c-a5', onde: { y: 1500 } }] });
+  assert.ok(!('error' in plan), JSON.stringify(plan));
+  if ('error' in plan) return;
+  const r = executeRequest(d, plan.ops);
+  assert.ok(r.ok, !r.ok ? r.error : '');
+  if (!r.ok) return;
+  const uppers = r.design.modules.filter((m) => m.wall);
+  assert.deepEqual([...new Set(uppers.map((m) => m.position[1]))], [1500], 'a fileira inteira de aéreos desceu junta');
+  assert.equal(r.design.connections.length, d.connections.length, 'nenhuma conexão desfeita');
+  assert.match(plan.lines.join(' '), /anda junto com o conjunto já movido/);
+  const alone = planModify(d, undefined, { mover: [{ id: 'apoio-cozinha-a2', onde: { x: 6000, y: 0 }, sozinho: true }] });
+  assert.ok(!('error' in alone) && alone.ops.some((o) => o.kind === 'disconnect'));
+  const none = planModify(d, undefined, { remover: [], mover: [], medidas: [], interior: [] });
+  assert.ok('error' in none, 'nada pedido continua sendo erro de uso');
+});
