@@ -1,0 +1,183 @@
+{
+ "id": "foto-02",
+ "at": "2026-09-26T22:23:12.840Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Copia o layout da foto, mas a minha parede tem 3600 mm.\nImagem 1: foto de referência deste pedido (armario-canto.webp).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_IvdWVSpndFayrF8Lo8rOgmop",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Inventariar a estante da foto: quatro corpos, três gavetas e nichos abertos; des\", \"Medir a parede informada em 3,6 m e preparar o ambiente sem obstáculos marcados\", \"Substituir a estante inicial por uma composição estimada em madeira escura\", \"Conferir a composição em perspectiva e ajustar se necessário\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Copia o layout da foto, mas a minha parede tem 3600 mm.\nImagem 1: foto de referência deste pedido (armario-canto.webp).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_x5aVmFsxHInViqEbjbVQI2r5",
+      "type": "function",
+      "function": {
+       "name": "room_set",
+       "arguments": "{\"largura\":3600,\"altura\":2600,\"profundidade\":4000,\"rodape\":0}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Copia o layout da foto, mas a minha parede tem 3600 mm.\nImagem 1: foto de referência deste pedido (armario-canto.webp).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_mMgZVej8CQsYvtgJmU4ViLIu",
+      "type": "function",
+      "function": {
+       "name": "room_obstacles",
+       "arguments": "{\"add\":[],\"move\":[],\"remove\":[]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Copia o layout da foto, mas a minha parede tem 3600 mm.\nImagem 1: foto de referência deste pedido (armario-canto.webp).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_HFNnYiziTZ3HGNnuSbv8NmCP",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"coluna\",\"nome\":\"Coluna com gavetas\",\"tipo\":\"armario\",\"largura\":800,\"altura\":2400,\"profundidade\":500,\"pes\":0,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":620,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":3},{\"altura\":1726,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":2,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}},{\"ref\":\"torre-esq\",\"nome\":\"Torre de nichos esquerda\",\"tipo\":\"estante\",\"largura\":550,\"altura\":2400,\"profundidade\":500,\"pes\":0,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":577.5,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":577.5,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":577.5,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":577.5,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":4,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"coluna\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}},{\"ref\":\"centro\",\"nome\":\"Nicho central amplo\",\"tipo\":\"estante\",\"largura\":1700,\"altura\":2400,\"profundidade\":500,\"pes\":0,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":1410,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":300,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":300,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":300,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":4,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"torre-esq\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}},{\"ref\":\"torre-dir\",\"nome\":\"Torre de nichos direita\",\"tipo\":\"estante\",\"largura\":550,\"altura\":2400,\"profundidade\":500,\"pes\":0,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":577.5,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":577.5,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":577.5,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":577.5,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":4,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"centro\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}}],\"substituir\":true,\"rotulo\":\"Estante de canto inspirada na foto\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Copia o layout da foto, mas a minha parede tem 3600 mm.\nImagem 1: foto de referência deste pedido (armario-canto.webp).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_OjUq1itzUUJifgSAgakvSmNR",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "13|Pedido: Copia o layout da foto, mas a minha parede tem 3600 mm.\nImagem 1: foto de referência deste pedido (armario-canto.webp).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_OBChPACYKQn1OG42waoAuqBH",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Montei uma estante inspirada na foto, com gaveteiro de três gavetas e nichos abertos, em nogueira; ficou com 3,55 × 2,40 × 0,50 m numa parede de 3,60 m. Usei as frentes de gaveta (~200 mm) e o pé-direito estimado em 2,60 m como régua (erro visual esperado de ±10–20%); a continuidade da estante virando a quina não é representada, e a medida da parede de retorno fecharia esse layout.\",\"sugestoes\":[\"Informe a medida da parede de retorno\",\"Ajuste as proporções dos nichos\",\"Confira o orçamento e o plano de corte\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.2
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.05
+     }
+    },
+    "usage": {
+     "input_tokens": 427,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.88
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 609,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

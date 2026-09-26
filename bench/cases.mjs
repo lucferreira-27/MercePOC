@@ -28,6 +28,7 @@
  */
 import { createHash } from 'node:crypto';
 import { compositionCases, compositionGroup } from './composition-cases.mjs';
+import { photoCases } from './photo-real.mjs';
 
 export const groups = {
   ambiguidade: 'Medida ou alvo ambíguo: pergunta quando não há padrão razoável, faz quando há',
@@ -44,6 +45,7 @@ export const groups = {
   tipos: 'Tipos de móvel que o produto declara não suportar',
   sugestoes: 'Próximos passos propostos pela IA para o chip de sugestão',
   foto: 'Foto de referência: estimar a escala e montar o layout, sem recusar',
+  'foto-real': 'Fotos reais de móveis e ambientes, comparadas com o gabarito montado à mão',
   biblioteca: 'Móvel conhecido pedido pelo nome: partir do ativo certo da biblioteca',
   estudio: 'Assistente em laço: câmera, frentes, arquivos, ambiente, preços, versões e nome do projeto',
   autoconferencia: 'Assistente em laço: confere o próprio trabalho (encaixe, pedido cumprido) antes de responder',
@@ -815,6 +817,49 @@ export const cases = [
     learned:
       'Duas medidas na mesma frase (layout da foto + parede real): a parede manda na escala e a foto nas proporções.',
   },
+  {
+    id: 'foto-03',
+    group: 'foto',
+    askAct: 'agir',
+    agentOnly: true,
+    prompt: 'Esses aqui estao errados. nao estao na imagem ref',
+    setup: {
+      // O turno da foto como ficou gravado: o guarda-roupa da biblioteca, com
+      // gaveteiro no meio, e a conferência dizendo o que estava errado.
+      ops: [{ kind: 'asset.add', asset: 'guarda-roupa', id: 'roupeiro-ref', width: 2200, height: 2200, depth: 600, materialId: 'freijo', frontMaterialId: 'freijo', placement: 'replace' }],
+      history: [
+        { role: 'user', content: 'Use esta imagem como referência para a estante.', image: 'bench/images/guarda-roupa-quatro-portas.webp' },
+        {
+          role: 'assistant',
+          content: 'Módulo "Cabideiro" adicionado. Módulo "Gaveteiro" adicionado. Módulo "Coluna de portas" adicionado. Módulo "Estante" removido.\n\nUsei a porta ao lado (~800 × 2100 mm) como régua; a estimativa tem erro esperado de ±10–20%.',
+          review: { fidelity: 'parcial', verdict: 'O desenho se aproxima da proporção geral e tem a faixa superior sobre portas altas, mas mostra cinco colunas e um bloco de gavetas no centro; a referência tem quatro colunas de portas contínuas embaixo.', corrections: 0 },
+        },
+      ],
+      // As frentes de gaveta selecionadas (os ids das frentes mudam a cada montagem).
+      selected: (design) => {
+        const fronts = [];
+        const walk = (node) => {
+          if (node.front?.type === 'drawers') node.front.heights.forEach((_, i) => fronts.push(`${node.front.id}:drawer-${i}:front`));
+          for (const child of node.split?.children ?? []) walk(child);
+        };
+        for (const m of design.modules) if (m.root) walk(m.root);
+        return fronts;
+      },
+    },
+    expect: {
+      action: ['update'],
+      applied: true,
+      design: (design, helpers) => {
+        if (helpers.cells.some((c) => c.node.front?.type === 'drawers')) return 'ainda tem gavetas, e a foto não tem';
+        const aberto = helpers.cells.find((c) => !c.node.split && !c.node.front && c.size[1] >= 200);
+        if (aberto) return `deixou um vão aberto de ${Math.round(aberto.size[1])} mm: a foto é toda de portas`;
+        return true;
+      },
+      content: { mustNotMatch: [/(imagem|foto|referência)[^.]{0,40}(não está disponível|indisponível|não (consigo|posso) ver)/i] },
+    },
+    learned:
+      'Pedido real depois de um turno com foto: a foto não voltava no pedido seguinte, a IA tirou as gavetas selecionadas e deixou o vão aberto, dizendo que a imagem não estava disponível. A conferência já tinha dito "quatro colunas de portas contínuas".',
+  },
 ];
 
 
@@ -1056,6 +1101,7 @@ cases.push(
   },
 );
 cases.push(...compositionCases);
+cases.push(...photoCases);
 
 /** Rótulos de askAct e o que a ação de cada um não pode ser. */
 export const ASK_ACT = ['agir', 'perguntar', 'responder', 'livre'];

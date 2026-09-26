@@ -1,0 +1,149 @@
+{
+ "id": "real-03",
+ "at": "2026-09-26T22:36:25.715Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Use esta imagem como referência para a estante.\nImagem 1: foto de referência deste pedido (real-guarda-roupa-8-portas.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_eWH8zm4XpwlUSaElc0ilmoDo",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Inventário: guarda-roupa em madeira escura, quatro portas inferiores e quatro no\", \"topo, sem nichos ou gavetas; estimar proporções pela escala da foto\",\"Substituir a estante pelo armário e conferir o desenho renderizado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Use esta imagem como referência para a estante.\nImagem 1: foto de referência deste pedido (real-guarda-roupa-8-portas.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_39qBuBc0jwo3qkfjb3YtG6dZ",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"guarda-roupa\",\"nome\":\"Guarda-roupa de oito portas\",\"tipo\":\"armario\",\"largura\":2100,\"altura\":2200,\"profundidade\":600,\"pes\":100,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":1546,\"colunas\":4,\"frente\":\"porta\",\"gavetas\":1},{\"altura\":600,\"colunas\":4,\"frente\":\"porta\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}}],\"substituir\":true,\"rotulo\":\"Guarda-roupa inspirado na foto\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Use esta imagem como referência para a estante.\nImagem 1: foto de referência deste pedido (real-guarda-roupa-8-portas.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_LwzXel0Ozsu4bz1ZVKlsvKC7",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "9|Pedido: Use esta imagem como referência para a estante.\nImagem 1: foto de referência deste pedido (real-guarda-roupa-8-portas.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_cA5UUtQnJkKMfr03noBIenUL",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Substituí a estante por um guarda-roupa estimado em 210 × 230 × 60 cm, com oito portas em nogueira e pés; usei a porta padrão de 80 × 210 cm como régua, então a estimativa pode variar cerca de 10–20%. A foto também tem entalhes, ferragens decorativas e molduras trabalhadas, detalhes que o modelo retangular não reproduz; a medida real da parede e do móvel fecharia a escala.\",\"sugestoes\":[\"Informe a medida real da parede\",\"Ajuste a altura ou a largura\",\"Confira o orçamento e o corte\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 418,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.15
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.92
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.27
+     }
+    },
+    "usage": {
+     "input_tokens": 597,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,362 @@
+{
+ "id": "esc-01",
+ "at": "2026-09-26T22:33:30.553Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_5UUfKV9AvjGFB0NdURj3KKGj",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Manter a cômoda existente e conferir a parede da janela\",\"Montar armários baixos sob a janela e estantes laterais\",\"Fechar a composição acima da janela e revisar a cena\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_qtaZAAOjrQr5Q3VFMQYunO1g",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_hWISuCzLRV1AMe1w08txjSxS",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\":800,\"largura\":1800,\"altura\":800,\"profundidade\":450,\"base\":0,\"tipo\":\"rack\",\"nome\":\"Armários baixos sob a janela\",\"modulos\":2,\"largura_max_modulo\":900,\"frente\":\"double\",\"gavetas\":1,\"material\":\"white\",\"material_frente\":\"oak\",\"pes\":0,\"desviar_obstaculos\":true,\"folga\":0,\"substituir\":false}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_TO4LqhwzPiPXyZd6lFuPhhLe",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"livros-esq\",\"nome\":\"Estante lateral esquerda\",\"tipo\":\"estante\",\"largura\":270,\"altura\":1430,\"profundidade\":300,\"pes\":0,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":100,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":4,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"\",\"lado\":\"acima\",\"folga\":0,\"alinhar\":\"esquerda\",\"x\":800,\"y\":800}},{\"ref\":\"livros-dir\",\"nome\":\"Estante lateral direita\",\"tipo\":\"estante\",\"largura\":270,\"altura\":1430,\"profundidade\":300,\"pes\":0,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":100,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":4,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"\",\"lado\":\"acima\",\"folga\":0,\"alinhar\":\"esquerda\",\"x\":2330,\"y\":800}}],\"substituir\":false,\"rotulo\":\"Estantes laterais ao redor da janela\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_un7W9Mjk2h4hzubOlDzgR0fg",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"livros-acima\",\"nome\":\"Estante sobre a janela\",\"tipo\":\"estante\",\"largura\":1260,\"altura\":470,\"profundidade\":300,\"pes\":0,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":200,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":200,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":2,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"ob-janela\",\"lado\":\"acima\",\"folga\":30,\"alinhar\":\"centro\",\"x\":0,\"y\":0}}],\"substituir\":false,\"rotulo\":\"Estante superior ao redor da janela\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_Jrm4tO9PI1jMa9jXNuzKw75x",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"livros-acima\",\"nome\":\"Estante sobre a janela\",\"tipo\":\"estante\",\"largura\":1260,\"altura\":440,\"profundidade\":300,\"pes\":0,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":200,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":200,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":2,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"ob-janela\",\"lado\":\"acima\",\"folga\":30,\"alinhar\":\"centro\",\"x\":0,\"y\":0}}],\"substituir\":false,\"rotulo\":\"Estante superior ao redor da janela\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "14|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_D7ZPQ7PwCB4RhpDrKFD1LCPl",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "17|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_GUW95DtPCy6dzpTLOVcNzoTY",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Montei estantes abertas nas laterais e acima da janela, com armários baixos sob ela, e mantive a cômoda existente à esquerda. A composição ocupa 2,60 m de largura e chega a 2,70 m de altura.\",\"sugestoes\":[\"Confira o orçamento\",\"Ajuste os acabamentos\",\"Exporte o projeto em PDF\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 1,
+      "probabilities": {
+       "view": 0,
+       "build": 1,
+       "options": 0,
+       "ask": 0,
+       "edit": 0,
+       "studio": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.84
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.37
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.96
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.15
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 1326,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.13
+     }
+    },
+    "usage": {
+     "input_tokens": 429,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.91
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 531,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

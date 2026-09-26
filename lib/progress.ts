@@ -74,6 +74,8 @@ export type ChatReport = {
     verdict: string;
     /** Operações de correção que a conferência pediu, já aplicadas. */
     corrections: number;
+    /** Erro da validação quando a correção pedida não entrou (nem na segunda tentativa). */
+    rejected?: string;
   };
   /** Texto próprio da IA, para a interface não repetir o resumo do diff. */
   prose?: string;

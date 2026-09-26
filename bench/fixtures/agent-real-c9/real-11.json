@@ -1,0 +1,326 @@
+{
+ "id": "real-11",
+ "at": "2026-09-26T22:44:10.282Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Monte a parede da pia como nessa foto da cozinha, com o fogão, o gabinete e a janela.\nImagem 1: foto de referência deste pedido (real-cozinha-geral.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_7Ct0ys9xMAMZqaDHBrG95RUU",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Inventariar a parede da pia e estimar medidas pela foto\",\"Definir parede e janela; reservar o vão do fogão\",\"Montar gabinete e gaveteiro sob a janela\",\"Conferir a composição na cena\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Monte a parede da pia como nessa foto da cozinha, com o fogão, o gabinete e a janela.\nImagem 1: foto de referência deste pedido (real-cozinha-geral.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_kS5552Hu4eUGOlAZ7fhAkwdo",
+      "type": "function",
+      "function": {
+       "name": "room_set",
+       "arguments": "{\"largura\":3400,\"altura\":2600,\"profundidade\":4000,\"rodape\":100}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Monte a parede da pia como nessa foto da cozinha, com o fogão, o gabinete e a janela.\nImagem 1: foto de referência deste pedido (real-cozinha-geral.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_RwGIXOIaYN55zN2lcYwPkITp",
+      "type": "function",
+      "function": {
+       "name": "room_obstacles",
+       "arguments": "{\"add\":[{\"kind\":\"window\",\"label\":\"Janela sobre a pia\",\"xMm\":900,\"yMm\":1250,\"widthMm\":1400,\"heightMm\":900}],\"move\":[],\"remove\":[]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Monte a parede da pia como nessa foto da cozinha, com o fogão, o gabinete e a janela.\nImagem 1: foto de referência deste pedido (real-cozinha-geral.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_C3iQihxgF9eD2ln700sV7K99",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"vao-fogao\",\"nome\":\"Vão livre para fogão\",\"tipo\":\"vao\",\"largura\":760,\"altura\":900,\"profundidade\":600,\"pes\":0,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":900,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"white\"},\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}}],\"substituir\":true,\"rotulo\":\"Parede da pia com vão para fogão\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Monte a parede da pia como nessa foto da cozinha, com o fogão, o gabinete e a janela.\nImagem 1: foto de referência deste pedido (real-cozinha-geral.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_qRg95GsvEutcQ4UBXke8Ppg3",
+      "type": "function",
+      "function": {
+       "name": "modify",
+       "arguments": "{\"remover\":[\"module-1\"],\"mover\":[],\"medidas\":[],\"interior\":[],\"rotulo\":\"Liberar a parede para a cozinha da foto\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Monte a parede da pia como nessa foto da cozinha, com o fogão, o gabinete e a janela.\nImagem 1: foto de referência deste pedido (real-cozinha-geral.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_Wy4XYYvorV1lQYJlxr0BPGqj",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"vao-fogao\",\"nome\":\"Vão para fogão\",\"tipo\":\"vao\",\"largura\":760,\"altura\":900,\"profundidade\":600,\"pes\":0,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":900,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"white\"},\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}},{\"ref\":\"gabinete-pia\",\"nome\":\"Gabinete sob a pia\",\"tipo\":\"armario\",\"largura\":1200,\"altura\":800,\"profundidade\":600,\"pes\":100,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":800,\"colunas\":1,\"frente\":\"porta_dupla\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"porta_dupla\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"white\"},\"onde\":{\"de\":\"vao-fogao\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}},{\"ref\":\"gabinete-apoio\",\"nome\":\"Gabinete de apoio\",\"tipo\":\"armario\",\"largura\":800,\"altura\":800,\"profundidade\":600,\"pes\":100,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":800,\"colunas\":1,\"frente\":\"porta_dupla\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"porta_dupla\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"white\"},\"onde\":{\"de\":\"gabinete-pia\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}},{\"ref\":\"gaveteiro\",\"nome\":\"Gaveteiro lateral\",\"tipo\":\"gaveteiro\",\"largura\":400,\"altura\":800,\"profundidade\":600,\"pes\":100,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":800,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":2}],\"vaos\":1,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":2,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"white\"},\"onde\":{\"de\":\"gabinete-apoio\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}}],\"substituir\":true,\"rotulo\":\"Parede da pia com fogão e janela\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "14|Pedido: Monte a parede da pia como nessa foto da cozinha, com o fogão, o gabinete e a janela.\nImagem 1: foto de referência deste pedido (real-cozinha-geral.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_AEbhIkrF1h1vvzeN5rQg2fBZ",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "16|Pedido: Monte a parede da pia como nessa foto da cozinha, com o fogão, o gabinete e a janela.\nImagem 1: foto de referência deste pedido (real-cozinha-geral.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_C8qqrns69Gwwa9fwdODMaM0b",
+      "type": "function",
+      "function": {
+       "name": "room_set",
+       "arguments": "{\"largura\":2600,\"altura\":2600,\"profundidade\":4000,\"rodape\":100}"
+      }
+     },
+     {
+      "id": "call_cIyC7vIriPuP7tedSBJIexrj",
+      "type": "function",
+      "function": {
+       "name": "room_obstacles",
+       "arguments": "{\"add\":[],\"move\":[],\"remove\":[\"vao-fogao\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "19|Pedido: Monte a parede da pia como nessa foto da cozinha, com o fogão, o gabinete e a janela.\nImagem 1: foto de referência deste pedido (real-cozinha-geral.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_2omXLVxVcsXjrU94VOx6k5qx",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "21|Pedido: Monte a parede da pia como nessa foto da cozinha, com o fogão, o gabinete e a janela.\nImagem 1: foto de referência deste pedido (real-cozinha-geral.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_PtuxUDHSrxEsDG8rGb5BRV4K",
+      "type": "function",
+      "function": {
+       "name": "room_set",
+       "arguments": "{\"largura\":3400,\"altura\":2600,\"profundidade\":4000,\"rodape\":100}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "23|Pedido: Monte a parede da pia como nessa foto da cozinha, com o fogão, o gabinete e a janela.\nImagem 1: foto de referência deste pedido (real-cozinha-geral.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_HsXgKm8oToOnt100Esbx2DEH",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"vao-fogao\",\"nome\":\"Vão reservado para fogão\",\"tipo\":\"vao\",\"largura\":760,\"altura\":900,\"profundidade\":600,\"pes\":0,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":900,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"white\"},\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}},{\"ref\":\"gabinete-pia\",\"nome\":\"Gabinete sob a pia\",\"tipo\":\"armario\",\"largura\":1200,\"altura\":800,\"profundidade\":600,\"pes\":100,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":800,\"colunas\":1,\"frente\":\"porta_dupla\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"porta_dupla\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"white\"},\"onde\":{\"de\":\"vao-fogao\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}},{\"ref\":\"gaveteiro\",\"nome\":\"Gaveteiro lateral\",\"tipo\":\"gaveteiro\",\"largura\":400,\"altura\":800,\"profundidade\":600,\"pes\":100,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":800,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":3}],\"vaos\":1,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":3,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"white\"},\"onde\":{\"de\":\"gabinete-pia\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}}],\"substituir\":true,\"rotulo\":\"Gabinete da pia com vão para fogão\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "25|Pedido: Monte a parede da pia como nessa foto da cozinha, com o fogão, o gabinete e a janela.\nImagem 1: foto de referência deste pedido (real-cozinha-geral.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_5cPncsScRDR8hWISmXtHEEa6",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_NeJTbwy2yAp4wmSEWKCNrWie",
+      "type": "function",
+      "function": {
+       "name": "view_camera",
+       "arguments": "{\"vista\":\"front\"}"
+      }
+     },
+     {
+      "id": "call_EUmRFVHQZ5YPVprGlfqatVrc",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "30|Pedido: Monte a parede da pia como nessa foto da cozinha, com o fogão, o gabinete e a janela.\nImagem 1: foto de referência deste pedido (real-cozinha-geral.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_jmiVLwZEyvWajOcOdtVPIDeX",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Montei a parede estimada de 3,40 m com janela de 1,40 × 0,90 m, gabinete e gaveteiro brancos, além de um vão de 76 cm reservado para o fogão (o eletrodoméstico não é modelado). Usei a largura típica do fogão como régua; a estimativa pode variar ±10–20% — medir a parede, a janela e o fogão fecharia o layout.\",\"sugestoes\":[\"Ajuste as medidas com uma trena\",\"Inclua os aéreos da cozinha\",\"Confira o orçamento e o plano de corte\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.27
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.25
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.07
+     }
+    },
+    "usage": {
+     "input_tokens": 430,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.54
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 585,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}
