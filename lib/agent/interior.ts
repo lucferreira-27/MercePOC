@@ -27,9 +27,9 @@ export const interiorSchema = z
     frente: z.enum(FRONTS).optional(),
     gavetas: z.number().int().min(1).max(6).optional(),
     porta_inteira: z
-      .enum(['porta', 'porta_dupla'])
+      .enum(['nenhuma', 'porta', 'porta_dupla'])
       .optional()
-      .describe('Uma porta (ou duas) cobrindo o módulo inteiro, com as linhas atrás dela como prateleiras'),
+      .describe('Uma porta (ou duas) cobrindo o módulo inteiro, com as linhas abertas atrás dela como prateleiras; nenhuma quando as linhas têm frente própria ou ficam abertas à vista'),
     material_frente: z.enum(materialIds).optional(),
   })
   .strict();
@@ -69,10 +69,13 @@ export function interiorOps(
   const W = inner?.width ?? size.width - 2 * P;
   const H = inner?.height ?? size.height - 2 * P;
   const rows: Row[] = spec.linhas ?? Array.from({ length: spec.vaos ?? 1 }, () => ({}));
-  // Porta inteira: as linhas ficam abertas atrás dela.
+  // Porta inteira: as linhas ficam abertas atrás dela. Linha com frente
+  // própria (gavetas, porta) vale mais que a porta inteira, que sai.
+  const ownFronts = rows.some((r) => (r.frente ?? (spec.linhas ? undefined : spec.frente)) && (r.frente ?? spec.frente) !== 'aberto');
+  const whole = spec.porta_inteira && spec.porta_inteira !== 'nenhuma' && !ownFronts ? spec.porta_inteira : null;
   const filled = rows.map((r) => ({
-    colunas: r.colunas ?? spec.colunas ?? 1,
-    frente: spec.porta_inteira ? 'aberto' : (r.frente ?? spec.frente ?? 'aberto'),
+    colunas: r.colunas ?? (spec.linhas ? 1 : (spec.colunas ?? 1)),
+    frente: whole ? 'aberto' : (r.frente ?? (spec.linhas ? 'aberto' : (spec.frente ?? 'aberto'))),
     gavetas: r.gavetas ?? spec.gavetas,
     altura: r.altura,
   }));
@@ -152,10 +155,11 @@ export function interiorOps(
       } as ShelfOp);
     }
   }
-  if (spec.porta_inteira) {
-    const type = spec.porta_inteira === 'porta_dupla' || W >= 700 ? 'double' : 'single';
+  if (whole) {
+    const type = whole === 'porta_dupla' || W >= 700 ? 'double' : 'single';
     ops.push({ kind: 'front.set', id: cellId, type, ...(spec.material_frente ? { materialId: spec.material_frente as MaterialId } : {}) } as ShelfOp);
   }
+  if (spec.porta_inteira && spec.porta_inteira !== 'nenhuma' && !whole) notes.push('porta inteira ignorada: as linhas têm frente própria');
   if (notes.length) notes.push(`linhas de baixo para cima: ${heights.join(', ')} mm`);
   return { ops, cells, notes };
 }

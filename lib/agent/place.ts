@@ -23,8 +23,8 @@ export const whereSchema = z
       .enum(['topo', 'base', 'centro', 'piso', 'esquerda', 'direita'])
       .optional()
       .describe('No outro eixo: topo, base, centro ou piso (ao lado); esquerda, direita ou centro (acima e abaixo)'),
-    x: z.number().min(-20000).max(20000).optional().describe('Borda esquerda da peça, em mm do canto esquerdo da parede'),
-    y: z.number().min(0).max(5000).optional().describe('Base da peça (pés incluídos), em mm do piso'),
+    x: z.number().min(-20000).max(20000).optional().describe('Só sem de: borda esquerda da peça, em mm do canto esquerdo da parede'),
+    y: z.number().min(0).max(5000).optional().describe('Base da peça (pés incluídos), em mm do piso; com de, só vale acima de 0 (piso: alinhar piso)'),
   })
   .strict();
 export type Where = z.infer<typeof whereSchema>;
@@ -36,7 +36,10 @@ export const pieceSchema = z
       .string()
       .regex(/^[a-z][a-z0-9-]{0,24}$/, 'ref: letras minúsculas, números e hífen (ex. nicho-esq)')
       .describe('Id do módulo novo; outras peças do lote podem usar como referência'),
-    nome: z.string().trim().min(1).max(40),
+    nome: z
+      .string()
+      .transform((s) => Array.from(s, (ch) => (ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127 ? '' : ch)).join('').trim())
+      .pipe(z.string().min(1).max(40)),
     tipo: z
       .enum(PIECE_TYPES)
       .describe('nicho (caixa aberta), estante (caixa com prateleiras), armario (prateleiras atrás de porta), gaveteiro, painel (chapa de parede), prateleira (tábua horizontal presa na parede ou no painel; altura é a espessura), vao (espaço livre reservado)'),
@@ -107,7 +110,10 @@ const span = (a: number, b: number) => `${round(a)}–${round(b)}`;
  * referência e encolhe até o espaço livre, com a nota do ajuste.
  */
 export function resolvePiece(scene: Scene, design: Design, piece: Piece, placed: readonly Placed[], ignore: ReadonlySet<string> = new Set()) {
-  const w = piece.onde;
+  // A IA costuma preencher todo campo opcional com zero: com uma referência,
+  // x não vale e y 0 é "não dito" (o piso é alinhar piso). Sem isto, "abaixo
+  // da TV" com x 0 e y 0 ia para o canto do piso.
+  const w = piece.onde.de ? { ...piece.onde, x: undefined, y: piece.onde.y ? piece.onde.y : undefined } : piece.onde;
   const ref = w.de ? findRef(scene, design, w.de, placed) : null;
   if (w.de && !ref)
     return {

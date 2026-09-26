@@ -238,3 +238,32 @@ void test('place: peça de piso na frente de um painel que começa acima do chã
   if ('error' in plan) return;
   assert.equal(plan.placed[0].box.d0, 12.5 + 12.5, 'o fundo encosta na frente do painel');
 });
+
+void test('place: campos opcionais preenchidos com zero não mandam a peça para o canto do piso', async () => {
+  const { pieceSchema } = await import('../lib/agent/place');
+  const s = scene('painel-tv');
+  const d = normalize(s.design);
+  // Como a IA manda: tudo preenchido, x e y zerados, porta inteira escolhida à toa.
+  const piece = pieceSchema.parse({
+    ref: 'console',
+    nome: 'Console\u0000 suspenso',
+    tipo: 'gaveteiro',
+    largura: 1200,
+    altura: 300,
+    profundidade: 350,
+    pes: 0,
+    material: 'walnut',
+    interior: { linhas: [{ altura: 280, colunas: 1, frente: 'gavetas', gavetas: 3 }], vaos: 1, colunas: 1, frente: 'gavetas', gavetas: 3, porta_inteira: 'porta' },
+    onde: { de: 'ob-tv', lado: 'abaixo', folga: 50, alinhar: 'centro', x: 0, y: 0 },
+  });
+  assert.equal(piece.nome, 'Console suspenso', 'caractere de controle sai do nome');
+  const plan = planPieces(d, s.room!, [piece]);
+  assert.ok(!('error' in plan && plan.error), JSON.stringify(plan));
+  if ('error' in plan) return;
+  const b = plan.placed[0].box;
+  assert.equal(b.y1, 1110 - 50, 'embaixo da TV, com a folga');
+  assert.equal((b.x0 + b.x1) / 2, (1285 + 2515) / 2, 'centrado na TV');
+  assert.ok(plan.ops.some((o) => o.kind === 'front.set' && o.type === 'drawers'));
+  assert.ok(!plan.ops.some((o) => o.kind === 'front.set' && o.type !== 'drawers'), 'porta inteira não cobre as gavetas');
+  assert.match(plan.placed[0].notes.join(' '), /porta inteira ignorada/);
+});
