@@ -1,0 +1,600 @@
+{
+ "id": "tv-01",
+ "at": "2026-09-26T06:19:59.709Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_o2unO4dpOVtw159DpRGi3c28",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_0nnf3BtzorBPHZsfA3td8WqP",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Criar dois módulos decorativos sob medida para o painel\",\"Posicioná-los ao lado da TV e conferir a composição\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_CH4WVa7JXkvfg4FcVHDyE52P",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.add\",\"id\":\"custom-esq\",\"preset\":\"shelf\",\"name\":\"Nicho vertical assimétrico esquerdo\"},{\"kind\":\"module.add\",\"id\":\"custom-dir\",\"preset\":\"shelf\",\"name\":\"Nicho vertical compacto direito\"}],\"rotulo\":\"Nichos personalizados para o painel\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_T7b5a78l0jpdV0YW2IPcCZ7R",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_nnVwy2En7jpdq8Wa9KBDKAtU",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"p\",\"position\":[800,50,0]},{\"kind\":\"module.edit\",\"id\":\"custom-esq\",\"width\":300,\"height\":1200,\"depth\":220,\"materialId\":\"walnut\",\"position\":[800,350,0]},{\"kind\":\"module.edit\",\"id\":\"custom-dir\",\"width\":300,\"height\":1200,\"depth\":220,\"materialId\":\"walnut\",\"position\":[2700,350,0]}],\"rotulo\":\"Composição customizada no painel\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_DxNwd8UWaVIE6RKd6ai3s6gw",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"custom-esq\",\"width\":300,\"height\":1200,\"depth\":220,\"materialId\":\"walnut\",\"position\":[350,350,25]},{\"kind\":\"module.edit\",\"id\":\"custom-dir\",\"width\":300,\"height\":1200,\"depth\":220,\"materialId\":\"walnut\",\"position\":[1650,350,25]}],\"rotulo\":\"Nichos assimétricos diante do painel\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "14|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_g4Y1xoZKWpydVlPBbbGLpBjP",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"custom-esq\",\"width\":300,\"height\":1200,\"depth\":220,\"materialId\":\"walnut\",\"position\":[2201,350,0]},{\"kind\":\"module.edit\",\"id\":\"custom-dir\",\"width\":300,\"height\":900,\"depth\":220,\"materialId\":\"walnut\",\"position\":[2502,650,0]}],\"rotulo\":\"Nichos personalizados ao lado do painel\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "16|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_Gl9mjiufVDPWpV0XMxjmClmA",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "18|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_8bTLXudFyVRY2D4l7FhDUCJH",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"custom-esq\",\"position\":[2201,0,0]},{\"kind\":\"module.edit\",\"id\":\"custom-dir\",\"position\":[2502,0,0]}],\"rotulo\":\"Apoio dos nichos ao piso\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "20|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_E8x8RmGoANaNOKXzVPiTyH4h",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "22|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_ArDrB0XYNnAMjdtak4npImc6",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"p\",\"position\":[-800,50,0]},{\"kind\":\"module.edit\",\"id\":\"custom-esq\",\"position\":[1401,0,0]},{\"kind\":\"module.edit\",\"id\":\"custom-dir\",\"position\":[1702,0,0]}],\"rotulo\":\"Ajuste da composição à parede\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "24|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_sPVvZ2QM0AjnhTXexLlH2Omh",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "27|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_MglslhEQmDHmA71SIUPtqBS6",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "29|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_lbKPWZ9U0BaApVcpo4GzIled",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"custom-esq\",\"position\":[-1260,0,0]},{\"kind\":\"module.edit\",\"id\":\"custom-dir\",\"position\":[1260,0,0]}],\"rotulo\":\"Nichos laterais simétricos no painel\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "31|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_0ZMenmn1JXgLOiZJxkgEqUwk",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"p\",\"position\":[800,50,0]},{\"kind\":\"module.edit\",\"id\":\"custom-esq\",\"position\":[500,0,0]},{\"kind\":\"module.edit\",\"id\":\"custom-dir\",\"position\":[3001,0,0]}],\"rotulo\":\"Painel com nichos laterais personalizados\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "33|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_PQApujHSzVWZRSjgNz6hkKpC",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"p\",\"position\":[0,50,0]},{\"kind\":\"module.edit\",\"id\":\"custom-esq\",\"position\":[2201,0,0]},{\"kind\":\"module.edit\",\"id\":\"custom-dir\",\"position\":[2502,0,0]}],\"rotulo\":\"Composição criativa com nichos ao lado do painel\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "35|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_fqywMLLexGMe5bod6S6K5tYQ",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "37|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_brgbfGrjUodomjCujBc4NG3B",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"p\",\"width\":1600},{\"kind\":\"module.edit\",\"id\":\"custom-esq\",\"position\":[1601,0,0]},{\"kind\":\"module.edit\",\"id\":\"custom-dir\",\"position\":[1902,0,0]}],\"rotulo\":\"Painel compacto com nichos escalonados\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "39|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_x5bWjKPzlq30onbgObOIIxTI",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"custom-esq\",\"name\":\"Nicho alto assimétrico\"},{\"kind\":\"module.edit\",\"id\":\"custom-dir\",\"name\":\"Nicho baixo escalonado\"},{\"kind\":\"module.edit\",\"id\":\"custom-esq\",\"width\":300,\"height\":1200,\"depth\":220,\"materialId\":\"walnut\"},{\"kind\":\"module.edit\",\"id\":\"custom-dir\",\"width\":300,\"height\":900,\"depth\":220,\"materialId\":\"walnut\"}],\"rotulo\":\"Modelos customizados em nogueira\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "41|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_b6VrUUkdMzbGL4Wd5dGpHVeq",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "43|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_3Hxjzf2WhfsREm6nv4Mfw5w7",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "46|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_ReGHyleuiU1RhaLyQgoKLbrR",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Adicionei ao painel dois modelos customizados em nogueira: um nicho alto assimétrico e outro mais baixo, escalonados ao lado do painel. A composição ficou enquadrada e cabe na parede, com 2,85 m de largura total.\",\"sugestoes\":[\"Mude o acabamento dos nichos\",\"Adicione portas aos nichos\",\"Confira o orçamento atualizado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.73,
+      "probabilities": {
+       "edit": 0.09,
+       "studio": 0.13,
+       "view": 0,
+       "options": 0,
+       "ask": 0.01,
+       "build": 0.77
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.53
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.23
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.31
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.13
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1316,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 419,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.95
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.06
+     }
+    },
+    "usage": {
+     "input_tokens": 533,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { drawingParts, generateComposition, layout, openingLimit, type ModularPart } from '../composition';
+import { generateComposition, layout, openingLimit, type ModularPart } from '../composition';
 import { planDataUrl } from '../plan-render';
+import { sceneDrawingParts } from '../scene-parts';
 import { cutPlan } from '../cutplan';
 import { materialIds } from '../furniture';
 import { edgeSides, mergePrices, money, quote, type Prices } from '../quote';
@@ -35,6 +36,10 @@ import { contextSnapshot } from './snapshot';
 import { planRow } from './macros';
 import { askJev, noulOf, type JevAnswer, type JevQuestion } from './jev';
 import { askGateOn, askVerdict, blockText } from './ask-gate';
+import { designFacts, factClaims, factsLine, objectiveOf, sheetLevers } from './facts';
+import { pieceSchema, placedLine, planPieces } from './place';
+import { modifySchema, planModify } from './modify';
+import { sceneOf } from './scene';
 import { EXPORT_KINDS, UI_TABS, VIEW_MODES, type OptionCard, type Tool, type ToolResult } from './types';
 
 /** Inferência do tipo dos argumentos a partir do esquema. */
@@ -92,6 +97,7 @@ const partsList = tool({
         return [p.id, p.name, `${r1(p.c)}×${r1(p.l)}×${p.thickness}`, p.material, Object.entries(e).filter(([, v]) => v).map(([k]) => k).join('') || '-', numbers.get(p.id) ?? '-'].join(' | ');
       });
     const head = `${rows.length} de ${parts.length} peças. Colunas: id | nome | C×L×E mm | material | fita (c1 frente, c2 trás, l1, l2) | nº corte`;
+    ctx.note('parts');
     return ok([head, ...rows.slice(0, 120)].join('\n') + (rows.length > 120 ? `\n… mais ${rows.length - 120}` : ''), 'Conferi as peças');
   },
 });
@@ -104,6 +110,7 @@ const quoteRead = tool({
   run: (ctx) => {
     const q = quote(generateDesign(ctx.design).parts as ModularPart[], ctx.design.modules.length, ctx.prices);
     const lines = q.lines.map((l) => `${l.section} | ${l.label} | ${l.qty} ${l.unit} × ${money(l.unitPrice)} = ${money(l.total)}`);
+    ctx.note('quote');
     return ok(
       [...lines, `Custo ${money(q.cost)} + margem ${ctx.prices.margin}% ${money(q.marginValue)} = total ${money(q.total)}`].join('\n'),
       `Calculei o orçamento: ${money(q.total)}`,
@@ -119,6 +126,7 @@ const cutplanRead = tool({
   running: () => 'Conferindo o plano de corte',
   run: (ctx, a) => {
     const plan = cutPlan(generateDesign(ctx.design).parts);
+    ctx.note('cut');
     if (a.chapa) {
       const s = plan.sheets[a.chapa - 1];
       if (!s) return fail(`Não existe a chapa ${a.chapa}; o plano tem ${plan.sheets.length}.`);
@@ -142,12 +150,20 @@ const designApply = tool({
   running: (a) => a.rotulo ?? 'Desenhando',
   run: (ctx, a) => {
     const before = ctx.design;
+    const roomBefore = ctx.room;
     const r = executeRequest(before, a.ops as ShelfOp[]);
-    if (!r.ok) return fail(`Recusado pela validação, nada mudou: ${r.error}`, 'Proposta recusada pela validação; corrigindo');
+    if (!r.ok) {
+      ctx.attempted.push({ ops: a.ops as ShelfOp[], error: r.error });
+      // "move" das prateleiras antigas com id de módulo: o erro do motor não diz o caminho.
+      const hint = /prateleira horizontal/.test(r.error) && (a.ops as ShelfOp[]).some((o) => o.kind === 'move' || o.kind === 'gap')
+        ? ' move e gap servem só para prateleiras (sh-N); para mudar um módulo de lugar use modify mover.'
+        : '';
+      return fail(`Recusado pela validação, nada mudou: ${r.error}${hint}`, 'Proposta recusada pela validação; corrigindo');
+    }
     if (JSON.stringify(r.design) === JSON.stringify(before)) return ok('Sem efeito: o projeto já estava assim.', 'Nada a mudar');
     ctx.setDesign(r.design, a.ops as ShelfOp[]);
     const changes = describeDesignChanges(before, r.design);
-    const fit = fitNote(ctx, before, r.design);
+    const fit = fitNote(ctx, before, r.design, roomBefore) + sheetNote(ctx, before, r.design);
     const had = namedIds(before);
     const fresh = [...namedIds(r.design)].filter((id) => !had.has(id));
     const titles = describeHighlights(before, r.design, a.ops as ShelfOp[]).map((h) => h.title);
@@ -218,7 +234,10 @@ const rowBuild = tool({
     const room = plan.anchor && ctx.room ? { ...ctx.room, anchor: plan.anchor } : ctx.room;
     const before = ctx.design;
     const r = executeRequest(before, plan.ops);
-    if (!r.ok) return fail(`Recusado pela validação, nada mudou: ${r.error}`, 'Fileira recusada; ajustando');
+    if (!r.ok) {
+      ctx.attempted.push({ ops: plan.ops, error: r.error });
+      return fail(`Recusado pela validação, nada mudou: ${r.error}`, 'Fileira recusada; ajustando');
+    }
     if (room !== ctx.room) ctx.room = room;
     ctx.setDesign(r.design, plan.ops);
     const parts = plan.segments.map((v) => `${v.from}–${v.to} mm: ${v.ids.join(', ')} (compartimentos ${v.ids.map((id) => `${id}:root`).join(', ')})`);
@@ -232,6 +251,91 @@ const rowBuild = tool({
       `Fileira "${a.nome}" montada no lugar certo (encostada na parede, fora dos obstáculos): não mova nem refaça. ${parts.join('; ')}. ${fronts}${gone.length ? ` Pulado: ${gone.join('; ')}.` : ''}${short} Medidas gerais: ${mm(r.design)}.${room ? ` ${fitSummary(r.design, room)}.` : ''}`,
       `${a.nome}: ${count} ${count === 1 ? 'módulo' : 'módulos'}${gone.length ? `, desviando de ${plan.skipped.map((v) => v.why).join(', ')}` : ''}`,
     );
+  },
+});
+
+/**
+ * Aplica operações montadas pelo app (peças novas, edições) com a parede
+ * presa e o ambiente novo, e devolve o que mudou com o encaixe e as chapas.
+ */
+function applyPlanned(ctx: AgentContext, ops: ShelfOp[], room: Room | undefined, head: string, label: string, failLabel: string) {
+  const before = ctx.design;
+  const roomBefore = ctx.room;
+  const r = executeRequest(before, ops);
+  if (!r.ok) {
+    ctx.attempted.push({ ops, error: r.error });
+    return fail(`Recusado pela validação, nada mudou: ${r.error}`, failLabel);
+  }
+  if (room !== ctx.room) ctx.setRoom(room);
+  ctx.setDesign(r.design, ops);
+  const changes = describeDesignChanges(before, r.design);
+  const had = namedIds(before);
+  const fresh = [...namedIds(r.design)].filter((id) => !had.has(id));
+  return ok(
+    `${head} ${changes.length ? `${changes.join('. ')}. ` : ''}Medidas gerais: ${mm(r.design)}.${fresh.length ? ` Ids novos: ${fresh.slice(0, 40).join(', ')}.` : ''}${fitNote(ctx, before, r.design, roomBefore)}${sheetNote(ctx, before, r.design)}`,
+    label,
+  );
+}
+
+/** Parede presa antes de mexer: sem âncora ela acompanharia o lado esquerdo do móvel. */
+function pinnedRoom(ctx: AgentContext) {
+  const anchor = ctx.room ? sceneOf(ctx.design, ctx.room).anchor : null;
+  return anchor && ctx.room ? { ...ctx.room, anchor } : ctx.room;
+}
+
+const placeTool = tool({
+  name: 'place',
+  description:
+    'Põe peças novas pela relação, sem calcular posição: ao lado, acima ou abaixo de um módulo, de um obstáculo (TV, janela, porta) ou de outra peça do lote, ou num x/y da parede. O app acha a superfície (painel de parede ou parede), a profundidade, o interior e confere encaixe, TV e obstáculos antes de montar. Medida dita é exata (se não cabe, volta o conflito com o espaço livre); medida ausente vem do tipo e da referência e encolhe até o espaço. tipo vao reserva espaço livre no piso (máquina de lavar, geladeira) que nenhuma peça ocupa.',
+  args: z.object({ pecas: z.array(pieceSchema).min(1).max(8), rotulo: z.string().max(90).optional() }).strict(),
+  running: (a) => a.rotulo ?? (a.pecas.length === 1 ? `Pondo ${a.pecas[0].nome.toLowerCase()}` : `Pondo ${a.pecas.length} peças`),
+  run: (ctx, a) => {
+    if (a.pecas.some((p) => p.tipo === 'vao') && !ctx.room)
+      return fail('Vão reservado mede na parede: meça o ambiente antes (room_set).', 'Falta o ambiente');
+    const plan = planPieces(ctx.design, ctx.room, a.pecas);
+    if ('error' in plan) {
+      ctx.attempted.push({ ops: [], error: plan.error ?? '' });
+      return fail(`Nada foi montado: ${plan.error}`, 'Peça não coube; ajustando');
+    }
+    let room = pinnedRoom(ctx);
+    if (plan.reserved.length && room) {
+      const taken = new Set((room.obstacles ?? []).map((o) => o.id));
+      // O id do vão é a ref que a IA deu: ela usa como referência nas próximas chamadas.
+      const add = plan.reserved.map((v) => {
+        let id = v.ref;
+        for (let k = 2; taken.has(id); k++) id = `${v.ref}-${k}`;
+        taken.add(id);
+        return { id, kind: 'other' as const, label: v.label, xMm: Math.round(v.x0), yMm: Math.round(v.y0), widthMm: Math.round(v.x1 - v.x0), heightMm: Math.round(v.y1 - v.y0) };
+      });
+      room = { ...room, obstacles: [...(room.obstacles ?? []), ...add] };
+    }
+    const count = plan.placed.filter((p) => p.cells.length || p.surface !== 'piso').length;
+    return applyPlanned(
+      ctx,
+      plan.ops,
+      room,
+      `Montado no rascunho (não mova nem refaça o que coube): ${plan.placed.map(placedLine).join('; ')}.`,
+      a.rotulo ?? (count === 1 ? `Pus ${plan.placed[0].name.toLowerCase()}` : `Pus ${plan.placed.length} peças`),
+      'Peça recusada; ajustando',
+    );
+  },
+});
+
+const modifyTool = tool({
+  name: 'modify',
+  description:
+    'Edita módulos que já existem, com a contabilidade do app: remover (as conexões saem junto e os vizinhos ficam no lugar), mover (para um lugar dito como no place; sem de, só encosta o fundo na parede ou muda x/y), medidas (altura, altura_total com pés, profundidade e pés valem para a fileira de painel compartilhado inteira; largura mantém a borda escolhida) e interior (troca frentes e divisões do módulo inteiro). Tudo num lote atômico.',
+  args: modifySchema,
+  running: (a) => a.rotulo ?? 'Ajustando os módulos',
+  run: (ctx, a) => {
+    const plan = planModify(ctx.design, ctx.room, a);
+    // Tudo já estava como pedido: sem efeito, como no design_apply.
+    if (!('error' in plan) && !plan.ops.length) return ok(`Sem efeito: ${plan.lines.join(' ')}`, 'Nada a mudar');
+    if ('error' in plan) {
+      ctx.attempted.push({ ops: [], error: plan.error });
+      return fail(`Nada mudou: ${plan.error}`, 'Edição não coube; ajustando');
+    }
+    return applyPlanned(ctx, plan.ops, pinnedRoom(ctx), `Feito no rascunho: ${plan.lines.join(' ')}`, a.rotulo ?? 'Ajustei os módulos', 'Edição recusada; ajustando');
   },
 });
 
@@ -249,7 +353,8 @@ const roomSet = tool({
     .strict(),
   running: () => 'Medindo a parede',
   run: (ctx, a) => {
-    const base: Room = ctx.room ?? emptyRoom();
+    // Ambiente sem schemaVersion (projeto antigo, cena de teste) não pode travar a medida da parede.
+    const base: Room = { ...(ctx.room ?? emptyRoom()), schemaVersion: 1 };
     const next = {
       ...base,
       ...(a.largura !== undefined ? { widthMm: a.largura } : {}),
@@ -447,7 +552,9 @@ const historyUndo = tool({
   args: z.object({}).strict(),
   run: (ctx) => {
     if (ctx.designChanged || ctx.roomChanged) {
-      ctx.rebase();
+      // O rascunho sai inteiro: as operações dele ficam como desfeitas, fora
+      // do registro do que o pedido gravou.
+      ctx.discard();
       return ok('Descartei as mudanças deste pedido.', 'Descartei as mudanças');
     }
     const r = undo(ctx.project);
@@ -587,6 +694,48 @@ const finishTool = tool({
     .strict(),
   run: async (ctx, a) => {
     const issues = checkWork(ctx);
+    // Números da resposta contra o estado que fica (não contra a última leitura).
+    // Com opções montadas, a resposta compara os cartões (números do app, do
+    // options_make) e o projeto não muda: essas duas conferências não valem.
+    const options = !!ctx.options?.length;
+    const wrong = options ? [] : factClaims(a.mensagem, designFacts(ctx.design, ctx.prices), designFacts(ctx.turnStart.design, ctx.prices));
+    if (wrong.length)
+      issues.push(
+        `A mensagem ${wrong.join('; ')}. Fatos do estado final: ${factsLine(designFacts(ctx.design, ctx.prices))}. Reescreva só com esses números.`,
+      );
+    // Conferência visual só vale para o rascunho que ficou: desenho olhado
+    // antes da última mudança é evidência velha. E o desenho do render_look
+    // vai só para a IA; a pessoa vê a cena 3D, não uma imagem na conversa.
+    if (LOOKED.test(a.mensagem) && !ctx.fresh('look'))
+      issues.push(
+        ctx.evidence.look
+          ? 'A mensagem diz que conferiu o desenho, mas o móvel mudou depois do último render_look. Chame render_look de novo ou tire isso da resposta.'
+          : 'A mensagem diz que conferiu o desenho, mas render_look não foi chamado. Chame render_look ou tire isso da resposta.',
+      );
+    if (SHOWN.test(a.mensagem))
+      issues.push('A mensagem diz que um desenho foi exibido para a pessoa, mas o desenho do render_look vai só para você: a pessoa vê a cena 3D. Reescreva sem isso.');
+    // Afirma que mudou o móvel e nada mudou: a peça foi recusada e a resposta
+    // contava a composição como feita. Sem Jev, esta é a conferência que fica.
+    if (!ctx.navigated && !ctx.origin && !ctx.designChanged && !ctx.roomChanged && JSON.stringify(ctx.design) === JSON.stringify(ctx.turnStart.design) && claimsChange(a.mensagem))
+      issues.push('A mensagem diz que mudou o móvel, mas nada mudou neste pedido (as peças foram recusadas ou não foram montadas). Monte de novo com o que o erro indicou, ou diga que não deu e por quê.');
+    // Objetivo mensurável (menos chapas, menor custo): conferido no estado
+    // final, com as alavancas, em vez de aceitar a ação feita como prova.
+    const goal = options ? null : objectiveOf(ctx.request);
+    if (goal) {
+      const b = designFacts(ctx.turnStart.design, ctx.prices),
+        n = designFacts(ctx.design, ctx.prices);
+      if (goal === 'sheets' && n.sheets >= b.sheets)
+        issues.push(`O pedido quer menos chapas e o plano segue com ${n.sheets} (antes do pedido, ${b.sheets}). ${sheetLevers(ctx.design)} Mude o que for preciso, ou diga na resposta por que não dá.`);
+      if (goal === 'cost' && n.total >= b.total - 0.005)
+        issues.push(`O pedido quer custo menor e o total segue ${money(n.total)} (antes do pedido, ${money(b.total)}). ${sheetLevers(ctx.design)} Mude o que for preciso, ou diga na resposta por que não dá.`);
+    }
+    // Módulo que existia e saiu precisa estar na resposta: sumir calado era
+    // o jeito de "caber" (o painel da TV trocado por uma estante).
+    // Conta como dito quando a resposta fala em tirar/trocar ou cita o módulo pelo nome.
+    const gone = ctx.navigated || ctx.origin ? [] : ctx.turnStart.design.modules.filter((m) => !ctx.design.modules.some((v) => v.id === m.id));
+    const told = (m: { name: string }) => a.mensagem.toLowerCase().includes(m.name.toLowerCase().split(' ')[0]);
+    if (gone.length && !/\b(tir|remov|substitu|troq|troc|no lugar|sa[ií]|exclu|apag|refiz)/i.test(a.mensagem) && !gone.every(told))
+      issues.push(`A mensagem não diz que saiu ${gone.filter((m) => !told(m)).map((m) => m.name).join(', ')}. Diga na resposta que saiu (e por quê).`);
     if (!issues.length && ctx.repairs < 2) {
       const [gaps, missing] = await Promise.all([claimsMatch(ctx, a.mensagem), requestMissing(ctx)]);
       if (missing?.length) issues.push(`O pedido ${missing.join('; ')}. Faça o que falta, ou diga na mensagem por que não deu.`);
@@ -600,6 +749,7 @@ const finishTool = tool({
         'Conferi o trabalho: achei um problema, corrigindo',
       );
     }
+    ctx.checked = true;
     ctx.finish = {
       message: issues.length ? `${a.mensagem}\n\nAtenção: ${issues.join(' ')}` : a.mensagem,
       suggestions: normalizeSuggestions(a.sugestoes),
@@ -612,14 +762,41 @@ const finishTool = tool({
  * Encaixe depois de uma mudança, para a IA ver na hora se piorou: sem isso
  * ela movia módulos "para alinhar" e só descobria na conferência final.
  */
-function fitNote(ctx: AgentContext, before: Design, after: Design) {
+function fitNote(ctx: AgentContext, before: Design, after: Design, roomBefore = ctx.room) {
   const room = ctx.room;
   if (!room) return '';
-  const was = new Set(fitReport(before, room).issues.map((i) => i.message));
+  const was = new Set((roomBefore ? fitReport(before, roomBefore).issues : []).map(issueKey));
   const now = fitReport(after, room).issues;
-  const worse = now.filter((i) => !was.has(i.message));
+  const worse = now.filter((i) => !was.has(issueKey(i)));
   if (worse.length) return ` ATENÇÃO, esta mudança piorou o encaixe: ${worse.map((i) => i.message).join('; ')}. Desfaça ou corrija.`;
   return ` ${fitSummary(after, room)}.`;
+}
+
+/** A resposta diz que olhou o próprio desenho ("conferi o desenho", "revisei visualmente"). */
+const LOOKED = /(conferi|olhei|revisei|verifiquei|chequei)[^.]{0,30}(desenho|visualmente|visualização|imagem)|(desenho|composição)[^.]{0,20}(foi |ficou )?(conferid|revisad|verificad)|conferid[oa] visualmente/i;
+/** A resposta diz que um desenho ou imagem foi mostrado à pessoa (só a IA recebe o do render_look). */
+const SHOWN = /(desenho|imagem)[^.]{0,40}(exibid|mostrad|apresentad)[^.]{0,30}(para (você|voce|a pessoa)|para conferência|na conversa|aqui)/i;
+
+/** Verbos de quem mudou o móvel, na primeira pessoa, fora de negação ("não coloquei"). */
+const CHANGE_VERBS = /(montei|adicionei|acrescentei|coloquei|criei|pus|instalei|removi|tirei|troquei|mudei|ajustei|aumentei|diminuí|diminui|reduzi|passei|substituí|substitui|dividi|reorganizei|alinhei|encostei|movi|unifiquei)/i;
+/** Frase sobre tela, arquivo, preço ou versão: "mudei a vista" não é mudar o móvel. */
+const NOT_FURNITURE = /(vista|câmera|camera|\baba\b|cotas|enquadr|arquivo|pdf|csv|png|json|orçamento|orcamento|preço|preco|margem|nome do projeto|renome|versão|versao|parede|ambiente|explodid)/i;
+function claimsChange(text: string) {
+  return text.split(/(?<=[.!?;])\s+/).some((s) => CHANGE_VERBS.test(s) && !NOT_FURNITURE.test(s) && !/(?:^|[\s,;(])(não|nao|nem|sem)\s[^.]{0,20}(montei|adicionei|acrescentei|coloquei|criei|pus|instalei|removi|tirei|troquei|mudei|ajustei|aumentei|diminu|reduzi|passei|substitu|dividi|reorganizei|alinhei|encostei|movi|unifiquei)/i.test(s));
+}
+
+/** Quem causa o problema de encaixe: o mesmo problema antes e depois tem a mesma chave. */
+const issueKey = (i: { code: string; key?: string }) => i.key ?? i.code;
+
+/**
+ * Chapas depois de uma mudança, quando o plano de corte mudou: material e
+ * espessura decidem as chapas, e a IA trocava a cor achando que reduzia.
+ */
+function sheetNote(ctx: AgentContext, before: Design, after: Design) {
+  const a = designFacts(before, ctx.prices),
+    b = designFacts(after, ctx.prices);
+  if (JSON.stringify(a.groups) === JSON.stringify(b.groups)) return '';
+  return ` Plano de corte agora: ${factsLine(b)} (antes: ${a.sheets}).`;
 }
 
 /** O que o pedido fez de fato, para conferir as ações que a resposta afirma. */
@@ -799,10 +976,19 @@ export function checkWork(ctx: AgentContext): string[] {
   const issues: string[] = [];
   const room = ctx.room;
   const start = ctx.turnStart;
-  if (room && JSON.stringify(ctx.design) !== JSON.stringify(start.design)) {
-    const before = new Set((start.room ? fitReport(start.design, start.room).issues : []).map((i) => i.code));
+  const designMoved = JSON.stringify(ctx.design) !== JSON.stringify(start.design);
+  const roomMoved = JSON.stringify(room ?? null) !== JSON.stringify(start.room ?? null);
+  if (room && (designMoved || roomMoved)) {
+    // Pelo causador (código, obstáculo e módulo): uma TV já tapada não
+    // esconde outro módulo novo na frente dela.
+    const before = new Set((start.room ? fitReport(start.design, start.room).issues : []).map(issueKey));
     for (const issue of fitReport(ctx.design, room).issues)
-      if (!before.has(issue.code)) issues.push(`Ambiente: ${issue.message}`);
+      if (!before.has(issueKey(issue)))
+        issues.push(
+          designMoved
+            ? `Ambiente: ${issue.message}`
+            : `Ambiente: com as medidas novas, ${issue.message.charAt(0).toLowerCase()}${issue.message.slice(1)}. Diga isso na resposta; não mude o móvel sem pedido.`,
+        );
   }
   const parts = generateDesign(ctx.design).parts as ModularPart[];
   const oldParts = new Map((generateDesign(start.design).parts as ModularPart[]).map((p) => [p.id, JSON.stringify([p.size, p.position])]));
@@ -817,10 +1003,17 @@ export function checkWork(ctx: AgentContext): string[] {
 const renderLook = tool({
   name: 'render_look',
   description:
-    'Mostra para você o desenho do rascunho agora (frontal e isométrico), numa imagem logo depois dos resultados. Use para conferir proporção e aparência, principalmente comparando com a foto de referência, antes do finish.',
+    'Mostra para você o desenho do rascunho agora (frontal e isométrico) com a parede e o que está nela (TV em preto, janela em azul, porta), numa imagem logo depois dos resultados. Use para julgar composição, proporção e o que fica na frente do quê, antes do finish.',
   args: z.object({}).strict(),
   running: () => 'Olhando o desenho',
-  run: async (ctx) => ok('O desenho vem na próxima mensagem.', 'Olhei o desenho', await planDataUrl(drawingParts(canonical(ctx.design)))),
+  run: async (ctx) => {
+    ctx.note('look');
+    return ok(
+      'O desenho vem na próxima mensagem: o móvel com a parede em volta, como a pessoa vê a cena (TV em preto, janela em azul, porta em bege). O que está na frente cobre o que está atrás.',
+      'Olhei o desenho',
+      await planDataUrl(sceneDrawingParts(ctx.design, ctx.room)),
+    );
+  },
 });
 
 // ---------------------------------------------------------------- opções
@@ -903,6 +1096,8 @@ export const TOOLS: Tool[] = [
   quoteRead,
   cutplanRead,
   designApply,
+  placeTool,
+  modifyTool,
   rowBuild,
   roomSet,
   roomObstacles,
@@ -931,7 +1126,7 @@ export const TOOLS: Tool[] = [
 ] as Tool[];
 
 /** O que o sub-laço de uma opção pode usar: desenhar e ler, nada que grave. */
-export const OPTION_TOOLS: Tool[] = [stateRead, partsList, quoteRead, designApply, rowBuild, finishTool] as Tool[];
+export const OPTION_TOOLS: Tool[] = [stateRead, partsList, quoteRead, designApply, placeTool, modifyTool, rowBuild, finishTool] as Tool[];
 
 /** Ferramentas que encerram o pedido. */
 export const TERMINAL = new Set(['finish', 'ask_user']);

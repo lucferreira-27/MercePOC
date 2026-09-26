@@ -9,12 +9,12 @@ import type { Progress, TextPreview } from './progress';
 import { readStringField } from './partial-json';
 import { imageDataUrl } from './images';
 import { materials } from './furniture';
-import { fallbackModel, modelInfo, reasoningEffort, type ModelKey, type ProviderUsage } from './models';
+import { DEFAULT_MODEL, fallbackModel, modelInfo, reasoningEffort, type ModelKey, type ProviderUsage } from './models';
 /** `true`/`false` é o contrato antigo do modo rápido (bench, scripts). */
 export type ModelChoice = ModelKey | boolean;
 export function modelKey(choice: ModelChoice | undefined): ModelKey {
   if (typeof choice === 'string') return choice;
-  return choice ? 'qwen-fast' : 'deepseek';
+  return choice ? 'qwen-fast' : DEFAULT_MODEL;
 }
 /** Falha do provedor (fluxo parado, 429, 5xx, rede), não do pedido. */
 export const PROVIDER_ERROR = /interrompida|\b(429|5\d\d)\b|fetch failed|ECONNRESET|ETIMEDOUT|socket|terminated|operation was aborted/i;

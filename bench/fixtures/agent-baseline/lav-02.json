@@ -1,0 +1,430 @@
+{
+ "id": "lav-02",
+ "at": "2026-09-26T06:32:33.348Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Deixe um vão livre de 60 cm para a máquina de lavar à esquerda do armário e coloque um armário aéreo em cima dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_ZL4ZwdUVJnPt7ur8QdTdhqr2",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Conferir módulos, conexões e medidas atuais\",\"Abrir vão de 60 cm à esquerda do armário\",\"Instalar o aéreo sobre o vão e conferir encaixe\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Deixe um vão livre de 60 cm para a máquina de lavar à esquerda do armário e coloque um armário aéreo em cima dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_WSusDrIWgr63hdgvLwjRry4f",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Deixe um vão livre de 60 cm para a máquina de lavar à esquerda do armário e coloque um armário aéreo em cima dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_rXmZf1Nrzat22YN3gSDKRF4D",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"move\",\"ids\":[\"l1\",\"l2\"],\"deltaMm\":600}],\"rotulo\":\"Vão para máquina de lavar\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Deixe um vão livre de 60 cm para a máquina de lavar à esquerda do armário e coloque um armário aéreo em cima dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_hMQsswKgHzM7rrLokmIszFc4",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"disconnect\",\"child\":\"l2\"},{\"kind\":\"module.edit\",\"id\":\"l1\",\"position\":[600,0,0]},{\"kind\":\"module.edit\",\"id\":\"l2\",\"position\":[1191,0,0]},{\"kind\":\"connect\",\"parent\":\"l1\",\"child\":\"l2\",\"side\":\"right\",\"shared\":true,\"align\":\"front\",\"offset\":0}],\"rotulo\":\"Reposicionar armário para abrir vão à esquerda\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Deixe um vão livre de 60 cm para a máquina de lavar à esquerda do armário e coloque um armário aéreo em cima dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_aaqg1JNXqN9fEsghLUIs036w",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Deixe um vão livre de 60 cm para a máquina de lavar à esquerda do armário e coloque um armário aéreo em cima dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_C6IUcHuQMn3QwtDA98QEwdbX",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\":0,\"largura\":600,\"altura\":700,\"profundidade\":350,\"base\":1500,\"tipo\":\"niche\",\"nome\":\"Aéreo sobre máquina\",\"modulos\":1,\"largura_max_modulo\":600,\"frente\":\"double\",\"gavetas\":1,\"material\":\"white\",\"material_frente\":\"white\",\"pes\":0,\"desviar_obstaculos\":true,\"folga\":50,\"substituir\":false}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "14|Pedido: Deixe um vão livre de 60 cm para a máquina de lavar à esquerda do armário e coloque um armário aéreo em cima dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_V6OcrLnzkpcNcM67sccKWjLR",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "16|Pedido: Deixe um vão livre de 60 cm para a máquina de lavar à esquerda do armário e coloque um armário aéreo em cima dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_aE5AjF5NQHQ7Wq0tzDtsIS4k",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "19|Pedido: Deixe um vão livre de 60 cm para a máquina de lavar à esquerda do armário e coloque um armário aéreo em cima dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_qqqbPzEvPPV2JdOKAC9ZglXW",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"aereo-sobre--1\",\"position\":[0,1500,0]}],\"rotulo\":\"Alinhar aéreo sobre o vão da máquina\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "21|Pedido: Deixe um vão livre de 60 cm para a máquina de lavar à esquerda do armário e coloque um armário aéreo em cima dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_ZY82VBC7Q40fFnEgZdygKrU8",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "23|Pedido: Deixe um vão livre de 60 cm para a máquina de lavar à esquerda do armário e coloque um armário aéreo em cima dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_8NTFnEHZ6GISXSnD595gYwey",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "26|Pedido: Deixe um vão livre de 60 cm para a máquina de lavar à esquerda do armário e coloque um armário aéreo em cima dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_WLaInMlbHoQg1vrLUVFIHSH5",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Deixei um vão livre de 60 cm à esquerda do armário para a máquina de lavar e posicionei acima um aéreo de 60 × 70 × 35 cm, alinhado ao vão.\",\"sugestoes\":[\"Confira o encaixe no ambiente\",\"Ajuste a altura do aéreo\",\"Revise o orçamento\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 0.69,
+      "probabilities": {
+       "ask": 0,
+       "studio": 0,
+       "build": 0.26,
+       "view": 0,
+       "edit": 0.74,
+       "options": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.97
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.26
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.54
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.86
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.86
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.26
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1338,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.9
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 441,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.53
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 524,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

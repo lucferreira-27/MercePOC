@@ -1,6 +1,8 @@
+import { createHash } from 'node:crypto';
 import { revise, reviseRoom, save, get, type Project } from '../store';
-import type { Design, ShelfOp } from '../studio';
-import type { Room } from '../room';
+import { canonical, type Design, type ShelfOp } from '../studio';
+import { generateComposition } from '../composition';
+import { wallAt, type Room } from '../room';
 import type { Prices } from '../quote';
 import type { AgentEvent, AgentStep, Effect, OptionCard, UiState } from './types';
 import type { JevAnswer } from './jev';
@@ -21,10 +23,26 @@ export class AgentContext {
   design: Design;
   room: Room | undefined;
   prices: Prices;
-  /** Operações aplicadas desde a última gravação, em ordem. */
+  /** Operações do trecho atual do rascunho (desde a última gravação ou volta), em ordem. */
   ops: ShelfOp[] = [];
-  /** Todas as operações do pedido, para o resumo e a animação da mudança. */
-  allOps: ShelfOp[] = [];
+  /** Operações de trechos já gravados neste pedido. */
+  kept: ShelfOp[] = [];
+  /**
+   * Operações que chegaram ao rascunho e saíram dele: rascunho descartado
+   * (history_undo no meio do pedido) ou desfeito no fim (tempo acabou com o
+   * rascunho inválido). Não entram no registro do que ficou.
+   */
+  reverted: ShelfOp[] = [];
+  /** Lotes recusados pela validação: nunca chegaram ao rascunho. */
+  attempted: { ops: ShelfOp[]; error: string }[] = [];
+  /**
+   * Estado do rascunho em que cada leitura foi feita (orçamento, plano de
+   * corte, desenho). Mudou o rascunho, a leitura ficou velha: a resposta não
+   * pode citar número dela sem ler de novo.
+   */
+  evidence: Partial<Record<'quote' | 'cut' | 'look' | 'parts', string>> = {};
+  /** A conferência do finish já rodou sobre o rascunho final. */
+  checked = false;
   /** Design de partida do trecho atual (muda depois de gravar ou navegar). */
   start: Design;
   effects: Effect[] = [];
@@ -78,6 +96,26 @@ export class AgentContext {
     this.turnStart = { design: this.design, room: this.room };
   }
 
+  /** Operações que o rascunho atual carrega desde o começo do pedido, em ordem. */
+  get allOps(): ShelfOp[] {
+    return [...this.kept, ...this.ops];
+  }
+  /** Impressão do rascunho (móvel e ambiente): liga cada leitura ao estado lido. */
+  stateKey() {
+    return createHash('sha1')
+      .update(JSON.stringify([canonical(this.design), this.room ?? null]))
+      .digest('hex')
+      .slice(0, 16);
+  }
+  /** Registra que a leitura `kind` foi feita sobre o rascunho de agora. */
+  note(kind: keyof AgentContext['evidence']) {
+    this.evidence[kind] = this.stateKey();
+  }
+  /** A leitura `kind` ainda descreve o rascunho de agora. */
+  fresh(kind: keyof AgentContext['evidence']) {
+    return this.evidence[kind] === this.stateKey();
+  }
+
   get base(): Design {
     return this.project.revisions[this.project.cursor].params;
   }
@@ -90,10 +128,32 @@ export class AgentContext {
 
   /** Aceita um design já validado e mostra na cena. */
   setDesign(design: Design, ops: ShelfOp[]) {
+    this.pinWall(design);
     this.design = design;
     this.ops.push(...ops);
-    this.allOps.push(...ops);
     this.emit({ type: 'draft', params: design, room: this.room ?? null });
+  }
+
+  /**
+   * Parede presa quando o pedido muda o móvel e algo do começo fica no
+   * lugar. Sem âncora a parede acompanha o lado esquerdo e o fundo do
+   * conjunto: um nicho novo à esquerda do painel arrastava a parede, e a TV
+   * com ela, para fora do painel. Na troca do móvel inteiro (nada do começo
+   * fica) a parede segue o móvel novo, como antes.
+   */
+  private pinWall(next: Design) {
+    const room = this.room;
+    if (!room || room.anchor) return;
+    const start = this.turnStart.design;
+    const stays = next.modules.some((m) => {
+      const s = start.modules.find((v) => v.id === m.id);
+      return !!s && s.rotation === m.rotation && s.position.every((v, i) => Math.abs(v - m.position[i]) < 0.01);
+    });
+    if (!stays) return;
+    const was = wallAt(room, generateComposition(canonical(start), false).bounds);
+    const now = wallAt(room, generateComposition(canonical(next), false).bounds);
+    if (Math.abs(was.x - now.x) < 0.01 && Math.abs(was.z - now.z) < 0.01) return;
+    this.room = { ...room, anchor: { x: was.x, z: was.z } };
   }
   setRoom(room: Room | undefined) {
     this.room = room;
@@ -106,11 +166,20 @@ export class AgentContext {
     if (this.designChanged) {
       this.project.room = this.room;
       discarded = revise(this.project, this.design, label);
-    } else if (this.roomChanged && this.room) {
-      discarded = reviseRoom(this.project, this.room, label).discarded;
+      this.kept.push(...this.ops);
+    } else {
+      // Operações que se anularam (pôs e tirou) não deixam nada gravado.
+      this.reverted.push(...this.ops);
+      if (this.roomChanged && this.room) discarded = reviseRoom(this.project, this.room, label).discarded;
     }
+    this.ops = [];
     this.rebase();
     return discarded;
+  }
+
+  /** Descarta o rascunho: volta ao que está gravado e guarda as operações como desfeitas. */
+  discard() {
+    this.rebase();
   }
 
   /** Recomeça do que está gravado agora (depois de gravar ou navegar). */
@@ -118,6 +187,8 @@ export class AgentContext {
     this.design = this.base;
     this.start = this.design;
     this.room = this.project.room;
+    // O que não foi gravado antes de voltar sai do rascunho: fica como desfeito.
+    this.reverted.push(...this.ops);
     this.ops = [];
   }
 

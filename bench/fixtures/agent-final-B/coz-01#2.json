@@ -1,0 +1,345 @@
+{
+ "id": "coz-01",
+ "at": "2026-09-26T11:41:56.540Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: adicione outros moveis junto que fazem snetidom em uma cozinha, uma mesa, cadeiras, etc",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_e44JlRFUhckjb2EjAqNskFzc",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Conferir a cozinha existente e o espaço livre ao lado\",\"Acrescentar uma despensa e um complemento aberto, se couber\",\"Visualizar a composição e informar o que não é suportado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: adicione outros moveis junto que fazem snetidom em uma cozinha, uma mesa, cadeiras, etc",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_vzjoct3n7ziQmnVhKaTNGFmX",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: adicione outros moveis junto que fazem snetidom em uma cozinha, uma mesa, cadeiras, etc",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_OHaKjCtYk8yNnp8yk5Z06azg",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"despensa\",\"nome\":\"Despensa alta\",\"tipo\":\"armario\",\"largura\":600,\"altura\":2100,\"profundidade\":600,\"pes\":0,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":1800,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta_dupla\",\"material_frente\":\"sage\"},\"onde\":{\"de\":\"c-b5\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}}],\"rotulo\":\"Despensa alta ao lado da cozinha\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: adicione outros moveis junto que fazem snetidom em uma cozinha, uma mesa, cadeiras, etc",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_Tk7S7mdOfIoat4t3ow9K6BHz",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"prateleira-baixa\",\"nome\":\"Prateleira aberta\",\"tipo\":\"prateleira\",\"largura\":700,\"altura\":30,\"profundidade\":250,\"pes\":0,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":100,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"sage\"},\"onde\":{\"de\":\"c-b3\",\"lado\":\"acima\",\"folga\":100,\"alinhar\":\"centro\",\"x\":0,\"y\":0}},{\"ref\":\"prateleira-alta\",\"nome\":\"Prateleira aberta\",\"tipo\":\"prateleira\",\"largura\":700,\"altura\":30,\"profundidade\":250,\"pes\":0,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":100,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"sage\"},\"onde\":{\"de\":\"prateleira-baixa\",\"lado\":\"acima\",\"folga\":230,\"alinhar\":\"centro\",\"x\":0,\"y\":0}}],\"rotulo\":\"Prateleiras abertas sobre a bancada\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: adicione outros moveis junto que fazem snetidom em uma cozinha, uma mesa, cadeiras, etc",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_gRziUyS9cbwMXUH8ODFQrplI",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"prateleira-cozinha\",\"nome\":\"Prateleira aberta\",\"tipo\":\"prateleira\",\"largura\":700,\"altura\":30,\"profundidade\":250,\"pes\":0,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":100,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"sage\"},\"onde\":{\"de\":\"c-b3\",\"lado\":\"acima\",\"folga\":100,\"alinhar\":\"centro\",\"x\":0,\"y\":0}}],\"rotulo\":\"Prateleira na faixa livre da bancada\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: adicione outros moveis junto que fazem snetidom em uma cozinha, uma mesa, cadeiras, etc",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_84YoX18NshMBUwQO6zVqvdU9",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "15|Pedido: adicione outros moveis junto que fazem snetidom em uma cozinha, uma mesa, cadeiras, etc",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_wX0h7JXekjzgtRwZCR7aaHwi",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Acrescentei uma despensa alta de 60 × 210 × 60 cm ao lado da cozinha e uma prateleira aberta de 70 cm sobre a bancada. Mesa e cadeiras ficaram de fora, pois o estúdio não modela esses itens.\",\"sugestoes\":[\"Acrescente mais prateleiras abertas\",\"Revise o orçamento atualizado\",\"Exporte o desenho em PDF\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.92,
+      "probabilities": {
+       "build": 0.9400000000000001,
+       "studio": 0,
+       "view": 0,
+       "options": 0,
+       "ask": 0,
+       "edit": 0.06
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.31
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.48
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.18
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.24
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.21
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 1328,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.06
+     }
+    },
+    "usage": {
+     "input_tokens": 431,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.92
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 534,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

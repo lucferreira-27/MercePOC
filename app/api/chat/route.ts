@@ -24,10 +24,11 @@ import { randomUUID } from 'node:crypto';
 import { getImage, imageDataUrl, saveImage, type ImageRef } from '@/lib/images';
 import { planDataUrl, planPng } from '@/lib/plan-render';
 import { mergePrices, money, quote } from '@/lib/quote';
-import { runAgentTurn } from '@/lib/agent/turn';
+import { runAgentTurn, type TurnDiagnostics } from '@/lib/agent/turn';
 import { UI_TABS, VIEW_MODES, type AgentEvent } from '@/lib/agent/types';
 import {
   addUsage,
+  DEFAULT_MODEL,
   emptyUsage,
   modelInfo,
   MODEL_KEYS,
@@ -171,7 +172,8 @@ export async function POST(req: Request) {
         : undefined;
     const before = baseRev.params;
     const quoteNote = quoteSummary(before, b.prices);
-    const modelChoice: ModelKey = b.model ?? (b.fast ? 'qwen-fast' : 'deepseek');
+    // Sem modelo no pedido vale o padrão do estúdio (Luna, raciocínio alto).
+    const modelChoice: ModelKey = b.model ?? (b.fast ? 'qwen-fast' : DEFAULT_MODEL);
     const jpeg = Boolean(modelInfo(modelChoice).fastProfile);
     // Custo do turno: cada chamada ao provedor soma aqui, sai ao vivo para quem
     // espera e fica gravada na resposta, para o total da sessão sobreviver ao
@@ -743,14 +745,39 @@ export async function POST(req: Request) {
       if (!persistedUser) return undefined;
       if (p.messages.some((m) => m.context?.requestId === requestId && m.result))
         return undefined;
+      // O assistente em laço devolve o que dá para diagnosticar: etapas, causa
+      // e se algo foi gravado. Sem isso a falha ficava só com o custo.
+      const diag = (e as { diagnostics?: TurnDiagnostics } | null)?.diagnostics;
       p.messages.push({
         id: randomUUID(),
         role: 'assistant',
         content: '',
         revisionId: p.revisions[p.cursor].id,
         revision: p.revisions[p.cursor].number,
+        context: { requestId, baseRevisionId: baseRev.id, selectedPartIds: [], referencedPartIds: [] },
         retry: { message: b.message, ...(image ? { image } : {}) },
         error: message,
+        ...(diag
+          ? {
+              report: {
+                durationMs: diag.durationMs,
+                outcome: 'rejected' as const,
+                changes: [],
+                steps: diag.steps,
+                ...(diag.plan ? { plan: diag.plan } : {}),
+                failure: {
+                  requestId: diag.requestId,
+                  baseRevisionId: diag.baseRevisionId,
+                  cause: diag.cause,
+                  message: diag.message,
+                  committed: diag.committed,
+                  draftChanged: diag.draftChanged,
+                  draftOperations: diag.draftOperations,
+                  rejected: diag.rejected,
+                },
+              },
+            }
+          : {}),
         // Turno que falhou também gastou: o custo entra no total da sessão.
         ...usageField(),
       });

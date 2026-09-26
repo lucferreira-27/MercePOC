@@ -19,7 +19,7 @@ const flag = (name, fallback) => {
   return i >= 0 ? args[i + 1] : fallback;
 };
 const request = args.find((a, i) => !a.startsWith('--') && !args[i - 1]?.startsWith('--')) ?? 'Coloque um nicho de 60 cm à direita com duas portas e me mostre de frente';
-const model = flag('model', 'deepseek');
+const model = flag('model', 'luna');
 const template = flag('template');
 
 const { create, createFromTemplate, get, save } = await import('../lib/store.ts');

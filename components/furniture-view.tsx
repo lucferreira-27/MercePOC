@@ -276,7 +276,7 @@ function FurnitureView({
     () =>
       -Math.max(
         0,
-        ...params.modules.filter((m) => m.kind !== 'panel').map((m) => (m.rotation % 180 ? m.width : m.depth)),
+        ...params.modules.filter((m) => !m.kind).map((m) => (m.rotation % 180 ? m.width : m.depth)),
       ) / 2,
     [params],
   );
@@ -542,7 +542,9 @@ function FurnitureView({
       const other = obstacleOverlap(o, state.room.obstacles.map((v) => v.obstacle));
       const now = latest.current;
       // Pelo vão, como o veredito de encaixe: o aviso e o vermelho concordam.
-      const piece = [...moduleBoxes(now.params)].find(([, b]) => obstacleCrosses(o, [b], state.room!.wall.x0));
+      const boxes = [...moduleBoxes(now.params)];
+      const panels = boxes.filter(([id]) => now.params.modules.find((m) => m.id === id)?.kind === 'panel').map(([, b]) => b);
+      const piece = boxes.find(([, b]) => obstacleCrosses(o, [b], state.room!.wall.x0, { panels, wallZ: state.room!.wall.z + 1 }));
       return {
         blocked: other ? (other.label ?? OBSTACLE_WORD[other.kind]) : null,
         warn: piece ? (now.params.modules.find((m) => m.id === piece[0])?.name ?? 'o móvel') : null,
@@ -1218,8 +1220,14 @@ function FurnitureView({
   );
   const measuredRoom = showRoom ? room : undefined;
   // Frente do que está preso na parede (painel): a TV fica na frente dele.
-  const mountZ = useMemo(
-    () => Math.max(-Infinity, ...parts.filter((p) => p.kind === 'panel').map((p) => p.position[2] + p.size[2] / 2)),
+  const panelBoxes = useMemo(
+    () =>
+      parts
+        .filter((p) => p.kind === 'panel')
+        .map((p) => ({
+          min: [p.position[0] - p.size[0] / 2, p.position[1] - p.size[1] / 2, p.position[2] - p.size[2] / 2],
+          max: [p.position[0] + p.size[0] / 2, p.position[1] + p.size[1] / 2, p.position[2] + p.size[2] / 2],
+        })),
     [parts],
   );
   // Ambiente: reconstruído quando o móvel muda de envelope, o ambiente muda
@@ -1234,7 +1242,7 @@ function FurnitureView({
     }
     s.room = undefined;
     if (sceneRoom) {
-      s.room = buildRoom(sceneRoom, bounds, theme, mountZ, [...moduleBoxes(params).values()], selectedObstacle);
+      s.room = buildRoom(sceneRoom, bounds, theme, panelBoxes, [...moduleBoxes(params).values()], selectedObstacle);
       s.scene.add(s.room.group);
     }
     s.grid.visible = !sceneRoom;
@@ -1243,7 +1251,7 @@ function FurnitureView({
     s.shadowFloor.visible = !sceneRoom;
     s.ground.position.y = sceneRoom ? GROUND_UNDER_ROOM : -1;
     s.dirty = true;
-  }, [sceneRoom, bounds, theme, mountZ, params, selectedObstacle]);
+  }, [sceneRoom, bounds, theme, panelBoxes, params, selectedObstacle]);
   // Obstáculo novo: a prévia translúcida entra na parede no lugar livre que
   // veio com ele e segue o cursor até o clique (ou Enter).
   useEffect(() => {

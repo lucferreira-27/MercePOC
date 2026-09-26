@@ -1,0 +1,138 @@
+{
+ "about": "Variação não vista: painel largo de 2600 × 1500 mm em freijó, TV de 65\" 35 cm à esquerda do centro do painel, rack baixo de dois módulos com pés embaixo e janela à direita.",
+ "source": {
+  "generated": "work (script descartável) com as operações do contrato",
+  "capturedAt": "2026-09-26T06:11:18.845Z"
+ },
+ "design": {
+  "schemaVersion": 3,
+  "profile": {
+   "version": 1,
+   "panel": 18,
+   "back": 6,
+   "front": 18,
+   "reveal": 2,
+   "drawer": 15,
+   "drawerBottom": 6,
+   "slideSpace": 13,
+   "rearSpace": 20
+  },
+  "modules": [
+   {
+    "id": "painel",
+    "name": "Painel",
+    "width": 2600,
+    "height": 1500,
+    "depth": 30,
+    "materialId": "freijo",
+    "back": false,
+    "position": [
+     0,
+     600,
+     0
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "painel:root"
+    },
+    "legacyIds": false,
+    "kind": "panel"
+   },
+   {
+    "id": "rack-a",
+    "name": "Rack esquerda",
+    "width": 900,
+    "height": 350,
+    "depth": 400,
+    "materialId": "oak",
+    "back": true,
+    "position": [
+     -791,
+     0,
+     185
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "rack-a:root",
+     "front": {
+      "id": "front-4d495d26-e16",
+      "type": "drawers",
+      "hinge": "left",
+      "heights": [
+       1
+      ]
+     }
+    },
+    "legacyIds": false,
+    "feet": 100
+   },
+   {
+    "id": "rack-b",
+    "name": "Rack direita",
+    "width": 900,
+    "height": 350,
+    "depth": 400,
+    "materialId": "oak",
+    "back": true,
+    "position": [
+     91,
+     0,
+     215
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "rack-b:root",
+     "front": {
+      "id": "front-8396d05a-2ba",
+      "type": "drawers",
+      "hinge": "left",
+      "heights": [
+       1
+      ]
+     }
+    },
+    "legacyIds": false,
+    "feet": 100
+   }
+  ],
+  "connections": [
+   {
+    "id": "connection-f1d4c55d-c88",
+    "parent": "rack-a",
+    "child": "rack-b",
+    "side": "right",
+    "shared": true,
+    "align": "back",
+    "offset": 0
+   }
+  ]
+ },
+ "room": {
+  "schemaVersion": 1,
+  "widthMm": 4200,
+  "heightMm": 2700,
+  "depthMm": 3500,
+  "baseboardMm": 0,
+  "offsetMm": 800,
+  "obstacles": [
+   {
+    "id": "ob-tv",
+    "kind": "tv",
+    "label": "TV 65\"",
+    "xMm": 1025,
+    "yMm": 1000,
+    "widthMm": 1450,
+    "heightMm": 830
+   },
+   {
+    "id": "ob-janela",
+    "kind": "window",
+    "label": "Janela",
+    "xMm": 3500,
+    "yMm": 1000,
+    "widthMm": 600,
+    "heightMm": 1100
+   }
+  ]
+ }
+}

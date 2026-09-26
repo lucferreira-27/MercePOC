@@ -1,0 +1,464 @@
+{
+ "id": "tv-01",
+ "at": "2026-09-26T06:18:50.443Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_UHp7hTuky6UI4cVJP8Ums1dO",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Conferir o painel, a TV e o espaço disponível\",\"Adicionar nichos e prateleiras decorativas sem cobrir a TV\",\"Enquadrar o resultado para conferir a composição\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_aIPqU8q1JyYTzEIrmp5LOpqk",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_hiB3Ak2ZI8YdOOloUS3S6Wrt",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.add\",\"id\":\"estante-lateral\",\"preset\":\"shelf\",\"name\":\"Estante lateral\"},{\"kind\":\"module.edit\",\"id\":\"estante-lateral\",\"width\":600,\"height\":900,\"depth\":220,\"materialId\":\"walnut\",\"wall\":true,\"position\":[100,150,25]},{\"kind\":\"module.add\",\"id\":\"nicho-horizontal\",\"preset\":\"niche\",\"name\":\"Nicho horizontal\"},{\"kind\":\"module.edit\",\"id\":\"nicho-horizontal\",\"width\":1200,\"height\":350,\"depth\":250,\"materialId\":\"walnut\",\"wall\":true,\"position\":[750,150,25]}],\"rotulo\":\"Estante criativa no painel\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_lBB6fYBEJMr1zTqVYxydelwt",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.add\",\"id\":\"torre-decorativa\",\"preset\":\"shelf\",\"name\":\"Torre decorativa\"},{\"kind\":\"module.edit\",\"id\":\"torre-decorativa\",\"width\":400,\"height\":1500,\"depth\":220,\"materialId\":\"walnut\",\"wall\":true,\"position\":[2600,250,25]},{\"kind\":\"module.add\",\"id\":\"nicho-alto\",\"preset\":\"niche\",\"name\":\"Nicho alto\"},{\"kind\":\"module.edit\",\"id\":\"nicho-alto\",\"width\":650,\"height\":300,\"depth\":220,\"materialId\":\"walnut\",\"wall\":true,\"position\":[3050,1400,25]},{\"kind\":\"module.add\",\"id\":\"nicho-central\",\"preset\":\"niche\",\"name\":\"Nicho central\"},{\"kind\":\"module.edit\",\"id\":\"nicho-central\",\"width\":650,\"height\":300,\"depth\":220,\"materialId\":\"walnut\",\"wall\":true,\"position\":[3050,850,25]},{\"kind\":\"module.add\",\"id\":\"prateleira-baixa\",\"preset\":\"shelf\",\"name\":\"Prateleira baixa\"},{\"kind\":\"module.edit\",\"id\":\"prateleira-baixa\",\"width\":650,\"height\":250,\"depth\":220,\"materialId\":\"walnut\",\"wall\":true,\"position\":[3050,300,25]}],\"rotulo\":\"Painel com módulos decorativos\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_qYGarX0LTzuxcvMuM0WFQIbY",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.add\",\"id\":\"torre-decorativa\",\"preset\":\"shelf\",\"name\":\"Torre decorativa\"},{\"kind\":\"module.edit\",\"id\":\"torre-decorativa\",\"width\":400,\"height\":1500,\"depth\":220,\"materialId\":\"walnut\",\"wall\":true,\"position\":[2550,1000,25]},{\"kind\":\"module.add\",\"id\":\"nicho-superior\",\"preset\":\"niche\",\"name\":\"Nicho superior\"},{\"kind\":\"module.edit\",\"id\":\"nicho-superior\",\"width\":600,\"height\":250,\"depth\":220,\"materialId\":\"walnut\",\"wall\":true,\"position\":[3250,450,25]},{\"kind\":\"module.add\",\"id\":\"nicho-central\",\"preset\":\"niche\",\"name\":\"Nicho central\"},{\"kind\":\"module.edit\",\"id\":\"nicho-central\",\"width\":600,\"height\":250,\"depth\":220,\"materialId\":\"walnut\",\"wall\":true,\"position\":[3250,950,25]},{\"kind\":\"module.add\",\"id\":\"nicho-inferior\",\"preset\":\"niche\",\"name\":\"Nicho inferior\"},{\"kind\":\"module.edit\",\"id\":\"nicho-inferior\",\"width\":600,\"height\":250,\"depth\":220,\"materialId\":\"walnut\",\"wall\":true,\"position\":[3250,1450,25]}],\"rotulo\":\"Painel com torre e nichos decorativos\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_hwafMjNqqVrWgCLso2wqPrhs",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "14|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_W1l3uM0xf80zImRLuSZ8Cfdo",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"nicho-superior\",\"position\":[3150,450,25]},{\"kind\":\"module.edit\",\"id\":\"nicho-central\",\"position\":[3150,950,25]},{\"kind\":\"module.edit\",\"id\":\"nicho-inferior\",\"position\":[3150,1450,25]}],\"rotulo\":\"Ajuste da composição para caber na parede\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "16|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_OGlAl8eCbfa8GXhfuTmhqZ4f",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"torre-decorativa\",\"width\":400,\"height\":1500,\"position\":[2220,1000,25]},{\"kind\":\"module.edit\",\"id\":\"nicho-superior\",\"width\":340,\"height\":250,\"position\":[2640,1600,25]},{\"kind\":\"module.edit\",\"id\":\"nicho-central\",\"width\":340,\"height\":250,\"position\":[2640,1100,25]},{\"kind\":\"module.edit\",\"id\":\"nicho-inferior\",\"width\":340,\"height\":250,\"position\":[2640,600,25]}],\"rotulo\":\"Composição decorativa ajustada para a parede\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "18|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_YGpYS3JQnt1Swzp9R53kLMeS",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"torre-decorativa\",\"width\":350},{\"kind\":\"module.edit\",\"id\":\"nicho-superior\",\"width\":300},{\"kind\":\"module.edit\",\"id\":\"nicho-central\",\"width\":300},{\"kind\":\"module.edit\",\"id\":\"nicho-inferior\",\"width\":300}],\"rotulo\":\"Redução final para caber no ambiente\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "20|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_tnMv7BQZu1zEIdPvKYfn17zj",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "22|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_PoY4oOlXBQxau9qGaZonvh1k",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"torre-decorativa\",\"position\":[1300,1000,25]},{\"kind\":\"module.edit\",\"id\":\"nicho-superior\",\"position\":[1700,1600,25]},{\"kind\":\"module.edit\",\"id\":\"nicho-central\",\"position\":[1700,1100,25]},{\"kind\":\"module.edit\",\"id\":\"nicho-inferior\",\"position\":[1700,600,25]}],\"rotulo\":\"Reencaixe da composição decorativa\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "24|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_hRY6FvG36LqhUOxhveIpGAN0",
+      "type": "function",
+      "function": {
+       "name": "view_camera",
+       "arguments": "{\"vista\":\"front\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "26|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_AOh17od550ng2nzlwNlHOrc8",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "28|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_h2vf34ueGftdbdCdtl2odAmI",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Acrescentei ao painel de nogueira uma torre lateral com nichos e três nichos decorativos empilhados, mantendo a TV livre; a composição ficou com 2,95 m de largura e cabe na parede de 3,80 m.\",\"sugestoes\":[\"Confira a composição em perspectiva\",\"Ajuste a altura dos nichos\",\"Veja o orçamento atualizado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.72,
+      "probabilities": {
+       "ask": 0.01,
+       "studio": 0.13,
+       "options": 0,
+       "edit": 0.08,
+       "build": 0.78,
+       "view": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.52
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.32
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1316,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 419,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.96
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 531,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

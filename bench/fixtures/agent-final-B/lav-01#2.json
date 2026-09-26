@@ -1,0 +1,344 @@
+{
+ "id": "lav-01",
+ "at": "2026-09-26T11:44:12.414Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_pWHmJmAjQeySclKQki4KvSyc",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_eUmy5QJQcfolCvxYPw5CJB60",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Adicionar estante aberta em carvalho à esquerda\",\"Criar armário baixo e prateleira à direita\",\"Visualizar e ajustar a composição do ambiente\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_aClhxxtTLep5BQUkE8lpdzeI",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"estante-lateral\",\"nome\":\"Estante aberta em carvalho\",\"tipo\":\"estante\",\"largura\":850,\"altura\":1800,\"profundidade\":350,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":300,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":300,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":300,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":300,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":300,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":5,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":75,\"y\":0}},{\"ref\":\"gaveteiro-lateral\",\"nome\":\"Gaveteiro baixo em carvalho\",\"tipo\":\"gaveteiro\",\"largura\":850,\"altura\":780,\"profundidade\":400,\"pes\":80,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":200,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":3}],\"vaos\":1,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":3,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":2275,\"y\":0}},{\"ref\":\"prateleira-baixa\",\"nome\":\"Prateleira flutuante inferior\",\"tipo\":\"prateleira\",\"largura\":850,\"altura\":25,\"profundidade\":220,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":100,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"gaveteiro-lateral\",\"lado\":\"acima\",\"folga\":350,\"alinhar\":\"centro\",\"x\":0,\"y\":0}},{\"ref\":\"prateleira-superior\",\"nome\":\"Prateleira flutuante superior\",\"tipo\":\"prateleira\",\"largura\":700,\"altura\":25,\"profundidade\":220,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":100,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"prateleira-baixa\",\"lado\":\"acima\",\"folga\":250,\"alinhar\":\"centro\",\"x\":0,\"y\":0}}],\"rotulo\":\"Estante ampliada com composição em carvalho\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_ERmMEesuTvupR9ge0Jwzazcw",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "11|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_tSxrmLaFET0opPHrFeUwMRVj",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_MYYfBU4CjrvB6o45eDsRPJh3",
+      "type": "function",
+      "function": {
+       "name": "view_toggle",
+       "arguments": "{\"o_que\":\"room\",\"ligado\":true}"
+      }
+     },
+     {
+      "id": "call_UW0NKLPKUpvl4rEKMeLMyqKX",
+      "type": "function",
+      "function": {
+       "name": "view_camera",
+       "arguments": "{\"vista\":\"perspective\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "15|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_ZDv5mBhL7tC3tx2IlcZZMGFx",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Acrescentei uma estante aberta e um gaveteiro em carvalho, com duas prateleiras flutuantes, nas áreas livres ao lado do móvel existente. Ativei a visualização do ambiente e mudei para perspectiva para mostrar melhor a composição.\",\"sugestoes\":[\"Ajuste os acabamentos do conjunto\",\"Confira o orçamento atualizado\",\"Exporte um PDF do projeto\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.73,
+      "probabilities": {
+       "options": 0,
+       "studio": 0,
+       "build": 0.78,
+       "view": 0.01,
+       "edit": 0.21,
+       "ask": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.94
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.69
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.25
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.38
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1319,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 422,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.92
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.89
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 534,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

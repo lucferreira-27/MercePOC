@@ -1,0 +1,277 @@
+{
+ "id": "nav-02",
+ "at": "2026-09-26T07:18:07.898Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Volte uma versão e deixe a largura com 900 mm.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_vACv9YdkWLUKXoicWjkK6GhV",
+      "type": "function",
+      "function": {
+       "name": "history_goto",
+       "arguments": "{\"versao\":1}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Volte uma versão e deixe a largura com 900 mm.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_yCBxyIbJlBKOCAEwTM0NZQMu",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"resize\",\"width\":900}],\"rotulo\":\"Estante com 900 mm de largura\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Volte uma versão e deixe a largura com 900 mm.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_9o2wbSpf9EYAV3cP3NuUjSMI",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Voltei à versão anterior e ajustei a largura da estante para 900 mm; ela ficou com 900 × 1800 × 350 mm.\",\"sugestoes\":[\"Confira o desenho da estante\",\"Veja o orçamento atualizado\",\"Exporte o plano de corte\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 0.71,
+      "probabilities": {
+       "studio": 0.23,
+       "ask": 0,
+       "options": 0,
+       "build": 0,
+       "edit": 0.76,
+       "view": 0.01
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.87
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.83
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.37
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.62
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.42
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.22
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.54
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.86
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.54
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.06
+     }
+    },
+    "usage": {
+     "input_tokens": 1321,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.15
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 424,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.87
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.94
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 515,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

@@ -67,12 +67,19 @@ export type FitCode =
   | 'too-tall'
   | 'too-deep'
   | 'floor-gap'
-  | 'obstacle-overlap';
+  | 'obstacle-overlap'
+  | 'tv-blocked';
 
 export type FitIssue = {
   code: FitCode;
   message: string;
   detail?: string;
+  /**
+   * Quem causa o problema (código, obstáculo e módulo): a conferência do
+   * pedido compara por aqui. Pelo código só, uma TV já tapada escondia outro
+   * módulo novo tapando a mesma TV.
+   */
+  key?: string;
 };
 
 export type FitReport = {
@@ -99,6 +106,67 @@ export const ROOM_LIMITS = {
   obstacleSwing: [0, 5000],
   obstacles: 32,
 } as const;
+
+/**
+ * Folga em volta da tela da TV: nada que avance para a frente do plano dela
+ * chega mais perto que isto. Painel atrás da TV não conta (é onde ela vai).
+ */
+export const TV_CLEARANCE_MM = 30;
+
+/** Retângulo na parede, no mundo: x ao longo dela, y do piso. */
+export type WallRect = { x0: number; x1: number; y0: number; y1: number };
+/** Caixa no mundo (x, y, z), como as das peças e dos módulos. */
+export type WorldBox = { min: readonly number[]; max: readonly number[] };
+
+/**
+ * Onde a TV encosta: a frente do painel de parede que tem o centro da tela
+ * (painel de TV, ripado atrás dela) ou a própria parede. É o mesmo plano
+ * para o veredito, para a cena 3D e para o desenho que a IA confere.
+ */
+export function tvMountZ(tv: WallRect, panels: readonly WorldBox[], wallZ: number) {
+  const cx = (tv.x0 + tv.x1) / 2,
+    cy = (tv.y0 + tv.y1) / 2;
+  let z = wallZ;
+  for (const p of panels)
+    if (p.min[0] <= cx && p.max[0] >= cx && p.min[1] <= cy && p.max[1] >= cy) z = Math.max(z, p.max[2]);
+  return z;
+}
+
+/**
+ * A caixa tapa a TV: cruza a tela (com a folga em volta) e avança além do
+ * plano onde ela encosta. O painel que segura a TV termina nesse plano e
+ * nunca tapa; um nicho, uma prateleira ou outro painel na frente, sim.
+ */
+export function blocksTv(tv: WallRect, mountZ: number, box: WorldBox, clearance = TV_CLEARANCE_MM) {
+  return (
+    Math.min(box.max[0], tv.x1 + clearance) - Math.max(box.min[0], tv.x0 - clearance) > 0.5 &&
+    Math.min(box.max[1], tv.y1 + clearance) - Math.max(box.min[1], tv.y0 - clearance) > 0.5 &&
+    box.max[2] > mountZ + 0.5
+  );
+}
+
+/** TVs da parede no mundo: a tela e o plano onde encostam. */
+export function tvPlacements(design: Composition, room: Room, g = generateComposition(design)) {
+  const wall = wallAt(room, g.bounds);
+  const panels = g.parts.filter((p) => p.kind === 'panel').map(worldBox);
+  return (room.obstacles ?? [])
+    .filter((o) => o.kind === 'tv')
+    .map((o) => {
+      const rect: WallRect = { x0: wall.x + o.xMm, x1: wall.x + o.xMm + o.widthMm, y0: o.yMm, y1: o.yMm + o.heightMm };
+      return { obstacle: o, rect, mountZ: tvMountZ(rect, panels, wall.z) };
+    });
+}
+
+/** Caixa de mundo de uma peça (x, y, z), girada em passos de 90°. */
+function worldBox(part: ModularPart): WorldBox {
+  const turned = Math.round((part.rotation * 180) / Math.PI) % 180 !== 0;
+  const w = turned ? part.size[2] : part.size[0];
+  const d = turned ? part.size[0] : part.size[2];
+  return {
+    min: [part.position[0] - w / 2, part.position[1] - part.size[1] / 2, part.position[2] - d / 2],
+    max: [part.position[0] + w / 2, part.position[1] + part.size[1] / 2, part.position[2] + d / 2],
+  };
+}
 
 /** Tolerância de encaixe: abaixo disto a face encosta, não cruza. */
 const TOUCH = 1e-6;
@@ -526,6 +594,8 @@ type Box = {
   maxX: number;
   minY: number;
   maxY: number;
+  minZ: number;
+  maxZ: number;
 };
 
 /**
@@ -534,14 +604,8 @@ type Box = {
  * por profundidade.
  */
 function partBox(part: ModularPart): Box {
-  const turned = Math.round((part.rotation * 180) / Math.PI) % 180 !== 0;
-  const width = turned ? part.size[2] : part.size[0];
-  return {
-    minX: part.position[0] - width / 2,
-    maxX: part.position[0] + width / 2,
-    minY: part.position[1] - part.size[1] / 2,
-    maxY: part.position[1] + part.size[1] / 2,
-  };
+  const b = worldBox(part);
+  return { minX: b.min[0], maxX: b.max[0], minY: b.min[1], maxY: b.max[1], minZ: b.min[2], maxZ: b.max[2] };
 }
 
 function mergeBox(a: Box, b: Box): Box {
@@ -550,6 +614,8 @@ function mergeBox(a: Box, b: Box): Box {
     maxX: Math.max(a.maxX, b.maxX),
     minY: Math.min(a.minY, b.minY),
     maxY: Math.max(a.maxY, b.maxY),
+    minZ: Math.min(a.minZ, b.minZ),
+    maxZ: Math.max(a.maxZ, b.maxZ),
   };
 }
 
@@ -566,7 +632,9 @@ export function moduleBoxes(parts: readonly ModularPart[]) {
 }
 
 /** O que a parede vê: cruzar em x (ao longo dela) e em y (do piso para cima). */
-function crosses(a: Box, b: Box) {
+/** Área na parede (x e altura), sem profundidade. */
+type Area = Pick<Box, 'minX' | 'maxX' | 'minY' | 'maxY'>;
+function crosses(a: Area, b: Area) {
   return (
     Math.min(a.maxX, b.maxX) - Math.max(a.minX, b.minX) > TOUCH &&
     Math.min(a.maxY, b.maxY) - Math.max(a.minY, b.minY) > TOUCH
@@ -593,14 +661,34 @@ export function fitReport(design: Composition, room: Room): FitReport {
   const behind: string[] = [];
   const offset = roomOffset(room, g.bounds);
   const gap = wallGap(room, g.bounds);
+  // TV: o painel atrás dela é o lugar dela; o que avança na frente da tela
+  // (ou encosta nela, dentro da folga) tapa. Antes a TV era pulada inteira e
+  // um nicho alto na frente da tela passava como "cabe".
+  const tvIssues: FitIssue[] = [];
+  for (const tv of tvPlacements(design, room, g))
+    for (const movel of design.modules) {
+      const box = modules.get(movel.id);
+      if (!box || !blocksTv(tv.rect, tv.mountZ, { min: [box.minX, box.minY, box.minZ], max: [box.maxX, box.maxY, box.maxZ] })) continue;
+      const who = tv.obstacle.label ?? 'TV';
+      const inFront =
+        Math.min(box.maxX, tv.rect.x1) - Math.max(box.minX, tv.rect.x0) > 0.5 && Math.min(box.maxY, tv.rect.y1) - Math.max(box.minY, tv.rect.y0) > 0.5;
+      crossed.add(tv.obstacle.id);
+      tvIssues.push({
+        code: 'tv-blocked',
+        key: `tv-blocked:${tv.obstacle.id}:${movel.id}`,
+        message: inFront
+          ? `O módulo ${movel.name} fica na frente da ${who}`
+          : `O módulo ${movel.name} encosta na ${who}: deixe ${centimetres(TV_CLEARANCE_MM)} livres em volta da tela`,
+        detail: `A tela vai de ${plain(tv.obstacle.xMm)} a ${plain(tv.obstacle.xMm + tv.obstacle.widthMm)} na parede e de ${plain(tv.rect.y0)} a ${plain(tv.rect.y1)} do piso.`,
+      });
+    }
   for (const obstacle of obstacles) {
-    // A TV é da parede, não do móvel: fica na frente do painel e acima do
-    // rack de propósito, então não conta como obstáculo.
+    // TV conferida acima, pelo plano da tela.
     if (obstacle.kind === 'tv') continue;
     // O ambiente conta x do canto esquerdo; a composição começa no afastamento.
     const minX = obstacle.xMm - offset + g.bounds.min[0];
     const maxX = minX + obstacle.widthMm;
-    const area: Box = {
+    const area: Area = {
       minX,
       maxX,
       minY: obstacle.yMm,
@@ -618,6 +706,7 @@ export function fitReport(design: Composition, room: Room): FitReport {
       crossed.add(obstacle.id);
       obstacleIssues.push({
         code: 'obstacle-overlap',
+        key: `obstacle-overlap:${obstacle.id}:${movel.id}`,
         message: `${who} (x de ${plain(obstacle.xMm)} a ${plain(obstacle.xMm + obstacle.widthMm)} na parede) cruza o módulo ${movel.name}`,
         detail: `O obstáculo vai de ${plain(area.minY)} a ${plain(area.maxY)} do piso; o módulo ocupa de ${plain(box.minY)} a ${plain(box.maxY)}.`,
       });
@@ -658,9 +747,9 @@ export function fitReport(design: Composition, room: Room): FitReport {
         : `O móvel tem ${metres(depth)} de profundidade e o ambiente permite ${metres(room.depthMm)}`,
       detail: `Passa ${centimetres(depth + Math.max(gap, 0) - room.depthMm)} do limite do ambiente.`,
     });
-  issues.push(...obstacleIssues);
+  issues.push(...tvIssues, ...obstacleIssues);
   // Painel e módulo suspenso vão presos na parede: não precisam tocar o piso.
-  const hung = design.modules.every((m) => m.kind === 'panel' || m.wall);
+  const hung = design.modules.every((m) => m.kind === 'panel' || m.kind === 'ledge' || m.wall);
   if (base > ON_FLOOR && !hung)
     issues.push({
       code: 'floor-gap',

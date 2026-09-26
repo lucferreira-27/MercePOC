@@ -1,0 +1,276 @@
+{
+ "id": "est-01",
+ "at": "2026-09-26T11:55:29.286Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: mostra de frente e abre as gavetas",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_AdmuLmnxlwb2j1Xs0xb3pCJ2",
+      "type": "function",
+      "function": {
+       "name": "view_camera",
+       "arguments": "{\"vista\":\"front\"}"
+      }
+     },
+     {
+      "id": "call_LrIqS2Cc0UYbANXMFWuZrOMR",
+      "type": "function",
+      "function": {
+       "name": "fronts_open",
+       "arguments": "{\"ids\":[\"n\"],\"abrir\":true}"
+      }
+     },
+     {
+      "id": "call_3PfZPG0tmySl0TgAHv58EPYG",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: mostra de frente e abre as gavetas",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_Bn6mCq6MajZgesZH0gj1Mi2b",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"A estante está na vista de frente, com as três gavetas abertas e o móvel enquadrado.\",\"sugestoes\":[\"Feche as gavetas\",\"Veja em perspectiva\",\"Confira o orçamento\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "view",
+      "confidence": 1,
+      "probabilities": {
+       "edit": 0,
+       "view": 1,
+       "options": 0,
+       "ask": 0,
+       "build": 0,
+       "studio": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.96
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.37
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.13
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.23
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.95
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.38
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.44
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.63
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.26
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.18
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.52
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1314,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.86
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.92
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.81
+     }
+    },
+    "usage": {
+     "input_tokens": 417,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.76
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.85
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 498,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

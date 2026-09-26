@@ -1,0 +1,441 @@
+{
+ "id": "tc-01",
+ "at": "2026-09-26T07:20:14.947Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Cozinha para uma parede de 3,2 m com janela de 1,2 m no meio: balcões embaixo e aéreos dos dois lados da janela. Mostre de frente e me mande o PDF",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_JUmCIcVMFWroGfdfz3Uz44bH",
+      "type": "function",
+      "function": {
+       "name": "ask_user",
+       "arguments": "{\"pergunta\":\"Para posicionar os balcões e os aéreos sem inventar medidas do ambiente, qual é o pé-direito e a profundidade do cômodo? Vou considerar a janela padrão de 120 × 100 cm, centralizada na parede, a 100 cm do piso.\",\"opcoes\":[{\"rotulo\":\"Pé-direito 240 cm; cômodo 300 cm\",\"ids\":[]},{\"rotulo\":\"Pé-direito 270 cm; cômodo 300 cm\",\"ids\":[]},{\"rotulo\":\"Informar outras medidas\",\"ids\":[]}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Cozinha para uma parede de 3,2 m com janela de 1,2 m no meio: balcões embaixo e aéreos dos dois lados da janela. Mostre de frente e me mande o PDF",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_KZFoGz7SsasTK8AWYL9r032Z",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Conferir o ambiente atual e definir a parede e a janela\",\"Montar os balcões abaixo da janela\",\"Montar aéreos nos dois lados da janela\",\"Mostrar de frente e gerar o PDF\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Cozinha para uma parede de 3,2 m com janela de 1,2 m no meio: balcões embaixo e aéreos dos dois lados da janela. Mostre de frente e me mande o PDF",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_iELqiSoA5STPCxj6nTTGO9w2",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_YdgWgyzHGLLX7sMKcCymKfVg",
+      "type": "function",
+      "function": {
+       "name": "room_set",
+       "arguments": "{\"largura\":3200,\"altura\":2400,\"profundidade\":3000,\"rodape\":100}"
+      }
+     },
+     {
+      "id": "call_ntmXSpfu1jHIZ4OnAiOQ6IuI",
+      "type": "function",
+      "function": {
+       "name": "room_obstacles",
+       "arguments": "{\"add\":[{\"kind\":\"window\",\"label\":\"Janela centralizada\",\"xMm\":1000,\"yMm\":1000,\"widthMm\":1200,\"heightMm\":1000}],\"move\":[],\"remove\":[]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Cozinha para uma parede de 3,2 m com janela de 1,2 m no meio: balcões embaixo e aéreos dos dois lados da janela. Mostre de frente e me mande o PDF",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_peoPyyLRwia3y9bwb0lOagjA",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\":0,\"largura\":3200,\"altura\":850,\"profundidade\":580,\"base\":0,\"tipo\":\"niche\",\"nome\":\"Balcão de cozinha\",\"modulos\":4,\"largura_max_modulo\":900,\"frente\":\"double\",\"gavetas\":3,\"material\":\"oak\",\"material_frente\":\"oak\",\"pes\":100,\"desviar_obstaculos\":true,\"folga\":50,\"substituir\":true}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Cozinha para uma parede de 3,2 m com janela de 1,2 m no meio: balcões embaixo e aéreos dos dois lados da janela. Mostre de frente e me mande o PDF",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_X8cIOTxl26Ez00nQX7UKMBGZ",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\":0,\"largura\":3200,\"altura\":700,\"profundidade\":350,\"base\":1500,\"tipo\":\"niche\",\"nome\":\"Aéreos de cozinha\",\"modulos\":4,\"largura_max_modulo\":900,\"frente\":\"double\",\"gavetas\":3,\"material\":\"oak\",\"material_frente\":\"oak\",\"pes\":0,\"desviar_obstaculos\":true,\"folga\":50,\"substituir\":false}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "14|Pedido: Cozinha para uma parede de 3,2 m com janela de 1,2 m no meio: balcões embaixo e aéreos dos dois lados da janela. Mostre de frente e me mande o PDF",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_x3xkOM8dxnDgz2gFUNanlypp",
+      "type": "function",
+      "function": {
+       "name": "view_camera",
+       "arguments": "{\"vista\":\"front\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "16|Pedido: Cozinha para uma parede de 3,2 m com janela de 1,2 m no meio: balcões embaixo e aéreos dos dois lados da janela. Mostre de frente e me mande o PDF",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_P9RUeoAFJD9fIUllzzN5bBiv",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "18|Pedido: Cozinha para uma parede de 3,2 m com janela de 1,2 m no meio: balcões embaixo e aéreos dos dois lados da janela. Mostre de frente e me mande o PDF",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_mm54ljVzW7Xp07NsmYfZIwxS",
+      "type": "function",
+      "function": {
+       "name": "export_file",
+       "arguments": "{\"formato\":\"pdf\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "20|Pedido: Cozinha para uma parede de 3,2 m com janela de 1,2 m no meio: balcões embaixo e aéreos dos dois lados da janela. Mostre de frente e me mande o PDF",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_vwI3MQwnvycTrGlOobvO3GSL",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Montei o balcão de 3,2 m com portas duplas e aéreos em dois trechos, totalizando 1,84 m, deixando livre a janela central. Usei pé-direito padrão de 2,4 m e profundidade de cômodo de 3 m; mostrei a vista frontal e gerei o PDF.\",\"sugestoes\":[\"Confira o orçamento da cozinha\",\"Veja o plano de corte\",\"Ajuste os acabamentos\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.98,
+      "probabilities": {
+       "edit": 0,
+       "options": 0,
+       "ask": 0,
+       "studio": 0.02,
+       "build": 0.98,
+       "view": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.95
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.23
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.98
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.15
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.97
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.15
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.34
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.25
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.9
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.32
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 1354,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.98
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.82
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.97
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.07
+     }
+    },
+    "usage": {
+     "input_tokens": 457,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "especie",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "especie": {
+      "type": "choice",
+      "choice": "ambiente",
+      "confidence": 0.73,
+      "probabilities": {
+       "valor": 0.23,
+       "eixo": 0,
+       "ambiente": 0.77,
+       "outro": 0,
+       "limite": 0,
+       "preferencia": 0,
+       "peca": 0
+      }
+     }
+    },
+    "usage": {
+     "input_tokens": 525,
+     "output_tokens": 77
+    }
+   }
+  },
+  {
+   "asked": "alvo_vago,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "vague": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "alvo_vago": {
+      "type": "noul",
+      "noul": 0.06
+     }
+    },
+    "usage": {
+     "input_tokens": 395,
+     "output_tokens": 40
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.91
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.55
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.9
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 551,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

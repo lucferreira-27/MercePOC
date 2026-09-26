@@ -1,0 +1,379 @@
+{
+ "id": "tv-01",
+ "at": "2026-09-26T06:17:30.372Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_DpKB8uYFtWECI3NAZRRxASRV",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Conferir o painel, a TV e as medidas atuais\",\"Criar uma composição autoral de nichos e prateleira\",\"Enquadrar e validar o resultado no painel\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_ZZNW5O1uoKucAqsjXjSnARvs",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_fc9z61SQlpHY4zWdVabdCPGx",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.add\",\"id\":\"nicho-a\",\"preset\":\"niche\",\"name\":\"Nicho assimétrico A\"},{\"kind\":\"module.edit\",\"id\":\"nicho-a\",\"width\":420,\"height\":330,\"depth\":220,\"materialId\":\"freijo\",\"back\":true,\"wall\":true,\"position\":[160,420,25]},{\"kind\":\"module.add\",\"id\":\"nicho-b\",\"preset\":\"niche\",\"name\":\"Nicho assimétrico B\"},{\"kind\":\"module.edit\",\"id\":\"nicho-b\",\"width\":480,\"height\":300,\"depth\":220,\"materialId\":\"freijo\",\"back\":true,\"wall\":true,\"position\":[700,730,25]},{\"kind\":\"module.add\",\"id\":\"prateleira-inferior\",\"preset\":\"shelf\",\"name\":\"Prateleira inferior\"},{\"kind\":\"module.edit\",\"id\":\"prateleira-inferior\",\"width\":1100,\"height\":220,\"depth\":220,\"materialId\":\"freijo\",\"wall\":true,\"position\":[900,100,25]}],\"rotulo\":\"Painel com nichos assimétricos\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_CD9XKCxGKjRZeSGbcItYB3Qx",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.add\",\"id\":\"nicho-a\",\"preset\":\"niche\",\"name\":\"Nicho assimétrico A\"},{\"kind\":\"module.edit\",\"id\":\"nicho-a\",\"width\":420,\"height\":330,\"depth\":220,\"materialId\":\"freijo\",\"back\":true,\"wall\":true,\"position\":[160,500,250]},{\"kind\":\"module.add\",\"id\":\"nicho-b\",\"preset\":\"niche\",\"name\":\"Nicho assimétrico B\"},{\"kind\":\"module.edit\",\"id\":\"nicho-b\",\"width\":480,\"height\":300,\"depth\":220,\"materialId\":\"freijo\",\"back\":true,\"wall\":true,\"position\":[700,850,250]},{\"kind\":\"module.add\",\"id\":\"prateleira-inferior\",\"preset\":\"shelf\",\"name\":\"Prateleira inferior\"},{\"kind\":\"module.edit\",\"id\":\"prateleira-inferior\",\"width\":1100,\"height\":220,\"depth\":220,\"materialId\":\"freijo\",\"wall\":true,\"position\":[350,250,250]},{\"kind\":\"module.add\",\"id\":\"nicho-lateral\",\"preset\":\"niche\",\"name\":\"Nicho lateral\"},{\"kind\":\"module.edit\",\"id\":\"nicho-lateral\",\"width\":380,\"height\":300,\"depth\":220,\"materialId\":\"freijo\",\"back\":true,\"wall\":true,\"position\":[2600,1450,250]}],\"rotulo\":\"Composição autoral freijó para painel\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_Wku73jXbv9eDYv0MBYa1eHar",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.add\",\"id\":\"nicho-a\",\"preset\":\"niche\",\"name\":\"Nicho assimétrico A\"},{\"kind\":\"module.edit\",\"id\":\"nicho-a\",\"width\":420,\"height\":330,\"depth\":220,\"materialId\":\"freijo\",\"back\":true,\"wall\":true,\"position\":[120,500,250]},{\"kind\":\"module.add\",\"id\":\"nicho-b\",\"preset\":\"niche\",\"name\":\"Nicho assimétrico B\"},{\"kind\":\"module.edit\",\"id\":\"nicho-b\",\"width\":480,\"height\":300,\"depth\":220,\"materialId\":\"freijo\",\"back\":true,\"wall\":true,\"position\":[600,850,250]},{\"kind\":\"module.add\",\"id\":\"nicho-c\",\"preset\":\"niche\",\"name\":\"Nicho decorativo C\"},{\"kind\":\"module.edit\",\"id\":\"nicho-c\",\"width\":400,\"height\":250,\"depth\":220,\"materialId\":\"freijo\",\"back\":true,\"wall\":true,\"position\":[720,300,250]},{\"kind\":\"module.add\",\"id\":\"nicho-d\",\"preset\":\"niche\",\"name\":\"Nicho decorativo D\"},{\"kind\":\"module.edit\",\"id\":\"nicho-d\",\"width\":320,\"height\":420,\"depth\":220,\"materialId\":\"freijo\",\"back\":true,\"wall\":true,\"position\":[200,1000,250]}],\"rotulo\":\"Painel com nichos autorais em freijó\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_EUcEI0TkmRJGcUKHIIdbTkG1",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "14|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_258I6LFdfhvAZ0YK2euI5h83",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "17|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_5VcjuKDMHyEtEmrDX28pK3QC",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "19|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_modWqm9Rk2rOvJDFGNwuRbRV",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Adicionei quatro nichos abertos em freijó, dispostos de forma assimétrica no painel de nogueira e fora da área da TV. Enquadrei e mostrei a composição para conferência.\",\"sugestoes\":[\"Experimente outra disposição dos nichos\",\"Adicione iluminação decorativa\",\"Confira o orçamento atualizado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.67,
+      "probabilities": {
+       "view": 0,
+       "studio": 0.18,
+       "options": 0,
+       "edit": 0.08,
+       "ask": 0.01,
+       "build": 0.73
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.5
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.21
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.27
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.13
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.18
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1316,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 419,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.93
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.05
+     }
+    },
+    "usage": {
+     "input_tokens": 521,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,324 @@
+{
+ "id": "con-02",
+ "at": "2026-09-26T07:17:42.056Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Quantas peças o projeto tem hoje?",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_S5IJaLBR9l1xNl7w6BAPOZNN",
+      "type": "function",
+      "function": {
+       "name": "parts_list",
+       "arguments": "{\"modulo\":\"\",\"material\":\"\",\"tipo\":\"side\"}"
+      }
+     },
+     {
+      "id": "call_afgm7X8yQgwYuchFIaoao3MF",
+      "type": "function",
+      "function": {
+       "name": "parts_list",
+       "arguments": "{\"modulo\":\"\",\"material\":\"\",\"tipo\":\"base\"}"
+      }
+     },
+     {
+      "id": "call_HP1epgqLmz9K5XKGzshMNvqM",
+      "type": "function",
+      "function": {
+       "name": "parts_list",
+       "arguments": "{\"modulo\":\"\",\"material\":\"\",\"tipo\":\"top\"}"
+      }
+     },
+     {
+      "id": "call_d4lSlwSKOUH1g2a4gVH9Uf1R",
+      "type": "function",
+      "function": {
+       "name": "parts_list",
+       "arguments": "{\"modulo\":\"\",\"material\":\"\",\"tipo\":\"back\"}"
+      }
+     },
+     {
+      "id": "call_hwK1SWzDUXol6IBiRg1bzTxj",
+      "type": "function",
+      "function": {
+       "name": "parts_list",
+       "arguments": "{\"modulo\":\"\",\"material\":\"\",\"tipo\":\"shelf\"}"
+      }
+     },
+     {
+      "id": "call_Siy8BwiC11VjpKHbo1ZUU2O1",
+      "type": "function",
+      "function": {
+       "name": "parts_list",
+       "arguments": "{\"modulo\":\"\",\"material\":\"\",\"tipo\":\"divider\"}"
+      }
+     },
+     {
+      "id": "call_bw7j0hTWihRd4ThGOMrXNLKE",
+      "type": "function",
+      "function": {
+       "name": "parts_list",
+       "arguments": "{\"modulo\":\"\",\"material\":\"\",\"tipo\":\"door\"}"
+      }
+     },
+     {
+      "id": "call_2ThjRqEndXN2uMg2qJbbfV3B",
+      "type": "function",
+      "function": {
+       "name": "parts_list",
+       "arguments": "{\"modulo\":\"\",\"material\":\"\",\"tipo\":\"drawer\"}"
+      }
+     },
+     {
+      "id": "call_LDGQmOg9Pa9oxi6Y8nPHP8VC",
+      "type": "function",
+      "function": {
+       "name": "parts_list",
+       "arguments": "{\"modulo\":\"\",\"material\":\"\",\"tipo\":\"panel\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Quantas peças o projeto tem hoje?",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_R5miPSUl4GXlq19dmgEaD8w0",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"O projeto tem hoje 9 peças: 2 laterais, 1 base, 1 tampo, 4 prateleiras e 1 fundo.\",\"sugestoes\":[\"Veja a lista completa de peças\",\"Confira o plano de corte\",\"Abra o orçamento detalhado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "ask",
+      "confidence": 1,
+      "probabilities": {
+       "build": 0,
+       "view": 0,
+       "studio": 0,
+       "edit": 0,
+       "options": 0,
+       "ask": 1
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.98
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1314,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 417,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 505,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

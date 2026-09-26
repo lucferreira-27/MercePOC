@@ -1,0 +1,372 @@
+{
+ "id": "gr-02",
+ "at": "2026-09-26T06:35:38.603Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Coloque uma sapateira de 60 cm ao lado do guarda-roupa",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_gJ9OPV05QjwtN93hh2ITBcv3",
+      "type": "function",
+      "function": {
+       "name": "ask_user",
+       "arguments": "{\"pergunta\":\"Em qual lado do guarda-roupa você quer a sapateira de 60 cm?\",\"opcoes\":[{\"rotulo\":\"À esquerda\",\"ids\":[]},{\"rotulo\":\"À direita\",\"ids\":[]}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Coloque uma sapateira de 60 cm ao lado do guarda-roupa",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_FB9A5GVzRqn9OGfRWqS9pyx2",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Coloque uma sapateira de 60 cm ao lado do guarda-roupa",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_R2YQMmcghd7NLGeZwgQWZUti",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"asset.add\",\"asset\":\"sapateira\",\"id\":\"sapateira\",\"width\":600,\"height\":1100,\"depth\":350,\"materialId\":\"white\",\"frontMaterialId\":\"freijo\",\"placement\":\"right\"}],\"rotulo\":\"Sapateira ao lado do guarda-roupa\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Coloque uma sapateira de 60 cm ao lado do guarda-roupa",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_l6x6wWt3tCp6PejzQX85BDeE",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.add\",\"id\":\"sapateira-60\",\"preset\":\"shelf\",\"name\":\"Sapateira 60 cm\"},{\"kind\":\"module.edit\",\"id\":\"sapateira-60\",\"width\":600,\"height\":1100,\"depth\":350,\"materialId\":\"white\",\"back\":true,\"feet\":0,\"position\":[2241,0,0]},{\"kind\":\"connect\",\"parent\":\"g3\",\"child\":\"sapateira-60\",\"side\":\"right\",\"shared\":false,\"align\":\"front\",\"offset\":0}],\"rotulo\":\"Sapateira de 60 cm ao lado do guarda-roupa\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Coloque uma sapateira de 60 cm ao lado do guarda-roupa",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_6oJ2Gf5wbrHSAX5HQpWNY6dW",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Coloque uma sapateira de 60 cm ao lado do guarda-roupa",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_v0uPoSWD7HxZOoj5aDiFZ3Bd",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.remove\",\"id\":\"sapateira-60\"}],\"rotulo\":\"Manter o guarda-roupa sem bloquear a porta\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "14|Pedido: Coloque uma sapateira de 60 cm ao lado do guarda-roupa",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_6Yr6dEDM7qtSPxWQki3bB1Yj",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"disconnect\",\"child\":\"sapateira-60\"},{\"kind\":\"module.remove\",\"id\":\"sapateira-60\"}],\"rotulo\":\"Remover sapateira que cruza a porta\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "16|Pedido: Coloque uma sapateira de 60 cm ao lado do guarda-roupa",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_iYMV2GmILrdrQ2dIhRVnSDGe",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Não foi possível acrescentar a sapateira de 60 cm: a porta ocupa o espaço ao lado direito do guarda-roupa e a sapateira cruzaria essa área; removi a tentativa para manter o encaixe atual. O modelo de sapateira da biblioteca começa em 80 cm de largura, e a alternativa de 60 cm também não cabe nesse lado.\",\"sugestoes\":[\"Verifique o lado esquerdo do guarda-roupa\",\"Escolha uma sapateira com até 80 cm de largura\",\"Reposicione a sapateira após medir a parede\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.9,
+      "probabilities": {
+       "options": 0,
+       "edit": 0.08,
+       "view": 0,
+       "ask": 0,
+       "studio": 0,
+       "build": 0.92
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.58
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.34
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.24
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.01
+     }
+    },
+    "usage": {
+     "input_tokens": 1324,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 427,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "alvo_vago,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "vague": {
+      "type": "noul",
+      "noul": 0.25
+     },
+     "alvo_vago": {
+      "type": "noul",
+      "noul": 0.06
+     }
+    },
+    "usage": {
+     "input_tokens": 365,
+     "output_tokens": 40
+    }
+   }
+  },
+  {
+   "asked": "especie",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "especie": {
+      "type": "choice",
+      "choice": "preferencia",
+      "confidence": 0.51,
+      "probabilities": {
+       "valor": 0.01,
+       "preferencia": 0.58,
+       "limite": 0,
+       "peca": 0.06,
+       "eixo": 0,
+       "outro": 0.34,
+       "ambiente": 0.01
+      }
+     }
+    },
+    "usage": {
+     "input_tokens": 474,
+     "output_tokens": 79
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": null
+  }
+ ]
+}

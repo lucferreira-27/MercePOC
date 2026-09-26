@@ -50,6 +50,16 @@ O portão do perguntar (`lib/agent/ask-gate.ts`) usa o Jev quando o assistente c
 - `--agent --record` não grava as fixtures do caminho antigo (foto): elas são de outra rodada, e sobrescrever estraga o `--offline` delas.
 - Cada linha leva `caseHash`, a impressão do caso (pedido, preparação, rótulo e expectativa). O painel marca **regra antiga** nas linhas avaliadas antes de a expectativa mudar.
 
+### Grupo `composicao` e o oráculo próprio
+
+O pacote do redesenho do assistente (`bench/composition-cases.mjs`, ver `docs/plans/redesign-report.md`): composição em volta da TV (painel, TV fora do centro, parede sem painel), cozinha (móveis de apoio, layout bagunçado, parede de 3 m, altura da bancada), lavanderia (mais móveis, vão da máquina), guarda-roupa (módulo a mais, sem lugar), estante do zero, escritório com janela, redução de chapas, remoção ligada, troca do único módulo, edição exata e pedido impossível. `tv-03` e `esc-01` são casos guardados: expectativas escritas antes de rodar o candidato.
+
+- Cada caso parte de uma cena em `bench/scenes` (`setup.scene`: cópia isolada de um projeto real, lida só uma vez do banco, ou variação gerada com as operações do contrato).
+- O juiz é `bench/oracle.mjs`, independente do validador do app (o `fitReport` antigo aprovava um nicho na frente da TV): TV e painel no mesmo lugar do mundo, tela livre com 30 mm de folga, peça nova presa no painel, na parede ou no piso (sem flutuar nem passar da borda do painel), peça funcional, geometria válida, encaixe, resposta sem contradizer o plano de corte e o Ctrl+Z voltando móvel e ambiente.
+- Cada linha grava `startHash` e `finalHash` (design + ambiente), `rejected` (tentativas recusadas), `report` (desfecho, fatos, conferência) e `final` (o estado gravado, para julgar de novo com outro oráculo). O resumo grava `code` (revisão e arquivos locais) e `promptHash` (regras + ferramentas).
+- `--fixtures <pasta>` grava ou lê as respostas do laço noutra pasta: a base e o candidato não se misturam.
+- `npx tsx bench/compare-redesign.mjs --base <rodadas ao vivo da base> --judge <base rejulgada offline> --cand <candidato> --md saida.md` monta a tabela caso a caso (acerto, recusas, chamadas, mediana, p90, custo).
+
 ### Painel (`npm run bench:dash`)
 
 Página para quem desenvolve, gerada de todos os `bench/results/*.json` em `bench/results/painel.html` (uma página só, sem servidor nem rede). Cada rodada com `--out` atualiza o painel sozinha. `npm run bench:dash -- --serve` abre um servidor local em `http://127.0.0.1:4320/` que refaz o painel a cada recarga.

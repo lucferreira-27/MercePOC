@@ -1,0 +1,549 @@
+{
+ "id": "tv-01",
+ "at": "2026-09-26T11:33:00.355Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_dZHOc4JxqtiG44qyArEvLkTn",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Planejar módulos e prateleiras ao redor da TV\",\"Montar as peças no painel sem bloquear a tela\",\"Visualizar a composição e ajustar se necessário\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_rTppZVqJZOSiv4ea8VerNQvf",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"estante-esq\",\"nome\":\"Estante lateral esquerda\",\"tipo\":\"estante\",\"largura\":400,\"altura\":1100,\"profundidade\":250,\"pes\":0,\"material\":\"sage\",\"interior\":{\"linhas\":[{\"altura\":330,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":330,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":330,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":3,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"sage\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"esquerda\",\"folga\":30,\"alinhar\":\"topo\",\"x\":0,\"y\":0}},{\"ref\":\"estante-dir\",\"nome\":\"Estante lateral direita\",\"tipo\":\"estante\",\"largura\":400,\"altura\":1100,\"profundidade\":250,\"pes\":0,\"material\":\"sage\",\"interior\":{\"linhas\":[{\"altura\":330,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":330,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":330,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":3,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"sage\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"direita\",\"folga\":30,\"alinhar\":\"topo\",\"x\":0,\"y\":0}},{\"ref\":\"gaveteiro-tv\",\"nome\":\"Gaveteiro suspenso sob a TV\",\"tipo\":\"gaveteiro\",\"largura\":1230,\"altura\":320,\"profundidade\":350,\"pes\":0,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":280,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":3}],\"vaos\":1,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":3,\"porta_inteira\":\"porta\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"abaixo\",\"folga\":50,\"alinhar\":\"centro\",\"x\":0,\"y\":0}}],\"rotulo\":\"Composição criativa em torno da TV\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_xYvrr9Ya1Z2WX0TpLLqwAt3g",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"torre-esq\",\"nome\":\"Nicho lateral sálvia\",\"tipo\":\"estante\",\"largura\":400,\"altura\":700,\"profundidade\":250,\"pes\":0,\"material\":\"sage\",\"interior\":{\"linhas\":[{\"altura\":200,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":200,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":200,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":3,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"sage\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"esquerda\",\"folga\":30,\"alinhar\":\"centro\",\"x\":0,\"y\":0}},{\"ref\":\"torre-dir\",\"nome\":\"Nicho lateral sálvia\",\"tipo\":\"estante\",\"largura\":400,\"altura\":700,\"profundidade\":250,\"pes\":0,\"material\":\"sage\",\"interior\":{\"linhas\":[{\"altura\":200,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":200,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":200,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":3,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"sage\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"direita\",\"folga\":30,\"alinhar\":\"centro\",\"x\":0,\"y\":0}},{\"ref\":\"console-tv\",\"nome\":\"Console suspenso com três gavetas\",\"tipo\":\"gaveteiro\",\"largura\":1230,\"altura\":320,\"profundidade\":350,\"pes\":0,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":280,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":3}],\"vaos\":1,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":3,\"porta_inteira\":\"porta\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"abaixo\",\"folga\":50,\"alinhar\":\"centro\",\"x\":0,\"y\":0}}],\"rotulo\":\"Nichos e console personalizados no painel\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_MyzXeG3cKnElTsbSdjyCm8Te",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_TicbC1GaTmmCK6JzpxNna08x",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"nicho-lateral-esq\",\"nome\":\"Nicho sálvia lateral esquerdo\",\"tipo\":\"estante\",\"largura\":455,\"altura\":900,\"profundidade\":250,\"pes\":0,\"material\":\"sage\",\"interior\":{\"linhas\":[{\"altura\":410,\"colunas\":2,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":410,\"colunas\":2,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":2,\"colunas\":2,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"sage\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"esquerda\",\"folga\":30,\"alinhar\":\"topo\",\"x\":0,\"y\":0}},{\"ref\":\"nicho-lateral-dir\",\"nome\":\"Nicho sálvia lateral direito\",\"tipo\":\"estante\",\"largura\":455,\"altura\":900,\"profundidade\":250,\"pes\":0,\"material\":\"sage\",\"interior\":{\"linhas\":[{\"altura\":260,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":260,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":260,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":3,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"sage\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"direita\",\"folga\":30,\"alinhar\":\"topo\",\"x\":0,\"y\":0}},{\"ref\":\"console-tv\",\"nome\":\"Console suspenso nogueira com gavetas\",\"tipo\":\"gaveteiro\",\"largura\":1230,\"altura\":320,\"profundidade\":350,\"pes\":0,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":280,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":3}],\"vaos\":1,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":3,\"porta_inteira\":\"porta\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"abaixo\",\"folga\":50,\"alinhar\":\"centro\",\"x\":0,\"y\":0}}],\"rotulo\":\"Estantes personalizadas no painel da TV\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_adM7wve2pK6whuIZaq9YNLSL",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"nicho-salvia-esq\",\"nome\":\"Nicho sálvia com dois níveis\",\"tipo\":\"estante\",\"largura\":455,\"altura\":900,\"profundidade\":250,\"pes\":0,\"material\":\"sage\",\"interior\":{\"linhas\":[{\"altura\":410,\"colunas\":2,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":410,\"colunas\":2,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":2,\"colunas\":2,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"sage\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"esquerda\",\"folga\":30,\"alinhar\":\"centro\",\"x\":0,\"y\":50}},{\"ref\":\"nicho-salvia-dir\",\"nome\":\"Nicho sálvia com três níveis\",\"tipo\":\"estante\",\"largura\":455,\"altura\":900,\"profundidade\":250,\"pes\":0,\"material\":\"sage\",\"interior\":{\"linhas\":[{\"altura\":260,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":260,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":260,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":3,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"sage\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"direita\",\"folga\":30,\"alinhar\":\"centro\",\"x\":0,\"y\":50}},{\"ref\":\"console-tv\",\"nome\":\"Console suspenso nogueira com três gavet\",\"tipo\":\"gaveteiro\",\"largura\":1230,\"altura\":320,\"profundidade\":350,\"pes\":0,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":280,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":3}],\"vaos\":1,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":3,\"porta_inteira\":\"porta\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"abaixo\",\"folga\":50,\"alinhar\":\"centro\",\"x\":0,\"y\":740}}],\"rotulo\":\"Nichos e console personalizados no painel\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "14|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_shUiYXeGJNQR2QrrLxm7r2mW",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"torre-salvia-esq\",\"nome\":\"Nicho lateral sálvia, dois vãos\",\"tipo\":\"estante\",\"largura\":400,\"altura\":700,\"profundidade\":250,\"pes\":0,\"material\":\"sage\",\"interior\":{\"linhas\":[{\"altura\":330,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":330,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":2,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"sage\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"esquerda\",\"folga\":30,\"alinhar\":\"centro\",\"x\":0,\"y\":1115}},{\"ref\":\"torre-salvia-dir\",\"nome\":\"Nicho lateral sálvia, três vãos\",\"tipo\":\"estante\",\"largura\":400,\"altura\":700,\"profundidade\":250,\"pes\":0,\"material\":\"sage\",\"interior\":{\"linhas\":[{\"altura\":210,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":210,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":210,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":3,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"sage\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"direita\",\"folga\":30,\"alinhar\":\"centro\",\"x\":0,\"y\":1115}}],\"rotulo\":\"Nichos laterais personalizados em sálvia\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "16|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_ywP0lIlbltyVSTshiNYeagkc",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.add\",\"id\":\"tv-console\",\"preset\":\"drawers\",\"name\":\"Console suspenso nogueira\"},{\"kind\":\"module.edit\",\"id\":\"tv-console\",\"width\":1230,\"height\":200,\"depth\":350,\"materialId\":\"walnut\",\"wall\":true,\"position\":[1285,860,0]},{\"kind\":\"cell.split\",\"id\":\"tv-console:root\",\"axis\":\"x\"},{\"kind\":\"cell.split\",\"id\":\"tv-console:root:low\",\"axis\":\"x\"},{\"kind\":\"front.set\",\"id\":\"tv-console:root:low:low\",\"type\":\"drawers\",\"count\":1,\"materialId\":\"walnut\"},{\"kind\":\"front.set\",\"id\":\"tv-console:root:low:high\",\"type\":\"drawers\",\"count\":1,\"materialId\":\"walnut\"},{\"kind\":\"front.set\",\"id\":\"tv-console:root:high\",\"type\":\"drawers\",\"count\":1,\"materialId\":\"walnut\"}],\"rotulo\":\"Console sob a TV com três gavetas\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "18|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_YkwbYOZlOd9ADgI0HkZeN1l5",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.add\",\"id\":\"tv-console\",\"preset\":\"drawers\",\"name\":\"Console suspenso nogueira\"},{\"kind\":\"module.edit\",\"id\":\"tv-console\",\"width\":1200,\"height\":200,\"depth\":350,\"materialId\":\"walnut\",\"wall\":true,\"position\":[1300,860,0]},{\"kind\":\"cell.split\",\"id\":\"tv-console:root\",\"axis\":\"x\"},{\"kind\":\"cell.split\",\"id\":\"tv-console:root:low\",\"axis\":\"x\"},{\"kind\":\"front.set\",\"id\":\"tv-console:root:low:low\",\"type\":\"drawers\",\"count\":1,\"materialId\":\"walnut\"},{\"kind\":\"front.set\",\"id\":\"tv-console:root:low:high\",\"type\":\"drawers\",\"count\":1,\"materialId\":\"walnut\"},{\"kind\":\"front.set\",\"id\":\"tv-console:root:high\",\"type\":\"drawers\",\"count\":1,\"materialId\":\"walnut\"}],\"rotulo\":\"Console sob a TV com três gavetas\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "20|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_UwDq6fbuWbJlv3yleWTyvOh1",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "23|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_m9V20zs0AIHbOTubljKYHEWO",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.add\",\"id\":\"tv-console\",\"preset\":\"drawers\",\"name\":\"Console suspenso nogueira\"},{\"kind\":\"module.edit\",\"id\":\"tv-console\",\"width\":1200,\"height\":200,\"depth\":350,\"materialId\":\"walnut\",\"wall\":true,\"position\":[1300,860,0]}],\"rotulo\":\"Console suspenso sob a TV\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "25|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_40qYe0Gccn0jdUza7Ya8mYQb",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.add\",\"id\":\"tv-console\",\"preset\":\"drawers\",\"name\":\"Console suspenso nogueira\"},{\"kind\":\"module.edit\",\"id\":\"tv-console\",\"width\":1200,\"height\":200,\"depth\":350,\"materialId\":\"walnut\",\"wall\":true,\"position\":[1300,860,0]},{\"kind\":\"front.set\",\"id\":\"tv-console:root\",\"type\":\"drawers\",\"count\":2,\"materialId\":\"walnut\"}],\"rotulo\":\"Console suspenso sob a TV\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "27|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_6NaDYVSkhn8vLEHhLunINKS5",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "29|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_TVWtYCkQvlVUPjBaZqmaGC17",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.add\",\"id\":\"console-custom\",\"preset\":\"niche\",\"name\":\"Console suspenso personalizado\"},{\"kind\":\"module.edit\",\"id\":\"console-custom\",\"width\":1200,\"height\":360,\"depth\":350,\"materialId\":\"walnut\",\"wall\":true,\"position\":[0,600,175]},{\"kind\":\"cell.split\",\"id\":\"console-custom:root\",\"axis\":\"x\"},{\"kind\":\"cell.split\",\"id\":\"console-custom:root:low\",\"axis\":\"x\"},{\"kind\":\"front.set\",\"id\":\"console-custom:root:low:low\",\"type\":\"drawers\",\"count\":1,\"materialId\":\"walnut\"},{\"kind\":\"front.set\",\"id\":\"console-custom:root:low:high\",\"type\":\"drawers\",\"count\":1,\"materialId\":\"walnut\"},{\"kind\":\"front.set\",\"id\":\"console-custom:root:high\",\"type\":\"drawers\",\"count\":1,\"materialId\":\"walnut\"}],\"rotulo\":\"Console suspenso personalizado sob a TV\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "31|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_N1w9YNZKmwxQrlUbkATPnwcW",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"console-tv\",\"nome\":\"Console suspenso personalizado em nogue\\u0000\",\"tipo\":\"gaveteiro\",\"largura\":1230,\"altura\":320,\"profundidade\":350,\"pes\":0,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":284,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":3}],\"vaos\":1,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":3,\"porta_inteira\":\"porta\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"abaixo\",\"folga\":50,\"alinhar\":\"centro\",\"x\":1285,\"y\":740}}],\"rotulo\":\"Console suspenso personalizado sob a TV\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "33|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_sohVMbNEiO8Ew9ufvZrLe1Ih",
+      "type": "function",
+      "function": {
+       "name": "fronts_open",
+       "arguments": "{\"ids\":[],\"abrir\":false}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "35|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_dBGczJHCutNdC0NrtHmCZsp4",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "38|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_4LblcHfI6ue1G42xaGZzy2QZ",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "40|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_qyYhvgZBVOHXe7KSWcmMe9XQ",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Adicionei ao painel dois nichos laterais em verde sálvia, com divisões internas diferentes, e um console suspenso em nogueira sob a TV. A composição foi visualizada; o painel existente foi preservado.\",\"sugestoes\":[\"Troque as frentes dos nichos\",\"Ajuste a altura do console\",\"Veja o orçamento atualizado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.68,
+      "probabilities": {
+       "edit": 0.08,
+       "ask": 0.01,
+       "build": 0.74,
+       "view": 0,
+       "studio": 0.17,
+       "options": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.5
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.28
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.18
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1316,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 419,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.92
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.06
+     }
+    },
+    "usage": {
+     "input_tokens": 526,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

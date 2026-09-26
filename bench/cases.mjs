@@ -27,6 +27,7 @@
  *   efeitos, frentes, ambiente, projeto (nome, versão), opções e etapas.
  */
 import { createHash } from 'node:crypto';
+import { compositionCases, compositionGroup } from './composition-cases.mjs';
 
 export const groups = {
   ambiguidade: 'Medida ou alvo ambíguo: pergunta quando não há padrão razoável, faz quando há',
@@ -48,6 +49,7 @@ export const groups = {
   autoconferencia: 'Assistente em laço: confere o próprio trabalho (encaixe, pedido cumprido) antes de responder',
   'trabalho-completo': 'Assistente em laço: pedido grande do começo ao fim (parede, móveis, vista, arquivo)',
   opcoes: 'Assistente em laço: opções lado a lado sem mudar o projeto',
+  ...compositionGroup,
 };
 
 const modulos = (design) => design.modules.length;
@@ -1053,6 +1055,7 @@ cases.push(
     },
   },
 );
+cases.push(...compositionCases);
 
 /** Rótulos de askAct e o que a ação de cada um não pode ser. */
 export const ASK_ACT = ['agir', 'perguntar', 'responder', 'livre'];

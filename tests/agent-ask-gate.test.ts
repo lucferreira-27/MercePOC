@@ -116,14 +116,19 @@ void test('laço: pergunta com padrão volta para a IA, que faz e responde', asy
   try {
     const { fake, seen } = scripted([
       () => reply(ask('Qual altura devo usar para o nicho?')),
-      () => reply(call('finish', { mensagem: 'Pus o nicho com a altura do módulo atual.' })),
+      // Faz de verdade: uma resposta que afirma a mudança sem fazê-la volta para corrigir.
+      () =>
+        reply(
+          call('design_apply', { ops: [{ kind: 'module.add', id: 'nicho', preset: 'niche', name: 'Nicho' }] }),
+          call('finish', { mensagem: 'Pus o nicho com a altura do módulo atual.' }),
+        ),
     ]);
     const r = await turn('Coloque um nicho em cima deste módulo.', fake);
     const back = seen[1].at(-1)!.content as string;
     assert.match(back, /Não pergunte: use a medida do módulo atual/);
     const answer = get(r.projectId).messages.at(-1)!;
     assert.notEqual(answer.result?.outcome, 'clarification');
-    assert.deepEqual(answer.report?.steps?.map((s) => [s.tool, s.ok]), [['ask_user', false], ['finish', true]]);
+    assert.deepEqual(answer.report?.steps?.map((s) => [s.tool, s.ok]), [['ask_user', false], ['design_apply', true], ['finish', true]]);
   } finally {
     jev.restore();
   }
