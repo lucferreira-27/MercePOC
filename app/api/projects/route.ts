@@ -1,4 +1,4 @@
-import { applyShelfOp, applyRequest, applyPlacement, reviseRoom, undo, redo, create, createDemo, createFromTemplate, fork, list, get, view, save, revise, seek, remove } from '@/lib/store';
+import { applyShelfOp, applyRequest, applyPlacement, reviseRoom, undo, redo, create, createDemo, createFromTemplate, fork, list, get, view, save, revise, seek, remove, clearChat, restoreChat } from '@/lib/store';
 import { sameOrigin } from '@/lib/utils';
 import { designSchema, opSchema } from '@/lib/studio';
 import { z } from 'zod';
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
       .object({
         id: z.uuid(),
         version: z.number().int(),
-        action: z.enum(['update', 'undo', 'redo', 'rename', 'seek', 'op', 'ops', 'fork', 'delete', 'room']),
+        action: z.enum(['update', 'undo', 'redo', 'rename', 'seek', 'op', 'ops', 'fork', 'delete', 'room', 'chat-clear', 'chat-restore']),
         cursor: z.number().int().optional(),
         op: opSchema.optional(),
         ops:z.array(opSchema).min(1).max(32).optional(),
@@ -100,6 +100,8 @@ export async function POST(req: Request) {
       discarded = changed.discarded;
     }
     if (b.action === 'seek') seek(p, b.cursor ?? -1);
+    if (b.action === 'chat-clear' && clearChat(p).noop) return Response.json({ ...view(p), noop: true, discarded: 0 });
+    if (b.action === 'chat-restore') restoreChat(p);
     if (b.action === 'fork')
       return Response.json(fork(b.id, b.cursor ?? p.cursor, b.name ?? `${p.name} · alternativa`));
     return Response.json({ ...save(p, b.version), discarded, ...(step === 'step' ? { step: true } : {}), ...(moved ? { moved: true } : {}) });

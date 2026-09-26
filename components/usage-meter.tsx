@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { Coins } from 'lucide-react';
-import { modelInfo, sumUsage, tokensLabel, usd, type TurnUsage } from '@/lib/models';
+import { modelInfo, percent, sumUsage, tokensLabel, usageBreakdown, usd, type TurnUsage } from '@/lib/models';
 
 /**
  * Quanto a conversa está custando. O selo mostra o total desta conversa e abre
@@ -32,6 +32,12 @@ export function UsageMeter({
   }, [open]);
   const talk = sumUsage([...conversation, ...(live ? [live] : [])]);
   const tab = sumUsage([...session, ...(live ? [live] : [])]);
+  const split = usageBreakdown(talk.byModel);
+  const rows = [
+    { key: 'fresh', label: 'Entrada nova', hint: 'Preço cheio: o que o provedor leu pela primeira vez', ...split.fresh },
+    { key: 'cached', label: 'Entrada do cache', hint: 'Reaproveitada de chamadas anteriores, com preço de cache', ...split.cached },
+    { key: 'output', label: 'Saída', hint: 'Resposta e raciocínio da IA', ...split.output },
+  ];
   return (
     <div className="usage-meter" ref={wrap}>
       <button
@@ -50,32 +56,59 @@ export function UsageMeter({
             <span className="eyebrow">Esta conversa</span>
             <strong>{usd(talk.costUsd)}</strong>
             <small>
-              {talk.turns} {talk.turns === 1 ? 'turno' : 'turnos'} com IA · {tokensLabel(talk.tokens)} tokens
+              {talk.turns} {talk.turns === 1 ? 'pedido' : 'pedidos'} à IA · {tokensLabel(talk.tokens)} tokens
+              {talk.byModel.length === 1 ? ` · ${modelInfo(talk.byModel[0].model).label}` : ''}
             </small>
           </div>
-          {talk.byModel.length > 0 && (
-            <table className="usage-table">
-              <thead>
-                <tr>
-                  <th>Modelo</th>
-                  <th>Entrada</th>
-                  <th>Saída</th>
-                  <th>Custo</th>
-                </tr>
-              </thead>
-              <tbody>
-                {talk.byModel.map((u) => (
-                  <tr key={u.model}>
-                    <td>{modelInfo(u.model).label}</td>
-                    <td>{tokensLabel(u.inputTokens)}</td>
-                    <td title={u.reasoningTokens ? `${tokensLabel(u.reasoningTokens)} de raciocínio` : undefined}>
-                      {tokensLabel(u.outputTokens)}
-                    </td>
-                    <td>{usd(u.costUsd)}</td>
+          {talk.turns > 0 && (
+            <>
+              <div className="usage-cache" title={`Economia do cache nesta conversa: ${usd(split.savedUsd)}`}>
+                <span className="usage-cache-bar" aria-hidden="true">
+                  <i style={{ width: percent(split.hitRate) }} />
+                </span>
+                <span>
+                  <b>{percent(split.hitRate)}</b> da entrada veio do cache
+                  {split.savedUsd > 0 && (
+                    <>
+                      {' · economizou '}
+                      <span className="nowrap">{usd(split.savedUsd)}</span>
+                    </>
+                  )}
+                </span>
+              </div>
+              <table className="usage-table">
+                <thead>
+                  <tr>
+                    <th>Parte</th>
+                    <th>Tokens</th>
+                    <th>Custo</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {rows.map((r) => (
+                    <tr key={r.key} className={r.key} title={r.hint}>
+                      <td>
+                        <i className="usage-swatch" aria-hidden="true" />
+                        {r.label}
+                      </td>
+                      <td>{tokensLabel(r.tokens)}</td>
+                      <td>{usd(r.costUsd)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {talk.byModel.length > 1 && (
+                <ul className="usage-models">
+                  {talk.byModel.map((u) => (
+                    <li key={u.model}>
+                      <span>{modelInfo(u.model).label}</span>
+                      <small>{percent(usageBreakdown([u]).hitRate)} em cache</small>
+                      <b>{usd(u.costUsd)}</b>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           )}
           <div className="usage-session">
             <span>Nesta aba, todos os projetos</span>
@@ -83,7 +116,7 @@ export function UsageMeter({
           </div>
           <p className="hint">
             Estimativa com os tokens contados pelo provedor e a tabela de preços de cada modelo.
-            {live ? ' O turno em andamento já entra na conta.' : ''}
+            {live ? ' O pedido em andamento já entra na conta.' : ''}
           </p>
         </dialog>
       )}

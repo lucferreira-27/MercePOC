@@ -107,6 +107,11 @@ export type Project = {
    * há veredito de encaixe. Fora das revisões porque é dado do lugar.
    */
   room?: Room;
+  /**
+   * Conversa que a pessoa limpou por último. Fica guardada para o "Desfazer"
+   * e para a próxima limpeza a substituir; o cliente só vê quantas mensagens.
+   */
+  clearedChat?: { messages: Message[]; at: string; noteId: string };
 };
 let db: DatabaseSync;
 function database() {
@@ -381,11 +386,42 @@ export function save(p: Project, expected: number) {
   return view(p);
 }
 export function view(p: Project) {
+  const { clearedChat, ...rest } = p;
   return {
-    ...p,
+    ...rest,
+    ...(clearedChat ? { chatCleared: { count: clearedChat.messages.length, at: clearedChat.at } } : {}),
     params: p.revisions[p.cursor].params,
     ...generateDesign(p.revisions[p.cursor].params),
   };
+}
+/**
+ * Limpa a conversa: as mensagens saem da tela e do contexto da IA, o projeto
+ * e as versões ficam. Uma nota diz onde o projeto está. A conversa limpa fica
+ * guardada até a próxima limpeza, para desfazer.
+ */
+export function clearChat(p: Project) {
+  const note = p.clearedChat && p.messages.length === 1 && p.messages[0].id === p.clearedChat.noteId;
+  if (note || !p.messages.length) return { noop: true as const };
+  const rev = p.revisions[p.cursor];
+  const noteId = randomUUID();
+  p.clearedChat = { messages: p.messages, at: new Date().toISOString(), noteId };
+  p.messages = [
+    {
+      id: noteId,
+      role: 'assistant',
+      content: `Conversa limpa. O projeto continua na versão ${rev.number}; descreva a próxima mudança.`,
+      revisionId: rev.id,
+      revision: rev.number,
+    },
+  ];
+  return { noop: false as const };
+}
+/** Traz de volta a conversa limpa, antes do que foi dito depois dela. */
+export function restoreChat(p: Project) {
+  const saved = p.clearedChat;
+  if (!saved) throw new Error('Não há conversa para restaurar.');
+  p.messages = [...saved.messages, ...p.messages.filter((m) => m.id !== saved.noteId)];
+  delete p.clearedChat;
 }
 /** Devolve quantas revisões futuras foram descartadas (0 quando nada se perde). */
 export function revise(p: Project, params: Design, label: string) {
