@@ -252,6 +252,9 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
     const notes = [...finalIssues, ...(wrong.length ? [`A resposta ${wrong.join('; ')}. Números do app: ${factsLine(factsAfter!)}.`] : [])];
     if (notes.length) ctx.finish.message = `${ctx.finish.message}\n\nAtenção: ${notes.join(' ')}`;
   }
+  const finalEvidence = Object.fromEntries(
+    (Object.keys(ctx.evidence) as (keyof typeof ctx.evidence)[]).map((k) => [k, ctx.fresh(k) ? 'fresh' : 'stale']),
+  ) as Record<string, 'fresh' | 'stale'>;
   // O que o rascunho mudou, antes de gravar: depois da gravação o rascunho e
   // a versão são iguais e "mudou" viraria falso (a resposta dizia "O móvel
   // não mudou" com quatro módulos novos gravados).
@@ -327,6 +330,10 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
       // Conferência do app no estado gravado (vazio: nada novo de errado).
       ...(ctx.ask ? {} : { checks: { revisionId: p.revisions[p.cursor].id, issues: completion === 'rolled-back' ? [] : finalIssues } }),
       ...(ctx.reverted.length ? { reverted: ctx.reverted.length } : {}),
+      // Leituras do pedido e se ainda descrevem o estado gravado (velha:
+      // o móvel mudou depois dela). O resumo de chapas e total do cartão é
+      // recalculado no estado final, não sai destas leituras.
+      ...(Object.keys(finalEvidence).length ? { evidence: finalEvidence } : {}),
       ...(ctx.attempted.length ? { rejected: ctx.attempted.length } : {}),
     },
   };

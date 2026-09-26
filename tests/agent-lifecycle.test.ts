@@ -281,3 +281,20 @@ void test('rota: pedido interrompido no meio grava a falha com pedido, etapas, c
   assert.equal(failed.report?.failure?.draftOperations, 1);
   assert.deepEqual(failed.report?.steps?.map((v) => v.tool), ['design_apply']);
 });
+
+void test('evidência velha: "conferi o desenho" depois de mudar o móvel volta para corrigir; desenho não é mostrado à pessoa', async () => {
+  const s = start('Nicho à direita', 'painel-tv');
+  const { fake, seen } = scripted([
+    () => reply(call('render_look', {})),
+    () => reply(call('place', { pecas: [{ ref: 'n', nome: 'Nicho', tipo: 'nicho', onde: { de: 'tv', lado: 'direita' } }] })),
+    () => reply(call('finish', { mensagem: 'Pus um nicho à direita da TV e conferi o desenho; o desenho foi exibido para você.', sugestoes: [] })),
+    () => reply(call('finish', { mensagem: 'Pus um nicho à direita da TV.', sugestoes: [] })),
+  ]);
+  const r = await turn(s, fake);
+  const repair = JSON.stringify(seen[3].at(-1)!.content);
+  assert.match(repair, /mudou depois do último render_look/);
+  assert.match(repair, /vai só para você/);
+  const answer = get(r.projectId).messages.at(-1)!;
+  assert.equal(answer.content, 'Pus um nicho à direita da TV.');
+  assert.deepEqual(answer.report?.evidence, { look: 'stale' });
+});

@@ -96,6 +96,11 @@ export type ChatReport = {
   checks?: { revisionId: string; issues: string[] };
   /** Operações que chegaram ao rascunho e foram descartadas no pedido. */
   reverted?: number;
+  /**
+   * Leituras que a IA fez (orçamento, corte, peças, desenho) e se ainda
+   * descrevem o estado gravado: `stale` quando o móvel mudou depois dela.
+   */
+  evidence?: Record<string, 'fresh' | 'stale'>;
   /** Lotes recusados pela validação no pedido. */
   rejected?: number;
   /** Pedido que falhou no meio: o que dá para diagnosticar depois. */

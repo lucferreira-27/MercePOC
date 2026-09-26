@@ -696,6 +696,17 @@ const finishTool = tool({
       issues.push(
         `A mensagem ${wrong.join('; ')}. Fatos do estado final: ${factsLine(designFacts(ctx.design, ctx.prices))}. Reescreva só com esses números.`,
       );
+    // Conferência visual só vale para o rascunho que ficou: desenho olhado
+    // antes da última mudança é evidência velha. E o desenho do render_look
+    // vai só para a IA; a pessoa vê a cena 3D, não uma imagem na conversa.
+    if (LOOKED.test(a.mensagem) && !ctx.fresh('look'))
+      issues.push(
+        ctx.evidence.look
+          ? 'A mensagem diz que conferiu o desenho, mas o móvel mudou depois do último render_look. Chame render_look de novo ou tire isso da resposta.'
+          : 'A mensagem diz que conferiu o desenho, mas render_look não foi chamado. Chame render_look ou tire isso da resposta.',
+      );
+    if (SHOWN.test(a.mensagem))
+      issues.push('A mensagem diz que um desenho foi exibido para a pessoa, mas o desenho do render_look vai só para você: a pessoa vê a cena 3D. Reescreva sem isso.');
     // Afirma que mudou o móvel e nada mudou: a peça foi recusada e a resposta
     // contava a composição como feita. Sem Jev, esta é a conferência que fica.
     if (!ctx.navigated && !ctx.origin && !ctx.designChanged && !ctx.roomChanged && JSON.stringify(ctx.design) === JSON.stringify(ctx.turnStart.design) && claimsChange(a.mensagem))
@@ -753,6 +764,11 @@ function fitNote(ctx: AgentContext, before: Design, after: Design, roomBefore = 
   if (worse.length) return ` ATENÇÃO, esta mudança piorou o encaixe: ${worse.map((i) => i.message).join('; ')}. Desfaça ou corrija.`;
   return ` ${fitSummary(after, room)}.`;
 }
+
+/** A resposta diz que olhou o próprio desenho ("conferi o desenho", "revisei visualmente"). */
+const LOOKED = /(conferi|olhei|revisei|verifiquei|chequei)[^.]{0,30}(desenho|visualmente|visualização|imagem)|(desenho|composição)[^.]{0,20}(foi |ficou )?(conferid|revisad|verificad)|conferid[oa] visualmente/i;
+/** A resposta diz que um desenho ou imagem foi mostrado à pessoa (só a IA recebe o do render_look). */
+const SHOWN = /(desenho|imagem)[^.]{0,40}(exibid|mostrad|apresentad)[^.]{0,30}(para (você|voce|a pessoa)|para conferência|na conversa|aqui)/i;
 
 /** Verbos de quem mudou o móvel, na primeira pessoa, fora de negação ("não coloquei"). */
 const CHANGE_VERBS = /(montei|adicionei|acrescentei|coloquei|criei|pus|instalei|removi|tirei|troquei|mudei|ajustei|aumentei|diminuí|diminui|reduzi|passei|substituí|substitui|dividi|reorganizei|alinhei|encostei|movi|unifiquei)/i;
