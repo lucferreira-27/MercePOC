@@ -98,8 +98,12 @@ export function planModify(design: Design, room: Room | undefined, a: Modify): {
   for (const e of a.medidas ?? []) {
     const m = byId(design, e.id);
     if (!m) return missing(e.id);
-    if (e.altura !== undefined && e.altura_total !== undefined) return { error: `${m.name}: diga altura ou altura_total, não as duas.` };
     const feet = e.pes ?? m.feet ?? 0;
+    // As duas juntas valem quando batem (a IA costuma mandar todos os campos).
+    if (e.altura !== undefined && e.altura_total !== undefined && e.altura + feet !== e.altura_total)
+      return {
+        error: `${m.name}: altura da caixa ${e.altura} + pés ${feet} = ${e.altura + feet} mm, mas altura_total diz ${e.altura_total} mm. Mande só altura_total (com os pés) ou só altura (da caixa).`,
+      };
     const height = e.altura_total !== undefined ? e.altura_total - feet : e.altura;
     if (height !== undefined && m.kind !== 'panel' && (height < 200 || height > 2400))
       return { error: `${m.name}: altura da caixa de ${height} mm fora de 200 a 2400 mm${e.altura_total !== undefined ? ` (${e.altura_total} menos ${feet} mm de pés)` : ''}.` };

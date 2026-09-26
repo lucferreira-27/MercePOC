@@ -710,9 +710,11 @@ const finishTool = tool({
     }
     // Módulo que existia e saiu precisa estar na resposta: sumir calado era
     // o jeito de "caber" (o painel da TV trocado por uma estante).
+    // Conta como dito quando a resposta fala em tirar/trocar ou cita o módulo pelo nome.
     const gone = ctx.navigated || ctx.origin ? [] : ctx.turnStart.design.modules.filter((m) => !ctx.design.modules.some((v) => v.id === m.id));
-    if (gone.length && !/\b(tir|remov|substitu|troq|troc|no lugar|sa[ií]|exclu|apag|refiz)/i.test(a.mensagem))
-      issues.push(`A mensagem não diz que saiu ${gone.map((m) => m.name).join(', ')}. Diga o que foi removido ou, se não era para remover, volte com history_undo e monte em volta.`);
+    const told = (m: { name: string }) => a.mensagem.toLowerCase().includes(m.name.toLowerCase().split(' ')[0]);
+    if (gone.length && !/\b(tir|remov|substitu|troq|troc|no lugar|sa[ií]|exclu|apag|refiz)/i.test(a.mensagem) && !gone.every(told))
+      issues.push(`A mensagem não diz que saiu ${gone.filter((m) => !told(m)).map((m) => m.name).join(', ')}. Diga na resposta que saiu (e por quê).`);
     if (!issues.length && ctx.repairs < 2) {
       const [gaps, missing] = await Promise.all([claimsMatch(ctx, a.mensagem), requestMissing(ctx)]);
       if (missing?.length) issues.push(`O pedido ${missing.join('; ')}. Faça o que falta, ou diga na mensagem por que não deu.`);
