@@ -424,19 +424,31 @@ function PieceList({
   hovered,
   onHover,
   onPick,
+  reveal = false,
 }: {
   sheet: CutSheet;
   selected: readonly string[];
   hovered: string | null;
   onHover: (id: string | null) => void;
   onPick: (p: Placement, extend: boolean) => void;
+  reveal?: boolean;
 }) {
   const rows = useRef<HTMLOListElement>(null);
-  // Peça apontada no desenho: a linha dela aparece na lista.
+  // Peça apontada no desenho: a linha dela aparece na lista. Só quando a lista
+  // rola sozinha ao lado do desenho (janela ampliada). No painel, rolar levaria o
+  // desenho embora de sob o cursor. Rola só a coluna, nunca a página, e nunca
+  // quando o próprio cursor está na lista.
   useEffect(() => {
-    if (!hovered) return;
-    rows.current?.querySelector(`[data-id="${CSS.escape(hovered)}"]`)?.scrollIntoView({ block: 'nearest' });
-  }, [hovered]);
+    if (!reveal || !hovered) return;
+    const list = rows.current;
+    const row = list?.querySelector<HTMLElement>(`[data-id="${CSS.escape(hovered)}"]`);
+    const box = list?.closest<HTMLElement>('.cut-viewer-side');
+    if (!list || !row || !box || list.matches(':hover')) return;
+    const r = row.getBoundingClientRect();
+    const b = box.getBoundingClientRect();
+    if (r.top < b.top) box.scrollTop -= b.top - r.top;
+    else if (r.bottom > b.bottom) box.scrollTop += r.bottom - b.bottom;
+  }, [hovered, reveal]);
   return (
     <>
       <div className="section-label">
@@ -566,7 +578,7 @@ function CutViewer({
               <X size={17} />
             </button>
           </div>
-          <PieceList sheet={sheet} selected={selected} hovered={hovered} onHover={onHover} onPick={onPick} />
+          <PieceList sheet={sheet} selected={selected} hovered={hovered} onHover={onHover} onPick={onPick} reveal />
         </aside>
       </dialog>
     </div>
