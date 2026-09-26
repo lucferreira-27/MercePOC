@@ -51,6 +51,8 @@ const fail = (text: string, label?: string): ToolResult => ({ ok: false, text, l
 const r1 = (v: number) => Math.round(v * 10) / 10;
 const json = (v: unknown) => JSON.stringify(v);
 const mm = (d: Design) => `${r1(d.width)} × ${r1(d.height)} × ${r1(d.depth)} mm`;
+/** Metros com vírgula, como o resto da interface: "3,2". */
+const metresLabel = (value: number) => String(Math.round(value / 10) / 100).replace('.', ',');
 
 /** Ids que a IA pode citar depois: módulos, compartimentos e frentes. */
 function namedIds(d: Design) {
@@ -365,7 +367,7 @@ const roomSet = tool({
     const parsed = roomSchema.safeParse(next);
     if (!parsed.success) return fail(`Medida fora do limite do ambiente: ${parsed.error.issues.map((i) => `${i.path.join('.')} ${i.message}`).join('; ')}`);
     ctx.setRoom(parsed.data);
-    return ok(`Parede ${parsed.data.widthMm} × ${parsed.data.heightMm} mm. ${fitSummary(ctx.design, parsed.data)}.`, `Parede de ${parsed.data.widthMm / 1000} × ${parsed.data.heightMm / 1000} m`);
+    return ok(`Parede ${parsed.data.widthMm} × ${parsed.data.heightMm} mm. ${fitSummary(ctx.design, parsed.data)}.`, `Parede de ${metresLabel(parsed.data.widthMm)} × ${metresLabel(parsed.data.heightMm)} m`);
   },
 });
 
@@ -670,7 +672,7 @@ const askUser = tool({
     if (!ctx.askGated && askGateOn()) {
       ctx.askGated = true;
       const verdict = await askVerdict(a.pergunta, { pedido: ctx.request, selected: ctx.selected.length > 0, shelves: ctx.design.shelves.length });
-      if (verdict && !verdict.legit) return fail(blockText(verdict), 'Dispensei a pergunta');
+      if (verdict && !verdict.legit) return fail(blockText(verdict), 'Segui sem perguntar');
     }
     const alive = new Set(entityIds(ctx.design));
     ctx.ask = {

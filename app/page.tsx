@@ -2,13 +2,13 @@
 /* oxlint-disable next/no-img-element -- Uploaded references are local, normalized WebP assets. */
 'use client';
 import Link from 'next/link';
-import { TurnProgress, turnLabel, type Pulse, type TimedProgress } from '@/components/turn-progress';
-import { AgentStepsSummary, TurnFacts } from '@/components/agent-steps';
-import { LIVE_EFFECTS, type AgentEvent, type AgentStep, type Effect, type ExportKind, type UiState } from '@/lib/agent/types';
+import { TurnProgress, turnActivity, type Pulse, type TimedProgress } from '@/components/turn-progress';
+import { ActivityGlyph, type RunningTool } from '@/components/turn-activity';
+import { AgentStepsSummary, TurnFacts, type LiveStep } from '@/components/agent-steps';
+import { LIVE_EFFECTS, type AgentEvent, type Effect, type ExportKind, type UiState } from '@/lib/agent/types';
 import { ModelPicker } from '@/components/model-picker';
 import { UsageMeter } from '@/components/usage-meter';
 import { ChangeSet } from '@/components/change-set';
-import { PixelMascot } from '@/components/pixel-mascot';
 import { BranchConfirm, type BranchConfirmData } from '@/components/branch-confirm';
 import { canRedo, canUndo, redoIsStep, undoIsStep } from '@/lib/placement';
 import { designDiff, partDiff, playbackFrames } from '@/lib/diff';
@@ -24,6 +24,7 @@ import {
   Boxes,
   Camera,
   Copy,
+  Eraser,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -108,8 +109,10 @@ import { emptyRoom, roomChangeLabel, fitReport, fitSummary, freeSpot, obstacleWo
 import { moduleBoxes } from '@/lib/move';
 import { DEFAULT_PRICES, mergePrices, money, quote as buildQuote, type Prices } from '@/lib/quote';
 import { friendlyError } from '@/lib/errors';
-import { DEFAULT_MODEL, MODEL_KEYS, modelInfo, tokensLabel, usd, type ModelKey, type TurnUsage } from '@/lib/models';
+import { DEFAULT_MODEL, MODEL_KEYS, modelInfo, percent, tokensLabel, usageBreakdown, usd, type ModelKey, type TurnUsage } from '@/lib/models';
 type State = Project & {
+  /** Conversa limpa guardada no servidor: dá para trazer de volta. */
+  chatCleared?: { count: number; at: string };
   params: Design;
   parts: Part[];
   openings: number[];
@@ -145,6 +148,16 @@ const VIEWS: { id: ViewMode; label: string; key: string; icon: React.ReactNode }
 ];
 function dotLeft(i: number, max: number) {
   return `${((i / Math.max(1, max)) * 100).toFixed(2)}%`;
+}
+/** Dica do custo de uma resposta: entrada nova, cache e saída separados. */
+function usageTitle(u: TurnUsage) {
+  const b = usageBreakdown([u]);
+  return [
+    `${u.calls} ${u.calls === 1 ? 'chamada' : 'chamadas'} · ${usd(u.costUsd)}`,
+    `Entrada nova: ${tokensLabel(b.fresh.tokens)} · ${usd(b.fresh.costUsd)}`,
+    `Entrada do cache: ${tokensLabel(b.cached.tokens)} (${percent(b.hitRate)}) · ${usd(b.cached.costUsd)}`,
+    `Saída: ${tokensLabel(b.output.tokens)}${u.reasoningTokens ? ` (${tokensLabel(u.reasoningTokens)} de raciocínio)` : ''} · ${usd(b.output.costUsd)}`,
+  ].join('\n');
 }
 async function api<T = State>(path: string, body?: unknown): Promise<T> {
   const r = await fetch(
@@ -338,6 +351,9 @@ export default function Home() {
     // composer, para o rascunho do pedido não se misturar com a resposta.
     [clarAnswer, setClarAnswer] = useState(''),
     [notice, setNotice] = useState(''),
+    // Limpar a conversa: a confirmação aberta e o "Desfazer" logo depois.
+    [clearAsk, setClearAsk] = useState(false),
+    [chatUndo, setChatUndo] = useState(false),
     // Aviso de primeira visita. O estado do efeito de boot pode se perder se a
     // instância que montou não for a que ficou viva, então a marca é lida e
     // consumida por um efeito sincrono no mount.
@@ -374,9 +390,17 @@ export default function Home() {
   // esperam a versão gravada chegar.
   // Assistente em laço é o padrão; quem desligar volta ao caminho antigo.
   const [agentOn, setAgentOn] = useState(true);
-  const [agentSteps, setAgentSteps] = useState<AgentStep[]>([]);
+  const [agentSteps, setAgentSteps] = useState<LiveStep[]>([]);
   const [agentPlan, setAgentPlan] = useState<string[]>([]);
-  const [agentRunning, setAgentRunning] = useState<string | null>(null);
+  const [agentRunning, setAgentRunning] = useState<RunningTool | null>(null);
+  // O que a IA disse entre as ferramentas ("vou medir a parede antes..."):
+  // a última frase fica no cartão de progresso.
+  const [agentSay, setAgentSay] = useState({ text: '', steps: 0 });
+  /** Último sinal da IA (evento, bytes, etapa): o aviso de demora mede o silêncio. */
+  const [signalAt, setSignalAt] = useState(0);
+  /** Quando a última etapa terminou: cada etapa mostra quanto levou. */
+  const lastStepAt = useRef(0);
+  const stepCount = useRef(0);
   const [agentDraft, setAgentDraft] = useState<{ params: Design; room: Room | null } | null>(null);
   const pendingEffects = useRef<Effect[]>([]);
   const theme = themeChoice === 'system' ? (systemDark ? 'dark' : 'light') : themeChoice;
@@ -654,14 +678,16 @@ export default function Home() {
     const report = fitReport(visualParams, visualRoom);
     return { report, summary: fitSummary(visualParams, visualRoom, report) };
   }, [visualRoom, visualParams]);
-  // Chips de prévia são da linha do tempo; na revisão das mudanças quem fala
-  // é o diff na conversa e a barra da cena.
+  // Chips de prévia são da linha do tempo: só existem com uma versão em
+  // prévia. Na revisão das mudanças quem fala é o diff na conversa, e no
+  // rascunho ao vivo do assistente é o cartão de progresso (os chips cobriam a
+  // cena e o "Cancelar" não cancelava nada).
   const previewChanges = useMemo(
     () =>
-      p && visualParams && !reviewData
+      p && visualParams && !reviewData && !agentDraft && historyPreview !== null && historyPreview !== p.cursor
         ? describeChanges(p.revisions[p.cursor].params, visualParams)
         : [],
-    [p, visualParams, reviewData],
+    [p, visualParams, reviewData, agentDraft, historyPreview],
   );
   const changed = useMemo(() => {
     if (!p || !visualBounds || historyPreview === null) return new Set<string>();
@@ -682,8 +708,11 @@ export default function Home() {
     if (!visualParams) return null;
     // Montando ao vivo: o que o assistente acabou de pôr brilha como peça nova,
     // sem esmaecer o resto (o móvel parecia quebrado enquanto ele trabalhava).
+    // O que saiu não aparece como fantasma vermelho enquanto ele monta: ao
+    // trocar o móvel inteiro, o antigo inteiro ficava por dentro do novo e
+    // parecia colisão. A reprodução no fim mostra o que saiu.
     if (agentDraft && p)
-      return { ...partDiff(drawingParts(canonical(p.revisions[p.cursor].params)), drawingParts(canonical(agentDraft.params))), focus: null, dim: false };
+      return { ...partDiff(drawingParts(canonical(p.revisions[p.cursor].params)), drawingParts(canonical(agentDraft.params))), removed: [], focus: null, dim: false };
     if (!reviewData || !reviewFrame) {
       // Passar o mouse numa linha não mexe na cena: acende as peças dela no
       // desenho que já está à vista, se ainda existem.
@@ -834,6 +863,17 @@ export default function Home() {
     // O cartão de progresso cresce enquanto a IA trabalha (passos, proposta,
     // contadores): cada pulso mantém o fim da conversa à vista.
   }, [p?.messages.length, pending, progress, pulse, liveUsage, pinnedToBottom]);
+  // O que cresce sem mudar o estado da página (etapas, aviso de demora, uma
+  // imagem que carregou) também mantém o fim à vista enquanto a pessoa está lá.
+  useEffect(() => {
+    const el = messages.current;
+    if (!el || !pinnedToBottom || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => {
+      el.scrollTop = el.scrollHeight;
+    });
+    for (const child of el.children) ro.observe(child);
+    return () => ro.disconnect();
+  }, [p?.messages.length, pending, failedTurn, pinnedToBottom]);
   useEffect(() => {
     const total = p?.messages.length ?? 0;
     if (pinnedToBottom) {
@@ -1456,6 +1496,26 @@ export default function Home() {
   /** Turno em andamento: o botão Parar aborta esta conexão. */
   const turnAbort = useRef<AbortController | null>(null);
   const stopped = useRef(false);
+  // Confirmação aberta: o foco vai para "Cancelar" (a saída segura) e Esc fecha.
+  const clearBox = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!clearAsk) return;
+    clearBox.current?.querySelector('button')?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setClearAsk(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [clearAsk]);
+  async function clearConversation() {
+    setClearAsk(false);
+    const next = await action('chat-clear');
+    if (next && !(next as State & { noop?: boolean }).noop) setChatUndo(true);
+  }
+  async function restoreConversation() {
+    setChatUndo(false);
+    await action('chat-restore');
+  }
   function stopTurn() {
     stopped.current = true;
     turnAbort.current?.abort();
@@ -1494,6 +1554,8 @@ export default function Home() {
     setError('');
     setNotice('');
     setFailedTurn(null);
+    setClearAsk(false);
+    setChatUndo(false);
     if (!chatOpen) toggleChat(true);
     setPending(
       replyTo?.optionId
@@ -1512,8 +1574,11 @@ export default function Home() {
     setAgentSteps([]);
     setAgentPlan([]);
     setAgentRunning(null);
+    setAgentSay({ text: '', steps: 0 });
     setAgentDraft(null);
     setStarted(Date.now());
+    lastStepAt.current = Date.now();
+    stepCount.current = 0;
     if (!keepDraft) setText('');
     const abort = new AbortController();
     turnAbort.current = abort;
@@ -1569,7 +1634,10 @@ export default function Home() {
         streamTimer.current = undefined;
         const b = streamBuffer.current;
         streamBuffer.current = { reasoning: '' };
-        if (b.pulse) setPulse(b.pulse);
+        if (b.pulse) {
+          setPulse(b.pulse);
+          setSignalAt(Date.now());
+        }
         if (b.text) setLiveText((previous) => ({ ...previous, ...b.text! }));
         if (b.reasoning)
           setReasoningView((previous) => {
@@ -1585,6 +1653,7 @@ export default function Home() {
         streamTimer.current ??= window.setTimeout(flush, 100);
       };
       await readEvents(r, ({ event, data }) => {
+        if (event !== 'pulse' && event !== 'text' && event !== 'heartbeat') setSignalAt(Date.now());
         if (event === 'progress') {
           const update = { ...(JSON.parse(data) as Progress), at: Date.now() };
           setProgress((previous) =>
@@ -1604,9 +1673,14 @@ export default function Home() {
         } else if (event === 'agent') {
           const e = JSON.parse(data) as AgentEvent;
           if (e.type === 'step') {
-            setAgentSteps((list) => [...list, e.step]);
+            const at = Date.now();
+            const ms = at - lastStepAt.current;
+            lastStepAt.current = at;
+            stepCount.current += 1;
+            setAgentSteps((list) => [...list, { ...e.step, ms }]);
             setAgentRunning(null);
-          } else if (e.type === 'running') setAgentRunning(e.label);
+          } else if (e.type === 'running') setAgentRunning({ tool: e.tool, label: e.label, at: Date.now() });
+          else if (e.type === 'say') setAgentSay({ text: e.text.trim(), steps: stepCount.current });
           else if (e.type === 'plan') setAgentPlan(e.steps);
           else if (e.type === 'draft') setAgentDraft({ params: e.params as Design, room: (e.room ?? null) as Room | null });
           else if (e.type === 'effect' && LIVE_EFFECTS.includes(e.effect.type)) applyEffect(e.effect);
@@ -1922,10 +1996,18 @@ export default function Home() {
         startPlace(kind, roomForPanel ?? emptyRoom());
       },
     })),
+    { id: 'chat-clear', group: 'Painéis', label: 'Limpar a conversa…', hint: 'o projeto fica', icon: <Eraser size={15} />, disabled: !p?.messages.some((m) => m.role === 'user') || busy, run: () => { if (!chatOpen) toggleChat(true); setClearAsk(true); } },
+    ...(p?.chatCleared ? [{ id: 'chat-restore', group: 'Painéis', label: 'Restaurar a conversa limpa', hint: `${p.chatCleared.count} mensagens`, icon: <RotateCcw size={15} />, disabled: busy, run: () => void restoreConversation() }] : []),
     { id: 'rename', group: 'Projeto', label: 'Renomear projeto', icon: <Pencil size={15} />, run: () => setRenaming(true) },
     ...exports.map((x) => ({ id: 'export-' + x.id, group: 'Exportar', label: x.label, hint: x.hint, icon: x.icon, run: x.run })),
   ];
   const messageCount = p?.messages.length ?? 0;
+  // Há o que limpar quando a pessoa já disse algo; só a nota ou a mensagem de
+  // boas-vindas não conta.
+  const hasTalk = !!p?.messages.some((m) => m.role === 'user');
+  // Só a falha mais recente oferece repetir: cada erro antigo com o próprio
+  // "Tentar novamente" enchia a conversa de botões que ninguém ia usar.
+  const lastUserIndex = p ? p.messages.findLastIndex((m) => m.role === 'user') : -1;
   // Identidade fixa para os filhos memorizados (cena 3D e editor): sem isso
   // qualquer render da página, como um pulso da IA, redesenhava os dois.
   const selectInScene = useEvent((id: string | null, extend?: boolean) =>
@@ -1972,6 +2054,14 @@ export default function Home() {
   const onEditorLibrary = useEvent(() => openGallery('add'));
   const onEditorOpen = useEvent(toggleOpening);
   const conversationUsage = useMemo(() => p?.messages.map((m) => m.usage) ?? [], [p?.messages]);
+  // A frase da IA vale para os próximos passos; depois de três etapas já
+  // descreve o passado e sai do cartão.
+  const say = agentSay.text && agentSteps.length - agentSay.steps <= 3 ? agentSay.text : '';
+  const agentLive = agentSteps.length || agentRunning || agentPlan.length || say
+    ? { steps: agentSteps, plan: agentPlan, running: agentRunning, say }
+    : null;
+  // Uma fonte só para o que está acontecendo: cartão, cabeçalho e selo da cena.
+  const activity = turnActivity(progress, pulse, agentLive);
   const room = p?.room, params = p?.params;
   const roomForPanel = useMemo(
     () => (room?.anchor && params ? { ...room, offsetMm: Math.max(0, roomOffset(room, designOf(params).bounds)) } : room),
@@ -2077,9 +2167,9 @@ export default function Home() {
               <span className="assistant-avatar"><Sparkles size={15} /></span>
               <span>
                 <strong>Assistente</strong>
-                <small>
-                  <span className={pending ? 'work-dot' : online ? 'live-dot' : 'offline-dot'} />
-                  {pending ? 'Trabalhando no seu pedido…' : online ? `${modelInfo(model).label} · pronto` : 'IA não configurada'}
+                <small title={pending ? activity.label : online ? `${modelInfo(model).label}, pronto para o próximo pedido` : 'IA não configurada'}>
+                  {pending ? <ActivityGlyph activity={activity} size="sm" /> : <span className={online ? 'live-dot' : 'offline-dot'} />}
+                  <span>{pending ? activity.label : online ? modelInfo(model).label : 'IA não configurada'}</span>
                 </small>
               </span>
             </span>
@@ -2088,10 +2178,44 @@ export default function Home() {
               session={sessionUsage}
               live={liveUsage}
             />
+            <button
+              type="button"
+              className={'icon-button' + (clearAsk ? ' on' : '')}
+              aria-label="Limpar a conversa"
+              aria-expanded={clearAsk}
+              title={hasTalk ? 'Limpar a conversa' : 'Nada para limpar'}
+              disabled={busyLook || !hasTalk}
+              onClick={() => setClearAsk((v) => !v)}
+            >
+              <Eraser size={16} />
+            </button>
             <button type="button" className="icon-button" aria-label="Recolher a conversa" title="Recolher ( [ )" onClick={() => toggleChat(false)}>
               <PanelLeftClose size={16} />
             </button>
           </div>
+          {clearAsk && p && (
+            <div
+              ref={clearBox}
+              className="chat-confirm"
+              role="alertdialog"
+              aria-labelledby="chat-confirm-title"
+              aria-describedby="chat-confirm-text"
+            >
+              <strong id="chat-confirm-title">Limpar a conversa?</strong>
+              <p id="chat-confirm-text">
+                {messageCount} {messageCount === 1 ? 'mensagem sai' : 'mensagens saem'} da tela e a IA deixa de lembrar
+                delas. O projeto e as {p.revisions.length} {p.revisions.length === 1 ? 'versão ficam' : 'versões ficam'} como estão.
+              </p>
+              <div className="chat-confirm-actions">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setClearAsk(false)}>
+                  Cancelar
+                </Button>
+                <Button type="button" variant="destructive" size="sm" disabled={busyLook} onClick={() => void clearConversation()}>
+                  <Eraser /> Limpar conversa
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="chat-messages" ref={messages} onScroll={onScroll}>
             {p && messageCount <= 1 && (
               <div className="intro">
@@ -2204,7 +2328,7 @@ export default function Home() {
                   ) : null}
                   {m.report?.steps?.length ? <AgentStepsSummary steps={m.report.steps} plan={m.report.plan} /> : null}
                   {m.error && <div className="turn-error" role="alert">{m.error}</div>}
-                  {m.error && m.retry && (
+                  {m.error && m.retry && i > lastUserIndex && (
                     <div className="confirm-actions">
                       <Button
                         variant="outline"
@@ -2316,12 +2440,12 @@ export default function Home() {
                       </div>
                     </div>
                   )}
-                  {m.role === 'assistant' && (m.usage || m.report || rev.status !== 'unknown') && (
+                  {m.role === 'assistant' && (m.usage || m.report || (rev.status !== 'unknown' && !m.error)) && (
                     <div className="msg-meta">
                       {m.usage && (
                         <span
                           className="msg-cost"
-                          title={`${m.usage.calls} ${m.usage.calls === 1 ? 'chamada' : 'chamadas'} · ${tokensLabel(m.usage.inputTokens)} de entrada · ${tokensLabel(m.usage.outputTokens)} de saída${m.usage.reasoningTokens ? ` (${tokensLabel(m.usage.reasoningTokens)} de raciocínio)` : ''}`}
+                          title={usageTitle(m.usage)}
                         >
                           {modelInfo(m.usage.model).label}
                           {m.report ? ` · ${(m.report.durationMs / 1000).toFixed(1).replace('.', ',')} s` : ''}
@@ -2344,7 +2468,7 @@ export default function Home() {
                             {copied === m.id ? <Check size={13} /> : <Copy size={13} />}
                           </button>
                         )}
-                        {rev.status === 'found' && (
+                        {rev.status === 'found' && !m.error && (
                           <button
                             type="button"
                             className="msg-version"
@@ -2406,7 +2530,8 @@ export default function Home() {
                   usage={liveUsage}
                   model={model}
                   withPhoto={Boolean(pendingImage)}
-                  agent={agentSteps.length || agentRunning || agentPlan.length ? { steps: agentSteps, plan: agentPlan, running: agentRunning } : undefined}
+                  agent={agentLive ?? undefined}
+                  signalAt={signalAt}
                 />
                 {live && liveText && (
                   <div className="answer-stream">
@@ -2507,6 +2632,19 @@ export default function Home() {
                   </button>
                 ))}
               </div>
+            )}
+            {chatUndo && p?.chatCleared && (
+              <output className="notice-banner undo">
+                <span>Conversa limpa. O projeto não mudou.</span>
+                <span className="notice-actions">
+                  <button type="button" disabled={busyLook} onClick={() => void restoreConversation()}>
+                    <RotateCcw size={12} /> Desfazer
+                  </button>
+                  <button type="button" aria-label="Fechar aviso" onClick={() => setChatUndo(false)}>
+                    <X size={13} />
+                  </button>
+                </span>
+              </output>
             )}
             {(notice || freshBoot) && (
               <output className="notice-banner">
@@ -2610,7 +2748,7 @@ export default function Home() {
                   className="composer-hint"
                   title="Enter envia · Shift+Enter quebra linha · aceita imagem JPG, PNG ou WebP"
                 >
-                  Enter envia · Shift+Enter quebra
+                  Enter envia
                 </span>
                 {pending ? (
                   <Button
@@ -2793,9 +2931,8 @@ export default function Home() {
           })()}
           {pending && (
             <output className="stage-working">
-              <PixelMascot beat={pulse?.bytes ?? 0} size={1} />
-              {agentRunning ?? (agentSteps.length ? agentSteps.at(-1)!.label : turnLabel(progress, pulse))}
-              {liveUsage && <b>{usd(liveUsage.costUsd)}</b>}
+              <ActivityGlyph activity={activity} size="sm" />
+              <span key={activity.key}>{activity.label}</span>
             </output>
           )}
           {!p && !error && (

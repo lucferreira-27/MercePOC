@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addUsage, emptyUsage, modelInfo, priceOf, sumUsage, tokensLabel, usd } from '../lib/models';
+import { addUsage, emptyUsage, modelInfo, percent, priceOf, sumUsage, tokensLabel, usageBreakdown, usd } from '../lib/models';
 
 void test('custo do turno: cache paga preço de cache e saída inclui raciocínio', () => {
   const price = { input: 1, output: 4, cachedInput: 0.1 };
@@ -61,4 +61,24 @@ void test('modelo desconhecido cai no padrão do estúdio', () => {
   assert.equal(modelInfo('nada').key, 'luna', 'o padrão do estúdio é a Luna com raciocínio alto');
   assert.equal(modelInfo('luna').reasoning, 'high', 'Luna em low acertou 4/10 nos casos difíceis; em high, 9/10');
   assert.equal(modelInfo('deepseek').fallback, 'luna');
+});
+
+void test('custo separado em entrada nova, cache e saída soma o custo gravado', () => {
+  const price = modelInfo('luna').price;
+  const u = addUsage(
+    emptyUsage('luna'),
+    { prompt_tokens: 100_000, completion_tokens: 5_000, prompt_tokens_details: { cached_tokens: 80_000 } },
+    price,
+  );
+  const b = usageBreakdown([u, undefined]);
+  assert.equal(b.fresh.tokens, 20_000);
+  assert.equal(b.cached.tokens, 80_000);
+  assert.equal(b.output.tokens, 5_000);
+  assert.equal(percent(b.hitRate), '80%');
+  assert.ok(Math.abs(b.fresh.costUsd + b.cached.costUsd + b.output.costUsd - u.costUsd) < 1e-12);
+  assert.ok(Math.abs(b.savedUsd - (80_000 * (price.input - price.cachedInput)) / 1_000_000) < 1e-12);
+  // Preço trocado no servidor: as fatias acompanham o total gravado.
+  const scaled = usageBreakdown([{ ...u, costUsd: u.costUsd * 2 }]);
+  assert.ok(Math.abs(scaled.cached.costUsd - b.cached.costUsd * 2) < 1e-12);
+  assert.deepEqual(usageBreakdown([]).hitRate, 0);
 });

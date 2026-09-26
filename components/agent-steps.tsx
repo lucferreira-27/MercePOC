@@ -1,54 +1,104 @@
 'use client';
-import { ArrowRight, Check, ListChecks, Loader2, X } from 'lucide-react';
+import { createElement, useState } from 'react';
+import { ArrowRight, Brain, ChevronDown, ListChecks, RotateCcw } from 'lucide-react';
 import type { AgentStep } from '@/lib/agent/types';
 import type { ChatReport } from '@/lib/progress';
+import { clock, runningLabel, toolIcon, type RunningTool } from './turn-activity';
+
+/** Etapa vista ao vivo: quanto levou desde a anterior (IA pensando + ferramenta). */
+export type LiveStep = AgentStep & { ms?: number };
+
+/** Leituras repetidas não contam história: só a primeira de cada tipo aparece. */
+const QUIET = ['state_read', 'history_list', 'project_list'];
 
 /**
- * O que o assistente fez no pedido, uma linha por ferramenta: ao vivo no
- * cartão de progresso (com a etapa em curso) e recolhido na resposta, para
- * quem quer conferir o caminho. Etapas que falharam e foram corrigidas ficam
- * visíveis: a conferência é parte do valor, não um erro escondido.
+ * Pergunta barrada pelo app não é erro da IA: ela seguiu sem perguntar.
+ * Mensagens antigas gravaram "Dispensei a pergunta".
+ */
+function kindOf(s: AgentStep) {
+  if (s.tool === 'ask_user' && !s.ok) return 'info';
+  return s.ok ? 'done' : 'warn';
+}
+function labelOf(s: AgentStep) {
+  return s.tool === 'ask_user' && !s.ok ? 'Segui sem perguntar' : s.label;
+}
+
+/**
+ * O que o assistente fez no pedido, uma linha por ferramenta com o ícone
+ * dela: ao vivo no cartão de progresso (com a etapa em curso ou a IA
+ * decidindo a próxima) e recolhido na resposta. Etapas que falharam e foram
+ * refeitas ficam visíveis: a conferência é parte do valor, não um erro.
  */
 export function AgentSteps({
   steps,
   plan = [],
   running = null,
+  thinking = false,
   compact = false,
+  limit = 0,
 }: {
-  steps: readonly AgentStep[];
+  steps: readonly LiveStep[];
   plan?: readonly string[];
-  running?: string | null;
+  running?: RunningTool | null;
+  /** Entre duas ferramentas: a IA está escolhendo o próximo passo. */
+  thinking?: boolean;
   compact?: boolean;
+  /** Quantas linhas mostrar do fim; as anteriores ficam atrás de um botão. */
+  limit?: number;
 }) {
-  // Leituras repetidas não contam história: só a primeira de cada tipo aparece.
-  const shown = steps.filter((s, i) => s.ok === false || !['state_read', 'history_list', 'project_list'].includes(s.tool) || steps.findIndex((v) => v.tool === s.tool) === i);
+  const [all, setAll] = useState(false);
+  const shown = steps.filter((s, i) => s.ok === false || !QUIET.includes(s.tool) || steps.findIndex((v) => v.tool === s.tool) === i);
+  const hidden = limit && !all ? Math.max(0, shown.length - limit) : 0;
   return (
     <div className={'agent-steps' + (compact ? ' compact' : '')}>
       {plan.length > 0 && (
-        <ol className="agent-plan" aria-label="Plano">
-          {plan.map((p, i) => (
-            <li key={i}>
-              <span>{i + 1}</span>
-              {p}
-            </li>
-          ))}
-        </ol>
+        <div className="agent-plan">
+          <span className="agent-plan-title">
+            <ListChecks size={12} /> Plano
+          </span>
+          <ol>
+            {plan.map((p, i) => (
+              <li key={i}>
+                <span>{i + 1}</span>
+                {p}
+              </li>
+            ))}
+          </ol>
+        </div>
       )}
       <ol className="agent-list">
-        {shown.map((s, i) => (
-          <li key={i} className={s.ok ? 'ok' : 'bad'} title={s.detail}>
-            <span className="agent-icon" aria-hidden="true">
-              {s.ok ? <Check size={11} strokeWidth={3} /> : <X size={11} strokeWidth={3} />}
-            </span>
-            <span className="agent-label">{s.label}</span>
+        {hidden > 0 && (
+          <li className="more">
+            <button type="button" onClick={() => setAll(true)}>
+              <ChevronDown size={12} />
+              {hidden} {hidden === 1 ? 'etapa anterior' : 'etapas anteriores'}
+            </button>
           </li>
-        ))}
-        {running && (
-          <li className="running">
+        )}
+        {shown.slice(hidden).map((s, i) => {
+          const kind = kindOf(s);
+          return (
+            <li key={i + hidden} className={kind} title={s.detail}>
+              <span className="agent-icon" aria-hidden="true">
+                {createElement(toolIcon(s.tool), { size: 12, strokeWidth: 2.1 })}
+              </span>
+              <span className="agent-label">{labelOf(s)}</span>
+              {kind === 'warn' ? (
+                <span className="agent-end warn">
+                  <RotateCcw size={11} /> refeito
+                </span>
+              ) : s.ms !== undefined && s.ms >= 1000 ? (
+                <span className="agent-end">{clock(s.ms)}</span>
+              ) : null}
+            </li>
+          );
+        })}
+        {(running || thinking) && (
+          <li className={running ? 'running' : 'thinking'}>
             <span className="agent-icon" aria-hidden="true">
-              <Loader2 size={11} className="spin" />
+              {createElement(running ? toolIcon(running.tool) : Brain, { size: 12, strokeWidth: 2.1 })}
             </span>
-            <span className="agent-label">{running}</span>
+            <span className="agent-label">{running ? runningLabel(running) : 'Decidindo o próximo passo'}</span>
           </li>
         )}
       </ol>
@@ -99,13 +149,13 @@ export function TurnFacts({ report }: { report: ChatReport }) {
 
 /** Na resposta gravada: as etapas recolhidas atrás de uma linha. */
 export function AgentStepsSummary({ steps, plan }: { steps: readonly AgentStep[]; plan?: readonly string[] }) {
-  const failed = steps.filter((s) => !s.ok).length;
+  const failed = steps.filter((s) => kindOf(s) === 'warn').length;
   return (
     <details className="agent-summary">
       <summary>
         <ListChecks size={13} />
         {steps.length} {steps.length === 1 ? 'etapa' : 'etapas'}
-        {failed ? ` · ${failed} ${failed === 1 ? 'corrigida' : 'corrigidas'}` : ''}
+        {failed ? ` · ${failed} ${failed === 1 ? 'refeita' : 'refeitas'}` : ''}
       </summary>
       <AgentSteps steps={steps} plan={plan} compact />
     </details>

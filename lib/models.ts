@@ -193,6 +193,60 @@ export function sumUsage(list: readonly (TurnUsage | undefined)[]) {
   return { costUsd, tokens, turns, byModel: [...byModel.values()] };
 }
 
+/** Tokens e custo de uma fatia do gasto (entrada nova, cache ou saída). */
+export type UsageSlice = { tokens: number; costUsd: number };
+export type UsageBreakdown = {
+  /** Entrada lida pela primeira vez: preço cheio. */
+  fresh: UsageSlice;
+  /** Entrada que o provedor reaproveitou do cache: preço de cache. */
+  cached: UsageSlice;
+  output: UsageSlice;
+  /** Fração da entrada que veio do cache (0 a 1). */
+  hitRate: number;
+  /** Quanto a entrada custaria a mais sem o cache. */
+  savedUsd: number;
+};
+
+/**
+ * Separa o custo gravado em entrada nova, cache e saída. As fatias saem da
+ * tabela de preços do modelo e são escaladas para somar o custo gravado: um
+ * preço trocado por variável de ambiente no servidor continua batendo.
+ */
+export function usageBreakdown(list: readonly (TurnUsage | undefined)[]): UsageBreakdown {
+  const out: UsageBreakdown = {
+    fresh: { tokens: 0, costUsd: 0 },
+    cached: { tokens: 0, costUsd: 0 },
+    output: { tokens: 0, costUsd: 0 },
+    hitRate: 0,
+    savedUsd: 0,
+  };
+  let input = 0;
+  for (const u of list) {
+    if (!u) continue;
+    const price = modelInfo(u.model).price;
+    const cached = Math.min(u.cachedTokens, u.inputTokens);
+    const fresh = u.inputTokens - cached;
+    const raw = [fresh * price.input, cached * price.cachedInput, u.outputTokens * price.output].map((v) => v / 1_000_000);
+    const sum = raw[0] + raw[1] + raw[2];
+    const k = sum > 0 ? u.costUsd / sum : 0;
+    out.fresh.tokens += fresh;
+    out.fresh.costUsd += raw[0] * k;
+    out.cached.tokens += cached;
+    out.cached.costUsd += raw[1] * k;
+    out.output.tokens += u.outputTokens;
+    out.output.costUsd += raw[2] * k;
+    out.savedUsd += ((cached * Math.max(0, price.input - price.cachedInput)) / 1_000_000) * k;
+    input += u.inputTokens;
+  }
+  out.hitRate = input > 0 ? out.cached.tokens / input : 0;
+  return out;
+}
+
+/** "82%" para a fração de cache. */
+export function percent(value: number) {
+  return `${Math.round(value * 100)}%`;
+}
+
 /**
  * Dólares com a precisão que um turno pede: centavos somem em turnos de
  * fração de centavo, então abaixo de US$ 0,01 aparecem quatro casas.
