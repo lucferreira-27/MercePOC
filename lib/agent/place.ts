@@ -5,6 +5,8 @@ import { TV_CLEARANCE_MM, type Room } from '../room';
 import type { Design, ShelfOp } from '../studio';
 import { conflictsOf, freeSpans, sceneOf, type Box3, type Scene, type SceneModule } from './scene';
 import { defaultInterior, interiorOps, interiorSchema, type Interior } from './interior';
+import { splitWidths } from './macros';
+import { PROFILE } from '../composition';
 
 /**
  * Onde a peça vai, como quem desenha fala: ao lado, acima ou abaixo de uma
@@ -60,8 +62,11 @@ const DEFAULTS: Record<Piece['tipo'], { floor: [number, number, number]; wall: [
 function limitsOf(tipo: Piece['tipo']) {
   if (tipo === 'painel') return { w: [200, PANEL_LIMITS.long], h: [200, PANEL_LIMITS.long], d: PANEL_LIMITS.thickness as readonly number[] };
   if (tipo === 'vao') return { w: [100, 5000], h: [100, 2700], d: [100, 1000] };
-  return { w: [200, 1200], h: [200, 2400], d: [200, 800] };
+  // Caixa mais larga que 1200 mm vira fileira de módulos com painel compartilhado.
+  return { w: [200, 4 * 1200], h: [200, 2400], d: [200, 800] };
 }
+/** Maior largura de um módulo; acima disso a peça vira fileira. */
+const MODULE_MAX = 1200;
 
 type Ref = { name: string; box: { x0: number; x1: number; y0: number; y1: number; d0: number; d1: number }; kind: 'module' | 'obstacle'; module?: SceneModule; zone?: Scene['zones'][number]; feet?: number; depth?: number; height?: number };
 
@@ -87,7 +92,7 @@ export function findRef(scene: Scene, design: Design, key: string, placed: reado
   return null;
 }
 
-export type Placed = { ref: string; id: string; name: string; box: Box3; feet: number; height: number; notes: string[]; surface: string; cells: string[][] };
+export type Placed = { ref: string; id: string; name: string; box: Box3; feet: number; height: number; notes: string[]; surface: string; cells: string[][]; material?: MaterialId };
 
 const round = (v: number) => Math.round(v);
 const span = (a: number, b: number) => `${round(a)}–${round(b)}`;
@@ -123,7 +128,10 @@ export function resolvePiece(scene: Scene, design: Design, piece: Piece, placed:
   const moduleRef = ref?.kind === 'module' && ref.height !== undefined;
   let width = piece.largura ?? (stacked && ref ? Math.min(ref.box.x1 - ref.box.x0, limitsOf(piece.tipo).w[1]) : dw);
   let feet = piece.pes ?? (beside && moduleRef ? (ref!.feet ?? 0) : 0);
-  let height = piece.altura ?? (beside && moduleRef ? ref!.height! : dh);
+  // Altura do vizinho só para móvel alto (armário, estante) ou fileira de
+  // aéreos: um gaveteiro ao lado de um vassoureiro de 2,2 m ficava com 2,2 m.
+  const copyHeight = beside && moduleRef && (piece.tipo === 'armario' || piece.tipo === 'estante' || ref!.box.y0 > 5);
+  let height = piece.altura ?? (copyHeight ? ref!.height! : dh);
   const depth = piece.profundidade ?? (beside && moduleRef && piece.tipo !== 'painel' ? ref!.depth! : dd);
   const auto = { w: piece.largura === undefined, h: piece.altura === undefined };
   if (piece.tipo === 'painel' || piece.tipo === 'vao') feet = 0;
@@ -300,46 +308,70 @@ export function planPieces(design: Design, room: Room | undefined, pieces: reado
   const scene = sceneOf(design, room);
   const placed: Placed[] = [];
   const ops: ShelfOp[] = [];
-  const reserved: { label: string; x0: number; x1: number; y0: number; y1: number }[] = [];
+  const reserved: { ref: string; label: string; x0: number; x1: number; y0: number; y1: number }[] = [];
+  // Acabamento sem pedido: o do vizinho de referência, senão o que mais
+  // aparece no projeto. Carvalho de fábrica ao lado de móvel branco abria
+  // três grupos de chapa a mais.
+  const count = new Map<string, number>();
+  for (const m of design.modules) if (m.kind !== 'panel') count.set(m.materialId, (count.get(m.materialId) ?? 0) + 1);
+  const common = [...count].sort((a, b) => b[1] - a[1])[0]?.[0] as MaterialId | undefined;
+  const finishOf = (piece: Piece): MaterialId | undefined => {
+    if (piece.material) return piece.material as MaterialId;
+    const ref = piece.onde.de ? design.modules.find((m) => m.id === piece.onde.de) : undefined;
+    const prev = piece.onde.de ? placed.find((v) => v.ref === piece.onde.de) : undefined;
+    return (ref && ref.kind !== 'panel' ? ref.materialId : prev?.material) ?? common;
+  };
   for (const piece of pieces) {
     const r = resolvePiece(scene, design, piece, placed);
     if ('error' in r) return { error: r.error as string, placed };
     if (piece.tipo === 'vao') {
       // Vão reservado (máquina, geladeira): vira área protegida da parede,
       // e as peças seguintes (e as futuras) não entram nele.
-      reserved.push({ label: piece.nome, x0: r.box.x0, x1: r.box.x1, y0: r.box.y0, y1: r.box.y1 });
+      reserved.push({ ref: piece.ref, label: piece.nome, x0: r.box.x0, x1: r.box.x1, y0: r.box.y0, y1: r.box.y1 });
       scene.zones.push({ id: piece.ref, kind: 'other', label: piece.nome, x0: r.box.x0, x1: r.box.x1, y0: r.box.y0, y1: r.box.y1, rule: 'block' });
       placed.push({ ref: piece.ref, id: piece.ref, name: piece.nome, box: { ...r.box, d0: 0, d1: 0 }, feet: 0, height: r.height, notes: r.notes, surface: 'piso', cells: [] });
       continue;
     }
     const id = freeId(design, placed, piece.ref);
-    const wx = scene.origin.x + r.box.x0 + r.width / 2;
+    // Larga demais para um módulo: fileira de módulos iguais, com painel
+    // compartilhado, do mesmo tamanho total (cada junta economiza 18 mm).
+    const count = piece.tipo === 'painel' ? 1 : Math.ceil((r.width + PROFILE.panel) / MODULE_MAX - 1e-9);
+    const widths = count > 1 ? splitWidths(r.width + (count - 1) * PROFILE.panel, count) : [r.width];
+    const wx = scene.origin.x + r.box.x0 + widths[0] / 2;
     const wz = scene.origin.z + r.box.d0 + r.depth / 2;
     // Apoia em outro módulo (sem folga, logo acima de um módulo de piso) não é suspenso.
     const resting = scene.modules.some(
       (m) => m.kind === 'box' && Math.abs(m.y1 - r.box.y0) < 1 && Math.min(m.x1, r.box.x1) - Math.max(m.x0, r.box.x0) > 0.5 && Math.min(m.d1, r.box.d1) - Math.max(m.d0, r.box.d0) > 0.5,
     );
-    ops.push({ kind: 'module.add', id, preset: piece.tipo === 'painel' ? 'panel' : 'niche', name: piece.nome });
-    ops.push({
-      kind: 'module.edit',
-      id,
-      width: r.width,
-      height: r.height,
-      depth: r.depth,
-      ...(piece.material ? { materialId: piece.material as MaterialId } : {}),
-      ...(r.feet ? { feet: r.feet } : {}),
-      ...(r.hung && !resting && piece.tipo !== 'painel' ? { wall: true } : {}),
-      position: [wx, r.box.y0, wz],
-    });
+    const ids: string[] = [];
     let cells: string[][] = [];
-    if (piece.tipo !== 'painel') {
-      const spec: Interior = piece.interior ?? defaultInterior(piece.tipo as 'nicho', r.height);
-      const inside = interiorOps(id, { width: r.width, height: r.height }, spec);
-      if ('error' in inside) return { error: `${piece.nome}: ${inside.error}`, placed };
-      ops.push(...inside.ops);
-      cells = inside.cells;
+    for (const [i, width] of widths.entries()) {
+      const mid = i === 0 ? id : freeId(design, placed, `${id}-${i + 1}`);
+      ids.push(mid);
+      ops.push({ kind: 'module.add', id: mid, preset: piece.tipo === 'painel' ? 'panel' : 'niche', name: count > 1 ? `${piece.nome} ${i + 1}` : piece.nome });
+      ops.push({
+        kind: 'module.edit',
+        id: mid,
+        width,
+        height: r.height,
+        depth: r.depth,
+        ...(finishOf(piece) ? { materialId: finishOf(piece) } : {}),
+        ...(r.feet ? { feet: r.feet } : {}),
+        ...(r.hung && !resting && piece.tipo !== 'painel' ? { wall: true } : {}),
+        ...(i === 0 ? { position: [wx, r.box.y0, wz] as [number, number, number] } : {}),
+      });
+      if (i > 0) ops.push({ kind: 'connect', parent: ids[i - 1], child: mid, side: 'right', shared: true, align: 'back', offset: 0 });
+      if (piece.tipo !== 'painel') {
+        const spec: Interior = piece.interior ?? defaultInterior(piece.tipo as 'nicho', r.height);
+        const inside = interiorOps(mid, { width, height: r.height }, spec);
+        if ('error' in inside) return { error: `${piece.nome}: ${inside.error}`, placed };
+        ops.push(...inside.ops);
+        cells = i === 0 ? inside.cells : cells.map((row, k) => [...row, ...(inside.cells[k] ?? [])]);
+        if (i === 0) r.notes.push(...inside.notes);
+      }
     }
-    placed.push({ ref: piece.ref, id, name: piece.nome, box: r.box, feet: r.feet, height: r.height, notes: r.notes, surface: r.surface, cells });
+    if (count > 1) r.notes.push(`${count} módulos de ${widths.join(' + ')} mm com painel compartilhado (${ids.join(', ')})`);
+    placed.push({ ref: piece.ref, id, name: piece.nome, box: r.box, feet: r.feet, height: r.height, notes: r.notes, surface: r.surface, cells, material: finishOf(piece) });
   }
   return { ops, placed, scene, reserved };
 }

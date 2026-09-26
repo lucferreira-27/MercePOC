@@ -230,3 +230,54 @@ void test('parede presa: nicho novo à esquerda do painel não leva a TV junto',
   undo(p);
   assert.equal(p.room!.anchor, undefined, 'Ctrl+Z volta o ambiente também');
 });
+
+void test('rota: pedido interrompido no meio grava a falha com pedido, etapas, causa e nada gravado', async () => {
+  process.env.AI_API_KEY ||= 'test-key';
+  const { POST } = await import('../app/api/chat/route');
+  const p = get(create().id);
+  const moduleId = p.revisions[0].params.modules[0].id;
+  const stop = new AbortController();
+  const sse = (payload: unknown) =>
+    new Response(`data: ${JSON.stringify(payload)}\n\ndata: [DONE]\n\n`, { headers: { 'Content-Type': 'text/event-stream' } });
+  const original = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = (async () => {
+    calls++;
+    if (calls === 1)
+      return sse({
+        choices: [
+          {
+            delta: {
+              tool_calls: [{ index: 0, id: 'c1', function: { name: 'design_apply', arguments: JSON.stringify({ ops: [{ kind: 'module.edit', id: moduleId, width: 900 }] }) } }],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+      });
+    // A pessoa apertou Parar no meio da segunda chamada.
+    stop.abort();
+    throw Object.assign(new Error('This operation was aborted'), { name: 'AbortError' });
+  }) as typeof fetch;
+  try {
+    const res = await POST(
+      new Request('http://127.0.0.1:4310/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: p.id, version: p.version, message: 'Deixe com 90 cm e ponha portas', agent: true, requestId: 'pedido-interrompido' }),
+        signal: stop.signal,
+      }),
+    );
+    assert.equal(res.status, 400);
+  } finally {
+    globalThis.fetch = original;
+  }
+  const after = get(p.id);
+  assert.equal(after.revisions.length, 1, 'nada gravado');
+  const failed = after.messages.at(-1)!;
+  assert.ok(failed.error);
+  assert.equal(failed.context?.requestId, 'pedido-interrompido');
+  assert.equal(failed.report?.failure?.cause, 'cancelled');
+  assert.equal(failed.report?.failure?.committed, 'none');
+  assert.equal(failed.report?.failure?.draftOperations, 1);
+  assert.deepEqual(failed.report?.steps?.map((v) => v.tool), ['design_apply']);
+});

@@ -1,6 +1,7 @@
 'use client';
-import { Check, ListChecks, Loader2, X } from 'lucide-react';
+import { ArrowRight, Check, ListChecks, Loader2, X } from 'lucide-react';
 import type { AgentStep } from '@/lib/agent/types';
+import type { ChatReport } from '@/lib/progress';
 
 /**
  * O que o assistente fez no pedido, uma linha por ferramenta: ao vivo no
@@ -51,6 +52,47 @@ export function AgentSteps({
           </li>
         )}
       </ol>
+    </div>
+  );
+}
+
+const CAUSE: Record<NonNullable<ChatReport['failure']>['cause'], string> = {
+  cancelled: 'Interrompido',
+  timeout: 'Tempo esgotado',
+  provider: 'Falha do provedor',
+  internal: 'Erro no app',
+};
+
+/**
+ * O que o app conferiu no estado gravado, separado do texto da IA: os fatos
+ * do objetivo antes e depois (chapas, orçamento) e como o pedido terminou,
+ * quando não terminou inteiro. A resposta dizia "o plano ainda usa 25 mm"
+ * com o plano já em 18 mm; aqui o número é do app.
+ */
+export function TurnFacts({ report }: { report: ChatReport }) {
+  const facts = report.facts ?? [];
+  const failure = report.failure;
+  const partial = report.completion === 'partial';
+  const back = report.completion === 'rolled-back';
+  if (!facts.length && !partial && !back && !failure) return null;
+  return (
+    <div className="turn-facts">
+      {facts.map((f) => (
+        <span key={f.label} className="turn-fact">
+          <em>{f.label}</em>
+          <span className="turn-fact-before">{f.before}</span>
+          <ArrowRight size={11} aria-label="para" />
+          <strong>{f.after}</strong>
+        </span>
+      ))}
+      {partial && <span className="turn-fact warn">Parcial: o tempo acabou e ficou gravado só o que está acima</span>}
+      {back && <span className="turn-fact warn">Rascunho descartado: o projeto ficou como estava</span>}
+      {failure && (
+        <span className="turn-fact bad" title={`Pedido ${failure.requestId}`}>
+          {CAUSE[failure.cause]} · {failure.committed === 'none' ? 'nada foi gravado' : 'o que foi salvo antes ficou'}
+          {failure.draftOperations ? ` · ${failure.draftOperations} operações descartadas` : ''}
+        </span>
+      )}
     </div>
   );
 }

@@ -13,6 +13,12 @@
  */
 export type ModelKey = 'deepseek' | 'luna' | 'mimo' | 'qwen-fast';
 export const MODEL_KEYS = ['deepseek', 'luna', 'mimo', 'qwen-fast'] as const;
+/**
+ * Modelo de sessão nova e de pedido sem modelo: GPT-6 Luna com raciocínio
+ * alto, escolha de produto (o DeepSeek ficou lento demais no uso real). A
+ * escolha explícita da pessoa continua valendo (ver app/page.tsx).
+ */
+export const DEFAULT_MODEL: ModelKey = 'luna';
 
 export type ModelPrice = {
   /** US$ por milhão de tokens de entrada. */
@@ -42,25 +48,25 @@ export type ModelInfo = {
 
 export const MODELS: ModelInfo[] = [
   {
+    key: 'luna',
+    label: 'GPT-6 Luna',
+    blurb: 'Padrão do estúdio: cuidadoso em composições e pedidos longos',
+    vendor: 'Command Code',
+    // Medido nos casos difíceis: low acerta 4/10, high 9/10. Pergunta demais
+    // sem o portão do perguntar (lib/agent/ask-gate.ts).
+    reasoning: 'high',
+    price: { input: 0.5, output: 2, cachedInput: 0.05 },
+  },
+  {
     key: 'deepseek',
     label: 'DeepSeek V4.1 Flash',
-    blurb: 'Padrão do estúdio: bom custo para editar e montar',
+    blurb: 'Mais barato por token, porém mais lento; a Luna assume se o provedor falhar',
     vendor: 'Command Code',
     // No Command Code, low, medium e high acertam igual (o proxy sempre
     // raciocina); xhigh e max custam 3× e estouram o tempo do laço.
     reasoning: 'low',
     fallback: 'luna',
     price: { input: 0.14, output: 0.56, cachedInput: 0.014 },
-  },
-  {
-    key: 'luna',
-    label: 'GPT-6 Luna',
-    blurb: 'Reserva do DeepSeek: mais cara, cuidadosa em pedidos longos',
-    vendor: 'Command Code',
-    // Medido nos casos difíceis: low acerta 4/10, high 9/10. Pergunta demais
-    // sem o portão do perguntar (lib/agent/ask-gate.ts).
-    reasoning: 'high',
-    price: { input: 0.5, output: 2, cachedInput: 0.05 },
   },
   {
     key: 'mimo',
@@ -103,7 +109,7 @@ export function fallbackModel(key: ModelKey): ModelKey | null {
   return alt && alt !== key ? alt : null;
 }
 export function modelInfo(key: string | undefined): ModelInfo {
-  return MODELS.find((m) => m.key === key) ?? MODELS[0];
+  return MODELS.find((m) => m.key === key) ?? MODELS.find((m) => m.key === DEFAULT_MODEL)!;
 }
 
 /** Preço efetivo: a tabela, ou o que o `.env` do servidor disser. */

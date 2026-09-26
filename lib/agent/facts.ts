@@ -69,3 +69,33 @@ export function factClaims(text: string, now: DesignFacts, before: DesignFacts):
     out.push(`diz que não dá para reduzir, mas as chapas foram de ${before.sheets} para ${now.sheets}`);
   return [...new Set(out)];
 }
+
+/**
+ * O objetivo mensurável do pedido, quando há: menos chapas ou menor custo.
+ * Fazer a ação ("tudo no mesmo material") não prova que o objetivo melhorou;
+ * a conferência compara antes e depois.
+ */
+export function objectiveOf(request: string): 'sheets' | 'cost' | null {
+  // "Reduco" (digitado assim num pedido real) também conta.
+  const less = /(reduz|reduc|reduç|diminu|menos|economi|poupar|otimiz|aproveit)/i;
+  if (less.test(request) && /(chapa|placa)/i.test(request)) return 'sheets';
+  if ((less.test(request) && /(custo|preço|preco|valor|orçamento|orcamento|gast)/i.test(request)) || /mais barat/i.test(request)) return 'cost';
+  return null;
+}
+
+/**
+ * De onde vêm as chapas: cada acabamento e espessura, com os módulos que
+ * usam. É a alavanca que a IA não via ("troquei a cor, continua 3 chapas").
+ */
+export function sheetLevers(design: Design) {
+  const parts = generateDesign(design).parts as ModularPart[];
+  const groups = new Map<string, Set<string>>();
+  for (const p of parts) {
+    const names = groups.get(p.material) ?? new Set<string>();
+    for (const o of p.owners) names.add(design.modules.find((m) => m.id === o)?.name ?? o);
+    groups.set(p.material, names);
+  }
+  const list = [...groups].map(([mat, names]) => `${mat} mm: ${[...names].slice(0, 6).join(', ')}`).join('; ');
+  const panels = design.modules.filter((m) => m.kind === 'panel').map((m) => `${m.name} (${m.depth} mm)`);
+  return `Chapas por acabamento e espessura: ${list}.${panels.length ? ` Painel de parede aceita de 15 a 60 mm de espessura (depth): ${panels.join(', ')}.` : ''} Caixas e frentes são de 18 mm.`;
+}

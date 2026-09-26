@@ -144,7 +144,7 @@ export function planModify(design: Design, room: Room | undefined, a: Modify): {
     const inside = interiorOps(m.id, size, spec, m.root.id);
     if ('error' in inside) return { error: `${m.name}: ${inside.error}` };
     ops.push(...clearOps(m), ...inside.ops);
-    lines.push(`${m.name}: interior novo, vãos (de baixo para cima) ${inside.cells.map((r) => r.join(' ')).join(' | ')}.`);
+    lines.push(`${m.name}: interior novo, vãos (de baixo para cima) ${inside.cells.map((r) => r.join(' ')).join(' | ')}${inside.notes.length ? ` (${inside.notes.join('; ')})` : ''}.`);
   }
   // Mover: onde a peça fica pela mesma conta das peças novas, ignorando ela e quem anda junto.
   if (a.mover?.length) {

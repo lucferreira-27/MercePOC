@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { Bug, Check, ChevronDown, Cpu } from 'lucide-react';
-import { MODELS, modelInfo, reasoningLabel, type ModelKey } from '@/lib/models';
+import { DEFAULT_MODEL, MODELS, modelInfo, reasoningLabel, type ModelKey } from '@/lib/models';
 
 /** Preço por milhão de tokens em uma linha curta: "US$ 0,14 / 0,56". */
 function priceLine(key: ModelKey) {
@@ -89,6 +89,7 @@ export function ModelPicker({
                     {m.label}
                     {m.reasoning && <em>{reasoningLabel(m)}</em>}
                     {m.fastProfile && <em>rápido</em>}
+                    {m.key === DEFAULT_MODEL && <em className="model-default">padrão</em>}
                   </strong>
                   <small>{usable ? m.blurb : 'Sem credencial neste servidor (.env)'}</small>
                   <small className="model-price">{priceLine(m.key)}</small>

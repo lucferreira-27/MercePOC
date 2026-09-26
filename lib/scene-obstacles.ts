@@ -133,7 +133,8 @@ export function buildObstacle(o: Obstacle, kit: Kit) {
     // Suporte na parede, corpo fino, tela quase espelhada e o LED aceso.
     box(w * 0.3, h * 0.3, 0, w * 0.4, h * 0.4, 18, mat('#2a2c30', { roughness: 0.5, metalness: 0.4 }));
     box(0, 0, 18, w, h, 30, mat(theme === 'dark' ? '#0c0d0f' : '#17191c', { roughness: 0.4, metalness: 0.2 }), true);
-    box(10, 14, 48, w - 20, h - 24, 2, mat(theme === 'dark' ? '#1b2129' : '#262c35', { roughness: 0.06, metalness: 0.4 }));
+    // Tela tapada (algo do móvel na frente ou encostado nela) fica vermelha, como o obstáculo que cruza um módulo.
+    box(10, 14, 48, w - 20, h - 24, 2, mat(bad ? c.bad : theme === 'dark' ? '#1b2129' : '#262c35', { roughness: 0.06, metalness: 0.4 }));
     const glare = mat('#ffffff', { transparent: true, opacity: 0.06, depthWrite: false });
     const geo = new THREE.PlaneGeometry(w * 0.35, h * 0.9);
     track(geo);

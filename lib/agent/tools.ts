@@ -36,7 +36,7 @@ import { contextSnapshot } from './snapshot';
 import { planRow } from './macros';
 import { askJev, noulOf, type JevAnswer, type JevQuestion } from './jev';
 import { askGateOn, askVerdict, blockText } from './ask-gate';
-import { designFacts, factClaims, factsLine } from './facts';
+import { designFacts, factClaims, factsLine, objectiveOf, sheetLevers } from './facts';
 import { pieceSchema, placedLine, planPieces } from './place';
 import { modifySchema, planModify } from './modify';
 import { sceneOf } from './scene';
@@ -296,9 +296,10 @@ const placeTool = tool({
     let room = pinnedRoom(ctx);
     if (plan.reserved.length && room) {
       const taken = new Set((room.obstacles ?? []).map((o) => o.id));
-      const add = plan.reserved.map((v, i) => {
-        let id = `vao-${i + 1}`;
-        for (let k = 1; taken.has(id); k++) id = `vao-${k}`;
+      // O id do vão é a ref que a IA deu: ela usa como referência nas próximas chamadas.
+      const add = plan.reserved.map((v) => {
+        let id = v.ref;
+        for (let k = 2; taken.has(id); k++) id = `${v.ref}-${k}`;
         taken.add(id);
         return { id, kind: 'other' as const, label: v.label, xMm: Math.round(v.x0), yMm: Math.round(v.y0), widthMm: Math.round(v.x1 - v.x0), heightMm: Math.round(v.y1 - v.y0) };
       });
@@ -692,10 +693,25 @@ const finishTool = tool({
       issues.push(
         `A mensagem ${wrong.join('; ')}. Fatos do estado final: ${factsLine(designFacts(ctx.design, ctx.prices))}. Reescreva só com esses números.`,
       );
+    // Afirma que mudou o móvel e nada mudou: a peça foi recusada e a resposta
+    // contava a composição como feita. Sem Jev, esta é a conferência que fica.
+    if (!ctx.navigated && !ctx.origin && !ctx.designChanged && !ctx.roomChanged && JSON.stringify(ctx.design) === JSON.stringify(ctx.turnStart.design) && claimsChange(a.mensagem))
+      issues.push('A mensagem diz que mudou o móvel, mas nada mudou neste pedido (as peças foram recusadas ou não foram montadas). Monte de novo com o que o erro indicou, ou diga que não deu e por quê.');
+    // Objetivo mensurável (menos chapas, menor custo): conferido no estado
+    // final, com as alavancas, em vez de aceitar a ação feita como prova.
+    const goal = objectiveOf(ctx.request);
+    if (goal) {
+      const b = designFacts(ctx.turnStart.design, ctx.prices),
+        n = designFacts(ctx.design, ctx.prices);
+      if (goal === 'sheets' && n.sheets >= b.sheets)
+        issues.push(`O pedido quer menos chapas e o plano segue com ${n.sheets} (antes do pedido, ${b.sheets}). ${sheetLevers(ctx.design)} Mude o que for preciso, ou diga na resposta por que não dá.`);
+      if (goal === 'cost' && n.total >= b.total - 0.005)
+        issues.push(`O pedido quer custo menor e o total segue ${money(n.total)} (antes do pedido, ${money(b.total)}). ${sheetLevers(ctx.design)} Mude o que for preciso, ou diga na resposta por que não dá.`);
+    }
     // Módulo que existia e saiu precisa estar na resposta: sumir calado era
     // o jeito de "caber" (o painel da TV trocado por uma estante).
     const gone = ctx.navigated || ctx.origin ? [] : ctx.turnStart.design.modules.filter((m) => !ctx.design.modules.some((v) => v.id === m.id));
-    if (gone.length && !/(tir|remov|substitu|troq|troc|no lugar|sa[ií]|exclu|apag|refiz)/i.test(a.mensagem))
+    if (gone.length && !/\b(tir|remov|substitu|troq|troc|no lugar|sa[ií]|exclu|apag|refiz)/i.test(a.mensagem))
       issues.push(`A mensagem não diz que saiu ${gone.map((m) => m.name).join(', ')}. Diga o que foi removido ou, se não era para remover, volte com history_undo e monte em volta.`);
     if (!issues.length && ctx.repairs < 2) {
       const [gaps, missing] = await Promise.all([claimsMatch(ctx, a.mensagem), requestMissing(ctx)]);
@@ -731,6 +747,12 @@ function fitNote(ctx: AgentContext, before: Design, after: Design, roomBefore = 
   const worse = now.filter((i) => !was.has(issueKey(i)));
   if (worse.length) return ` ATENÇÃO, esta mudança piorou o encaixe: ${worse.map((i) => i.message).join('; ')}. Desfaça ou corrija.`;
   return ` ${fitSummary(after, room)}.`;
+}
+
+/** Verbos de quem mudou o móvel, na primeira pessoa, fora de negação ("não coloquei"). */
+const CHANGE_VERBS = /(montei|adicionei|acrescentei|coloquei|criei|pus|instalei|removi|tirei|troquei|mudei|ajustei|aumentei|diminuí|diminui|reduzi|passei|substituí|substitui|dividi|reorganizei|alinhei|encostei|movi|unifiquei)/i;
+function claimsChange(text: string) {
+  return text.split(/(?<=[.!?;])\s+/).some((s) => CHANGE_VERBS.test(s) && !/(?:^|[\s,;(])(não|nao|nem|sem)\s[^.]{0,20}(montei|adicionei|acrescentei|coloquei|criei|pus|instalei|removi|tirei|troquei|mudei|ajustei|aumentei|diminu|reduzi|passei|substitu|dividi|reorganizei|alinhei|encostei|movi|unifiquei)/i.test(s));
 }
 
 /** Quem causa o problema de encaixe: o mesmo problema antes e depois tem a mesma chave. */

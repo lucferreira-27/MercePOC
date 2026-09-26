@@ -885,6 +885,55 @@ kbd {
   border-radius: 9px;
   padding: 8px 10px;
 }
+/* Fatos do app no estado gravado (chapas, orçamento) e como o pedido terminou. */
+.turn-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.turn-fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+.turn-fact em {
+  font-style: normal;
+  color: var(--muted);
+}
+.turn-fact-before {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--muted) 60%, transparent);
+}
+.turn-fact strong {
+  font-weight: 650;
+  color: var(--ink);
+}
+.turn-fact svg {
+  color: var(--muted);
+  flex: none;
+}
+.turn-fact.warn {
+  color: var(--warn);
+  background: var(--warn-soft);
+  border-color: color-mix(in srgb, var(--warn) 25%, transparent);
+  border-radius: 9px;
+}
+.turn-fact.bad {
+  color: var(--bad);
+  background: var(--bad-soft);
+  border-color: color-mix(in srgb, var(--bad) 25%, transparent);
+  border-radius: 9px;
+}
 .turn-review {
   margin-top: 10px;
   border-radius: 12px;

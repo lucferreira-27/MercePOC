@@ -64,7 +64,7 @@ export function interiorOps(
   spec: Interior,
   cellId = `${moduleId}:root`,
   inner?: { width: number; height: number },
-): { ops: ShelfOp[]; cells: string[][] } | { error: string } {
+): { ops: ShelfOp[]; cells: string[][]; notes: string[] } | { error: string } {
   const P = PROFILE.panel;
   const W = inner?.width ?? size.width - 2 * P;
   const H = inner?.height ?? size.height - 2 * P;
@@ -77,14 +77,32 @@ export function interiorOps(
     altura: r.altura,
   }));
   const space = H - (filled.length - 1) * P;
-  const heights = share(space, filled.map((r) => r.altura));
+  // Alturas pedidas são intenção, não conta fechada: quem desenha não desconta
+  // painel de 18 mm entre as linhas. Quando não fecham com o vão livre, viram
+  // proporção (as livres dividem o que sobra) e a nota diz o que ficou.
+  const notes: string[] = [];
+  let wants = filled.map((r) => r.altura);
+  const fixed = wants.reduce<number>((a, v) => a + (v ?? 0), 0);
+  const loose = wants.filter((v) => v === undefined).length;
+  if (filled.length === 1) wants = [undefined];
+  else if ((!loose && fixed !== space) || (loose && fixed > space - loose * 100)) {
+    const room = loose ? Math.max(0, space - loose * Math.max(100, Math.floor(space / filled.length))) : space;
+    const k = fixed ? room / fixed : 1;
+    wants = wants.map((v) => (v === undefined ? undefined : Math.max(100, Math.floor(v * k))));
+    if (!loose) {
+      // Sobra de arredondamento vai para a linha de cima.
+      const sum = wants.reduce<number>((a, v) => a + (v ?? 0), 0);
+      wants[wants.length - 1] = (wants.at(-1) ?? 0) + space - sum;
+    }
+    notes.push(`alturas das linhas ajustadas na proporção para fechar o vão livre de ${space} mm`);
+  }
+  const heights = share(space, wants);
   const maxRows = Math.max(1, Math.floor((H + P) / (100 + P)));
   if (heights.some((h) => h < 100))
     return {
       error: `Interior de ${W} × ${H} mm livres não comporta essas linhas: cada vão precisa de 100 mm (cabem até ${maxRows} linhas iguais de ${Math.floor((H - (maxRows - 1) * P) / maxRows)} mm).`,
     };
-  if (heights.reduce((a, b) => a + b, 0) !== space)
-    return { error: `As alturas das linhas somam ${heights.reduce((a, b) => a + b, 0)} mm, e o vão livre tem ${space} mm (${H} mm menos ${filled.length - 1} painéis de ${P} mm).` };
+
   for (const [i, r] of filled.entries()) {
     const maxCols = Math.max(1, Math.floor((W + P) / (100 + P)));
     if (r.colunas > maxCols) return { error: `Linha ${i + 1}: ${r.colunas} colunas não cabem em ${W} mm (até ${maxCols}, 100 mm cada).` };
@@ -138,7 +156,8 @@ export function interiorOps(
     const type = spec.porta_inteira === 'porta_dupla' || W >= 700 ? 'double' : 'single';
     ops.push({ kind: 'front.set', id: cellId, type, ...(spec.material_frente ? { materialId: spec.material_frente as MaterialId } : {}) } as ShelfOp);
   }
-  return { ops, cells };
+  if (notes.length) notes.push(`linhas de baixo para cima: ${heights.join(', ')} mm`);
+  return { ops, cells, notes };
 }
 
 /**

@@ -3,7 +3,7 @@
 'use client';
 import Link from 'next/link';
 import { TurnProgress, turnLabel, type Pulse, type TimedProgress } from '@/components/turn-progress';
-import { AgentStepsSummary } from '@/components/agent-steps';
+import { AgentStepsSummary, TurnFacts } from '@/components/agent-steps';
 import { LIVE_EFFECTS, type AgentEvent, type AgentStep, type Effect, type ExportKind, type UiState } from '@/lib/agent/types';
 import { ModelPicker } from '@/components/model-picker';
 import { UsageMeter } from '@/components/usage-meter';
@@ -108,7 +108,7 @@ import { emptyRoom, roomChangeLabel, fitReport, fitSummary, freeSpot, obstacleWo
 import { moduleBoxes } from '@/lib/move';
 import { DEFAULT_PRICES, mergePrices, money, quote as buildQuote, type Prices } from '@/lib/quote';
 import { friendlyError } from '@/lib/errors';
-import { MODEL_KEYS, modelInfo, tokensLabel, usd, type ModelKey, type TurnUsage } from '@/lib/models';
+import { DEFAULT_MODEL, MODEL_KEYS, modelInfo, tokensLabel, usd, type ModelKey, type TurnUsage } from '@/lib/models';
 type State = Project & {
   params: Design;
   parts: Part[];
@@ -181,6 +181,11 @@ function readLocal(key: string) {
 function writeLocal(key: string, value: string) {
   try {
     localStorage.setItem(key, value);
+  } catch {}
+}
+function removeLocal(key: string) {
+  try {
+    localStorage.removeItem(key);
   } catch {}
 }
 /**
@@ -321,7 +326,7 @@ export default function Home() {
     // Plano de corte sob o cursor: a chapa ou a peça acende no móvel.
     [cutFocus, setCutFocus] = useState<{ ids: string[]; mode: 'sheet' | 'piece' } | null>(null),
     [scrubbing, setScrubbing] = useState(false),
-    [model, setModel] = useState<ModelKey>('deepseek'),
+    [model, setModel] = useState<ModelKey>(DEFAULT_MODEL),
     [available, setAvailable] = useState<ModelKey[]>([]),
     [pulse, setPulse] = useState<Pulse | null>(null),
     [liveUsage, setLiveUsage] = useState<TurnUsage | null>(null),
@@ -389,8 +394,18 @@ export default function Home() {
   useEffect(() => {
     setLive(readLocal('merce-live') === '1');
     setAgentOn(readLocal('merce-agent') !== '0');
-    const savedModel = readLocal('merce-model');
-    if ((MODEL_KEYS as readonly string[]).includes(savedModel)) setModel(savedModel as ModelKey);
+    // Escolha explícita do modelo mora em merce-model-choice. A chave antiga
+    // (merce-model) guardava "deepseek" quando ele era o padrão: esse valor
+    // é tratado como o padrão antigo e dá lugar ao novo; outro modelo salvo
+    // lá foi escolha da pessoa e passa para a chave nova.
+    const chosen = readLocal('merce-model-choice');
+    const legacy = readLocal('merce-model');
+    if ((MODEL_KEYS as readonly string[]).includes(chosen)) setModel(chosen as ModelKey);
+    else if (legacy && legacy !== 'deepseek' && (MODEL_KEYS as readonly string[]).includes(legacy)) {
+      setModel(legacy as ModelKey);
+      writeLocal('merce-model-choice', legacy);
+    }
+    if (legacy) removeLocal('merce-model');
     // Custo desta aba: sessionStorage, que some ao fechar a aba e sobrevive ao
     // recarregamento.
     try {
@@ -430,7 +445,7 @@ export default function Home() {
   }, []);
   const chooseModel = (key: ModelKey) => {
     setModel(key);
-    writeLocal('merce-model', key);
+    writeLocal('merce-model-choice', key);
   };
   /** Soma à conta desta aba o custo de um turno, uma vez por pedido. */
   const recordSessionUsage = (state: State | undefined, requestId: string) => {
@@ -2149,6 +2164,7 @@ export default function Home() {
                         }}
                       />
                       {m.report.prose && <p className="message-prose">{m.report.prose}</p>}
+                      <TurnFacts report={m.report} />
                       {m.report.review && (
                         <div className={'turn-review ' + m.report.review.fidelity}>
                           <span className="turn-review-label">
@@ -2169,7 +2185,10 @@ export default function Home() {
                       )}
                     </>
                   ) : (
-                    m.content
+                    <>
+                      {m.content}
+                      {m.report ? <TurnFacts report={m.report} /> : null}
+                    </>
                   )}
                   {m.options?.length ? (
                     <OptionCards

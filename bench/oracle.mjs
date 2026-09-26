@@ -59,6 +59,7 @@ export function moduleBoxes(design) {
 
 /** Onde a parede está no mundo (mesma convenção do ambiente: presa ou atrás do móvel). */
 export function wallOf(room, bounds) {
+  if (!room) return { x: bounds.min[0], z: bounds.min[2] };
   return room.anchor ?? { x: bounds.min[0] - (room.offsetMm ?? 0), z: bounds.min[2] };
 }
 
@@ -68,6 +69,7 @@ export function wallOf(room, bounds) {
  * parede.
  */
 export function tvsOf(design, room) {
+  if (!room) return [];
   const { boxes, bounds } = moduleBoxes(design);
   const wall = wallOf(room, bounds);
   return (room.obstacles ?? [])
@@ -161,11 +163,12 @@ export function checkComposition(o) {
   facts.tvBlockers = blockers.map((b) => b.name);
   if (blockers.length) failures.push(`TV tapada por ${[...new Set(blockers.map((b) => b.name))].join(', ')}`);
   // 5. Cabe no ambiente (sem as regras de TV do app, que o oráculo confere acima).
-  const fit = fitReport(o.after, o.roomAfter).issues.filter((i) => !/^tv/.test(i.code));
+  const fit = o.roomAfter ? fitReport(o.after, o.roomAfter).issues.filter((i) => !/^tv/.test(i.code)) : [];
   if (fit.length) failures.push(`não cabe: ${fit.map((i) => i.message).join('; ')}`);
   // 6. Peças novas: funcionais, presas no painel ou na parede, sem passar da borda do painel.
   const { boxes, bounds } = moduleBoxes(o.after);
-  const wall = wallOf(o.roomAfter, bounds);
+  // Sem ambiente, a parede é o fundo mais recuado dos módulos.
+  const wall = o.roomAfter ? wallOf(o.roomAfter, bounds) : { x: bounds.min[0], z: Math.min(...[...boxes.values()].map((b) => b.minZ)) };
   const had = new Set(o.before.modules.map((m) => m.id));
   const added = o.after.modules.filter((m) => !had.has(m.id));
   facts.added = added.map((m) => `${m.name} (${m.kind ?? 'caixa'} ${m.width}×${m.height}×${m.depth})`);

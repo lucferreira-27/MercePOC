@@ -42,7 +42,7 @@ const { applyRequest, create, get, revise, save, undo } = await import('../lib/s
 const { saveImage } = await import('../lib/images.ts');
 const { planDataUrl } = await import('../lib/plan-render.ts');
 const { interpretStream, profile } = await import('../lib/gateway.ts');
-const { addUsage, emptyUsage, priceOf, modelInfo, reasoningEffort, MODEL_KEYS } = await import('../lib/models.ts');
+const { addUsage, emptyUsage, priceOf, modelInfo, reasoningEffort, MODEL_KEYS, DEFAULT_MODEL } = await import('../lib/models.ts');
 const { executeRequest, generateDesign, entityIds, canonical, normalize } = await import('../lib/studio.ts');
 const { drawingParts } = await import('../lib/composition.ts');
 const { runAgentTurn } = await import('../lib/agent/turn.ts');
@@ -75,7 +75,7 @@ const offline = flag('offline');
 const record = flag('record');
 const fast = flag('fast');
 // --model deepseek|luna|mimo|qwen-fast escolhe o modelo; --fast é o atalho antigo.
-const model = value('model', fast ? 'qwen-fast' : 'deepseek');
+const model = value('model', fast ? 'qwen-fast' : DEFAULT_MODEL);
 if (!MODEL_KEYS.includes(model)) {
   console.error(`Modelo desconhecido: ${model}. Use ${MODEL_KEYS.join(', ')}.`);
   process.exit(1);
@@ -533,6 +533,8 @@ async function runCase(benchCase, run, imagePath) {
       row.startHash = got.startHash;
       row.finalHash = got.finalHash;
       row.report = got.report;
+      // O estado gravado, para julgar de novo com outro oráculo sem repetir o turno.
+      if (benchCase.group === 'composicao') row.final = { design: canonical(got.designAfter), room: got.room ?? null };
       row.errors.push(
         ...evaluate(
           benchCase,

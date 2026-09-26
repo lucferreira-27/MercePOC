@@ -108,7 +108,8 @@ export const compositionCases = [
     group: 'composicao',
     askAct: 'agir',
     agentOnly: true,
-    prompt: 'arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos na altura de antes',
+    // "na altura de antes" era ambíguo (a IA não sabe o que era antes da bagunça): a medida vai no pedido.
+    prompt: 'arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos com a base a 1,5 m do piso',
     setup: { scene: 'bench/scenes/cozinha-baguncada.json' },
     learned: 'Mudança de layout: só posições mudam; medidas, frentes e acabamentos ficam. Pedido real parecido esbarrou em "Selecione uma prateleira horizontal".',
     expect: {

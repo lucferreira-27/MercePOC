@@ -28,6 +28,7 @@ import { runAgentTurn, type TurnDiagnostics } from '@/lib/agent/turn';
 import { UI_TABS, VIEW_MODES, type AgentEvent } from '@/lib/agent/types';
 import {
   addUsage,
+  DEFAULT_MODEL,
   emptyUsage,
   modelInfo,
   MODEL_KEYS,
@@ -171,7 +172,8 @@ export async function POST(req: Request) {
         : undefined;
     const before = baseRev.params;
     const quoteNote = quoteSummary(before, b.prices);
-    const modelChoice: ModelKey = b.model ?? (b.fast ? 'qwen-fast' : 'deepseek');
+    // Sem modelo no pedido vale o padrão do estúdio (Luna, raciocínio alto).
+    const modelChoice: ModelKey = b.model ?? (b.fast ? 'qwen-fast' : DEFAULT_MODEL);
     const jpeg = Boolean(modelInfo(modelChoice).fastProfile);
     // Custo do turno: cada chamada ao provedor soma aqui, sai ao vivo para quem
     // espera e fica gravada na resposta, para o total da sessão sobreviver ao
