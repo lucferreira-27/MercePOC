@@ -1,0 +1,402 @@
+{
+ "id": "auto-01",
+ "at": "2026-09-26T11:56:40.179Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Coloque um armário aéreo de 80 cm de largura bem no meio da parede, a 1,5 m do piso.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_o1WmmaLUj89NFUAxyJprATKD",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Coloque um armário aéreo de 80 cm de largura bem no meio da parede, a 1,5 m do piso.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_vF3nw7XoG7Guq6saRMWXgoa7",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"armario-aereo\",\"nome\":\"Armário aéreo\",\"tipo\":\"armario\",\"largura\":800,\"altura\":600,\"profundidade\":350,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":564,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta_dupla\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"\",\"lado\":\"acima\",\"folga\":0,\"alinhar\":\"centro\",\"x\":1200,\"y\":1500}}],\"rotulo\":\"Armário aéreo central\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Coloque um armário aéreo de 80 cm de largura bem no meio da parede, a 1,5 m do piso.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_H3XDd7NSfGpZ3JnvI5UjyKGX",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Não coloquei o armário: no centro da parede, com a base a 1,50 m do piso, ele ficaria sobre a janela. Posso posicioná-lo à esquerda ou à direita da janela, mantendo 80 cm de largura e essa altura.\",\"sugestoes\":[\"Escolha o lado da janela\",\"Peça para instalar acima da janela\",\"Mude a altura do armário\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Coloque um armário aéreo de 80 cm de largura bem no meio da parede, a 1,5 m do piso.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_O5wKuAZvc8WD0S8rAFzU50ir",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"O armário aéreo não foi instalado: centralizado na parede (80 cm, x de 1,20 a 2,00 m) e começando a 1,50 m do piso, ele cobriria a janela, que vai de x 0,97 a 2,23 m e de 1,07 a 2,13 m de altura. Mantive a estante e a janela sem alterações.\",\"sugestoes\":[\"Posicione o armário à esquerda da janela\",\"Posicione o armário à direita da janela\",\"Escolha outra altura para o armário\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Coloque um armário aéreo de 80 cm de largura bem no meio da parede, a 1,5 m do piso.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_DX4VMjj92xKa1s5LJ3Cf08Mi",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"armario-aereo\",\"nome\":\"Armário aéreo\",\"tipo\":\"armario\",\"largura\":800,\"altura\":600,\"profundidade\":350,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":564,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta_dupla\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"\",\"lado\":\"acima\",\"folga\":0,\"alinhar\":\"centro\",\"x\":2230,\"y\":1500}}],\"rotulo\":\"Armário aéreo à direita da janela\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Coloque um armário aéreo de 80 cm de largura bem no meio da parede, a 1,5 m do piso.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_eczVdOMW0qW4FhY5hpbTyHkE",
+      "type": "function",
+      "function": {
+       "name": "view_camera",
+       "arguments": "{\"vista\":\"front\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "14|Pedido: Coloque um armário aéreo de 80 cm de largura bem no meio da parede, a 1,5 m do piso.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_oF16MEb20yAPmXlUkRqcET8o",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "16|Pedido: Coloque um armário aéreo de 80 cm de largura bem no meio da parede, a 1,5 m do piso.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_h3h4RYHyRGzpDHYbaizjYw2V",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"O centro da parede está bloqueado pela janela; para não cobri-la, instalei o armário aéreo de 80 × 60 × 35 cm imediatamente à direita dela, com a base a 1,50 m do piso. A estante existente e a janela foram mantidas.\",\"sugestoes\":[\"Confira o encaixe na parede\",\"Veja o orçamento atualizado\",\"Mude a altura do armário\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.84,
+      "probabilities": {
+       "studio": 0,
+       "view": 0,
+       "options": 0,
+       "build": 0.87,
+       "edit": 0.13,
+       "ask": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.52
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.39
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.24
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.34
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.18
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1338,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.9
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 441,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.13
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 534,
+     "output_tokens": 123
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 575,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

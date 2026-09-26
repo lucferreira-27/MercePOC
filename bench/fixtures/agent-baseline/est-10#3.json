@@ -1,0 +1,140 @@
+{
+ "id": "est-10",
+ "at": "2026-09-26T06:36:08.140Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Quero uma estante de 1,6 m de largura por 2 m de altura, com nichos abertos em cima e portas embaixo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_lp1gBs93QTCQzWrKB9tBK4js",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Quero uma estante de 1,6 m de largura por 2 m de altura, com nichos abertos em cima e portas embaixo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_8neid8QFCs3PeUwVLxsy2YNO",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Atualizar a estante para 160 × 200 cm\",\"Aplicar nichos abertos em cima e portas embaixo\",\"Conferir o desenho final\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Quero uma estante de 1,6 m de largura por 2 m de altura, com nichos abertos em cima e portas embaixo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_diH9DYBjmUIj2e3ZqbmqQ0xU",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"asset.add\",\"asset\":\"estante\",\"id\":\"estante\",\"width\":1600,\"height\":2000,\"depth\":350,\"materialId\":\"oak\",\"frontMaterialId\":\"oak\",\"placement\":\"replace\"}],\"rotulo\":\"Estante 160 × 200 cm com portas inferiores\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Quero uma estante de 1,6 m de largura por 2 m de altura, com nichos abertos em cima e portas embaixo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_IxYoe7lGPHjjm1uWH5wpj2oW",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Quero uma estante de 1,6 m de largura por 2 m de altura, com nichos abertos em cima e portas embaixo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_Rth2QMT9zxXn9VtA7WByYjyU",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"front.set\",\"id\":\"estante-e1:root:low\",\"type\":\"double\",\"materialId\":\"oak\"}],\"rotulo\":\"Portas também na parte inferior esquerda\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Quero uma estante de 1,6 m de largura por 2 m de altura, com nichos abertos em cima e portas embaixo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_lcFNd8huxGfktEcPTbI2GAcL",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "15|Pedido: Quero uma estante de 1,6 m de largura por 2 m de altura, com nichos abertos em cima e portas embaixo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_jOFhObbDdtYXSp4rTfCKoQEa",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"A estante ficou com 160 × 200 × 35 cm em carvalho natural, com nichos abertos na parte superior e portas na parte inferior. Conferi o desenho frontal e isométrico.\",\"sugestoes\":[\"Confira o orçamento atualizado\",\"Veja as peças e o plano de corte\",\"Ajuste a quantidade de nichos\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": null
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": null
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": null
+  }
+ ]
+}

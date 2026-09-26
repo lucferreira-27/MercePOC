@@ -1,0 +1,345 @@
+{
+ "id": "coz-02",
+ "at": "2026-09-26T06:57:34.930Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos com a base a 1,5 m do piso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_wOyBjAT29HIeDFLazszRXQDK",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos com a base a 1,5 m do piso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_MNdGWVQ2yW5BbJqCM8syNnDu",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos com a base a 1,5 m do piso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_1pk3meebViK2Ww3L6obtH22E",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos com a base a 1,5 m do piso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_zMQqajFIEQyHaLtLMWCnceD1",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"disconnect\",\"child\":\"c-b2\"},{\"kind\":\"disconnect\",\"child\":\"c-b3\"},{\"kind\":\"disconnect\",\"child\":\"c-b4\"},{\"kind\":\"disconnect\",\"child\":\"c-b5\"},{\"kind\":\"disconnect\",\"child\":\"c-a2\"},{\"kind\":\"disconnect\",\"child\":\"c-a3\"},{\"kind\":\"disconnect\",\"child\":\"c-a4\"},{\"kind\":\"disconnect\",\"child\":\"c-a5\"},{\"kind\":\"disconnect\",\"child\":\"apoio-cozinha-a2\"},{\"kind\":\"module.edit\",\"id\":\"c-b1\",\"position\":[0,0,0]},{\"kind\":\"module.edit\",\"id\":\"c-b2\",\"position\":[716,0,0]},{\"kind\":\"module.edit\",\"id\":\"c-b3\",\"position\":[1432,0,0]},{\"kind\":\"module.edit\",\"id\":\"c-b4\",\"position\":[2148,0,0]},{\"kind\":\"module.edit\",\"id\":\"c-b5\",\"position\":[2865,0,0]},{\"kind\":\"module.edit\",\"id\":\"c-a1\",\"position\":[0,1500,0]},{\"kind\":\"module.edit\",\"id\":\"c-a2\",\"position\":[716,1500,0]},{\"kind\":\"module.edit\",\"id\":\"c-a3\",\"position\":[1432,1500,0]},{\"kind\":\"module.edit\",\"id\":\"c-a4\",\"position\":[2148,1500,0]},{\"kind\":\"module.edit\",\"id\":\"c-a5\",\"position\":[2865,1500,0]},{\"kind\":\"module.edit\",\"id\":\"apoio-cozinha-a1\",\"position\":[3601,0,0]},{\"kind\":\"module.edit\",\"id\":\"apoio-cozinha-a2\",\"position\":[4192,0,0]},{\"kind\":\"connect\",\"parent\":\"c-b1\",\"child\":\"c-b2\",\"side\":\"right\",\"shared\":true,\"align\":\"back\",\"offset\":0},{\"kind\":\"connect\",\"parent\":\"c-b2\",\"child\":\"c-b3\",\"side\":\"right\",\"shared\":true,\"align\":\"back\",\"offset\":0},{\"kind\":\"connect\",\"parent\":\"c-b3\",\"child\":\"c-b4\",\"side\":\"right\",\"shared\":true,\"align\":\"back\",\"offset\":0},{\"kind\":\"connect\",\"parent\":\"c-b4\",\"child\":\"c-b5\",\"side\":\"right\",\"shared\":true,\"align\":\"back\",\"offset\":0},{\"kind\":\"connect\",\"parent\":\"c-b5\",\"child\":\"apoio-cozinha-a1\",\"side\":\"right\",\"shared\":false,\"align\":\"back\",\"offset\":0},{\"kind\":\"connect\",\"parent\":\"apoio-cozinha-a1\",\"child\":\"apoio-cozinha-a2\",\"side\":\"right\",\"shared\":true,\"align\":\"back\",\"offset\":0},{\"kind\":\"connect\",\"parent\":\"c-a1\",\"child\":\"c-a2\",\"side\":\"right\",\"shared\":true,\"align\":\"back\",\"offset\":0},{\"kind\":\"connect\",\"parent\":\"c-a2\",\"child\":\"c-a3\",\"side\":\"right\",\"shared\":true,\"align\":\"back\",\"offset\":0},{\"kind\":\"connect\",\"parent\":\"c-a3\",\"child\":\"c-a4\",\"side\":\"right\",\"shared\":true,\"align\":\"back\",\"offset\":0},{\"kind\":\"connect\",\"parent\":\"c-a4\",\"child\":\"c-a5\",\"side\":\"right\",\"shared\":true,\"align\":\"back\",\"offset\":0}],\"rotulo\":\"Layout encostado na parede\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos com a base a 1,5 m do piso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_5tMNg5iEdUz8AtEvxQB9Dewb",
+      "type": "function",
+      "function": {
+       "name": "view_camera",
+       "arguments": "{\"vista\":\"front\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos com a base a 1,5 m do piso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_QxXI1Mqzs1w94TFRf7uMdWMR",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "14|Pedido: arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos com a base a 1,5 m do piso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_kXSsLBVgpHxRNbN1y0pp80cg",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Ajustei o layout para os armários de baixo ficarem juntos, sem vãos, e encostados à parede; os aéreos também ficaram alinhados à parede, com a base a 1,5 m do piso. Enquadrei a vista frontal para mostrar o conjunto.\",\"sugestoes\":[\"Confira o orçamento atualizado\",\"Veja as peças e o plano de corte\",\"Ajuste a altura dos aéreos\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 0.95,
+      "probabilities": {
+       "options": 0,
+       "view": 0,
+       "edit": 0.96,
+       "build": 0.04,
+       "ask": 0,
+       "studio": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.96
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.51
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.83
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.13
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.45
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.2
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 1347,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.97
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 450,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.68
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.35
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 537,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

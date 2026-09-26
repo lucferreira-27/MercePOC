@@ -1,0 +1,136 @@
+{
+ "about": "Resultado do pedido criativo gravado: nicho alto na frente da TV e painel vertical chamado \"Prateleira escultural\" (antes do pedido de reduzir chapas).",
+ "source": {
+  "projectId": "9e01176e-b17c-42e7-b24e-04573e8798e1",
+  "project": "Painel com rack suspenso",
+  "revisionId": "48ed1746-ea3c-442b-b3e9-092d97307331",
+  "revisionNumber": 3,
+  "label": "Vamos adicionar os nossos modelos custum no painel seja creativo",
+  "capturedAt": "2026-09-26T06:10:39.486Z"
+ },
+ "design": {
+  "schemaVersion": 3,
+  "profile": {
+   "version": 1,
+   "panel": 18,
+   "back": 6,
+   "front": 18,
+   "reveal": 2,
+   "drawer": 15,
+   "drawerBottom": 6,
+   "slideSpace": 13,
+   "rearSpace": 20
+  },
+  "modules": [
+   {
+    "id": "p",
+    "name": "Painel",
+    "width": 2200,
+    "height": 1800,
+    "depth": 25,
+    "materialId": "walnut",
+    "back": false,
+    "position": [
+     0,
+     50,
+     0
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "p:root"
+    },
+    "legacyIds": false,
+    "kind": "panel"
+   },
+   {
+    "id": "nicho-destaque",
+    "name": "Nicho de destaque",
+    "width": 400,
+    "height": 700,
+    "depth": 220,
+    "materialId": "oak",
+    "back": false,
+    "position": [
+     150,
+     700,
+     150
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "nicho-destaque:root"
+    },
+    "legacyIds": false,
+    "wall": true
+   },
+   {
+    "id": "prateleira-destaque",
+    "name": "Prateleira escultural",
+    "width": 900,
+    "height": 220,
+    "depth": 25,
+    "materialId": "oak",
+    "back": true,
+    "position": [
+     650,
+     300,
+     150
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "prateleira-destaque:root"
+    },
+    "legacyIds": false,
+    "kind": "panel",
+    "wall": true
+   },
+   {
+    "id": "nicho-complementar",
+    "name": "Nicho complementar",
+    "width": 400,
+    "height": 400,
+    "depth": 220,
+    "materialId": "oak",
+    "back": false,
+    "position": [
+     700,
+     600,
+     150
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "nicho-complementar:root"
+    },
+    "legacyIds": false,
+    "wall": true
+   }
+  ],
+  "connections": []
+ },
+ "room": {
+  "schemaVersion": 1,
+  "widthMm": 3800,
+  "heightMm": 2700,
+  "depthMm": 3500,
+  "baseboardMm": 0,
+  "offsetMm": 800,
+  "obstacles": [
+   {
+    "id": "ob-tv",
+    "kind": "tv",
+    "label": "TV 55\"",
+    "xMm": 1285,
+    "yMm": 1110,
+    "widthMm": 1230,
+    "heightMm": 710
+   },
+   {
+    "id": "ob-tomada",
+    "kind": "outlet",
+    "xMm": 3150,
+    "yMm": 300,
+    "widthMm": 80,
+    "heightMm": 80
+   }
+  ]
+ }
+}

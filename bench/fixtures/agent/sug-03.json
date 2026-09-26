@@ -1,0 +1,285 @@
+{
+ "id": "sug-03",
+ "at": "2026-09-25T15:33:28.172Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Quanto custa para fazer este armário?",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_e8qnPh5OjgVsNibWAzID5504",
+      "type": "function",
+      "function": {
+       "name": "quote_read",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_PZQiphTejqpw8R7ONaB93266",
+      "type": "function",
+      "function": {
+       "name": "cutplan_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "5|Pedido: Quanto custa para fazer este armário?",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_FCe5IDl6HEUzGjiSVF8G4399",
+      "type": "function",
+      "function": {
+       "name": "ui_tab",
+       "arguments": "{\"aba\": \"quote\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "7|Pedido: Quanto custa para fazer este armário?",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_ET_hjb9GTRte3RFHFq2PiNd0269",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Sua estante de 80 × 180 × 35 cm, em carvalho natural com quatro prateleiras, fica em R$ 1.230,63 (custo R$ 911,58 + 35% de margem). Detalhando: 1 chapa de 18 mm R$ 459,00, 1 chapa de 6 mm R$ 192,78, 9 m de fita R$ 28,80, kit de montagem R$ 28,00, corte e fita de 9 peças R$ 63,00 e montagem R$ 140,00. São 2 chapas no plano de corte, com 55% e 28% de aproveitamento.\", \"sugestoes\": [\"Aumente a estante para 2 m de altura\", \"Acrescente portas embaixo\", \"Gere o PDF com desenho e orçamento\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "ask",
+      "confidence": 0.98,
+      "probabilities": {
+       "build": 0.02,
+       "ask": 0.98,
+       "studio": 0,
+       "view": 0,
+       "edit": 0,
+       "options": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.52
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.98
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.47
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1315,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 418,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 654,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

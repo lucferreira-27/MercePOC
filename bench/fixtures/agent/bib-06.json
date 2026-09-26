@@ -1,0 +1,302 @@
+{
+ "id": "bib-06",
+ "at": "2026-09-25T15:40:05.166Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Faça um guarda-roupa de 2,80 m de largura",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_C1kZGx9b8lAY2HSjyxeW6077",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"asset.add\", \"asset\": \"guarda-roupa\", \"placement\": \"replace\", \"width\": 2800, \"materialId\": \"oak\", \"frontMaterialId\": \"oak\"}], \"rotulo\": \"Guarda-roupa 2,80 m carvalho\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Faça um guarda-roupa de 2,80 m de largura",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_uFMMPnqefGRuw1vwiF9N6711",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_ZVZZ0zYtRNshWAg7IgRW8019",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Faça um guarda-roupa de 2,80 m de largura",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_fYDKqH4s1REWRYKhodRx9448",
+      "type": "function",
+      "function": {
+       "name": "project_rename",
+       "arguments": "{\"nome\": \"Guarda-roupa 2,80 m carvalho\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Faça um guarda-roupa de 2,80 m de largura",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_ET_3flmsYQhjxbt3urCnkUv5625",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Troquei sua estante por um guarda-roupa de 2,80 m de largura, 2,40 m de altura e 60 cm de profundidade, em Carvalho natural, com maleiro em cima e pés. Ficou em 4 corpos: cabideiro com portas altas, gaveteiro (3 gavetas + porta), coluna de portas e a última coluna de portas — 0 portas de correr, isso não existe no perfil. Para caber nos 2,80 m o app ajustou as larguras (75 + 75 + 75 + 60 cm).\", \"sugestoes\": [\"Tirar o maleiro e deixar portas até o teto\", \"Pôr gavetas maiores em vez de portas\", \"Gerar o PDF com desenho e orçamento\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 1,
+      "probabilities": {
+       "build": 1,
+       "edit": 0,
+       "ask": 0,
+       "studio": 0,
+       "view": 0,
+       "options": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.74
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.96
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.3
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 1322,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.05
+     }
+    },
+    "usage": {
+     "input_tokens": 425,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.34
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.97
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.52
+     }
+    },
+    "usage": {
+     "input_tokens": 607,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

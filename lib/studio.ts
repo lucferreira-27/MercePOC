@@ -259,7 +259,16 @@ export function executeRequest(base: Design, ops: ShelfOp[]) {
   let d = base;
   try {
     let pending: Composition = canonical(d);
-    for (const op of ops) pending = applyStep(pending, op);
+    // Trocar o único módulo: tirar primeiro deixaria o projeto vazio no meio
+    // do lote. A remoção espera o fim do lote quando outra operação ainda
+    // põe módulo; só o resultado final é validado.
+    const later: ShelfOp[] = [];
+    ops.forEach((op, i) => {
+      const adds = ops.slice(i + 1).some((v) => v.kind === 'module.add' || v.kind === 'module.duplicate' || v.kind === 'asset.add');
+      if (op.kind === 'module.remove' && pending.modules.length === 1 && adds) later.push(op);
+      else pending = applyStep(pending, op);
+    });
+    for (const op of later) pending = applyStep(pending, op);
     d = normalize(pending);
     return { ok: true as const, design: d };
   } catch (e) {
@@ -364,13 +373,24 @@ export function describeHighlights(
   const shelfLabel = (id: string) =>
     shelfInfos(before).find((s) => s.id === id)?.label ?? 'prateleira';
   const mm = (value: number) => `${round2(value)} mm`;
-  const dims = (m: { width: number; height: number; depth: number }) =>
-    `${round2(m.width)} × ${round2(m.height)} × ${round2(m.depth)} mm`;
-  const measuresOf = (m: { width: number; height: number; depth: number }) => [
-    { label: 'Largura', value: mm(m.width) },
-    { label: 'Altura', value: mm(m.height) },
-    { label: 'Profundidade', value: mm(m.depth) },
-  ];
+  // Prateleira de parede: a altura do módulo é a espessura da tábua; quem lê
+  // quer largura × fundo, como se mede prateleira.
+  const dims = (m: { width: number; height: number; depth: number; kind?: string }) =>
+    m.kind === 'ledge'
+      ? `${round2(m.width)} × ${round2(m.depth)} mm, ${round2(m.height)} mm de espessura`
+      : `${round2(m.width)} × ${round2(m.height)} × ${round2(m.depth)} mm`;
+  const measuresOf = (m: { width: number; height: number; depth: number; kind?: string }) =>
+    m.kind === 'ledge'
+      ? [
+          { label: 'Largura', value: mm(m.width) },
+          { label: 'Profundidade', value: mm(m.depth) },
+          { label: 'Espessura', value: mm(m.height) },
+        ]
+      : [
+          { label: 'Largura', value: mm(m.width) },
+          { label: 'Altura', value: mm(m.height) },
+          { label: 'Profundidade', value: mm(m.depth) },
+        ];
   const frontsOf = (d: Design, id: string) => {
     const cells = layout(d).cells.filter((c) => c.moduleId === id);
     const parts = cells

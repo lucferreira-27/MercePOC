@@ -1,0 +1,465 @@
+{
+ "about": "Cozinha com aparador de apoio (12 módulos) antes de \"arrume o layout da posicao dos moveis\".",
+ "source": {
+  "projectId": "d4a4e13a-fa87-4df7-a577-9cebb6a73ca9",
+  "project": "Minha estante 60",
+  "revisionId": "1c7db426-3eaf-4096-a7c6-536fb5b49320",
+  "revisionNumber": 5,
+  "label": "adicione outros moveis junto que fazem snetidom em uma cozinha, uma mesa, cadeiras, etc",
+  "capturedAt": "2026-09-26T06:23:32.302Z"
+ },
+ "design": {
+  "schemaVersion": 3,
+  "profile": {
+   "version": 1,
+   "panel": 18,
+   "back": 6,
+   "front": 18,
+   "reveal": 2,
+   "drawer": 15,
+   "drawerBottom": 6,
+   "slideSpace": 13,
+   "rearSpace": 20
+  },
+  "modules": [
+   {
+    "id": "c-b1",
+    "name": "Gaveteiro",
+    "width": 734,
+    "height": 750,
+    "depth": 600,
+    "materialId": "white",
+    "back": true,
+    "position": [
+     0,
+     0,
+     0
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "c-b1:root",
+     "front": {
+      "id": "front-717b9b64-2fb",
+      "type": "drawers",
+      "hinge": "left",
+      "materialId": "sage",
+      "heights": [
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "legacyIds": false,
+    "feet": 100
+   },
+   {
+    "id": "c-b2",
+    "name": "Balcão 1",
+    "width": 734,
+    "height": 750,
+    "depth": 600,
+    "materialId": "white",
+    "back": true,
+    "position": [
+     716,
+     0,
+     0
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "c-b2:root",
+     "front": {
+      "id": "front-01de86ca-cc6",
+      "type": "double",
+      "hinge": "right",
+      "materialId": "sage",
+      "heights": [
+       1
+      ]
+     }
+    },
+    "legacyIds": false,
+    "feet": 100
+   },
+   {
+    "id": "c-b3",
+    "name": "Balcão 2",
+    "width": 734,
+    "height": 750,
+    "depth": 600,
+    "materialId": "white",
+    "back": true,
+    "position": [
+     1432,
+     0,
+     0
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "c-b3:root",
+     "front": {
+      "id": "front-f2a2b9d1-e42",
+      "type": "double",
+      "hinge": "right",
+      "materialId": "sage",
+      "heights": [
+       1
+      ]
+     }
+    },
+    "legacyIds": false,
+    "feet": 100
+   },
+   {
+    "id": "c-b4",
+    "name": "Balcão 3",
+    "width": 734,
+    "height": 750,
+    "depth": 600,
+    "materialId": "white",
+    "back": true,
+    "position": [
+     2148,
+     0,
+     0
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "c-b4:root",
+     "front": {
+      "id": "front-1515e79e-2f9",
+      "type": "double",
+      "hinge": "right",
+      "materialId": "sage",
+      "heights": [
+       1
+      ]
+     }
+    },
+    "legacyIds": false,
+    "feet": 100
+   },
+   {
+    "id": "c-b5",
+    "name": "Balcão 4",
+    "width": 736,
+    "height": 750,
+    "depth": 600,
+    "materialId": "white",
+    "back": true,
+    "position": [
+     2865,
+     0,
+     0
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "c-b5:root",
+     "front": {
+      "id": "front-d956f6ab-cdb",
+      "type": "double",
+      "hinge": "right",
+      "materialId": "sage",
+      "heights": [
+       1
+      ]
+     }
+    },
+    "legacyIds": false,
+    "feet": 100
+   },
+   {
+    "id": "c-a1",
+    "name": "Aéreo 1",
+    "width": 734,
+    "height": 800,
+    "depth": 350,
+    "materialId": "white",
+    "back": true,
+    "position": [
+     0,
+     1500,
+     -125
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "c-a1:root",
+     "front": {
+      "id": "front-bc79393f-e92",
+      "type": "double",
+      "hinge": "right",
+      "materialId": "sage",
+      "heights": [
+       1
+      ]
+     }
+    },
+    "legacyIds": false,
+    "wall": true
+   },
+   {
+    "id": "c-a2",
+    "name": "Aéreo 2",
+    "width": 734,
+    "height": 800,
+    "depth": 350,
+    "materialId": "white",
+    "back": true,
+    "position": [
+     716,
+     1500,
+     -125
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "c-a2:root",
+     "front": {
+      "id": "front-fd61f64b-8c8",
+      "type": "double",
+      "hinge": "right",
+      "materialId": "sage",
+      "heights": [
+       1
+      ]
+     }
+    },
+    "legacyIds": false,
+    "wall": true
+   },
+   {
+    "id": "c-a3",
+    "name": "Aéreo 3",
+    "width": 734,
+    "height": 800,
+    "depth": 350,
+    "materialId": "white",
+    "back": true,
+    "position": [
+     1432,
+     1500,
+     -125
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "c-a3:root",
+     "front": {
+      "id": "front-a1ed3fe3-909",
+      "type": "double",
+      "hinge": "right",
+      "materialId": "sage",
+      "heights": [
+       1
+      ]
+     }
+    },
+    "legacyIds": false,
+    "wall": true
+   },
+   {
+    "id": "c-a4",
+    "name": "Aéreo 4",
+    "width": 734,
+    "height": 800,
+    "depth": 350,
+    "materialId": "white",
+    "back": true,
+    "position": [
+     2148,
+     1500,
+     -125
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "c-a4:root",
+     "front": {
+      "id": "front-32c99deb-5b0",
+      "type": "double",
+      "hinge": "right",
+      "materialId": "sage",
+      "heights": [
+       1
+      ]
+     }
+    },
+    "legacyIds": false,
+    "wall": true
+   },
+   {
+    "id": "c-a5",
+    "name": "Aéreo 5",
+    "width": 736,
+    "height": 800,
+    "depth": 350,
+    "materialId": "white",
+    "back": true,
+    "position": [
+     2865,
+     1500,
+     -125
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "c-a5:root",
+     "front": {
+      "id": "front-c4cb43bd-060",
+      "type": "double",
+      "hinge": "right",
+      "materialId": "sage",
+      "heights": [
+       1
+      ]
+     }
+    },
+    "legacyIds": false,
+    "wall": true
+   },
+   {
+    "id": "apoio-cozinha-a1",
+    "name": "Portas esquerda",
+    "width": 609,
+    "height": 750,
+    "depth": 450,
+    "materialId": "white",
+    "back": true,
+    "position": [
+     3537.5,
+     0,
+     -75
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "apoio-cozinha-a1:root",
+     "front": {
+      "id": "front-e4e79846-887",
+      "type": "double",
+      "hinge": "left",
+      "materialId": "sage",
+      "heights": [
+       1
+      ]
+     }
+    },
+    "legacyIds": false,
+    "feet": 100
+   },
+   {
+    "id": "apoio-cozinha-a2",
+    "name": "Gavetas",
+    "width": 609,
+    "height": 750,
+    "depth": 450,
+    "materialId": "white",
+    "back": true,
+    "position": [
+     4128.5,
+     0,
+     -75
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "apoio-cozinha-a2:root",
+     "front": {
+      "id": "front-cab2d305-739",
+      "type": "drawers",
+      "hinge": "left",
+      "materialId": "sage",
+      "heights": [
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "legacyIds": false,
+    "feet": 100
+   }
+  ],
+  "connections": [
+   {
+    "id": "connection-a4e297da-822",
+    "parent": "c-b1",
+    "child": "c-b2",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   },
+   {
+    "id": "connection-c43393fc-7c1",
+    "parent": "c-b2",
+    "child": "c-b3",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   },
+   {
+    "id": "connection-57f8adf4-dc2",
+    "parent": "c-b3",
+    "child": "c-b4",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   },
+   {
+    "id": "connection-7cdfa647-651",
+    "parent": "c-b4",
+    "child": "c-b5",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   },
+   {
+    "id": "connection-2faf0182-a12",
+    "parent": "c-a1",
+    "child": "c-a2",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   },
+   {
+    "id": "connection-4b728e51-3f0",
+    "parent": "c-a2",
+    "child": "c-a3",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   },
+   {
+    "id": "connection-fc24772a-18c",
+    "parent": "c-a3",
+    "child": "c-a4",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   },
+   {
+    "id": "connection-86390dda-40f",
+    "parent": "c-a4",
+    "child": "c-a5",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   },
+   {
+    "id": "connection-3cdbba65-efc",
+    "parent": "apoio-cozinha-a1",
+    "child": "apoio-cozinha-a2",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   }
+  ]
+ },
+ "room": null
+}

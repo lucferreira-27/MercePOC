@@ -1,0 +1,294 @@
+{
+ "id": "div-03",
+ "at": "2026-09-26T07:17:07.939Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Divida em duas colunas e coloque uma porta em cada lado.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_W3QLhiAmcA63TeDRyxNcmJzh",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Divida em duas colunas e coloque uma porta em cada lado.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_mrx9RqNTDIIvBIonI4HqIpzK",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"cell.split\",\"id\":\"n:root\",\"axis\":\"x\"},{\"kind\":\"front.set\",\"id\":\"n:root:low\",\"type\":\"single\",\"hinge\":\"left\"},{\"kind\":\"front.set\",\"id\":\"n:root:high\",\"type\":\"single\",\"hinge\":\"right\"}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Divida em duas colunas e coloque uma porta em cada lado.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_vLyVFEbixF6lh6peiODk2Xv0",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Divida em duas colunas e coloque uma porta em cada lado.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_faAgYprRhYCoCtiFhEpUCzXz",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Dividi o nicho em duas colunas e coloquei uma porta em cada lado. A estante ficou com medidas gerais de 170 × 180 × 45 cm.\",\"sugestoes\":[\"Confira a vista frontal\",\"Ajuste a cor das portas\",\"Veja o orçamento atualizado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 0.67,
+      "probabilities": {
+       "options": 0.02,
+       "view": 0,
+       "ask": 0,
+       "studio": 0,
+       "build": 0.25,
+       "edit": 0.73
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.87
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.8
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.64
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.27
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.2
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1319,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 422,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.89
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 515,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

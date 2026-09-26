@@ -1,0 +1,311 @@
+{
+ "id": "mat-01",
+ "at": "2026-09-26T11:46:03.106Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Reduco a quantidade placas necesseria, entao tudo do mesmo material",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_odaP6si3Kke5vYuQkduMGOGC",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Reduco a quantidade placas necesseria, entao tudo do mesmo material",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_POPpDy4uXdXrhpVEQ6QTTlLq",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"nicho-destaque\",\"materialId\":\"walnut\"},{\"kind\":\"module.edit\",\"id\":\"prateleira-destaque\",\"materialId\":\"walnut\"},{\"kind\":\"module.edit\",\"id\":\"nicho-complementar\",\"materialId\":\"walnut\"}],\"rotulo\":\"Unificar acabamento em nogueira\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Reduco a quantidade placas necesseria, entao tudo do mesmo material",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_XC1zOZOoFdwnPqQ3ui4ntK6L",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Unifiquei o acabamento de todo o móvel em Nogueira. O plano agora usa 3 chapas, todas de Nogueira; o alerta de encaixe permanece porque o nicho de destaque fica à frente da TV.\",\"sugestoes\":[\"Revise o plano de corte\",\"Reposicione o nicho que conflita com a TV\",\"Compare outro acabamento para todo o móvel\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Reduco a quantidade placas necesseria, entao tudo do mesmo material",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_0SYu67cwwKoK4wd6iQ5i6Hwn",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"p\",\"depth\":18},{\"kind\":\"module.edit\",\"id\":\"prateleira-destaque\",\"depth\":18}],\"rotulo\":\"Unificar espessura das chapas\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Reduco a quantidade placas necesseria, entao tudo do mesmo material",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_AyUnEaccKyvJFymB56cy3uJj",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Unifiquei o acabamento em Nogueira e ajustei painel e prateleira para 18 mm; o plano de corte caiu de 3 para 2 chapas, ambas Nogueira 18 mm. O alerta de encaixe permanece: o nicho de destaque fica à frente da TV.\",\"sugestoes\":[\"Revise o plano de corte\",\"Reposicione o nicho que conflita com a TV\",\"Confira o orçamento atualizado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 0.99,
+      "probabilities": {
+       "options": 0,
+       "view": 0,
+       "ask": 0,
+       "edit": 0.99,
+       "build": 0.01,
+       "studio": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.44
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.69
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.42
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.2
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 1320,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.05
+     }
+    },
+    "usage": {
+     "input_tokens": 423,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.3
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.89
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.59
+     }
+    },
+    "usage": {
+     "input_tokens": 538,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

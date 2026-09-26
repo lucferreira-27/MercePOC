@@ -77,7 +77,43 @@ export type ChatReport = {
   };
   /** Texto próprio da IA, para a interface não repetir o resumo do diff. */
   prose?: string;
+  /** Ferramentas que o assistente usou no pedido, na ordem, como a conversa conta. */
+  steps?: { tool: string; label: string; ok: boolean; detail?: string }[];
+  /** Plano anunciado para um trabalho grande. */
+  plan?: string[];
+  /** Efeitos na interface (vista, aba, preços, arquivos) que o pedido pediu. */
+  effects?: { type: string }[];
   selected?: SelectedPart[];
+  /**
+   * Como o pedido terminou, separado do que mudou: completo (finish),
+   * parcial (etapas ou tempo acabaram, o rascunho válido ficou) ou desfeito
+   * (acabaram com o rascunho inválido, que voltou ao começo).
+   */
+  completion?: 'complete' | 'partial' | 'rolled-back';
+  /** Fatos do objetivo antes e depois, calculados no estado gravado (chapas, orçamento). */
+  facts?: { label: string; before: string; after: string }[];
+  /** Conferência do app no estado gravado: a versão e o que ficou de problema novo. */
+  checks?: { revisionId: string; issues: string[] };
+  /** Operações que chegaram ao rascunho e foram descartadas no pedido. */
+  reverted?: number;
+  /**
+   * Leituras que a IA fez (orçamento, corte, peças, desenho) e se ainda
+   * descrevem o estado gravado: `stale` quando o móvel mudou depois dela.
+   */
+  evidence?: Record<string, 'fresh' | 'stale'>;
+  /** Lotes recusados pela validação no pedido. */
+  rejected?: number;
+  /** Pedido que falhou no meio: o que dá para diagnosticar depois. */
+  failure?: {
+    requestId: string;
+    baseRevisionId: string | null;
+    cause: 'cancelled' | 'timeout' | 'provider' | 'internal';
+    message: string;
+    committed: 'none' | 'persisted-before-failure';
+    draftChanged: boolean;
+    draftOperations: number;
+    rejected: number;
+  };
 };
 export type TextPreview = {
   approach: string;

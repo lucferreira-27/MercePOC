@@ -11,6 +11,8 @@ import { create, get, view } from '../lib/store';
 import { decisionSchema } from '../lib/gateway';
 import type { TextPreview } from '../lib/progress';
 import { POST } from '../app/api/chat/route';
+// Estes testes cobrem o caminho antigo (uma resposta JSON); o laço tem os seus.
+process.env.MERCE_AGENT = '0';
 process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-progress-'));
 const request = (id: string, version = 0, stream = true) =>
   new Request('http://127.0.0.1:4310/api/chat', {

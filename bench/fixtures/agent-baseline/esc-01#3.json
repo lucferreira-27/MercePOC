@@ -1,0 +1,140 @@
+{
+ "id": "esc-01",
+ "at": "2026-09-26T06:37:19.134Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_Xj6ypYxArLQPif9ybTkr3fos",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Conferir a parede, a janela e o móvel atual\",\"Montar os armários baixos sob a janela\",\"Criar estantes laterais e módulos acima da janela\",\"Enquadrar e conferir o resultado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_AtV5tJ6URKMp1KC9aPkAJ59M",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_jBMrO8VHdFu6v8ENalAh8Pkd",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\":0,\"largura\":3400,\"altura\":900,\"profundidade\":350,\"base\":0,\"tipo\":\"niche\",\"nome\":\"Armários baixos\",\"modulos\":4,\"largura_max_modulo\":900,\"frente\":\"double\",\"gavetas\":3,\"material\":\"oak\",\"material_frente\":\"oak\",\"pes\":0,\"desviar_obstaculos\":true,\"folga\":50,\"substituir\":true}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_LP2SbAXhpmnpTlUtAGLgW7si",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\":0,\"largura\":3400,\"altura\":1800,\"profundidade\":350,\"base\":900,\"tipo\":\"shelf\",\"nome\":\"Estantes laterais\",\"modulos\":4,\"largura_max_modulo\":900,\"frente\":\"none\",\"gavetas\":3,\"material\":\"oak\",\"material_frente\":\"oak\",\"pes\":0,\"desviar_obstaculos\":true,\"folga\":50,\"substituir\":false}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_Ez1wGz5o119HRQrk822i7wFk",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\":0,\"largura\":3400,\"altura\":450,\"profundidade\":350,\"base\":2250,\"tipo\":\"niche\",\"nome\":\"Estante sobre a janela\",\"modulos\":2,\"largura_max_modulo\":900,\"frente\":\"none\",\"gavetas\":3,\"material\":\"oak\",\"material_frente\":\"oak\",\"pes\":0,\"desviar_obstaculos\":true,\"folga\":50,\"substituir\":false}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_Krfn4EFFH9BlnSZt4iuyReXf",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "15|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_6LmNC9kemXjCPZB55TGGrXnk",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Montei uma fileira de armários baixos com portas ao longo dos 3,40 m da parede e a estante contornando a janela: 2,04 m de estantes laterais e 1,36 m acima dela, chegando a 2,70 m de altura. O desenho mostra o vão da janela livre.\",\"sugestoes\":[\"Adicionar prateleiras nos módulos inferiores\",\"Escolher outra cor para as frentes\",\"Conferir o orçamento detalhado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": null
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": null
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": null
+  }
+ ]
+}

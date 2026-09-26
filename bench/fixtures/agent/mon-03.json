@@ -1,0 +1,319 @@
+{
+ "id": "mon-03",
+ "at": "2026-09-25T15:20:46.361Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Crie dois nichos, um à direita do outro, ligados a este módulo.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_YysBXKRxsrHv1pcpttGu7409",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"rotulo\": \"Nicho 1 à direita\", \"ops\": [{\"kind\": \"module.add\", \"preset\": \"niche\", \"id\": \"nicho-1\", \"name\": \"Nicho 1\"}, {\"kind\": \"module.edit\", \"id\": \"nicho-1\", \"name\": \"Nicho 1\", \"width\": 500, \"height\": 1800, \"depth\": 350, \"materialId\": \"oak\"}, {\"kind\": \"connect\", \"parent\": \"module-1\", \"child\": \"nicho-1\", \"side\": \"right\", \"shared\": true, \"align\": \"front\", \"offset\": 0}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Crie dois nichos, um à direita do outro, ligados a este módulo.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_MqOgIjcwsWdizmAjuZkt8057",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"id\": \"nicho-2\", \"kind\": \"module.add\", \"name\": \"Nicho 2\", \"preset\": \"niche\"}, {\"height\": 1800, \"id\": \"nicho-2\", \"kind\": \"module.edit\", \"materialId\": \"oak\", \"name\": \"Nicho 2\", \"width\": 480, \"depth\": 350}, {\"align\": \"front\", \"child\": \"nicho-2\", \"kind\": \"connect\", \"offset\": 0, \"parent\": \"nicho-1\", \"shared\": true, \"side\": \"right\"}], \"rotulo\": \"Nicho 2 à direita\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Crie dois nichos, um à direita do outro, ligados a este módulo.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_u1Wrg1egK2xVJJnUnxby5758",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Crie dois nichos, um à direita do outro, ligados a este módulo.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_ao0loRxeIKgeFYBH8pSA2758",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_pTPHP9UKlYfdcFeSQBl11008",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Crie dois nichos, um à direita do outro, ligados a este módulo.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_gvVidOfwMQ1qD9I2MAA60927",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Criei os dois nichos à direita da estante, um ao lado do outro: 50 cm e 48 cm de largura, ambos com 180 cm de altura e 35 cm de profundidade, em carvalho natural, com painel compartilhado e testa alinhada. O conjunto ficou com 1,74 m de largura total. Se quiser, dá para igualar as larguras ou pôr portas/gavetas nos vãos.\", \"sugestoes\": [\"Iguale a largura dos dois nichos\", \"Coloque portas nos nichos\", \"Ajuste a altura dos nichos\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.71,
+      "probabilities": {
+       "ask": 0,
+       "build": 0.77,
+       "view": 0,
+       "edit": 0.15,
+       "studio": 0,
+       "options": 0.08
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.36
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.6
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.64
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1322,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 425,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.83
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 579,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

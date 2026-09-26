@@ -1,0 +1,419 @@
+{
+ "id": "bib-02",
+ "at": "2026-09-26T07:18:55.006Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_8CKMawAZ8sHK7R7cne4vkGr0",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Trocar a estante por um conjunto de painel e rack suspenso\",\"Conferir o resultado e enquadrar a vista\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_XgVWoZOAJAyZIbmjSsI0m25x",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_BqKRwZ6JALklGcRYpfh5pTvw",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"asset.add\",\"asset\":\"rack-suspenso\",\"width\":2200,\"height\":1800,\"depth\":400,\"materialId\":\"oak\",\"frontMaterialId\":\"oak\",\"placement\":\"replace\"}],\"rotulo\":\"Painel de TV com rack suspenso\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_9t2cpUPQfGzX9fryd83pm7a1",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_8VFvv4lOmbc4eBytLgMuyRWt",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "13|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_XqWojYTDwzsFvyMLGj9Oc23F",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Troquei a estante por um painel de TV com rack suspenso em carvalho natural, com medidas gerais de 220 × 185 × 42,5 cm. O conjunto está enquadrado para visualização.\",\"sugestoes\":[\"Ver o orçamento atualizado\",\"Abrir portas e gavetas\",\"Ajustar a largura do conjunto\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "15|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_pQG6tesOA1CkZm5MdoVsVPL9",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Troquei a estante por um painel de TV com rack suspenso, com medidas gerais de 220 × 185 × 42,5 cm, e enquadrei o conjunto na vista.\",\"sugestoes\":[\"Ver o orçamento atualizado\",\"Abrir portas e gavetas\",\"Ajustar a largura do conjunto\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "17|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_rL1pJDjDrHcH5enZO7SkMwuk",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "19|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_GgHblETcGsnHVh0GrTGXMwS5",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"O projeto agora tem um painel de TV com rack suspenso, medindo 220 × 185 × 42,5 cm no conjunto. Enquadrei o móvel na vista.\",\"sugestoes\":[\"Ver o orçamento atualizado\",\"Abrir portas e gavetas\",\"Ajustar a largura do conjunto\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.99,
+      "probabilities": {
+       "ask": 0.01,
+       "options": 0,
+       "edit": 0,
+       "build": 0.99,
+       "view": 0,
+       "studio": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.3
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.15
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.88
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.13
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.13
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1315,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.74
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.06
+     }
+    },
+    "usage": {
+     "input_tokens": 418,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.2
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.96
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.61
+     }
+    },
+    "usage": {
+     "input_tokens": 529,
+     "output_tokens": 123
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.97
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.63
+     }
+    },
+    "usage": {
+     "input_tokens": 519,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

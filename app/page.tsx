@@ -3,6 +3,8 @@
 'use client';
 import Link from 'next/link';
 import { TurnProgress, turnLabel, type Pulse, type TimedProgress } from '@/components/turn-progress';
+import { AgentStepsSummary, TurnFacts } from '@/components/agent-steps';
+import { LIVE_EFFECTS, type AgentEvent, type AgentStep, type Effect, type ExportKind, type UiState } from '@/lib/agent/types';
 import { ModelPicker } from '@/components/model-picker';
 import { UsageMeter } from '@/components/usage-meter';
 import { ChangeSet } from '@/components/change-set';
@@ -13,6 +15,8 @@ import { designDiff, partDiff, playbackFrames } from '@/lib/diff';
 import { readEvents } from '@/lib/sse';
 import { type Progress, type TextPreview } from '@/lib/progress';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
+import { renderPrintShot } from '@/lib/print-render';
 import {
   ArrowDown,
   ArrowUp,
@@ -94,13 +98,17 @@ import { CommandPalette, type PaletteAction } from '@/components/command-palette
 import { TemplateGallery } from '@/components/template-gallery';
 import { templates } from '@/lib/templates';
 import { PrintSheet, groupParts } from '@/components/print-sheet';
+import { PartsPanel } from '@/components/parts-panel';
+import { OptionCards } from '@/components/option-cards';
+import type { OptionCard } from '@/lib/agent/types';
+import { cutPlan } from '@/lib/cutplan';
 import { entityIds, canonical, selectedPartIds } from '@/lib/studio';
 import { drawingParts, openingLimit, openingPose, type ModularPart } from '@/lib/composition';
 import { emptyRoom, roomChangeLabel, fitReport, fitSummary, freeSpot, obstacleWord, OBSTACLE_LABEL, presetObstacle, roomOffset, wallAt, type Obstacle, type ObstacleKind, type Room } from '@/lib/room';
 import { moduleBoxes } from '@/lib/move';
 import { DEFAULT_PRICES, mergePrices, money, quote as buildQuote, type Prices } from '@/lib/quote';
 import { friendlyError } from '@/lib/errors';
-import { MODEL_KEYS, modelInfo, tokensLabel, usd, type ModelKey, type TurnUsage } from '@/lib/models';
+import { DEFAULT_MODEL, MODEL_KEYS, modelInfo, tokensLabel, usd, type ModelKey, type TurnUsage } from '@/lib/models';
 type State = Project & {
   params: Design;
   parts: Part[];
@@ -153,6 +161,15 @@ async function api<T = State>(path: string, body?: unknown): Promise<T> {
   if (!r.ok) throw new Error(d.error || 'Não foi possível concluir.');
   return d;
 }
+/** Formato do assistente → item do menu Exportar. */
+const EXPORT_ID: Record<ExportKind, string> = {
+  pdf: 'print',
+  png: 'png',
+  'parts-csv': 'csv',
+  'cut-csv': 'cut',
+  cortecloud: 'cortecloud',
+  json: 'json',
+};
 /** Leitura de preferência local: '' quando o navegador bloqueia o storage. */
 function readLocal(key: string) {
   try {
@@ -164,6 +181,11 @@ function readLocal(key: string) {
 function writeLocal(key: string, value: string) {
   try {
     localStorage.setItem(key, value);
+  } catch {}
+}
+function removeLocal(key: string) {
+  try {
+    localStorage.removeItem(key);
   } catch {}
 }
 /**
@@ -214,13 +236,6 @@ function cm(millimetres: number) {
 /** Metros com duas casas e vírgula: "2,40". */
 function metres(millimetres: number) {
   return (millimetres / 1000).toFixed(2).replace('.', ',');
-}
-/**
- * Milímetros para exibição: a divisão de um vão pode dar 185.33333 mm e a
- * tabela não deve mostrar a dízima inteira. Duas casas bastam para cortar.
- */
-function mm(millimetres: number) {
-  return String(Math.round(millimetres * 100) / 100);
 }
 /** Raciocínio exibido no painel de depuração: mantém o fim, que é o que importa. */
 /** Revisão das mudanças: quanto o "antes" fica à vista e cada passo. */
@@ -308,8 +323,10 @@ export default function Home() {
     [reviewFocus, setReviewFocus] = useState<string[] | null>(null),
     // Linha da conversa sob o cursor fora da revisão: só acende as peças.
     [hoverFocus, setHoverFocus] = useState<string[] | null>(null),
+    // Plano de corte sob o cursor: a chapa ou a peça acende no móvel.
+    [cutFocus, setCutFocus] = useState<{ ids: string[]; mode: 'sheet' | 'piece' } | null>(null),
     [scrubbing, setScrubbing] = useState(false),
-    [model, setModel] = useState<ModelKey>('deepseek'),
+    [model, setModel] = useState<ModelKey>(DEFAULT_MODEL),
     [available, setAvailable] = useState<ModelKey[]>([]),
     [pulse, setPulse] = useState<Pulse | null>(null),
     [liveUsage, setLiveUsage] = useState<TurnUsage | null>(null),
@@ -352,12 +369,21 @@ export default function Home() {
     [prefsReady, setPrefsReady] = useState(false),
     [prices, setPrices] = useState<Prices>(DEFAULT_PRICES),
     [renaming, setRenaming] = useState(false);
+  // Assistente em laço (beta): etapas ao vivo, plano, o rascunho que a cena
+  // mostra enquanto ele monta, e os efeitos (arquivos, preços, seleção) que
+  // esperam a versão gravada chegar.
+  // Assistente em laço é o padrão; quem desligar volta ao caminho antigo.
+  const [agentOn, setAgentOn] = useState(true);
+  const [agentSteps, setAgentSteps] = useState<AgentStep[]>([]);
+  const [agentPlan, setAgentPlan] = useState<string[]>([]);
+  const [agentRunning, setAgentRunning] = useState<string | null>(null);
+  const [agentDraft, setAgentDraft] = useState<{ params: Design; room: Room | null } | null>(null);
+  const pendingEffects = useRef<Effect[]>([]);
   const theme = themeChoice === 'system' ? (systemDark ? 'dark' : 'light') : themeChoice;
   // Ocupado na aparência só depois de 300 ms: gravar um movimento não pisca
   // todos os botões. As funções continuam conferindo `busy` na hora.
   const busyLook = useDelayedTrue(busy, 300);
   /** Para que serve a próxima foto da cena: baixar o PNG ou ilustrar a impressão. */
-  const snapshotPurpose = useRef<'download' | 'print'>('download');
   // A ação pendente do cartão de confirmação vive num ref: o cartão é render do
   // estado atual e o callback precisa enxergar o mesmo fechamento que o criou.
   const confirmAction = useRef<(() => void) | null>(null);
@@ -367,8 +393,19 @@ export default function Home() {
   // Preferências deste navegador: depuração ao vivo, tema, painéis, cena e preços.
   useEffect(() => {
     setLive(readLocal('merce-live') === '1');
-    const savedModel = readLocal('merce-model');
-    if ((MODEL_KEYS as readonly string[]).includes(savedModel)) setModel(savedModel as ModelKey);
+    setAgentOn(readLocal('merce-agent') !== '0');
+    // Escolha explícita do modelo mora em merce-model-choice. A chave antiga
+    // (merce-model) guardava "deepseek" quando ele era o padrão: esse valor
+    // é tratado como o padrão antigo e dá lugar ao novo; outro modelo salvo
+    // lá foi escolha da pessoa e passa para a chave nova.
+    const chosen = readLocal('merce-model-choice');
+    const legacy = readLocal('merce-model');
+    if ((MODEL_KEYS as readonly string[]).includes(chosen)) setModel(chosen as ModelKey);
+    else if (legacy && legacy !== 'deepseek' && (MODEL_KEYS as readonly string[]).includes(legacy)) {
+      setModel(legacy as ModelKey);
+      writeLocal('merce-model-choice', legacy);
+    }
+    if (legacy) removeLocal('merce-model');
     // Custo desta aba: sessionStorage, que some ao fechar a aba e sobrevive ao
     // recarregamento.
     try {
@@ -408,7 +445,7 @@ export default function Home() {
   }, []);
   const chooseModel = (key: ModelKey) => {
     setModel(key);
-    writeLocal('merce-model', key);
+    writeLocal('merce-model-choice', key);
   };
   /** Soma à conta desta aba o custo de um turno, uma vez por pedido. */
   const recordSessionUsage = (state: State | undefined, requestId: string) => {
@@ -597,7 +634,7 @@ export default function Home() {
   );
   /** Revendo uma versão que não é a atual, ou no meio da reprodução: só olhar. */
   const reviewLocked = !!reviewData && (!!review?.playing || !reviewData.current);
-  const visualParams = reviewFrame?.design ?? p?.revisions[historyPreview ?? p.cursor].params;
+  const visualParams = agentDraft?.params ?? reviewFrame?.design ?? p?.revisions[historyPreview ?? p.cursor].params;
   const visualBounds = useMemo(() => (visualParams ? designOf(visualParams).bounds : null), [visualParams]);
   const visualSize = useMemo(
     () => (visualBounds ? ([0, 1, 2].map((i) => visualBounds.max[i] - visualBounds.min[i]) as [number, number, number]) : null),
@@ -611,7 +648,7 @@ export default function Home() {
   // Ambiente da versão à vista: a prévia do histórico mostra os obstáculos
   // que aquela versão tinha.
   const previewRoom = historyPreview === null ? undefined : p?.revisions[historyPreview]?.room;
-  const visualRoom = previewRoom === undefined ? p?.room : (previewRoom ?? undefined);
+  const visualRoom = agentDraft ? (agentDraft.room ?? undefined) : previewRoom === undefined ? p?.room : (previewRoom ?? undefined);
   const roomFit = useMemo(() => {
     if (!visualRoom || !visualParams) return null;
     const report = fitReport(visualParams, visualRoom);
@@ -635,16 +672,24 @@ export default function Home() {
   }, [p, visualBounds, historyPreview]);
   const visualParts = useMemo(() => {
     if (!p) return [];
+    if (agentDraft) return designOf(agentDraft.params).parts;
     if (reviewFrame) return designOf(reviewFrame.design).parts;
     const rev = p.revisions[historyPreview ?? p.cursor];
     return historyPreview === null || historyPreview === p.cursor ? p.parts : designOf(rev.params).parts;
-  }, [p, historyPreview, reviewFrame]);
+  }, [p, historyPreview, reviewFrame, agentDraft]);
   // Diff na cena contra o antes do turno: cresce quadro a quadro na reprodução.
   const sceneDiff = useMemo(() => {
     if (!visualParams) return null;
+    // Montando ao vivo: o que o assistente acabou de pôr brilha como peça nova,
+    // sem esmaecer o resto (o móvel parecia quebrado enquanto ele trabalhava).
+    if (agentDraft && p)
+      return { ...partDiff(drawingParts(canonical(p.revisions[p.cursor].params)), drawingParts(canonical(agentDraft.params))), focus: null, dim: false };
     if (!reviewData || !reviewFrame) {
       // Passar o mouse numa linha não mexe na cena: acende as peças dela no
       // desenho que já está à vista, se ainda existem.
+      // Peça ou chapa do plano de corte sob o cursor: acende no móvel, sem
+      // esmaecer o resto.
+      if (cutFocus?.ids.length) return { added: [], changed: [], removed: [], focus: cutFocus.ids, dim: false };
       if (!hoverFocus?.length) return null;
       const focus = selectedPartIds(visualParams, hoverFocus);
       return focus.length ? { added: [], changed: [], removed: [], focus } : null;
@@ -652,7 +697,7 @@ export default function Home() {
     const d = partDiff(reviewData.beforeParts, drawingParts(canonical(reviewFrame.design)));
     const focus = reviewFocus?.length ? selectedPartIds(visualParams, reviewFocus) : null;
     return { ...d, focus };
-  }, [reviewData, reviewFrame, visualParams, reviewFocus, hoverFocus]);
+  }, [reviewData, reviewFrame, visualParams, reviewFocus, hoverFocus, cutFocus, agentDraft, p]);
   const historyCount = p?.revisions.length ?? 0;
   const displayParts=useMemo(()=>visualParts.map(part=>openingPose(part as ModularPart,historyPreview!==null?0:opened[(part as ModularPart).motion?.id??'']??0)),[visualParts,opened,historyPreview]);
   const displaySelected = useMemo(() => (visualParams ? selectedPartIds(visualParams, selected) : []), [visualParams, selected]);
@@ -662,6 +707,17 @@ export default function Home() {
     () => (visualParams ? buildQuote(visualParts as ModularPart[], visualParams.modules.length, prices) : null),
     [visualParts, visualParams, prices],
   );
+  // Quanto custava a versão anterior à exibida: a mudança mais recente em reais.
+  const shownIndex = p ? (historyPreview ?? p.cursor) : 0;
+  const previousRevision = !reviewFrame && p && shownIndex > 0 ? p.revisions[shownIndex - 1] : null;
+  const previousQuote = useMemo(() => {
+    if (!previousRevision) return null;
+    const d = designOf(previousRevision.params);
+    return { version: shownIndex, total: buildQuote(d.parts as ModularPart[], previousRevision.params.modules.length, prices).total };
+  }, [previousRevision, shownIndex, prices]);
+  // Números do plano de corte do projeto gravado (a lista de peças é dele).
+  const savedParts = p?.parts;
+  const partsPlan = useMemo(() => (savedParts ? cutPlan(savedParts) : null), [savedParts]);
   const [viewNotice,setViewNotice]=useState('');
   const historyMax=Math.max(0,historyCount-1);
   function toggleOpening(id:string){
@@ -1216,6 +1272,31 @@ export default function Home() {
     if (!p?.room) return;
     await saveObstacles((p.room.obstacles ?? []).map((v) => (v.id === o.id ? o : v)));
   }
+  /** Opção do assistente vira a versão nova do projeto aberto. */
+  function applyOption(o: OptionCard) {
+    if (!p) return;
+    return guardTruncation(async () => {
+      await action('update', { design: o.params, label: `Opção: ${o.name}`.slice(0, 90) });
+    }, `Aplicar a opção "${o.name}"`);
+  }
+  /** Opção do assistente vira um projeto à parte, a partir da versão aberta. */
+  async function forkOption(o: OptionCard) {
+    if (busy || !p) return;
+    setBusy(true);
+    setError('');
+    try {
+      const created = await api<State>('/api/projects', { id: p.id, version: p.version, action: 'fork', cursor: p.cursor, name: `${p.name} · ${o.name}`.slice(0, 80) });
+      const next = await api<State>('/api/projects', { id: created.id, version: created.version, action: 'update', design: o.params, label: `Opção: ${o.name}`.slice(0, 90) });
+      accept(next);
+      setNotice(`Opção "${o.name}" salva como alternativa e aberta. O projeto de origem ficou como estava.`);
+      await refresh();
+    } catch (e) {
+      setError(friendlyError(e));
+    } finally {
+      setBusy(false);
+      setHistoryPreview(null);
+    }
+  }
   async function forkFrom(cursor: number) {
     if (busy || !p) return;
     const shown = historyPreview ?? p.cursor;
@@ -1428,6 +1509,10 @@ export default function Home() {
     setLiveUsage(null);
     setLiveText(null);
     setReasoningView('');
+    setAgentSteps([]);
+    setAgentPlan([]);
+    setAgentRunning(null);
+    setAgentDraft(null);
     setStarted(Date.now());
     if (!keepDraft) setText('');
     const abort = new AbortController();
@@ -1453,6 +1538,15 @@ export default function Home() {
           requestId,
           model,
           prices,
+          agent: agentOn,
+          ui: {
+            view,
+            tab,
+            exploded,
+            dims: showDims,
+            room: showRoom,
+            open: Object.keys(opened).filter((k) => opened[k] > 0),
+          } satisfies UiState,
           // Responder pelo cartão precisa chegar como resposta de
           // esclarecimento; antes o clique reenviava só o texto da pergunta.
           // Sem optionId é resposta digitada: resolve a pergunta do mesmo jeito.
@@ -1507,15 +1601,28 @@ export default function Home() {
         } else if (event === 'text') {
           const preview = JSON.parse(data) as TextPreview;
           buffer({ text: preview, reasoning: preview.reasoningDelta ?? '' });
+        } else if (event === 'agent') {
+          const e = JSON.parse(data) as AgentEvent;
+          if (e.type === 'step') {
+            setAgentSteps((list) => [...list, e.step]);
+            setAgentRunning(null);
+          } else if (e.type === 'running') setAgentRunning(e.label);
+          else if (e.type === 'plan') setAgentPlan(e.steps);
+          else if (e.type === 'draft') setAgentDraft({ params: e.params as Design, room: (e.room ?? null) as Room | null });
+          else if (e.type === 'effect' && LIVE_EFFECTS.includes(e.effect.type)) applyEffect(e.effect);
         } else if (event === 'done') {
           finalState = JSON.parse(data) as State;
+          // Arquivos, preços e o resto esperam o projeto novo estar na tela.
+          pendingEffects.current = ((finalState as State & { effects?: Effect[] }).effects ?? []).filter((f) => !LIVE_EFFECTS.includes(f.type));
+          setAgentDraft(null);
           // O bloco de mudanças da resposta já conta as medidas: sem o aviso
           // de medida geral repetindo a mesma coisa embaixo do campo.
           accept(finalState);
           completed = true;
           // Turno que mudou o projeto: a cena mostra a mudança acontecendo.
           const last = finalState.messages.at(-1);
-          if (last?.role === 'assistant' && last.report?.highlights?.length && last.result?.appliedOperations?.length)
+          // O assistente em laço já montou ao vivo: não precisa repetir a animação.
+          if (last?.role === 'assistant' && last.report?.highlights?.length && last.result?.appliedOperations?.length && !last.report.steps?.length)
             startReview(last.id, false);
         } else if (event === 'error') {
           const payload = JSON.parse(data) as { error: string; state?: State };
@@ -1575,6 +1682,8 @@ export default function Home() {
       setLiveUsage(null);
       setLiveText(null);
       setReasoningView('');
+      setAgentRunning(null);
+      setAgentDraft(null);
       setBusy(false);
       draftDuringWait.current = '';
     }
@@ -1607,15 +1716,28 @@ export default function Home() {
     },
   );
   const onSnapshot = useCallback(
-    (url: string) => {
-      if (snapshotPurpose.current === 'print') {
-        setPrintShot(url);
-        // O React precisa pintar a foto na folha antes de a impressão abrir.
-        setTimeout(() => window.print(), 120);
-      } else downloadUrl(`${slug(p?.name ?? 'projeto')}.png`, url);
-    },
+    (url: string) => downloadUrl(`${slug(p?.name ?? 'projeto')}.png`, url),
     [p?.name],
   );
+  // Foto do PDF: sempre o mesmo ângulo e enquadramento, feita fora da tela a
+  // partir do projeto gravado, não da vista em que a câmera ficou.
+  const shotFor = useRef<unknown>(null);
+  const preparePrint = useEvent(() => {
+    if (!params || shotFor.current === printDrawing) return;
+    shotFor.current = printDrawing;
+    const shot = renderPrintShot(printDrawing, params);
+    flushSync(() => setPrintShot(shot));
+  });
+  function printProject() {
+    preparePrint();
+    // O navegador precisa decodificar a foto antes de montar as páginas.
+    setTimeout(() => window.print(), 150);
+  }
+  // Ctrl+P direto também sai com a foto do projeto atual.
+  useEffect(() => {
+    window.addEventListener('beforeprint', preparePrint);
+    return () => window.removeEventListener('beforeprint', preparePrint);
+  }, [preparePrint]);
   function exportProjectJSON() {
     if (!p || !quote) return;
     const rows = groupParts(p.parts);
@@ -1652,14 +1774,39 @@ export default function Home() {
   }
   const exports: { id: string; label: string; hint: string; icon: React.ReactNode; run: () => void }[] = p && quote
     ? [
-        { id: 'png', label: 'Foto da vista', hint: 'PNG com cotas', icon: <ImageIcon size={16} />, run: () => { snapshotPurpose.current = 'download'; setSnapshotRequest((v) => v + 1); } },
-        { id: 'print', label: 'Imprimir / PDF', hint: 'Desenho, orçamento, peças e corte', icon: <Printer size={16} />, run: () => { snapshotPurpose.current = 'print'; setSnapshotRequest((v) => v + 1); } },
+        { id: 'png', label: 'Foto da vista', hint: 'PNG com cotas', icon: <ImageIcon size={16} />, run: () => setSnapshotRequest((v) => v + 1) },
+        { id: 'print', label: 'Imprimir / PDF', hint: 'Desenho, orçamento, peças e corte', icon: <Printer size={16} />, run: printProject },
         { id: 'csv', label: 'Lista de peças', hint: 'CSV', icon: <FileSpreadsheet size={16} />, run: () => download(`${slug(p.name)}-pecas.csv`, cutCSV(p.params), 'text/csv;charset=utf-8') },
         { id: 'cut', label: 'Plano de corte', hint: 'CSV com posições', icon: <Scissors size={16} />, run: () => download(`${slug(p.name)}-corte.csv`, cutPlanCSV(quote.plan), 'text/csv;charset=utf-8') },
         { id: 'cortecloud', label: 'Cortecloud', hint: 'JSON experimental', icon: <FileJson size={16} />, run: () => download(`${slug(p.name)}-cortecloud.json`, JSON.stringify(cortecloud(p.params), null, 2)) },
         { id: 'json', label: 'Projeto completo', hint: 'JSON com histórico', icon: <FileJson size={16} />, run: exportProjectJSON },
       ]
     : [];
+  /**
+   * Efeito pedido pelo assistente: a mesma ação que o botão faria. Vista e
+   * aba valem na hora; arquivos, preços e o resto rodam quando o projeto
+   * gravado já está na tela, para o PDF sair da versão nova.
+   */
+  const applyEffect = useEvent((e: Effect) => {
+    if (e.type === 'camera') setView(e.mode);
+    else if (e.type === 'frame') setFrameRequest((v) => v + 1);
+    else if (e.type === 'toggle') {
+      if (e.what === 'explode') setExploded(e.on);
+      else if (e.what === 'dims') toggleDims(e.on);
+      else toggleRoom(e.on);
+    } else if (e.type === 'tab') chooseTab(e.tab);
+    else if (e.type === 'prices') updatePrices(e.prices);
+    else if (e.type === 'export') exports.find((x) => x.id === EXPORT_ID[e.kind])?.run();
+  });
+  useEffect(() => {
+    const due = pendingEffects.current;
+    if (!due.length) return;
+    pendingEffects.current = [];
+    // Fora do ciclo do React: o PDF usa flushSync para montar a foto.
+    setTimeout(() => {
+      for (const e of due) applyEffect(e);
+    }, 0);
+  }, [p, applyEffect]);
   const selectedNames = useMemo(
     () =>
       selected.map(
@@ -1688,6 +1835,9 @@ export default function Home() {
       ?.suggestions ?? [];
   const contextualSuggestions=selected.length>1?['Descreva os itens selecionados','Abra as frentes selecionadas']
     :targetCell?.node.front||targetPart?.kind==='door'||targetPart?.kind==='drawer'?['Abra esta frente','Feche esta frente','Troque esta frente para nogueira']
+    // Prateleira e painel de parede não têm compartimento: os chips falam da peça.
+    :targetPart?.id.endsWith(':ledge')?['Suba esta prateleira 10 cm','Deixe esta prateleira com 30 cm de fundo','Troque esta prateleira para nogueira']
+    :targetPart?.kind==='panel'?['Coloque nichos neste painel','Deixe este painel com 18 mm','Troque este painel para freijó']
     :p?.params.modules.some(m=>m.id===selected[0])?['Duplique este módulo','Gire este módulo em 90 graus','Mude este módulo para verde sálvia']
     :targetCell&&!targetCell.node.split?['Divida este compartimento em duas colunas','Coloque duas portas neste compartimento','Coloque três gavetas neste compartimento']
     :selected.length?['Distribua as divisões deste compartimento','Deixe 400 mm livres antes desta divisória']
@@ -1743,6 +1893,18 @@ export default function Home() {
     { id: 'chat', group: 'Painéis', label: chatOpen ? 'Recolher a conversa' : 'Abrir a conversa', keys: '[', icon: <MessageSquare size={15} />, run: () => toggleChat() },
     { id: 'inspector', group: 'Painéis', label: inspectorOpen ? 'Recolher o painel lateral' : 'Abrir o painel lateral', keys: ']', icon: <PanelRight size={15} />, run: () => toggleInspector() },
     { id: 'ask', group: 'Painéis', label: 'Escrever para a IA', keys: '/', icon: <Sparkles size={15} />, run: () => { if (!chatOpen) toggleChat(true); setTimeout(() => composer.current?.focus(), 30); } },
+    {
+      id: 'agent',
+      group: 'Painéis',
+      label: agentOn ? 'Usar o assistente antigo (uma resposta só)' : 'Usar o assistente em laço',
+      hint: agentOn ? 'sem ferramentas nem opções' : 'usa as ferramentas do estúdio',
+      icon: <Sparkles size={15} />,
+      run: () =>
+        setAgentOn((v) => {
+          writeLocal('merce-agent', v ? '0' : '1');
+          return !v;
+        }),
+    },
     { id: 'new', group: 'Projeto', label: 'Novo projeto…', hint: 'em branco ou modelo', icon: <Plus size={15} />, run: () => openGallery('new') },
     { id: 'library', group: 'Projeto', label: 'Adicionar da biblioteca…', hint: 'rack, cozinha, cômoda…', icon: <LayoutTemplate size={15} />, disabled: !p, run: () => openGallery('add') },
     { id: 'undo', group: 'Projeto', label: 'Desfazer', keys: 'Ctrl Z', icon: <Undo2 size={15} />, disabled: !p || !canUndo(p) || busy, run: () => void action('undo') },
@@ -2005,6 +2167,7 @@ export default function Home() {
                         }}
                       />
                       {m.report.prose && <p className="message-prose">{m.report.prose}</p>}
+                      <TurnFacts report={m.report} />
                       {m.report.review && (
                         <div className={'turn-review ' + m.report.review.fidelity}>
                           <span className="turn-review-label">
@@ -2025,8 +2188,21 @@ export default function Home() {
                       )}
                     </>
                   ) : (
-                    m.content
+                    <>
+                      {m.content}
+                      {m.report ? <TurnFacts report={m.report} /> : null}
+                    </>
                   )}
+                  {m.options?.length ? (
+                    <OptionCards
+                      options={m.options}
+                      current={p.params}
+                      disabled={busy}
+                      onApply={(o) => void applyOption(o)}
+                      onFork={(o) => void forkOption(o)}
+                    />
+                  ) : null}
+                  {m.report?.steps?.length ? <AgentStepsSummary steps={m.report.steps} plan={m.report.plan} /> : null}
                   {m.error && <div className="turn-error" role="alert">{m.error}</div>}
                   {m.error && m.retry && (
                     <div className="confirm-actions">
@@ -2230,6 +2406,7 @@ export default function Home() {
                   usage={liveUsage}
                   model={model}
                   withPhoto={Boolean(pendingImage)}
+                  agent={agentSteps.length || agentRunning || agentPlan.length ? { steps: agentSteps, plan: agentPlan, running: agentRunning } : undefined}
                 />
                 {live && liveText && (
                   <div className="answer-stream">
@@ -2617,7 +2794,7 @@ export default function Home() {
           {pending && (
             <output className="stage-working">
               <PixelMascot beat={pulse?.bytes ?? 0} size={1} />
-              {turnLabel(progress, pulse)}
+              {agentRunning ?? (agentSteps.length ? agentSteps.at(-1)!.label : turnLabel(progress, pulse))}
               {liveUsage && <b>{usd(liveUsage.costUsd)}</b>}
             </output>
           )}
@@ -2659,6 +2836,7 @@ export default function Home() {
               onSnapshot={onSnapshot}
               onSpinSuppressed={setReducedMotion}
               diff={sceneDiff}
+              cutFocus={tab === 'cut' ? cutFocus : null}
               keyboard={!paletteOpen && !galleryOpen}
               movable={!busy && !pending && historyPreview === null && !reviewLocked && !exploded}
               onMove={onMoveFurniture}
@@ -2736,7 +2914,7 @@ export default function Home() {
               <Orbit size={17} />
             </button>
             <span className="tool-sep" />
-            <button type="button" title="Foto da vista (PNG)" aria-label="Foto da vista" onClick={() => { snapshotPurpose.current = 'download'; setSnapshotRequest((v) => v + 1); }}><Camera size={17} /></button>
+            <button type="button" title="Foto da vista (PNG)" aria-label="Foto da vista" onClick={() => setSnapshotRequest((v) => v + 1)}><Camera size={17} /></button>
           </div>
           <div className="scene-bottom">
             <fieldset className="view-switch">
@@ -2960,7 +3138,14 @@ export default function Home() {
                 />
               )}
               {tab === 'quote' && quote && (
-                <QuotePanel name={p.name} quote={quote} prices={prices} onPrices={updatePrices} />
+                <QuotePanel
+                  name={p.name}
+                  quote={quote}
+                  prices={prices}
+                  onPrices={updatePrices}
+                  previous={previousQuote}
+                  onShowParts={(ids) => setSelected(ids)}
+                />
               )}
               {tab === 'cut' && quote && (
                 <CutPlanPanel
@@ -2968,54 +3153,21 @@ export default function Home() {
                   selected={displaySelected}
                   onSelect={(id, extend) => toggleSelected(id, extend)}
                   onDownload={() => download(`${slug(p.name)}-corte.csv`, cutPlanCSV(quote.plan), 'text/csv;charset=utf-8')}
+                  onFocus={setCutFocus}
                 />
               )}
               {tab === 'parts' && (
                 <>
-                  <div className="section-label">
-                    <span>
-                      {p.parts.length} peças{selected.length > 0 ? ` · ${selected.length} selecionada${selected.length > 1 ? 's' : ''}` : ''}
-                    </span>
-                    {selected.length > 0 && (
-                      <button type="button" className="link-button" onClick={() => setSelected([])}>
-                        limpar
-                      </button>
-                    )}
-                  </div>
-                  {p.params.modules.length===1 && p.params.modules[0].legacyIds ? (
-                    shelfPanel()
-                  ) : (
-                    <p className="hint">
-                      Clique para selecionar; Shift+clique seleciona o módulo inteiro.
-                      Para mexer em prateleiras, use Dividir e Distribuir do
-                      compartimento em Projeto.
-                    </p>
-                  )}
-                  <div className="part-list">
-                    {p.parts.map((v) => (
-                      <button
-                        className={
-                          'part-row ' + (selected.includes(v.id) ? 'selected' : '')
-                        }
-                        key={v.id}
-                        title="Clique para selecionar · Shift+clique seleciona o módulo inteiro"
-                        onClick={(e) => toggleSelected(v.id, e.shiftKey)}
-                      >
-                        <i className="swatch-dot" style={{ '--swatch': (v as ModularPart).color } as React.CSSProperties} />
-                        <span>
-                          <strong>{v.name}</strong>
-                          <small>{v.material}</small>
-                        </span>
-                        <code>
-                          {mm(v.c)} × {mm(v.l)} × {mm(v.thickness)}
-                        </code>
-                      </button>
-                    ))}
-                  </div>
-                  <p className="hint">
-                    Medidas nominais. Veja o aproveitamento de chapas na aba Corte.
-                    Posições de montagem e furação não estão incluídas.
-                  </p>
+                  {p.params.modules.length === 1 && p.params.modules[0].legacyIds && shelfPanel()}
+                  <PartsPanel
+                    parts={p.parts as ModularPart[]}
+                    plan={partsPlan ?? cutPlan(p.parts)}
+                    selected={displaySelected}
+                    onToggle={(id, extend) => toggleSelected(id, extend)}
+                    onSelectMany={(ids, extend) => setSelected((s) => (extend ? [...new Set([...s, ...ids])] : ids))}
+                    onClear={() => setSelected([])}
+                    edgeMeters={quote?.counts.edgeMeters ?? 0}
+                  />
                 </>
               )}
               {tab === 'history' && (

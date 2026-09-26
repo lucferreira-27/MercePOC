@@ -1,0 +1,74 @@
+{
+ "about": "Caso guardado: parede de 3,4 m com janela no meio (1100 a 2300 mm, peitoril a 1 m) e uma cômoda de 80 cm no canto esquerdo. Expectativas congeladas antes de rodar o candidato.",
+ "source": {
+  "generated": "asset comoda 800 × 750 × 500 no canto",
+  "capturedAt": "2026-09-26T06:24:53.095Z"
+ },
+ "design": {
+  "schemaVersion": 3,
+  "profile": {
+   "version": 1,
+   "panel": 18,
+   "back": 6,
+   "front": 18,
+   "reveal": 2,
+   "drawer": 15,
+   "drawerBottom": 6,
+   "slideSpace": 13,
+   "rearSpace": 20
+  },
+  "modules": [
+   {
+    "id": "ec1",
+    "name": "Cômoda",
+    "width": 800,
+    "height": 630,
+    "depth": 500,
+    "materialId": "white",
+    "back": true,
+    "position": [
+     0,
+     0,
+     0
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "ec1:root",
+     "front": {
+      "id": "front-7f705d07-fc0",
+      "type": "drawers",
+      "hinge": "left",
+      "materialId": "oak",
+      "heights": [
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "legacyIds": false,
+    "feet": 120
+   }
+  ],
+  "connections": []
+ },
+ "room": {
+  "schemaVersion": 1,
+  "widthMm": 3400,
+  "heightMm": 2700,
+  "depthMm": 3200,
+  "baseboardMm": 0,
+  "offsetMm": 0,
+  "obstacles": [
+   {
+    "id": "ob-janela",
+    "kind": "window",
+    "label": "Janela",
+    "xMm": 1100,
+    "yMm": 1000,
+    "widthMm": 1200,
+    "heightMm": 1200
+   }
+  ]
+ }
+}

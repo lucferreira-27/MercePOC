@@ -1,0 +1,285 @@
+{
+ "id": "con-03",
+ "at": "2026-09-25T15:28:48.572Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Descreva os módulos do projeto.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_HiCfBez9E7Tt86i2Llxv0153",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_4gQ9aOSiXXbj4vfFhM5v9444",
+      "type": "function",
+      "function": {
+       "name": "quote_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "5|Pedido: Descreva os módulos do projeto.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_wnrANdFrZNgb0lZQiFsf9973",
+      "type": "function",
+      "function": {
+       "name": "parts_list",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "7|Pedido: Descreva os módulos do projeto.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_pSh84aJF3bUJ4EDK2HzY3596",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"O projeto tem 1 módulo só: a estante de 80 × 180 × 35 cm em Carvalho natural, sem pés e sem portas ou gavetas. Dentro dela estão 4 prateleiras fixas (a 35,6 cm, 71,3 cm, 106,9 cm e 142,6 cm do piso), formando 5 vãos abertos de cerca de 34 cm de altura cada. É um módulo único, sem conexões com outros. Total: R$ 1.230,63 (R$ 911,58 de custo + 35% de margem), 9 peças, 1 chapa de 18 mm e 1 de 6 mm.\", \"sugestoes\": [\"Adicionar portas nos vãos de baixo\", \"Dividir um vão ao meio na vertical\", \"Gerar o PDF do desenho e do orçamento\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "ask",
+      "confidence": 0.99,
+      "probabilities": {
+       "view": 0,
+       "ask": 1,
+       "edit": 0,
+       "studio": 0,
+       "options": 0,
+       "build": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.94
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1313,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 416,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 641,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

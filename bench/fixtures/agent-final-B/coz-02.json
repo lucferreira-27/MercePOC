@@ -1,0 +1,413 @@
+{
+ "id": "coz-02",
+ "at": "2026-09-26T11:42:45.641Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos com a base a 1,5 m do piso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_HtgibidbvAR3y12ArAMYlq0z",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos com a base a 1,5 m do piso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_mllMKJMIYTRZaqbgh6BxOuNP",
+      "type": "function",
+      "function": {
+       "name": "modify",
+       "arguments": "{\"remover\":[],\"mover\":[{\"id\":\"c-a1\",\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":1500}},{\"id\":\"c-a2\",\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":716,\"y\":1500}},{\"id\":\"c-a3\",\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":1432,\"y\":1500}},{\"id\":\"c-a4\",\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":2148,\"y\":1500}},{\"id\":\"c-a5\",\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":2865,\"y\":1500}},{\"id\":\"apoio-cozinha-a1\",\"onde\":{\"de\":\"c-b5\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}}],\"medidas\":[],\"interior\":[],\"rotulo\":\"Layout encostado à parede\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos com a base a 1,5 m do piso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_tDKM28izpyeuCoorZKrO1iIh",
+      "type": "function",
+      "function": {
+       "name": "modify",
+       "arguments": "{\"remover\":[],\"mover\":[{\"id\":\"apoio-cozinha-a1\",\"onde\":{\"de\":\"c-b5\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}}],\"medidas\":[],\"interior\":[],\"rotulo\":\"Armários inferiores juntos\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos com a base a 1,5 m do piso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_K1d3PLJhVNnTBOeTiOFhlP8w",
+      "type": "function",
+      "function": {
+       "name": "modify",
+       "arguments": "{\"remover\":[],\"mover\":[{\"id\":\"c-a1\",\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":1500}},{\"id\":\"c-a2\",\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":716,\"y\":1500}},{\"id\":\"c-a3\",\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":1432,\"y\":1500}},{\"id\":\"c-a4\",\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":2148,\"y\":1500}},{\"id\":\"c-a5\",\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":2865,\"y\":1500}}],\"medidas\":[],\"interior\":[],\"rotulo\":\"Aéreos com base a 1,5 m\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos com a base a 1,5 m do piso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_TDyquvsDL5hUMBscqCCyr697",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos com a base a 1,5 m do piso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_H3aBeN3RJ9ntMXK3jOMBdlvM",
+      "type": "function",
+      "function": {
+       "name": "modify",
+       "arguments": "{\"remover\":[],\"mover\":[{\"id\":\"c-a1\",\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":1500}}],\"medidas\":[],\"interior\":[],\"rotulo\":\"Aéreos juntos, encostados na parede\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "14|Pedido: arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos com a base a 1,5 m do piso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_f776eM0bSUahuppY8b5puiCK",
+      "type": "function",
+      "function": {
+       "name": "modify",
+       "arguments": "{\"remover\":[],\"mover\":[{\"id\":\"c-b1\",\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}}],\"medidas\":[],\"interior\":[],\"rotulo\":\"Armários inferiores juntos e encostados na parede\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "16|Pedido: arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos com a base a 1,5 m do piso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_0JJyrqne3Rydfoa9Gl2i28S6",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "18|Pedido: arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos com a base a 1,5 m do piso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_kbRnxjK2FzkjRmyWN3qBLoBm",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "20|Pedido: arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos com a base a 1,5 m do piso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_cxL9CIe14VpQEqBKKmqRZtlT",
+      "type": "function",
+      "function": {
+       "name": "view_camera",
+       "arguments": "{\"vista\":\"front\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "22|Pedido: arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos com a base a 1,5 m do piso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_N3IAmYVUgUVAyCuhKOGN7h50",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Os aéreos agora têm a base a 1,5 m e o conjunto foi encostado à parede. A fileira principal de armários inferiores já estava unida, mas os dois módulos de apoio permanecem separados por um vão de 18 mm; não consegui eliminar esse vão sem alterar a conexão existente.\",\"sugestoes\":[\"Confira o layout de frente\",\"Una os módulos de apoio sem vão\",\"Revise o orçamento atualizado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 0.94,
+      "probabilities": {
+       "options": 0,
+       "studio": 0,
+       "view": 0,
+       "build": 0.05,
+       "edit": 0.95,
+       "ask": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.95
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.56
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.83
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.13
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.49
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.2
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 1347,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.97
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 450,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.76
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 545,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

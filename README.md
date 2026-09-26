@@ -14,7 +14,7 @@ A biblioteca tem 16 móveis paramétricos, por cômodo: rack de TV com pés pali
 
 ### Converse com a IA, veja cada mudança
 
-A IA propõe operações JSON que o servidor valida antes de salvar. Cada resposta que mexe no projeto traz um bloco de **Edição**, como o diff de um editor: `+` entrou, `−` saiu, `~` mudou. Passar o mouse numa linha acende só as peças dela no 3D; clicar abre medidas, posição, frentes e acabamento. Ao terminar o turno a cena toca as operações uma a uma, com a linha da vez acesa na conversa, e **Rever** repete quando quiser (verde entrou, âmbar mudou, fantasma vermelho saiu).
+O assistente trabalha em laço com as ferramentas do próprio estúdio: desenha, mede a parede, monta fileiras, põe peças ao lado, acima ou abaixo de outras, troca vista e abas, ajusta preços e gera arquivos. Antes de responder, o app confere o encaixe, as frentes e o que a resposta afirma contra o que o pedido quer. O pedido inteiro vira uma versão, e `Ctrl+Z` desfaz tudo de uma vez. Cada resposta que mexe no projeto traz um bloco de **Edição**, como o diff de um editor: `+` entrou, `−` saiu, `~` mudou. Passar o mouse numa linha acende só as peças dela no 3D; clicar abre medidas, posição, frentes e acabamento. Ao terminar o turno a cena toca as operações uma a uma, com a linha da vez acesa na conversa, e **Rever** repete quando quiser (verde entrou, âmbar mudou, fantasma vermelho saiu).
 
 ![Reprodução de uma edição: a linha "3 gavetas em 2 vãos" acesa na conversa e a gaveta alterada destacada na cena](docs/readme/rever.png)
 
@@ -22,15 +22,15 @@ A IA propõe operações JSON que o servidor valida antes de salvar. Cada respos
 
 Enquanto a IA trabalha, o robô da Merce martela, serra ou fura na bancada e o cartão mostra o passo real (enviado, pensando, escrevendo, conferindo medidas, comparando com a foto, salvando), o relógio, os dados que chegam, os tokens e o custo. **Parar** interrompe sem mexer no projeto.
 
-- **Sugestões e dúvidas.** Os chips acima do campo são os próximos passos que a IA propõe para este projeto. Quando ela precisa de uma decisão, o cartão mostra a pergunta, respostas sugeridas e um campo livre; as opções são revalidadas antes de aplicar.
+- **Sugestões, dúvidas e opções.** Os chips acima do campo são os próximos passos que a IA propõe para este projeto. Quando falta uma decisão de verdade, o cartão mostra a pergunta, respostas sugeridas e um campo livre. Peça "me dê opções" e ela monta 2 ou 3 variantes lado a lado: uma vira a versão atual, as outras ficam como alternativa.
 - **Copiar de uma foto.** Anexe ou cole uma imagem (JPG, PNG ou WebP, até 10 MB) e peça para copiar o layout. A IA estima a escala por objetos conhecidos, diz a régua que usou e o erro esperado, monta a fileira inteira e depois confere o próprio desenho contra a foto, corrigindo o que ficou diferente.
-- **Modelos e custo.** O seletor troca entre DeepSeek V4.1 Flash (padrão), GPT-6 Luna, MiMo V2.6 Flash e Qwen 3.8 27B, com o preço à vista. O selo no topo soma o custo da conversa e da aba.
+- **Modelos e custo.** O padrão é o GPT-6 Luna com raciocínio alto. O seletor também traz DeepSeek V4.1 Flash, MiMo V2.6 Flash e Qwen 3.8 27B, com o preço à vista, e o selo no topo soma o custo da conversa e da aba.
 
 <br clear="right">
 
 ### Veja o móvel no seu ambiente
 
-Informe parede, pé-direito, profundidade, rodapé e obstáculos (porta, janela, tomada, TV, coluna) e a cena desenha o quarto com a mesma conta do veredito de encaixe. O cabeçalho diz se cabe, as cotas mostram as folgas até a parede e o teto, e um obstáculo que cruza o móvel fica vermelho. Obstáculos entram com prévia no lugar livre, se arrastam na cena e cada mudança vira uma versão que dá para desfazer.
+Informe parede, pé-direito, profundidade, rodapé e obstáculos (porta, janela, tomada, TV, coluna) e a cena desenha o quarto com a mesma conta do veredito de encaixe. O cabeçalho diz se cabe, as cotas mostram as folgas até a parede e o teto, um obstáculo que cruza o móvel fica vermelho e a tela da TV também, quando algo a tapa. Obstáculos entram com prévia no lugar livre, se arrastam na cena e cada mudança vira uma versão que dá para desfazer.
 
 ![Guarda-roupa encostado no canto, com a porta do quarto ao lado, e o painel Ambiente com o veredito "Cabe" e a lista de obstáculos](docs/readme/ambiente.png)
 
@@ -42,7 +42,9 @@ O móvel também se move: selecione uma peça e arraste, ou use o controle **Mov
 |---|---|
 | ![Orçamento estimado com chapas, fita de borda, ferragens e mão de obra](docs/readme/orcamento.png) | ![Plano de corte com chapas desenhadas, aproveitamento e peças por material](docs/readme/corte.png) |
 
-O **orçamento** conta chapas pelo plano de corte, fita de borda, dobradiças pela altura da folha, corrediças, puxadores, mão de obra e margem, com tabela de preços editável salva no navegador. O **plano de corte** encaixa em guilhotina por material e espessura, com disco, refilo e veio travado no comprimento da chapa. A IA responde "quanto custa" com os mesmos números.
+O **orçamento** conta chapas pelo plano de corte, fita de borda, dobradiças pela altura da folha, corrediças, puxadores, mão de obra e margem. Mostra a diferença para a versão anterior, o preço unitário se edita na própria linha e "ver no móvel" acende as peças de cada item.
+
+O **plano de corte** encaixa em guilhotina por material e espessura, com disco, refilo e veio travado no comprimento da chapa. Cada chapa aparece em escala, com réguas, peças numeradas e sobras aproveitáveis; passar o mouse numa peça acende ela no móvel com o tracejado de "corte aqui". A aba **Peças** agrupa por módulo, material ou tipo, com fita de borda e o número no plano. A IA responde "quanto custa" e "quantas chapas" com os mesmos números.
 
 ### Claro e escuro
 
@@ -52,7 +54,7 @@ Nove acabamentos (branco fosco, areia, carvalho natural, freijó, nogueira, verd
 
 ### Exporte para a marcenaria
 
-Foto PNG da vista com cotas e legenda, impressão/PDF (foto, orçamento, peças agrupadas e chapas), lista de peças em CSV, plano de corte em CSV, Cortecloud (experimental) e o projeto completo em JSON. `Ctrl+K` abre a paleta de comandos; uma frase que não é comando vira pedido para a IA.
+Foto PNG da vista com cotas e legenda, PDF (capa com a foto, vista frontal cotada, orçamento por seção, peças por material e as chapas com o mesmo desenho da aba Corte), lista de peças em CSV, plano de corte em CSV, Cortecloud (experimental) e o projeto completo em JSON. `Ctrl+K` abre a paleta de comandos; uma frase que não é comando vira pedido para a IA.
 
 ## Executar
 
@@ -70,9 +72,9 @@ AI_BASE_URL=https://api.commandcode.ai/provider/v1
 AI_MODEL=deepseek/deepseek-v4.1-flash
 ```
 
-A chave fica somente no servidor. Cada chamada envia `reasoning_effort: low`, o piso aceito pelo gateway. A janela de inatividade é de 120 segundos, reiniciada a cada trecho recebido: uma resposta lenta mas viva termina, e uma conexão muda é encerrada. Formato inválido ou lote recusado pela geometria gera até duas novas tentativas, com o motivo devolvido ao modelo. O teto é de 16000 tokens; com menos, pedidos de várias operações esgotam o orçamento em raciocínio e voltam truncados. Ajuste com `MERCE_AI_TIMEOUT_MS` e `MERCE_AI_MAX_TOKENS`.
+A chave fica somente no servidor. O modelo padrão é o GPT-6 Luna (`AI_LUNA_MODEL`, padrão `gpt-6-luna`) no mesmo gateway, com `reasoning_effort: high`; o DeepSeek V4.1 Flash (`AI_MODEL`) segue selecionável com `low`, o piso do gateway. `MERCE_REASONING_EFFORT` troca o esforço de todos, e `/api/health` diz o padrão e o esforço que vai de fato. A escolha de modelo fica salva no navegador. A janela de inatividade é de 120 segundos, reiniciada a cada trecho recebido: uma resposta lenta mas viva termina, e uma conexão muda é encerrada. Formato inválido ou lote recusado pela geometria gera até duas novas tentativas, com o motivo devolvido ao modelo. O teto é de 16000 tokens; com menos, pedidos de várias operações esgotam o orçamento em raciocínio e voltam truncados. Ajuste com `MERCE_AI_TIMEOUT_MS` e `MERCE_AI_MAX_TOKENS`.
 
-O modo rápido opcional usa `AI_FAST_*`, e o preço de cada modelo vem de `lib/models.ts`, ajustável com `MERCE_PRICE_*`. Não existe fallback automático para outro modelo: erros de rede ou limite do provedor preservam o projeto e permitem reenviar. O botão "Ao vivo" na barra do compositor é uma opção de depuração que mostra o texto parcial da IA enquanto chega; nada disso é salvo nem volta ao modelo.
+O modo rápido opcional usa `AI_FAST_*`, e o preço de cada modelo vem de `lib/models.ts`, ajustável com `MERCE_PRICE_*`. Quando o provedor falha duas vezes com o DeepSeek, a Luna assume como reserva (`MERCE_FALLBACK_MODEL` troca a reserva, `none` desliga). Erros de rede ou limite do provedor preservam o projeto e permitem reenviar. O assistente em laço é o modo padrão; `MERCE_AGENT=0` no servidor volta ao modo de uma resposta só, que a cópia de foto ainda usa. O botão "Ao vivo" na barra do compositor é uma opção de depuração que mostra o texto parcial da IA enquanto chega; nada disso é salvo nem volta ao modelo.
 
 ### Mostrar para outras pessoas
 
@@ -144,7 +146,7 @@ Depois de aplicar, ela recebe o desenho do resultado (frontal e isométrica), co
 
 ## Limites e dados
 
-Até 12 módulos, 200 painéis físicos e 32 compartimentos finais por módulo. Medidas externas de cada módulo: largura 200–1200, altura 200–2400, profundidade 200–800 mm; o painel de parede vai até 2,70 × 1,80 m. Vãos mínimos de 100 mm. Pés de 50 a 300 mm. Rotação em passos de 90°. O L usa módulos retangulares separados.
+Até 12 módulos, 200 painéis físicos e 32 compartimentos finais por módulo. Medidas externas de cada módulo: largura 200–1200, altura 200–2400, profundidade 200–800 mm; o painel de parede vai até 2,70 × 1,80 m e a prateleira de parede até 2,70 m de comprimento (15 a 60 mm de espessura, 150 a 600 mm de fundo). Vãos mínimos de 100 mm. Pés de 50 a 300 mm. Rotação em passos de 90°. O L usa módulos retangulares separados.
 
 Não inclui curvas, inclinados, recortes, canto com interior contínuo, portas de correr ou basculantes, mesas, tampos avulsos, furação, ferragens comerciais ou certificação estrutural.
 
@@ -166,7 +168,7 @@ npm run test:live   # turno real com o modelo configurado
 
 `test:live` cria uma demonstração e grava `work/modular-live.json`. Para retomar após um limite temporário: `$env:RESUME_MODULAR='1'; npm run test:live`.
 
-`npm run bench` mede o par prompt + modelo + validação em 51 casos, soma o custo e compara duas execuções (`--compare`); `--model deepseek|luna|mimo|qwen-fast` escolhe o modelo. O catálogo e o que já aprendemos ficam em [bench/README.md](bench/README.md).
+`npm run bench` mede o par prompt + modelo + validação em 51 casos, soma o custo e compara duas execuções (`--compare`); `--model deepseek|luna|mimo|qwen-fast` escolhe o modelo. `bench:router`, `bench:claims` e `bench:askact` medem o roteador, a conferência do que a resposta afirma e o portão de perguntar ou fazer; `bench:dash` abre o painel dos resultados. O catálogo e o que já aprendemos ficam em [bench/README.md](bench/README.md).
 
 Verificações em navegador real, com o app rodando em `127.0.0.1:4310`:
 

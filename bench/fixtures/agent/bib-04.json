@@ -1,0 +1,385 @@
+{
+ "id": "bib-04",
+ "at": "2026-09-25T15:39:25.193Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Quero uma cozinha de 3 metros com armário aéreo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_sZ64DbNko0B3YoHCLaYQ6107",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\": [\"Ler o ambiente e o móvel atual\", \"Trocar a estante pela cozinha linear de 3 m\", \"Conferir módulos, medidas e encaixe\", \"Revisar orçamento e peças de corte\", \"Mostrar a cozinha na cena\"]}"
+      }
+     },
+     {
+      "id": "call_01_sDx3NMZ65m1xYc26t57O0718",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "5|Pedido: Quero uma cozinha de 3 metros com armário aéreo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_L3P0MVjZfkmsr7C6eCfC4781",
+      "type": "function",
+      "function": {
+       "name": "room_set",
+       "arguments": "{\"largura\": 3000, \"altura\": 2600, \"profundidade\": 2500, \"rodape\": 100}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "7|Pedido: Quero uma cozinha de 3 metros com armário aéreo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_0VuIfJMVuZl0Ut2z0ddr1152",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\": 0, \"largura\": 3000, \"altura\": 850, \"profundidade\": 580, \"base\": 0, \"tipo\": \"drawers\", \"nome\": \"Balcão\", \"desviar_obstaculos\": true, \"folga\": 50, \"substituir\": true, \"frente\": \"drawers\", \"gavetas\": 3, \"material\": \"oak\", \"material_frente\": \"oak\", \"pes\": 100}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "9|Pedido: Quero uma cozinha de 3 metros com armário aéreo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_sKjNamiguZ6vxyHDDY5B2749",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"base\": 1500, \"desviar_obstaculos\": true, \"folga\": 50, \"frente\": \"double\", \"inicio\": 0, \"largura\": 3000, \"altura\": 700, \"material\": \"oak\", \"material_frente\": \"oak\", \"nome\": \"Aéreo\", \"pes\": 0, \"profundidade\": 350, \"substituir\": false, \"tipo\": \"niche\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "11|Pedido: Quero uma cozinha de 3 metros com armário aéreo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_SOpWE8CED2vul58FK9mC3832",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_xHP4mv3vx7RB2MraFpuY1407",
+      "type": "function",
+      "function": {
+       "name": "quote_read",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_02_dou0LciYU9468yVKSesd5379",
+      "type": "function",
+      "function": {
+       "name": "cutplan_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "15|Pedido: Quero uma cozinha de 3 metros com armário aéreo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_ifFwLkWJxxVue3aNwGko4521",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_6T3MO1NhchYoZsviClLU0757",
+      "type": "function",
+      "function": {
+       "name": "view_camera",
+       "arguments": "{\"vista\": \"perspective\"}"
+      }
+     },
+     {
+      "id": "call_02_5Bid78Zj2t1ToCOw0hzf0382",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "20|Pedido: Quero uma cozinha de 3 metros com armário aéreo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_WzXkr0xG73H7vVUB2GjF6370",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Troquei a estante pela cozinha linear de 3 m em carvalho, encostada na parede do ambiente: balcão de 3,00 m × 0,85 m de caixa (0,95 m com os pés de 10 cm) com 3 gavetas em cada um dos 4 módulos, e armário aéreo de 3,00 m × 0,70 m começando a 1,50 m do piso, com 0,35 m de profundidade e portas duplas. Ficou 9 chapas e orçamento de R$ 10.105,80; não entram tampo de pia nem recortes, que o sistema não faz.\", \"sugestoes\": [\"Subir o aéreo para 1,60 m\", \"Trocar gavetas por portas no balcão\", \"Gerar o PDF com desenho e plano de corte\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 1,
+      "probabilities": {
+       "options": 0,
+       "view": 0,
+       "edit": 0,
+       "ask": 0,
+       "build": 1,
+       "studio": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.35
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.77
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.65
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.95
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.36
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.24
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1320,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.96
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 423,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.2
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.97
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.35
+     }
+    },
+    "usage": {
+     "input_tokens": 634,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

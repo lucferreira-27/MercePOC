@@ -1,0 +1,471 @@
+{
+ "id": "bib-02",
+ "at": "2026-09-25T15:38:27.860Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_zStYfNTvFSz1J6gFvqA85725",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"asset.add\", \"asset\": \"rack-suspenso\", \"id\": \"rack-tv\", \"placement\": \"replace\", \"materialId\": \"oak\", \"frontMaterialId\": \"oak\"}], \"rotulo\":: "
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_St6MSlfXgPJSPPrXc8O09633",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"asset.add\", \"asset\": \"rack-suspenso\", \"placement\": \"replace\", \"id\": \"painel\", \"width\": 2200, \"height\": 1800, \"depth\": 400, \"materialId\": \"oak\", \"frontMaterialId\": \"oak\"}], \"rotulo\": \"Painel de TV com rack suspenso\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_WCII5OISMpsyEqrrbZjB0844",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_KpkoYk6mS0WPsATn668a5705",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_9D8g808ZopDXWl54Vqvs4332",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"remove\", \"ids\": [\"painel-r1\", \"painel-r2\", \"painel-r3\"]}, {\"kind\": \"module.add\", \"id\": \"rack-l\", \"preset\": \"drawers\", \"name\": \"Rack gaveta esquerda\"}, {\"kind\": \"module.edit\", \"id\": \"rack-l\", \"name\": \"Rack gaveta esquerda\", \"width\": 645, \"height\": 380, \"depth\": 400, \"materialId\": \"oak\", \"wall\": true, \"position\": [150, 450, 212.5]}, {\"kind\": \"module.add\", \"id\": \"rack-c\", \"preset\": \"niche\", \"name\": \"Rack nicho\"}, {\"kind\": \"module.edit\", \"id\": \"rack-c\", \"name\": \"Rack nicho\", \"width\": 645, \"height\": 380, \"depth\": 400, \"materialId\": \"oak\", \"wall\": true, \"position\": [777, 450, 212.5]}, {\"kind\": \"module.add\", \"id\": \"rack-r\", \"preset\": \"drawers\", \"name\": \"Rack gaveta direita\"}, {\"kind\": \"module.edit\", \"id\": \"rack-r\", \"name\": \"Rack gaveta direita\", \"width\": 646, \"height\": 380, \"depth\": 400, \"materialId\": \"oak\", \"wall\": true, \"position\": [1404, 450, 212.5]}, {\"kind\": \"connect\", \"parent\": \"rack-l\", \"child\": \"rack-c\", \"side\": \"right\", \"shared\": true, \"align\": \"front\", \"offset\": 0}, {\"kind\": \"connect\", \"parent\": \"rack-c\", \"child\": \"rack-r\", \"side\": \"right\", \"shared\": true, \"align\": \"front\", \"offset\": 0}, {\"kind\": \"front.set\", \"id\": \"rack-l:root\", \"type\": \"drawers\", \"count\": 1, \"materialId\": \"oak\"}, {\"kind\": \"front.set\", \"id\": \"rack-r:root\", \"type\": \"drawers\", \"count\": 1, \"materialId\": \"oak\"}], \"rotulo\": \"Rack suspenso centralizado no painel\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_4TtT2SJM2uQtOXSuZ1J14583",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"module.remove\", \"id\": \"painel-r1\"}, {\"kind\": \"module.remove\", \"id\": \"painel-r2\"}, {\"kind\": \"module.remove\", \"id\": \"painel-r3\"}, {\"kind\": \"module.add\", \"id\": \"rack-l\", \"preset\": \"drawers\", \"name\": \"Rack gaveta esquerda\"}, {\"kind\": \"module.edit\", \"id\": \"rack-l\", \"name\": \"Rack gaveta esquerda\", \"width\": 645, \"height\": 380, \"depth\": 400, \"materialId\": \"oak\", \"wall\": true, \"position\": [150, 450, 212.5]}, {\"kind\": \"module.add\", \"id\": \"rack-c\", \"preset\": \"niche\", \"name\": \"Rack nicho\"}, {\"kind\": \"module.edit\", \"id\": \"rack-c\", \"name\": \"Rack nicho\", \"width\": 645, \"height\": 380, \"depth\": 400, \"materialId\": \"oak\", \"wall\": true, \"position\": [777, 450, 212.5]}, {\"kind\": \"module.add\", \"id\": \"rack-r\", \"preset\": \"drawers\", \"name\": \"Rack gaveta direita\"}, {\"kind\": \"module.edit\", \"id\": \"rack-r\", \"name\": \"Rack gaveta direita\", \"width\": 646, \"height\": 380, \"depth\": 400, \"materialId\": \"oak\", \"wall\": true, \"position\": [1404, 450, 212.5]}, {\"kind\": \"connect\", \"parent\": \"rack-l\", \"child\": \"rack-c\", \"side\": \"right\", \"shared\": true, \"align\": \"front\", \"offset\": 0}, {\"kind\": \"connect\", \"parent\": \"rack-c\", \"child\": \"rack-r\", \"side\": \"right\", \"shared\": true, \"align\": \"front\", \"offset\": 0}, {\"kind\": \"front.set\", \"id\": \"rack-l:root\", \"type\": \"drawers\", \"count\": 1, \"materialId\": \"oak\"}, {\"kind\": \"front.set\", \"id\": \"rack-r:root\", \"type\": \"drawers\", \"count\": 1, \"materialId\": \"oak\"}], \"rotulo\": \"Rack suspenso centralizado no painel\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "14|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_YDtgEoGQalKNpWilGat66737",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"disconnect\", \"child\": \"painel-r3\"}, {\"kind\": \"disconnect\", \"child\": \"painel-r2\"}, {\"kind\": \"module.remove\", \"id\": \"painel-r1\"}, {\"kind\": \"module.remove\", \"id\": \"painel-r2\"}, {\"kind\": \"module.remove\", \"id\": \"painel-r3\"}, {\"kind\": \"module.add\", \"id\": \"rack-l\", \"preset\": \"drawers\", \"name\": \"Rack gaveta esquerda\"}, {\"kind\": \"module.edit\", \"id\": \"rack-l\", \"name\": \"Rack gaveta esquerda\", \"width\": 645, \"height\": 380, \"depth\": 400, \"materialId\": \"oak\", \"wall\": true, \"position\": [150, 450, 212.5]}, {\"kind\": \"module.add\", \"id\": \"rack-c\", \"preset\": \"niche\", \"name\": \"Rack nicho\"}, {\"kind\": \"module.edit\", \"id\": \"rack-c\", \"name\": \"Rack nicho\", \"width\": 645, \"height\": 380, \"depth\": 400, \"materialId\": \"oak\", \"wall\": true, \"position\": [777, 450, 212.5]}, {\"kind\": \"module.add\", \"id\": \"rack-r\", \"preset\": \"drawers\", \"name\": \"Rack gaveta direita\"}, {\"kind\": \"module.edit\", \"id\": \"rack-r\", \"name\": \"Rack gaveta direita\", \"width\": 646, \"height\": 380, \"depth\": 400, \"materialId\": \"oak\", \"wall\": true, \"position\": [1404, 450, 212.5]}, {\"kind\": \"connect\", \"parent\": \"rack-l\", \"child\": \"rack-c\", \"side\": \"right\", \"shared\": true, \"align\": \"front\", \"offset\": 0}, {\"kind\": \"connect\", \"parent\": \"rack-c\", \"child\": \"rack-r\", \"side\": \"right\", \"shared\": true, \"align\": \"front\", \"offset\": 0}, {\"kind\": \"front.set\", \"id\": \"rack-l:root\", \"type\": \"drawers\", \"count\": 1, \"materialId\": \"oak\"}, {\"kind\": \"front.set\", \"id\": \"rack-r:root\", \"type\": \"drawers\", \"count\": 1, \"materialId\": \"oak\"}], \"rotulo\": \"Rack suspenso centralizado no painel\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "16|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_QgKkx6CIeWVPCOKNn1fX5239",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"child\": \"painel-r3\", \"kind\": \"disconnect\"}, {\"child\": \"painel-r2\", \"kind\": \"disconnect\"}, {\"id\": \"painel-r1\", \"kind\": \"module.remove\"}, {\"id\": \"painel-r2\", \"kind\": \"module.remove\"}, {\"id\": \"painel-r3\", \"kind\": \"module.remove\"}, {\"id\": \"rack-l\", \"kind\": \"module.add\", \"name\": \"Rack gaveta esquerda\", \"preset\": \"drawers\"}, {\"depth\": 400, \"height\": 380, \"id\": \"rack-l\", \"kind\": \"module.edit\", \"materialId\": \"oak\", \"name\": \"Rack gaveta esquerda\", \"position\": [132, 450, 212.5], \"wall\": true, \"width\": 645}, {\"id\": \"rack-c\", \"kind\": \"module.add\", \"name\": \"Rack nicho\", \"preset\": \"niche\"}, {\"depth\": 400, \"height\": 380, \"id\": \"rack-c\", \"kind\": \"module.edit\", \"materialId\": \"oak\", \"name\": \"Rack nicho\", \"wall\": true, \"width\": 645}, {\"id\": \"rack-r\", \"kind\": \"module.add\", \"name\": \"Rack gaveta direita\", \"preset\": \"drawers\"}, {\"depth\": 400, \"height\": 380, \"id\": \"rack-r\", \"kind\": \"module.edit\", \"materialId\": \"oak\", \"name\": \"Rack gaveta direita\", \"wall\": true, \"width\": 646}, {\"align\": \"front\", \"child\": \"rack-c\", \"kind\": \"connect\", \"offset\": 0, \"parent\": \"rack-l\", \"shared\": true, \"side\": \"right\"}, {\"align\": \"front\", \"child\": \"rack-r\", \"kind\": \"connect\", \"offset\": 0, \"parent\": \"rack-c\", \"shared\": true, \"side\": \"right\"}, {\"count\": 1, \"id\": \"rack-l:root\", \"kind\": \"front.set\", \"materialId\": \"oak\", \"type\": \"drawers\"}, {\"count\": 1, \"id\": \"rack-r:root\", \"kind\": \"front.set\", \"materialId\": \"oak\", \"type\": \"drawers\"}], \"rotulo\": \"Rack suspenso abaixo do painel\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "18|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_Pjhq1c35yD2p2GKiygQ60261",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "20|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_hMrdVeCMtYGiAxYqlFnY3904",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_jx4Nv38yqY903Oz44rkE0579",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "24|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_AfN9q1z0G1PCAw5BNe0d7929",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"child\": \"rack-r\", \"kind\": \"disconnect\"}, {\"child\": \"rack-c\", \"kind\": \"disconnect\"}, {\"id\": \"rack-l\", \"kind\": \"module.edit\", \"position\": [-627.5, 450, 212.5]}, {\"id\": \"rack-c\", \"kind\": \"module.edit\", \"position\": [-0.5, 450, 212.5]}, {\"id\": \"rack-r\", \"kind\": \"module.edit\", \"position\": [627.5, 450, 212.5]}, {\"align\": \"front\", \"child\": \"rack-c\", \"kind\": \"connect\", \"offset\": 0, \"parent\": \"rack-l\", \"shared\": true, \"side\": \"right\"}, {\"align\": \"front\", \"child\": \"rack-r\", \"kind\": \"connect\", \"offset\": 0, \"parent\": \"rack-c\", \"shared\": true, \"side\": \"right\"}], \"rotulo\": \"Rack suspenso centralizado no painel\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "26|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_ET_PFKFbzRygtBE8b9q2GTl8690",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_ET_XdN3uQKuXfrll91th0MU6375",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "30|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_z1m3MYIp6WsMGnXczq3Q2514",
+      "type": "function",
+      "function": {
+       "name": "quote_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "32|Pedido: Quero um painel de TV com rack suspenso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_rERidg5X8XoEauMdT59P3341",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Troquei a estante pelo conjunto de painel de TV com rack suspenso, em carvalho natural: painel de 220 × 180 cm (2,5 cm de espessura) e, centralizado sobre ele, um rack suspenso de 193,6 cm de largura por 38 cm de altura e 40 cm de profundidade, a 45 cm do piso, com gaveta nas duas pontas e nicho aberto no centro. A altura total fica em 185 cm e o orçamento estimado em R$ 3.541,19 (custo R$ 2.623,10 + margem 35%).\", \"sugestoes\": [\"Divida o nicho central com uma prateleira\", \"Ponha duas gavetas em cada ponta\", \"Gere o PDF com desenho e plano de corte\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.99,
+      "probabilities": {
+       "view": 0,
+       "edit": 0,
+       "options": 0,
+       "ask": 0,
+       "studio": 0,
+       "build": 1
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.33
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.15
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.87
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.15
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1315,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.79
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.06
+     }
+    },
+    "usage": {
+     "input_tokens": 418,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.97
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.32
+     }
+    },
+    "usage": {
+     "input_tokens": 629,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

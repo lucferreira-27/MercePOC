@@ -1,7 +1,7 @@
 import { applyObstacleEdits } from '@/lib/room';
 import { applyRequest, get, moveCursor, save, settleRoom, view, revise, type Clarification, type Message } from '@/lib/store';
 import { sameOrigin } from '@/lib/utils';
-import { interpretStream, reviewResult } from '@/lib/gateway';
+import { interpretStream, reviewResult, withFallback } from '@/lib/gateway';
 import { materials } from '@/lib/furniture';
 import {
   describeDesignChanges,
@@ -24,8 +24,11 @@ import { randomUUID } from 'node:crypto';
 import { getImage, imageDataUrl, saveImage, type ImageRef } from '@/lib/images';
 import { planDataUrl, planPng } from '@/lib/plan-render';
 import { mergePrices, money, quote } from '@/lib/quote';
+import { runAgentTurn, type TurnDiagnostics } from '@/lib/agent/turn';
+import { UI_TABS, VIEW_MODES, type AgentEvent } from '@/lib/agent/types';
 import {
   addUsage,
+  DEFAULT_MODEL,
   emptyUsage,
   modelInfo,
   MODEL_KEYS,
@@ -112,6 +115,19 @@ export async function POST(req: Request) {
         // Tabela de preços do navegador: a IA responde "quanto custa" com os
         // mesmos números da aba Orçamento. Formato solto, saneado por mergePrices.
         prices: z.unknown().optional(),
+        /** Assistente em laço (ferramentas); ausente, ligado (MERCE_AGENT=0 no servidor desliga). */
+        agent: z.boolean().optional(),
+        /** O que a pessoa está vendo: vista, aba, toggles e frentes abertas. */
+        ui: z
+          .object({
+            view: z.enum(VIEW_MODES),
+            tab: z.enum(UI_TABS),
+            exploded: z.boolean(),
+            dims: z.boolean(),
+            room: z.boolean(),
+            open: z.array(z.string().max(100)).max(200),
+          })
+          .optional(),
       })
       .parse(await req.json());
     if (!b.message && !b.imageId && !b.optionId)
@@ -156,7 +172,8 @@ export async function POST(req: Request) {
         : undefined;
     const before = baseRev.params;
     const quoteNote = quoteSummary(before, b.prices);
-    const modelChoice: ModelKey = b.model ?? (b.fast ? 'qwen-fast' : 'deepseek');
+    // Sem modelo no pedido vale o padrão do estúdio (Luna, raciocínio alto).
+    const modelChoice: ModelKey = b.model ?? (b.fast ? 'qwen-fast' : DEFAULT_MODEL);
     const jpeg = Boolean(modelInfo(modelChoice).fastProfile);
     // Custo do turno: cada chamada ao provedor soma aqui, sai ao vivo para quem
     // espera e fica gravada na resposta, para o total da sessão sobreviver ao
@@ -164,8 +181,9 @@ export async function POST(req: Request) {
     const price = priceOf(modelChoice, process.env);
     let turnUsage: TurnUsage = emptyUsage(modelChoice);
     let usageListener: (usage: TurnUsage) => void = () => {};
-    const recordUsage = (usage: ProviderUsage) => {
-      turnUsage = addUsage(turnUsage, usage, price);
+    // A reserva (fallbackModel) responde com outro preço.
+    const recordUsage = (usage: ProviderUsage, model?: ModelKey) => {
+      turnUsage = addUsage(turnUsage, usage, model && model !== modelChoice ? priceOf(model, process.env) : price);
       usageListener(turnUsage);
     };
     const usageField = () => (turnUsage.calls ? { usage: turnUsage } : {});
@@ -207,10 +225,12 @@ export async function POST(req: Request) {
     // O turno que já É a resposta ao esclarecimento não deve receber a
     // pendência de novo: a mensagem atual já nomeia o alvo escolhido.
     const answeringClarification = Boolean(b.clarificationId && b.optionId);
+    const agentMode = b.agent ?? process.env.MERCE_AGENT !== '0';
     const run = async (
       progress: (event: Progress) => void,
       signal: AbortSignal,
       text: (preview: TextPreview) => void = () => {},
+      emit: (event: AgentEvent) => void = () => {},
     ) => {
       // Resposta a esclarecimento pendente: valida e executa a intenção guardada.
       let answeredClarId: string | undefined;
@@ -310,6 +330,41 @@ export async function POST(req: Request) {
       // (ou uma resposta que nunca chega) não pode apagar o pedido.
       version = save(p, version).version;
       persistedUser = true;
+      // Foto fica no caminho antigo: com duas imagens em cada etapa, o modelo
+      // barato pensa ~40 s por chamada e o laço estoura o tempo antes do
+      // layout inteiro; o caminho antigo monta de uma vez e revisa (bench foto).
+      if (agentMode && !image) {
+        // Assistente em laço: a IA usa as ferramentas do estúdio até terminar
+        // e o pedido inteiro vira uma versão. A fala pública dela aparece como
+        // a proposta da etapa, como no caminho antigo.
+        let said = '';
+        const turn = await runAgentTurn({
+          project: p,
+          version,
+          user: userMsg,
+          request: b.message,
+          selected: explicit,
+          ui: b.ui ?? null,
+          prices: mergePrices(b.prices),
+          image,
+          model: modelChoice,
+          requestId,
+          started,
+          signal,
+          progress,
+          emit,
+          onUsage: recordUsage,
+          onText: (content) => {
+            said = content.slice(0, 1200);
+            text({ approach: said, answer: '', attempt: 1 });
+          },
+          onPulse: (bytes, reasoning) => text({ approach: said, answer: '', attempt: 1, bytes, reasoningTotal: reasoning }),
+          usage: usageField,
+        });
+        if (turn.projectId === p.id) version = turn.state.version;
+        confirmed.set(requestId, { projectId: turn.projectId, index: turn.index });
+        return turn.state;
+      }
       // O desenho do resultado e o veredito da conferência entram na resposta
       // como imagem e como leitura, não como se fossem o texto da IA.
       let resultImage: ImageRef | undefined;
@@ -321,7 +376,14 @@ export async function POST(req: Request) {
       const currentView = image
         ? await planDataUrl(drawingParts(canonical(before)))
         : undefined;
-      let d = await interpretStream(
+      // Provedor fora no caminho antigo: a mesma chamada na reserva, que fica
+      // para as correções e a conferência da foto deste turno.
+      let model = modelChoice;
+      const switchTo = (alt: ModelKey) => {
+        model = alt;
+        progress({ stage: 'connecting', label: `Trocando para ${modelInfo(alt).label}`, detail: 'O provedor falhou; tentando o modelo de reserva.' });
+      };
+      let d = await withFallback(model, (m) => interpretStream(
         before,
         baseRev.id,
         baseRev.number,
@@ -342,11 +404,11 @@ export async function POST(req: Request) {
         0,
         signal,
         text,
-        modelChoice,
+        m,
         p.room,
         currentView,
-        recordUsage,
-      );
+        (u) => recordUsage(u, m),
+      ), signal, switchTo);
       signal.throwIfAborted();
       progress({
         stage: 'validating',
@@ -406,7 +468,7 @@ export async function POST(req: Request) {
           label: 'Corrigindo o posicionamento',
           detail: `${preview.error} Pedindo uma proposta corrigida.`,
         });
-        d = await interpretStream(
+        d = await withFallback(model, (m) => interpretStream(
           before,
           baseRev.id,
           baseRev.number,
@@ -432,11 +494,11 @@ export async function POST(req: Request) {
           0,
           signal,
           text,
-          modelChoice,
+          m,
           p.room,
           currentView,
-          recordUsage,
-        );
+          (u) => recordUsage(u, m),
+        ), signal, switchTo);
         signal.throwIfAborted();
         if (d.refs.length) userMsg.context!.referencedPartIds = d.refs;
         if (d.action !== 'update') break;
@@ -490,10 +552,10 @@ export async function POST(req: Request) {
             design: preview.design,
             applied: ops,
             request: b.message,
-            model: modelChoice,
+            model,
             room: p.room,
             signal,
-            onUsage: recordUsage,
+            onUsage: (u) => recordUsage(u, model),
           });
           let corrections = 0;
           if (review?.ops.length) {
@@ -683,14 +745,39 @@ export async function POST(req: Request) {
       if (!persistedUser) return undefined;
       if (p.messages.some((m) => m.context?.requestId === requestId && m.result))
         return undefined;
+      // O assistente em laço devolve o que dá para diagnosticar: etapas, causa
+      // e se algo foi gravado. Sem isso a falha ficava só com o custo.
+      const diag = (e as { diagnostics?: TurnDiagnostics } | null)?.diagnostics;
       p.messages.push({
         id: randomUUID(),
         role: 'assistant',
         content: '',
         revisionId: p.revisions[p.cursor].id,
         revision: p.revisions[p.cursor].number,
+        context: { requestId, baseRevisionId: baseRev.id, selectedPartIds: [], referencedPartIds: [] },
         retry: { message: b.message, ...(image ? { image } : {}) },
         error: message,
+        ...(diag
+          ? {
+              report: {
+                durationMs: diag.durationMs,
+                outcome: 'rejected' as const,
+                changes: [],
+                steps: diag.steps,
+                ...(diag.plan ? { plan: diag.plan } : {}),
+                failure: {
+                  requestId: diag.requestId,
+                  baseRevisionId: diag.baseRevisionId,
+                  cause: diag.cause,
+                  message: diag.message,
+                  committed: diag.committed,
+                  draftChanged: diag.draftChanged,
+                  draftOperations: diag.draftOperations,
+                  rejected: diag.rejected,
+                },
+              },
+            }
+          : {}),
         // Turno que falhou também gastou: o custo entra no total da sessão.
         ...usageField(),
       });
@@ -766,6 +853,8 @@ export async function POST(req: Request) {
               if (req.headers.get('x-chat-preview') !== 'hidden')
                 send('text', preview);
             },
+            // Etapas, efeitos e o rascunho ao vivo do assistente em laço.
+            (event) => send('agent', event),
           );
           send('done', result);
         } catch (e) {

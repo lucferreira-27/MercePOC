@@ -25,6 +25,8 @@ export type SheetSpec = {
 export const DEFAULT_SHEET: SheetSpec = { length: 2750, width: 1840, kerf: 4, trim: 10 };
 
 export type Placement = {
+  /** Número da peça no plano inteiro: o mesmo na tela, no PDF e no CSV. */
+  n: number;
   id: string;
   name: string;
   x: number;
@@ -46,7 +48,15 @@ export type CutSheet = {
   usedArea: number;
   /** Área das peças sobre a área da chapa inteira, de 0 a 1. */
   efficiency: number;
+  /**
+   * Sobras que ainda servem para outra peça (os dois lados com pelo menos
+   * OFFCUT_MIN), da maior para a menor. Retalho menor vira pó.
+   */
+  offcuts: Offcut[];
 };
+export type Offcut = { x: number; y: number; w: number; h: number };
+/** Menor lado de uma sobra que a oficina guarda. */
+export const OFFCUT_MIN = 150;
 export type CutGroup = {
   key: string;
   material: string;
@@ -66,7 +76,7 @@ export type CutPlan = {
   oversize: { id: string; name: string; c: number; l: number; key: string }[];
 };
 
-type Free = { x: number; y: number; w: number; h: number };
+type Free = Offcut;
 type OpenSheet = CutSheet & { free: Free[] };
 
 /** "Carvalho natural 18" → material do catálogo; peça sem catálogo fica lisa. */
@@ -138,6 +148,7 @@ export function cutPlan(parts: readonly Part[], spec: SheetSpec = DEFAULT_SHEET)
           placements: [],
           usedArea: 0,
           efficiency: 0,
+          offcuts: [],
           free: [{ x: spec.trim, y: spec.trim, w: usable.w, h: usable.h }],
         };
         open.push(sheet);
@@ -146,7 +157,7 @@ export function cutPlan(parts: readonly Part[], spec: SheetSpec = DEFAULT_SHEET)
       }
       const { sheet, w, h, rotated } = best;
       const f = sheet.free.splice(best.free, 1)[0];
-      sheet.placements.push({ id: part.id, name: part.name, x: f.x, y: f.y, w, h, rotated });
+      sheet.placements.push({ n: 0, id: part.id, name: part.name, x: f.x, y: f.y, w, h, rotated });
       sheet.usedArea += w * h;
       // A peça consome o disco nos dois lados livres. O que sobra à direita e
       // abaixo vira dois retângulos: o corte segue o eixo da sobra menor, para
@@ -170,8 +181,11 @@ export function cutPlan(parts: readonly Part[], spec: SheetSpec = DEFAULT_SHEET)
     }
     const area = spec.length * spec.width;
     for (const sheet of open) {
-      const { free: _, ...done } = sheet;
+      const { free, ...done } = sheet;
       done.efficiency = done.usedArea / area;
+      done.offcuts = free
+        .filter((f) => f.w >= OFFCUT_MIN && f.h >= OFFCUT_MIN)
+        .sort((a, b) => b.w * b.h - a.w * a.h);
       sheets.push(done);
     }
     const used = open.reduce((a, s) => a + s.usedArea, 0);
@@ -186,6 +200,13 @@ export function cutPlan(parts: readonly Part[], spec: SheetSpec = DEFAULT_SHEET)
       area: used / 1e6,
       efficiency: open.length ? used / (open.length * area) : 0,
     });
+  }
+  // Numeração de leitura: chapa por chapa, faixa por faixa (x), de cima para
+  // baixo dentro da faixa. Quem corta acha a peça 7 logo depois da 6.
+  let n = 0;
+  for (const sheet of sheets) {
+    sheet.placements.sort((a, b) => a.x - b.x || a.y - b.y);
+    for (const p of sheet.placements) p.n = ++n;
   }
   return { spec, sheets, groups: summary, oversize };
 }

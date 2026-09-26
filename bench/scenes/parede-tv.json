@@ -1,0 +1,170 @@
+{
+ "about": "Caso guardado (held-out): parede lisa de 3,6 m com TV de 55\" e o rack de TV da biblioteca (1800 mm, pés palito) embaixo, sem painel. Expectativas congeladas antes de rodar o candidato.",
+ "source": {
+  "generated": "work (script descartável): asset rack-tv 1800 mm centrado na parede",
+  "capturedAt": "2026-09-26T06:11:18.856Z"
+ },
+ "design": {
+  "schemaVersion": 3,
+  "profile": {
+   "version": 1,
+   "panel": 18,
+   "back": 6,
+   "front": 18,
+   "reveal": 2,
+   "drawer": 15,
+   "drawerBottom": 6,
+   "slideSpace": 13,
+   "rearSpace": 20
+  },
+  "modules": [
+   {
+    "id": "rt-r1",
+    "name": "Porta esquerda",
+    "width": 612,
+    "height": 400,
+    "depth": 450,
+    "materialId": "freijo",
+    "back": true,
+    "position": [
+     0,
+     0,
+     0
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "rt-r1:root",
+     "front": {
+      "id": "front-b6a2a809-75a",
+      "type": "single",
+      "hinge": "left",
+      "materialId": "white",
+      "heights": [
+       1
+      ]
+     }
+    },
+    "legacyIds": false,
+    "feet": 150
+   },
+   {
+    "id": "rt-r2",
+    "name": "Centro",
+    "width": 612,
+    "height": 400,
+    "depth": 450,
+    "materialId": "freijo",
+    "back": true,
+    "position": [
+     594,
+     0,
+     0
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "rt-r2:root",
+     "split": {
+      "id": "rt-r2:root:divider",
+      "axis": "y",
+      "ratio": 0.5202312138728323,
+      "children": [
+       {
+        "id": "rt-r2:root:low",
+        "front": {
+         "id": "front-dbcd9c07-6b7",
+         "type": "drawers",
+         "hinge": "left",
+         "materialId": "white",
+         "heights": [
+          1
+         ]
+        }
+       },
+       {
+        "id": "rt-r2:root:high"
+       }
+      ]
+     }
+    },
+    "legacyIds": false,
+    "feet": 150
+   },
+   {
+    "id": "rt-r3",
+    "name": "Porta direita",
+    "width": 612,
+    "height": 400,
+    "depth": 450,
+    "materialId": "freijo",
+    "back": true,
+    "position": [
+     1188,
+     0,
+     0
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "rt-r3:root",
+     "front": {
+      "id": "front-f8f8d94d-f6f",
+      "type": "single",
+      "hinge": "right",
+      "materialId": "white",
+      "heights": [
+       1
+      ]
+     }
+    },
+    "legacyIds": false,
+    "feet": 150
+   }
+  ],
+  "connections": [
+   {
+    "id": "connection-0e57450d-edc",
+    "parent": "rt-r1",
+    "child": "rt-r2",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   },
+   {
+    "id": "connection-bd887693-ff6",
+    "parent": "rt-r2",
+    "child": "rt-r3",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   }
+  ]
+ },
+ "room": {
+  "schemaVersion": 1,
+  "widthMm": 3600,
+  "heightMm": 2700,
+  "depthMm": 3500,
+  "baseboardMm": 0,
+  "offsetMm": 900,
+  "obstacles": [
+   {
+    "id": "ob-tv",
+    "kind": "tv",
+    "label": "TV 55\"",
+    "xMm": 1185,
+    "yMm": 1150,
+    "widthMm": 1230,
+    "heightMm": 710
+   },
+   {
+    "id": "ob-tomada",
+    "kind": "outlet",
+    "xMm": 2200,
+    "yMm": 300,
+    "widthMm": 80,
+    "heightMm": 80
+   }
+  ]
+ }
+}

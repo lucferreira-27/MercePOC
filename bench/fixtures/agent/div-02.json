@@ -1,0 +1,302 @@
+{
+ "id": "div-02",
+ "at": "2026-09-25T15:21:40.389Z",
+ "model": "deepseek",
+ "replies": [
+  {
+   "key": "2|Pedido: Coloque três gavetas neste compartimento.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_uDeq1OzeWbJVLLGpOjP45388",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\": [{\"kind\": \"front.set\", \"id\": \"n:root\", \"type\": \"drawers\", \"count\": 3, \"materialId\": \"oak\"}], \"rotulo\": \"Três gavetas no nicho\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Coloque três gavetas neste compartimento.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_sVZ4TqkUXiVaOWXCllyq2244",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Coloque três gavetas neste compartimento.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_pkpMstY2U9DHO9kciQJW2691",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_01_LarHPxZN4v1sRVAL1iyh5244",
+      "type": "function",
+      "function": {
+       "name": "quote_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Coloque três gavetas neste compartimento.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_00_czKzEHAgq19vSlSC2RJw1203",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\": \"Prontinho: o nicho de 80 × 60 × 45 cm agora tem três gavetas em carvalho natural, uma sobre a outra ao longo dos 56 cm úteis de altura do vão. Com as gavetas, o orçamento foi para R$ 3.305,21 (3 pares de corrediças, 3 puxadores e a regulagem das frentes incluídos).\", \"sugestoes\": [\"Abrir as gavetas na cena para conferir\", \"Ajustar a altura de cada gaveta\", \"Gerar o PDF com orçamento e plano de corte\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 0.9,
+      "probabilities": {
+       "build": 0.08,
+       "view": 0,
+       "options": 0,
+       "studio": 0,
+       "ask": 0,
+       "edit": 0.92
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.88
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.41
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.29
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.33
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.01
+     }
+    },
+    "usage": {
+     "input_tokens": 1316,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.94
+     }
+    },
+    "usage": {
+     "input_tokens": 419,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.93
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.08
+     }
+    },
+    "usage": {
+     "input_tokens": 568,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

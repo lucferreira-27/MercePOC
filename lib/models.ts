@@ -13,6 +13,12 @@
  */
 export type ModelKey = 'deepseek' | 'luna' | 'mimo' | 'qwen-fast';
 export const MODEL_KEYS = ['deepseek', 'luna', 'mimo', 'qwen-fast'] as const;
+/**
+ * Modelo de sessão nova e de pedido sem modelo: GPT-6 Luna com raciocínio
+ * alto, escolha de produto (o DeepSeek ficou lento demais no uso real). A
+ * escolha explícita da pessoa continua valendo (ver app/page.tsx).
+ */
+export const DEFAULT_MODEL: ModelKey = 'luna';
 
 export type ModelPrice = {
   /** US$ por milhão de tokens de entrada. */
@@ -29,7 +35,12 @@ export type ModelInfo = {
   blurb: string;
   vendor: string;
   /** Esforço de raciocínio pedido ao provedor; ausente quando não se aplica. */
-  reasoning?: 'low';
+  reasoning?: 'low' | 'high';
+  /**
+   * Modelo que assume o resto do turno quando este falha duas vezes seguidas
+   * por erro do provedor (fluxo parado, 5xx, limite). Ver `fallbackModel`.
+   */
+  fallback?: ModelKey;
   /** Provedor alternativo (AI_FAST_*), com prompt mais diretivo. */
   fastProfile?: boolean;
   price: ModelPrice;
@@ -37,20 +48,25 @@ export type ModelInfo = {
 
 export const MODELS: ModelInfo[] = [
   {
-    key: 'deepseek',
-    label: 'DeepSeek V4.1 Flash',
-    blurb: 'Padrão do estúdio: bom custo para editar e montar',
-    vendor: 'Command Code',
-    reasoning: 'low',
-    price: { input: 0.14, output: 0.56, cachedInput: 0.014 },
-  },
-  {
     key: 'luna',
     label: 'GPT-6 Luna',
-    blurb: 'Raciocínio baixo: respostas mais cuidadosas em pedidos longos',
+    blurb: 'Padrão do estúdio: cuidadoso em composições e pedidos longos',
     vendor: 'Command Code',
-    reasoning: 'low',
+    // Medido nos casos difíceis: low acerta 4/10, high 9/10. Pergunta demais
+    // sem o portão do perguntar (lib/agent/ask-gate.ts).
+    reasoning: 'high',
     price: { input: 0.5, output: 2, cachedInput: 0.05 },
+  },
+  {
+    key: 'deepseek',
+    label: 'DeepSeek V4.1 Flash',
+    blurb: 'Mais barato por token, porém mais lento; a Luna assume se o provedor falhar',
+    vendor: 'Command Code',
+    // No Command Code, low, medium e high acertam igual (o proxy sempre
+    // raciocina); xhigh e max custam 3× e estouram o tempo do laço.
+    reasoning: 'low',
+    fallback: 'luna',
+    price: { input: 0.14, output: 0.56, cachedInput: 0.014 },
   },
   {
     key: 'mimo',
@@ -70,8 +86,30 @@ export const MODELS: ModelInfo[] = [
   },
 ];
 
+/**
+ * Esforço de raciocínio enviado ao provedor. MERCE_REASONING_EFFORT troca o
+ * do modelo (ex.: "none" no OpenCode Zen, que desliga o raciocínio e mantém
+ * a visão; o Command Code só aceita de "low" para cima).
+ */
+export function reasoningEffort(info: ModelInfo): string | undefined {
+  return process.env.MERCE_REASONING_EFFORT || info.reasoning;
+}
+/** Nome do esforço para a interface ("raciocínio alto"). */
+export function reasoningLabel(info: ModelInfo) {
+  return info.reasoning ? `raciocínio ${info.reasoning === 'high' ? 'alto' : 'baixo'}` : null;
+}
+/**
+ * Reserva do modelo quando o provedor falha. MERCE_FALLBACK_MODEL troca a da
+ * tabela; "none" desliga.
+ */
+export function fallbackModel(key: ModelKey): ModelKey | null {
+  const env = process.env.MERCE_FALLBACK_MODEL;
+  if (env === 'none') return null;
+  const alt = (env && (MODEL_KEYS as readonly string[]).includes(env) ? env : modelInfo(key).fallback) as ModelKey | undefined;
+  return alt && alt !== key ? alt : null;
+}
 export function modelInfo(key: string | undefined): ModelInfo {
-  return MODELS.find((m) => m.key === key) ?? MODELS[0];
+  return MODELS.find((m) => m.key === key) ?? MODELS.find((m) => m.key === DEFAULT_MODEL)!;
 }
 
 /** Preço efetivo: a tabela, ou o que o `.env` do servidor disser. */

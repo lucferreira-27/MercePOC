@@ -75,6 +75,9 @@ export function mergePrices(saved: unknown): Prices {
 }
 
 export type QuoteSection = 'Chapas' | 'Fita de borda' | 'Ferragens' | 'Mão de obra';
+/** Preço da tabela que a linha usa: editar na linha grava na tabela. */
+export type PriceKey = Exclude<keyof Prices, 'sheets' | 'handles' | 'factor15' | 'factor6' | 'margin'>;
+export type PriceRef = { sheet: MaterialId } | { key: PriceKey };
 export type QuoteLine = {
   section: QuoteSection;
   label: string;
@@ -83,6 +86,10 @@ export type QuoteLine = {
   unitPrice: number;
   total: number;
   note?: string;
+  /** Preço editável; ausente quando o unitário é derivado (chapa fina = fator × chapa 18). */
+  price?: PriceRef;
+  /** Peças que a linha conta, para acender no móvel. Vazio: vale o móvel todo. */
+  parts: string[];
 };
 export type Quote = {
   lines: QuoteLine[];
@@ -110,8 +117,17 @@ export function hingesFor(heightMm: number) {
   return 5;
 }
 
-const isFront = (p: ModularPart) =>
+export const isFront = (p: Pick<ModularPart, 'kind' | 'id'>) =>
   p.kind === 'door' || (p.kind === 'drawer' && p.id.endsWith(':front'));
+
+/**
+ * Bordas com fita, pela mesma regra do orçamento: frente leva nas quatro,
+ * as demais peças na borda da frente (c1) quando o gerador marcou.
+ */
+export function edgeSides(p: Pick<ModularPart, 'kind' | 'id' | 'edges'>) {
+  if (isFront(p)) return { c1: true, c2: true, l1: true, l2: true };
+  return { c1: !!p.edges.c1, c2: false, l1: false, l2: false };
+}
 
 export function quote(parts: readonly ModularPart[], moduleCount: number, prices: Prices): Quote {
   const plan = cutPlan(parts, DEFAULT_SHEET);
@@ -122,25 +138,34 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
     const unitPrice = Math.round(base * factor * 100) / 100;
     lines.push({
       section: 'Chapas',
+      parts: parts.filter((p) => p.material === g.key).map((p) => p.id),
+      ...(factor === 1 && g.materialId ? { price: { sheet: g.materialId as MaterialId } } : {}),
       label: `${g.material} ${g.thickness} mm`,
       qty: g.sheets,
       unit: g.sheets === 1 ? 'chapa' : 'chapas',
       unitPrice,
       total: g.sheets * unitPrice,
-      note: `${g.parts} peças · aproveitamento ${Math.round(g.efficiency * 100)}%`,
+      note:
+        `${g.parts} peças · aproveitamento ${Math.round(g.efficiency * 100)}%` +
+        (factor === 1 ? '' : ` · ${String(factor).replace('.', ',')} × chapa 18`),
     });
   }
   // Frente leva fita nas quatro bordas; as demais peças, na borda da frente.
   // Os 10% cobrem o excesso aparado na coladeira.
   let edge = 0;
+  const banded: string[] = [];
   for (const p of parts) {
-    if (isFront(p)) edge += 2 * (p.c + p.l);
-    else if (p.edges.c1) edge += p.c;
+    const e = edgeSides(p);
+    const length = (e.c1 ? p.c : 0) + (e.c2 ? p.c : 0) + (e.l1 ? p.l : 0) + (e.l2 ? p.l : 0);
+    if (length) banded.push(p.id);
+    edge += length;
   }
   const edgeMeters = Math.ceil((edge / 1000) * 1.1);
   if (edgeMeters)
     lines.push({
       section: 'Fita de borda',
+      parts: banded,
+      price: { key: 'edgePerM' },
       label: 'Fita de borda 22 mm',
       qty: edgeMeters,
       unit: 'm',
@@ -154,6 +179,8 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
   if (hinges)
     lines.push({
       section: 'Ferragens',
+      parts: doors.map((d) => d.id),
+      price: { key: 'hinge' },
       label: 'Dobradiça 35 mm com amortecedor',
       qty: hinges,
       unit: 'un',
@@ -164,6 +191,8 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
   if (drawers.length)
     lines.push({
       section: 'Ferragens',
+      parts: drawers.map((d) => d.id),
+      price: { key: 'slidePair' },
       label: 'Corrediça telescópica (par)',
       qty: drawers.length,
       unit: drawers.length === 1 ? 'par' : 'pares',
@@ -171,9 +200,12 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
       total: drawers.length * prices.slidePair,
     });
   const fronts = doors.length + drawers.length;
+  const frontIds = [...doors, ...drawers].map((p) => p.id);
   if (prices.handles && fronts)
     lines.push({
       section: 'Ferragens',
+      parts: frontIds,
+      price: { key: 'handle' },
       label: 'Puxador',
       qty: fronts,
       unit: 'un',
@@ -182,6 +214,8 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
     });
   lines.push({
     section: 'Ferragens',
+    parts: [],
+    price: { key: 'moduleKit' },
     label: 'Kit de montagem',
     qty: moduleCount,
     unit: moduleCount === 1 ? 'módulo' : 'módulos',
@@ -191,6 +225,8 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
   });
   lines.push({
     section: 'Mão de obra',
+    parts: [],
+    price: { key: 'labourPerPart' },
     label: 'Corte e fita',
     qty: parts.length,
     unit: 'peças',
@@ -199,6 +235,8 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
   });
   lines.push({
     section: 'Mão de obra',
+    parts: [],
+    price: { key: 'labourPerModule' },
     label: 'Montagem',
     qty: moduleCount,
     unit: moduleCount === 1 ? 'módulo' : 'módulos',
@@ -208,6 +246,8 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
   if (fronts)
     lines.push({
       section: 'Mão de obra',
+      parts: frontIds,
+      price: { key: 'labourPerFront' },
       label: 'Regulagem de frentes',
       qty: fronts,
       unit: 'frentes',

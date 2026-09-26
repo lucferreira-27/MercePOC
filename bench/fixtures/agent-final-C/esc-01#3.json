@@ -1,0 +1,345 @@
+{
+ "id": "esc-01",
+ "at": "2026-09-26T11:58:14.555Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_5E22PnKQOoZqgb1TVhdYqCvm",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Conferir o ambiente, a janela e o móvel existente\",\"Montar armários baixos e módulos ao redor da janela\",\"Ver a composição e ajustar o enquadramento\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_HIDocr4LBQeUfSJuQRJ9b6kA",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_NDHJS8tTBBvSEE6CkN6QcNBV",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\":0,\"largura\":3400,\"altura\":700,\"profundidade\":450,\"base\":0,\"tipo\":\"niche\",\"nome\":\"Armários baixos\",\"modulos\":4,\"largura_max_modulo\":900,\"frente\":\"double\",\"gavetas\":3,\"material\":\"white\",\"material_frente\":\"oak\",\"pes\":100,\"desviar_obstaculos\":true,\"folga\":0,\"substituir\":false}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_D4gajJ9n0X3C4WRe8gd0RN7h",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\":800,\"largura\":2600,\"altura\":1800,\"profundidade\":350,\"base\":800,\"tipo\":\"shelf\",\"nome\":\"Estante superior\",\"modulos\":4,\"largura_max_modulo\":900,\"frente\":\"none\",\"gavetas\":3,\"material\":\"white\",\"material_frente\":\"white\",\"pes\":0,\"desviar_obstaculos\":true,\"folga\":0,\"substituir\":false}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_Mfd3WJ1BEWwbCTjmE9Fe4haV",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "13|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_arl6ndeKOhJruTUkmSewGhro",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "15|Pedido: Monte uma estante para livros em volta da janela, com armários baixos embaixo dela",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_HKsz37e8PLHZiP4TKGuTg8jj",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Montei armários baixos com portas em 2,6 m da parede e estantes abertas acima, em 1,34 m, deixando a janela livre. Mantive a cômoda existente; o desenho mostra a composição ao redor da janela.\",\"sugestoes\":[\"Ajuste os acabamentos da estante\",\"Confira o orçamento atualizado\",\"Veja o plano de corte\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 1,
+      "probabilities": {
+       "build": 1,
+       "studio": 0,
+       "edit": 0,
+       "view": 0,
+       "ask": 0,
+       "options": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.84
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.39
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.96
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.13
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 1326,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.13
+     }
+    },
+    "usage": {
+     "input_tokens": 429,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.9
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 528,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}
