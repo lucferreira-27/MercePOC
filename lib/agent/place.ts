@@ -251,7 +251,7 @@ export function resolvePiece(scene: Scene, design: Design, piece: Piece, placed:
       room = ` ${side === 'acima' || side === 'abaixo' ? 'Altura' : 'Largura'} livre ${side === 'acima' ? 'acima de' : side === 'abaixo' ? 'abaixo de' : `à ${side} de`} ${ref.name}${surface.partial || surface.panel ? ` (dentro de ${(surface.partial ?? surface.panel)!.name})` : ''}: ${Math.max(0, round(edge))} mm (mínimo ${side === 'acima' || side === 'abaixo' ? lim.h[0] : lim.w[0]} mm).`;
     }
     return {
-      error: `${piece.nome} (${round(width)} × ${round(height + feet)} mm, x ${span(box.x0, box.x1)}, y ${span(box.y0, box.y1)}): ${[...new Set(why)].join('; ')}.${room} Livre nessa altura: ${free.join(', ') || 'nenhum trecho'} mm.${auto.w || auto.h ? '' : ' Sem largura ou altura, o app encolhe a peça até o espaço livre.'}`,
+      error: `${piece.nome} (${round(width)} × ${round(height + feet)} mm, x ${span(box.x0, box.x1)}, y ${span(box.y0, box.y1)}): ${[...new Set(why)].join('; ')}.${room} ${free.length ? `Livre nessa altura: ${free.join(', ')} mm.` : 'Nenhum trecho livre nessa altura.'}${auto.w || auto.h ? '' : ' Sem largura ou altura, o app encolhe a peça até o espaço livre.'}`,
     };
   }
   return { box, width, height, depth, feet, notes, surface: surface.name, hung: box.y0 > 5 };
