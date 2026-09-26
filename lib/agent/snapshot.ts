@@ -3,6 +3,7 @@ import { canonical, generateDesign, type Design } from '../studio';
 import { fitSummary, type Room } from '../room';
 import { mergePrices, money, quote, type Prices } from '../quote';
 import type { AgentContext } from './context';
+import { sceneOf, sceneSummary } from './scene';
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
 
@@ -99,6 +100,9 @@ export function contextSnapshot(ctx: AgentContext) {
     versao: `${p.cursor + 1} de ${p.revisions.length}`,
     ...(ctx.designChanged || ctx.roomChanged ? { rascunho: 'mudanças deste pedido ainda não gravadas' } : {}),
     ...designSnapshot(ctx.design, ctx.room),
+    // A parede em coordenadas de quem desenha (x do canto, y do piso): o que
+    // está fixo, o que ocupa e onde cabe. É com isto que place e modify contam.
+    parede: sceneSummary(sceneOf(ctx.design, ctx.room)),
     selecao: ctx.selected,
     ...(ctx.ui ? { tela: ctx.ui } : {}),
   };

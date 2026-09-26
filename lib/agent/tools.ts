@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { drawingParts, generateComposition, layout, openingLimit, type ModularPart } from '../composition';
+import { generateComposition, layout, openingLimit, type ModularPart } from '../composition';
 import { planDataUrl } from '../plan-render';
+import { sceneDrawingParts } from '../scene-parts';
 import { cutPlan } from '../cutplan';
 import { materialIds } from '../furniture';
 import { edgeSides, mergePrices, money, quote, type Prices } from '../quote';
@@ -36,6 +37,9 @@ import { planRow } from './macros';
 import { askJev, noulOf, type JevAnswer, type JevQuestion } from './jev';
 import { askGateOn, askVerdict, blockText } from './ask-gate';
 import { designFacts, factClaims, factsLine } from './facts';
+import { pieceSchema, placedLine, planPieces } from './place';
+import { modifySchema, planModify } from './modify';
+import { sceneOf } from './scene';
 import { EXPORT_KINDS, UI_TABS, VIEW_MODES, type OptionCard, type Tool, type ToolResult } from './types';
 
 /** Inferência do tipo dos argumentos a partir do esquema. */
@@ -243,6 +247,88 @@ const rowBuild = tool({
       `Fileira "${a.nome}" montada no lugar certo (encostada na parede, fora dos obstáculos): não mova nem refaça. ${parts.join('; ')}. ${fronts}${gone.length ? ` Pulado: ${gone.join('; ')}.` : ''}${short} Medidas gerais: ${mm(r.design)}.${room ? ` ${fitSummary(r.design, room)}.` : ''}`,
       `${a.nome}: ${count} ${count === 1 ? 'módulo' : 'módulos'}${gone.length ? `, desviando de ${plan.skipped.map((v) => v.why).join(', ')}` : ''}`,
     );
+  },
+});
+
+/**
+ * Aplica operações montadas pelo app (peças novas, edições) com a parede
+ * presa e o ambiente novo, e devolve o que mudou com o encaixe e as chapas.
+ */
+function applyPlanned(ctx: AgentContext, ops: ShelfOp[], room: Room | undefined, head: string, label: string, failLabel: string) {
+  const before = ctx.design;
+  const roomBefore = ctx.room;
+  const r = executeRequest(before, ops);
+  if (!r.ok) {
+    ctx.attempted.push({ ops, error: r.error });
+    return fail(`Recusado pela validação, nada mudou: ${r.error}`, failLabel);
+  }
+  if (room !== ctx.room) ctx.setRoom(room);
+  ctx.setDesign(r.design, ops);
+  const changes = describeDesignChanges(before, r.design);
+  const had = namedIds(before);
+  const fresh = [...namedIds(r.design)].filter((id) => !had.has(id));
+  return ok(
+    `${head} ${changes.length ? `${changes.join('. ')}. ` : ''}Medidas gerais: ${mm(r.design)}.${fresh.length ? ` Ids novos: ${fresh.slice(0, 40).join(', ')}.` : ''}${fitNote(ctx, before, r.design, roomBefore)}${sheetNote(ctx, before, r.design)}`,
+    label,
+  );
+}
+
+/** Parede presa antes de mexer: sem âncora ela acompanharia o lado esquerdo do móvel. */
+function pinnedRoom(ctx: AgentContext) {
+  const anchor = ctx.room ? sceneOf(ctx.design, ctx.room).anchor : null;
+  return anchor && ctx.room ? { ...ctx.room, anchor } : ctx.room;
+}
+
+const placeTool = tool({
+  name: 'place',
+  description:
+    'Põe peças novas pela relação, sem calcular posição: ao lado, acima ou abaixo de um módulo, de um obstáculo (TV, janela, porta) ou de outra peça do lote, ou num x/y da parede. O app acha a superfície (painel de parede ou parede), a profundidade, o interior e confere encaixe, TV e obstáculos antes de montar. Medida dita é exata (se não cabe, volta o conflito com o espaço livre); medida ausente vem do tipo e da referência e encolhe até o espaço. tipo vao reserva espaço livre no piso (máquina de lavar, geladeira) que nenhuma peça ocupa.',
+  args: z.object({ pecas: z.array(pieceSchema).min(1).max(8), rotulo: z.string().max(90).optional() }).strict(),
+  running: (a) => a.rotulo ?? (a.pecas.length === 1 ? `Pondo ${a.pecas[0].nome.toLowerCase()}` : `Pondo ${a.pecas.length} peças`),
+  run: (ctx, a) => {
+    if (a.pecas.some((p) => p.tipo === 'vao') && !ctx.room)
+      return fail('Vão reservado mede na parede: meça o ambiente antes (room_set).', 'Falta o ambiente');
+    const plan = planPieces(ctx.design, ctx.room, a.pecas);
+    if ('error' in plan) {
+      ctx.attempted.push({ ops: [], error: plan.error ?? '' });
+      return fail(`Nada foi montado: ${plan.error}`, 'Peça não coube; ajustando');
+    }
+    let room = pinnedRoom(ctx);
+    if (plan.reserved.length && room) {
+      const taken = new Set((room.obstacles ?? []).map((o) => o.id));
+      const add = plan.reserved.map((v, i) => {
+        let id = `vao-${i + 1}`;
+        for (let k = 1; taken.has(id); k++) id = `vao-${k}`;
+        taken.add(id);
+        return { id, kind: 'other' as const, label: v.label, xMm: Math.round(v.x0), yMm: Math.round(v.y0), widthMm: Math.round(v.x1 - v.x0), heightMm: Math.round(v.y1 - v.y0) };
+      });
+      room = { ...room, obstacles: [...(room.obstacles ?? []), ...add] };
+    }
+    const count = plan.placed.filter((p) => p.cells.length || p.surface !== 'piso').length;
+    return applyPlanned(
+      ctx,
+      plan.ops,
+      room,
+      `Montado no rascunho (não mova nem refaça o que coube): ${plan.placed.map(placedLine).join('; ')}.`,
+      a.rotulo ?? (count === 1 ? `Pus ${plan.placed[0].name.toLowerCase()}` : `Pus ${plan.placed.length} peças`),
+      'Peça recusada; ajustando',
+    );
+  },
+});
+
+const modifyTool = tool({
+  name: 'modify',
+  description:
+    'Edita módulos que já existem, com a contabilidade do app: remover (as conexões saem junto e os vizinhos ficam no lugar), mover (para um lugar dito como no place; sem de, só encosta o fundo na parede ou muda x/y), medidas (altura, altura_total com pés, profundidade e pés valem para a fileira de painel compartilhado inteira; largura mantém a borda escolhida) e interior (troca frentes e divisões do módulo inteiro). Tudo num lote atômico.',
+  args: modifySchema,
+  running: (a) => a.rotulo ?? 'Ajustando os módulos',
+  run: (ctx, a) => {
+    const plan = planModify(ctx.design, ctx.room, a);
+    if ('error' in plan) {
+      ctx.attempted.push({ ops: [], error: plan.error });
+      return fail(`Nada mudou: ${plan.error}`, 'Edição não coube; ajustando');
+    }
+    return applyPlanned(ctx, plan.ops, pinnedRoom(ctx), `Feito no rascunho: ${plan.lines.join(' ')}`, a.rotulo ?? 'Ajustei os módulos', 'Edição recusada; ajustando');
   },
 });
 
@@ -606,6 +692,11 @@ const finishTool = tool({
       issues.push(
         `A mensagem ${wrong.join('; ')}. Fatos do estado final: ${factsLine(designFacts(ctx.design, ctx.prices))}. Reescreva só com esses números.`,
       );
+    // Módulo que existia e saiu precisa estar na resposta: sumir calado era
+    // o jeito de "caber" (o painel da TV trocado por uma estante).
+    const gone = ctx.navigated || ctx.origin ? [] : ctx.turnStart.design.modules.filter((m) => !ctx.design.modules.some((v) => v.id === m.id));
+    if (gone.length && !/(tir|remov|substitu|troq|troc|no lugar|sa[ií]|exclu|apag|refiz)/i.test(a.mensagem))
+      issues.push(`A mensagem não diz que saiu ${gone.map((m) => m.name).join(', ')}. Diga o que foi removido ou, se não era para remover, volte com history_undo e monte em volta.`);
     if (!issues.length && ctx.repairs < 2) {
       const [gaps, missing] = await Promise.all([claimsMatch(ctx, a.mensagem), requestMissing(ctx)]);
       if (missing?.length) issues.push(`O pedido ${missing.join('; ')}. Faça o que falta, ou diga na mensagem por que não deu.`);
@@ -860,12 +951,16 @@ export function checkWork(ctx: AgentContext): string[] {
 const renderLook = tool({
   name: 'render_look',
   description:
-    'Mostra para você o desenho do rascunho agora (frontal e isométrico), numa imagem logo depois dos resultados. Use para conferir proporção e aparência, principalmente comparando com a foto de referência, antes do finish.',
+    'Mostra para você o desenho do rascunho agora (frontal e isométrico) com a parede e o que está nela (TV em preto, janela em azul, porta), numa imagem logo depois dos resultados. Use para julgar composição, proporção e o que fica na frente do quê, antes do finish.',
   args: z.object({}).strict(),
   running: () => 'Olhando o desenho',
   run: async (ctx) => {
     ctx.note('look');
-    return ok('O desenho vem na próxima mensagem.', 'Olhei o desenho', await planDataUrl(drawingParts(canonical(ctx.design))));
+    return ok(
+      'O desenho vem na próxima mensagem: o móvel com a parede em volta, como a pessoa vê a cena (TV em preto, janela em azul, porta em bege). O que está na frente cobre o que está atrás.',
+      'Olhei o desenho',
+      await planDataUrl(sceneDrawingParts(ctx.design, ctx.room)),
+    );
   },
 });
 
@@ -949,6 +1044,8 @@ export const TOOLS: Tool[] = [
   quoteRead,
   cutplanRead,
   designApply,
+  placeTool,
+  modifyTool,
   rowBuild,
   roomSet,
   roomObstacles,
@@ -977,7 +1074,7 @@ export const TOOLS: Tool[] = [
 ] as Tool[];
 
 /** O que o sub-laço de uma opção pode usar: desenhar e ler, nada que grave. */
-export const OPTION_TOOLS: Tool[] = [stateRead, partsList, quoteRead, designApply, rowBuild, finishTool] as Tool[];
+export const OPTION_TOOLS: Tool[] = [stateRead, partsList, quoteRead, designApply, placeTool, modifyTool, rowBuild, finishTool] as Tool[];
 
 /** Ferramentas que encerram o pedido. */
 export const TERMINAL = new Set(['finish', 'ask_user']);

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Foot } from './composition';
-import { wallAt, type Obstacle, type Room } from './room';
+import { blocksTv, tvMountZ, wallAt, type Obstacle, type Room } from './room';
 import { buildObstacle } from './scene-obstacles';
 
 /**
@@ -69,9 +69,22 @@ export function referenceRoom(bounds: SceneBounds, homeZ?: number): Room {
  * conjunto inteiro, uma janela alta sobre um rack baixo ficava vermelha só
  * porque a estante ao lado era alta.
  */
-export function obstacleCrosses(o: Obstacle, modules: readonly SceneBounds[], wallX0: number) {
-  if (o.kind === 'tv') return false;
+export function obstacleCrosses(
+  o: Obstacle,
+  modules: readonly SceneBounds[],
+  wallX0: number,
+  /** Para a TV: painéis de parede e a face da parede, para achar onde ela encosta. */
+  tv?: { panels: readonly SceneBounds[]; wallZ: number },
+) {
   const minX = wallX0 + o.xMm;
+  if (o.kind === 'tv') {
+    // A mesma conta do veredito: o painel atrás é o lugar da TV; o que
+    // avança na frente da tela (ou encosta nela) tapa.
+    if (!tv) return false;
+    const rect = { x0: minX, x1: minX + o.widthMm, y0: o.yMm, y1: o.yMm + o.heightMm };
+    const mount = tvMountZ(rect, tv.panels, tv.wallZ);
+    return modules.some((b) => blocksTv(rect, mount, b));
+  }
   return modules.some(
     (b) =>
       Math.min(minX + o.widthMm, b.max[0]) - Math.max(minX, b.min[0]) > 1e-6 &&
@@ -112,8 +125,9 @@ export function roomFocus(room: Room, bounds: SceneBounds): SceneBounds {
 }
 
 /**
- * `mountZ` é a face da frente do que está preso na parede (painel de TV): a
- * TV vai na frente dele, não atrás.
+ * `panels` são as caixas dos painéis de parede: a TV encosta na frente do
+ * painel que tem o centro da tela (a conta do veredito), não atrás dele nem
+ * na frente de um painel decorativo que só passa perto.
  */
 /** Folga das paredes laterais para fora do canto, em mm. */
 const SIDE_CLEARANCE = 4;
@@ -122,7 +136,7 @@ export function buildRoom(
   room: Room,
   bounds: SceneBounds,
   theme: 'light' | 'dark',
-  mountZ = -Infinity,
+  panels: readonly SceneBounds[] = [],
   /** Caixa de cada módulo: o obstáculo só fica vermelho se cruzar uma delas. */
   modules: readonly SceneBounds[] = [bounds],
   /** Obstáculo escolhido: ganha a moldura de destaque. */
@@ -189,11 +203,15 @@ export function buildRoom(
     const og = buildObstacle(o, {
       palette: c,
       theme,
-      bad: obstacleCrosses(o, modules, x0),
+      bad: obstacleCrosses(o, modules, x0, { panels, wallZ: wallAt(room, bounds).z }),
       selected: o.id === selectedId,
       track: (d) => disposables.push(d),
     });
-    og.position.set(x0 + o.xMm, o.yMm, o.kind === 'tv' ? Math.max(wallZ, mountZ) : wallZ);
+    const mount =
+      o.kind === 'tv'
+        ? tvMountZ({ x0: x0 + o.xMm, x1: x0 + o.xMm + o.widthMm, y0: o.yMm, y1: o.yMm + o.heightMm }, panels, wallAt(room, bounds).z)
+        : wallZ;
+    og.position.set(x0 + o.xMm, o.yMm, Math.max(wallZ, mount));
     group.add(og);
     obstacles.push({ id: o.id, group: og, obstacle: o });
   }

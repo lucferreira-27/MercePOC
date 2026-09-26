@@ -259,7 +259,16 @@ export function executeRequest(base: Design, ops: ShelfOp[]) {
   let d = base;
   try {
     let pending: Composition = canonical(d);
-    for (const op of ops) pending = applyStep(pending, op);
+    // Trocar o único módulo: tirar primeiro deixaria o projeto vazio no meio
+    // do lote. A remoção espera o fim do lote quando outra operação ainda
+    // põe módulo; só o resultado final é validado.
+    const later: ShelfOp[] = [];
+    ops.forEach((op, i) => {
+      const adds = ops.slice(i + 1).some((v) => v.kind === 'module.add' || v.kind === 'module.duplicate' || v.kind === 'asset.add');
+      if (op.kind === 'module.remove' && pending.modules.length === 1 && adds) later.push(op);
+      else pending = applyStep(pending, op);
+    });
+    for (const op of later) pending = applyStep(pending, op);
     d = normalize(pending);
     return { ok: true as const, design: d };
   } catch (e) {

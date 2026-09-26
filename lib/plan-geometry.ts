@@ -145,7 +145,10 @@ export function planView(
   view: ViewKind,
   box: { width: number; height: number } = { width: PANEL_WIDTH, height: PANEL_HEIGHT },
 ): PlanGeometry {
-  const ordered = [...parts].sort((a, b) => depthOf(a, view) - depthOf(b, view));
+  // O fundo da cena (a parede atrás do móvel) vem sempre primeiro: pelo
+  // centro, uma parede larga passava na frente do painel na isométrica.
+  const layer = (p: ModularPart) => (p.id === 'scene:wall' ? -1 : 0);
+  const ordered = [...parts].sort((a, b) => layer(a) - layer(b) || depthOf(a, view) - depthOf(b, view));
   const raw: { points: [number, number][]; kind: ModularPart['kind']; tone: string; edge: string; depth: number; order: number }[] = [];
   const all: [number, number][] = [];
   for (const part of ordered) {

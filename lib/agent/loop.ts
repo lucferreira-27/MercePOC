@@ -39,6 +39,8 @@ import type { Tool } from './types';
 
 /** Resultado que volta para a IA: curto o bastante para não afogar o contexto. */
 const RESULT_CAP = 3000;
+/** O estado (state_read) de uma cozinha de 12 módulos passa de 4 mil caracteres. */
+const STATE_CAP = 16000;
 
 /** Corta a mensagem na última frase que cabe em `max` caracteres. */
 export function fitMessage(text: string, max = 700) {
@@ -230,7 +232,9 @@ export async function runLoop(ctx: AgentContext, o: LoopOptions) {
         const entry = { tool: c.function.name, label, ok: okCall, ...(okCall ? {} : { detail: text.slice(0, 300) }) };
         ctx.steps.push(entry);
         ctx.emit({ type: 'step', step: entry, index: ctx.steps.length - 1 });
-        messages.push({ role: 'tool', tool_call_id: c.id, content: text.length > RESULT_CAP ? `${text.slice(0, RESULT_CAP)}…` : text });
+        // O estado inteiro não pode ser cortado: a IA via a cozinha pela metade.
+        const cap = c.function.name === 'state_read' ? STATE_CAP : RESULT_CAP;
+        messages.push({ role: 'tool', tool_call_id: c.id, content: text.length > cap ? `${text.slice(0, cap)}…` : text });
         if (!okCall && !TERMINAL.has(c.function.name)) broken = true;
       }
       // Resultado de ferramenta é texto: a imagem pedida (render_look) vem
@@ -239,7 +243,7 @@ export async function runLoop(ctx: AgentContext, o: LoopOptions) {
         messages.push({
           role: 'user',
           content: [
-            { type: 'text', text: 'Desenho do rascunho agora (esquerda frontal, direita isométrica), pedido por render_look.' },
+            { type: 'text', text: 'Desenho do rascunho agora (esquerda frontal, direita isométrica), com a parede e os obstáculos, pedido por render_look.' },
             ...images.map((url) => ({ type: 'image_url' as const, image_url: { url } })),
           ],
         });

@@ -512,7 +512,8 @@ export function layout(d: Composition) {
     if (m.kind === 'panel') continue;
     const depth = m.depth - (m.back ? PROFILE.back : 0);
     let order = 0;
-    function visit(c: Cell, origin: Vec, size: Vec) {
+    // `covered`: uma porta de um vão acima já cobre este (prateleiras atrás da porta).
+    function visit(c: Cell, origin: Vec, size: Vec, covered = false) {
       cells.push({
         id: c.id,
         moduleId: m.id,
@@ -525,9 +526,15 @@ export function layout(d: Composition) {
         throw new Error(
           `${m.name}: compartimento de ${Math.round(size[0])} × ${Math.round(size[1])} mm. Mínimo livre de 100 mm.`,
         );
+      if (c.front && covered)
+        throw new Error(`${m.name}: este vão fica atrás de uma porta que cobre o vão de fora; tire uma das duas frentes.`);
       if (c.split) {
-        if (c.front)
+        // Porta pode cobrir um vão dividido (prateleiras atrás da porta, como
+        // num armário de cozinha); gaveta não: a caixa bateria nas divisões.
+        if (c.front?.type === 'drawers')
           throw new Error('Remova a frente antes de dividir o compartimento.');
+        if (c.front && c.split.legacyShelf)
+          throw new Error(`${m.name}: as prateleiras antigas vão até a frente; porta cobrindo o vão pede prateleiras novas (cell.split).`);
         const axis = c.split.axis === 'x' ? 0 : 1;
         const exact = (size[axis] - PROFILE.panel) * c.split.ratio,
           near = Math.round(exact);
@@ -548,8 +555,8 @@ export function layout(d: Composition) {
         high[axis] = size[axis] - length - PROFILE.panel;
         const upper: Vec = [...origin];
         upper[axis] += length + PROFILE.panel;
-        visit(c.split.children[0], origin, low);
-        visit(c.split.children[1], upper, high);
+        visit(c.split.children[0], origin, low, covered || !!c.front);
+        visit(c.split.children[1], upper, high, covered || !!c.front);
       }
     }
     visit(
@@ -1223,9 +1230,12 @@ export function applyModularOp(
     Object.assign(m, patch);
   } else if (op.kind === 'module.remove') {
     if (d.modules.length === 1) throw new Error('Mantenha ao menos um módulo.');
-    if (d.connections.some((c) => c.parent === op.id || c.child === op.id))
-      throw new Error('Separe as conexões antes de remover o módulo.');
     moduleBy(d, op.id);
+    // As conexões do módulo saem com ele: quem estava ligado fica onde está
+    // (depois do settle a posição de cada um já é a do mundo) e ganha as
+    // próprias laterais no lugar das compartilhadas. Antes a remoção era
+    // recusada e quem pedia tinha de separar as conexões uma a uma.
+    d.connections = d.connections.filter((c) => c.parent !== op.id && c.child !== op.id);
     d.modules = d.modules.filter((m) => m.id !== op.id);
   } else if (op.kind === 'connect') {
     if (d.connections.some((c) => c.child === op.child))
@@ -1285,7 +1295,9 @@ export function applyModularOp(
         throw new Error(
           'Este compartimento já está dividido: use cell.merge para voltar ao vão único antes de dividir de novo.',
         );
-      if (c.front)
+      // Dividir atrás de uma porta vale (a porta segue cobrindo os dois
+      // vãos); atrás de gavetas não.
+      if (c.front?.type === 'drawers')
         throw new Error('Escolha um compartimento livre, sem frente.');
       const length = info.size[op.axis === 'x' ? 0 : 1] - 18;
       // A divisão guarda a proporção no schema, mas o vão nasce em milímetro
@@ -1341,8 +1353,17 @@ export function applyModularOp(
     } else if (op.kind === 'front.set') {
       if (op.type === 'none') delete c.front;
       else {
-        if (c.split)
+        // Porta num vão dividido cobre as divisões (prateleiras atrás dela);
+        // gaveta só em vão final, e nada dentro pode ter frente própria.
+        if (c.split && op.type === 'drawers')
           throw new Error('Escolha um compartimento final para a frente.');
+        if (c.split) {
+          let inner = false;
+          walk(c, (v) => {
+            if (v !== c && v.front) inner = true;
+          });
+          if (inner) throw new Error('Tire as frentes de dentro deste vão antes de pôr uma porta que cobre o vão inteiro.');
+        }
         c.front = {
           id: c.front?.id ?? uid('front'),
           type: op.type,
