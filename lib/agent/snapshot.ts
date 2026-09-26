@@ -98,6 +98,9 @@ export function contextSnapshot(ctx: AgentContext) {
   return {
     projeto: p.name,
     versao: `${p.cursor + 1} de ${p.revisions.length}`,
+    // Móvel de partida que ninguém pediu (projeto novo, sem pedido anterior):
+    // pedido de móvel novo troca ele, em vez de pôr ao lado.
+    ...(p.revisions.length === 1 && p.messages.filter((m) => m.role === 'user').length <= 1 ? { projeto_inicial: true } : {}),
     ...(ctx.designChanged || ctx.roomChanged ? { rascunho: 'mudanças deste pedido ainda não gravadas' } : {}),
     ...designSnapshot(ctx.design, ctx.room),
     // A parede em coordenadas de quem desenha (x do canto, y do piso): o que

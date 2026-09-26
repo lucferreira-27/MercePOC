@@ -106,7 +106,10 @@ export function planModify(design: Design, room: Room | undefined, a: Modify): {
       };
     const height = e.altura_total !== undefined ? e.altura_total - feet : e.altura;
     if (height !== undefined && !isFlat(m) && (height < 200 || height > 2400))
-      return { error: `${m.name}: altura da caixa de ${height} mm fora de 200 a 2400 mm${e.altura_total !== undefined ? ` (${e.altura_total} menos ${feet} mm de pés)` : ''}.` };
+      // Sem pés na conta: a mensagem não sugere pôr pés para passar do limite.
+      return {
+        error: `${m.name}: altura de ${e.altura_total ?? height} mm fora do limite (caixa de 200 a 2400 mm${e.altura_total !== undefined && feet ? `, mais ${feet} mm dos pés que ela já tem` : ''}). Faça no limite e diga isso na resposta.`,
+      };
     const row = isFlat(m) ? [m.id] : sharedRow(design, m.id);
     const shared: Partial<Module> = {
       ...(height !== undefined ? { height } : {}),
