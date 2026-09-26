@@ -1,0 +1,387 @@
+{
+ "id": "tv-02",
+ "at": "2026-09-26T11:32:53.691Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Monte uns módulos criativos em volta da TV, aproveitando o painel. Pode usar carvalho.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_8nxUTwBjbblFJKXhHt3UwT14",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Adicionar módulos em carvalho ao redor da TV, presos ao painel\",\"Conferir a composição na cena e ajustar se necessário\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Monte uns módulos criativos em volta da TV, aproveitando o painel. Pode usar carvalho.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_DGTH2phx7IOKU6wxqXQkSsTy",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"torre-esq\",\"nome\":\"Nichos laterais esquerdos\",\"tipo\":\"estante\",\"largura\":180,\"altura\":900,\"profundidade\":280,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":240,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":240,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":240,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":3,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"painel\",\"lado\":\"acima\",\"folga\":0,\"alinhar\":\"esquerda\",\"x\":800,\"y\":1500}},{\"ref\":\"torre-dir\",\"nome\":\"Nichos laterais direitos\",\"tipo\":\"estante\",\"largura\":180,\"altura\":900,\"profundidade\":280,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":240,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":240,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":240,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":3,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"painel\",\"lado\":\"acima\",\"folga\":0,\"alinhar\":\"direita\",\"x\":3220,\"y\":1500}},{\"ref\":\"prat-esq\",\"nome\":\"Prateleira superior esquerda\",\"tipo\":\"prateleira\",\"largura\":620,\"altura\":30,\"profundidade\":250,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":100,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"painel\",\"lado\":\"acima\",\"folga\":0,\"alinhar\":\"esquerda\",\"x\":800,\"y\":2150}},{\"ref\":\"prat-dir\",\"nome\":\"Prateleira superior direita\",\"tipo\":\"prateleira\",\"largura\":620,\"altura\":30,\"profundidade\":250,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":100,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"painel\",\"lado\":\"acima\",\"folga\":0,\"alinhar\":\"direita\",\"x\":2780,\"y\":2150}}],\"rotulo\":\"Nichos e prateleiras em carvalho ao redor da TV\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Monte uns módulos criativos em volta da TV, aproveitando o painel. Pode usar carvalho.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_KptAeFlrRmSaYrgW0q7Uucop",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"nicho-esq\",\"nome\":\"Nicho lateral esquerdo\",\"tipo\":\"estante\",\"largura\":200,\"altura\":800,\"profundidade\":280,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":220,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":220,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":220,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":3,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"esquerda\",\"folga\":25,\"alinhar\":\"centro\",\"x\":800,\"y\":1000}},{\"ref\":\"nicho-dir\",\"nome\":\"Nicho lateral direito\",\"tipo\":\"estante\",\"largura\":300,\"altura\":800,\"profundidade\":280,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":220,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":220,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":220,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":3,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"direita\",\"folga\":325,\"alinhar\":\"centro\",\"x\":2800,\"y\":1000}},{\"ref\":\"prat-topo\",\"nome\":\"Prateleira superior da TV\",\"tipo\":\"prateleira\",\"largura\":1200,\"altura\":30,\"profundidade\":250,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":100,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"acima\",\"folga\":70,\"alinhar\":\"centro\",\"x\":1150,\"y\":1900}}],\"rotulo\":\"Nichos e prateleira em carvalho em volta da TV\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Monte uns módulos criativos em volta da TV, aproveitando o painel. Pode usar carvalho.",
+   "reply": {
+    "content": "",
+    "calls": [],
+    "finish": null
+   }
+  },
+  {
+   "key": "10|Pedido: Monte uns módulos criativos em volta da TV, aproveitando o painel. Pode usar carvalho.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_HFTnUGACfzMIBqO9yMbwyOuR",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Monte uns módulos criativos em volta da TV, aproveitando o painel. Pode usar carvalho.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_6pteix7Ggse4CzA2sTuFB6Kb",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"tv-prateleira-topo\",\"nome\":\"Prateleira superior em carvalho\",\"tipo\":\"prateleira\",\"largura\":1200,\"altura\":30,\"profundidade\":250,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":100,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"acima\",\"folga\":70,\"alinhar\":\"centro\",\"x\":1150,\"y\":1900}},{\"ref\":\"tv-prateleira-base\",\"nome\":\"Prateleira inferior em carvalho\",\"tipo\":\"prateleira\",\"largura\":1200,\"altura\":30,\"profundidade\":250,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":100,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"abaixo\",\"folga\":240,\"alinhar\":\"centro\",\"x\":1150,\"y\":700}},{\"ref\":\"torre-tv-dir-1\",\"nome\":\"Estante lateral direita 1\",\"tipo\":\"estante\",\"largura\":300,\"altura\":700,\"profundidade\":250,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":210,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":210,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":210,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":3,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"ob-tv\",\"lado\":\"direita\",\"folga\":55,\"alinhar\":\"centro\",\"x\":2530,\"y\":1050}},{\"ref\":\"torre-tv-dir-2\",\"nome\":\"Estante lateral direita 2\",\"tipo\":\"estante\",\"largura\":300,\"altura\":700,\"profundidade\":250,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":210,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":210,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":210,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":3,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"torre-tv-dir-1\",\"lado\":\"direita\",\"folga\":30,\"alinhar\":\"centro\",\"x\":2860,\"y\":1050}}],\"rotulo\":\"Composição assimétrica em carvalho ao redor da TV\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "14|Pedido: Monte uns módulos criativos em volta da TV, aproveitando o painel. Pode usar carvalho.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_XDhFMuB4u9v2Ewzk5LNhXpNk",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "17|Pedido: Monte uns módulos criativos em volta da TV, aproveitando o painel. Pode usar carvalho.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_0Zsp5ErrcVVU65iBjtOXwuR0",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"prateleira-torre\",\"nome\":\"Prateleira sobre as estantes\",\"tipo\":\"prateleira\",\"largura\":700,\"altura\":30,\"profundidade\":250,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":100,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"painel\",\"lado\":\"acima\",\"folga\":0,\"alinhar\":\"direita\",\"x\":2530,\"y\":1900}}],\"rotulo\":\"Complemento superior das estantes em carvalho\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "19|Pedido: Monte uns módulos criativos em volta da TV, aproveitando o painel. Pode usar carvalho.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_xRzPevJCAsM0Fql4mJj6JbDE",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "22|Pedido: Monte uns módulos criativos em volta da TV, aproveitando o painel. Pode usar carvalho.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_l0iXNzLbaDyNIjDRqsa57awi",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Acrescentei ao painel em freijó módulos abertos em carvalho ao lado da TV e prateleiras de carvalho acima e abaixo dela; a composição foi conferida na cena e cabe na parede.\",\"sugestoes\":[\"Confira o orçamento atualizado\",\"Explore outra composição ao redor da TV\",\"Exporte o desenho em PDF\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.99,
+      "probabilities": {
+       "view": 0,
+       "studio": 0,
+       "ask": 0,
+       "build": 0.99,
+       "options": 0,
+       "edit": 0.01
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.58
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.78
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.95
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.29
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1328,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.22
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.07
+     }
+    },
+    "usage": {
+     "input_tokens": 431,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.95
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.22
+     }
+    },
+    "usage": {
+     "input_tokens": 521,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

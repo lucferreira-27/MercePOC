@@ -1,0 +1,368 @@
+{
+ "id": "lav-01",
+ "at": "2026-09-26T11:35:03.937Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_OFc3wYWh9Q60HcsC0U0SJD17",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Conferir o ambiente e os móveis atuais\",\"Adicionar dois móveis complementares sem deslocar os existentes\",\"Visualizar a composição e ajustar a cena\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_T67jyTPlcRRK6pkO3zf9twVr",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_uL5tEe3kQhMlu1XHHpXjtdMb",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"apoio-baixo\",\"nome\":\"Gaveteiro de apoio\",\"tipo\":\"gaveteiro\",\"largura\":900,\"altura\":650,\"profundidade\":450,\"pes\":100,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":530,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":3}],\"vaos\":1,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":3,\"porta_inteira\":\"porta\",\"material_frente\":\"freijo\"},\"onde\":{\"de\":\"l1\",\"lado\":\"esquerda\",\"folga\":0,\"alinhar\":\"piso\",\"x\":100,\"y\":0}},{\"ref\":\"estante-lateral\",\"nome\":\"Estante lateral\",\"tipo\":\"estante\",\"largura\":900,\"altura\":1800,\"profundidade\":350,\"pes\":0,\"material\":\"freijo\",\"interior\":{\"linhas\":[{\"altura\":300,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":300,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":300,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":300,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":300,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":5,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta\",\"material_frente\":\"freijo\"},\"onde\":{\"de\":\"l2\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":2200,\"y\":0}}],\"rotulo\":\"Complementos para a estante\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_aaNOvnyuuoDqdj3bLvBJjPGz",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "11|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_ihrmQLxdlLY997huqxyjtAo2",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Acrescentei um gaveteiro de apoio em branco com frentes em freijó e uma estante lateral aberta em freijó, preservando os móveis existentes; o conjunto ficou com 3 m de largura e cabe na parede de 3,2 m. Mostrei a composição com a parede em vista frontal e isométrica.\",\"sugestoes\":[\"Adicione objetos decorativos aos nichos\",\"Veja as peças e o plano de corte\",\"Ajuste os acabamentos dos móveis\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "13|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_onynzzROCFEcCZjx3slrc8wH",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Acrescentei um gaveteiro de apoio em branco com frentes em freijó e uma estante lateral aberta em freijó, preservando os móveis existentes. O conjunto ficou com 3 m de largura e cabe na parede de 3,2 m.\",\"sugestoes\":[\"Adicione objetos decorativos aos nichos\",\"Veja as peças e o plano de corte\",\"Ajuste os acabamentos dos móveis\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.79,
+      "probabilities": {
+       "build": 0.84,
+       "studio": 0,
+       "ask": 0,
+       "view": 0,
+       "options": 0,
+       "edit": 0.16
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.94
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.69
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.25
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.39
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1319,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 422,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.81
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.94
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.06
+     }
+    },
+    "usage": {
+     "input_tokens": 547,
+     "output_tokens": 123
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.95
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.05
+     }
+    },
+    "usage": {
+     "input_tokens": 531,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

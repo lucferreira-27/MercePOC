@@ -80,4 +80,8 @@ The first milestone is one complete TV scenario with trustworthy state and evide
 
 ## Current status
 
-Verification contract proposed. Redesign implementation and acceptance runs have not been completed. Existing log replays establish known defects and baseline examples, not redesign success.
+Redesign implemented on branch `codex/model-friendly-design` and measured with GPT-6 Luna `high` on both sides. Results, per-scenario states and evidence are in [the redesign report](redesign-report.md).
+
+- **Verified** (automated, 3/3 each, at `7907cab`): material and sheet optimisation, removal of connected furniture, replacement of the sole module, precise follow-up edits, impossible or unsupported requests, default model. **Verified** (deterministic tests): timeout after draft changes, undo then rebuild, interrupted response.
+- **Needs review**: every creative composition (TV walls, kitchens, laundry, wardrobe, shelving, office wall). The automated checks pass 3/3 per case; the human review of the gallery in `docs/plans/evidence/galeria/` has not happened.
+- **Stale rule**: any later change to the agent code or prompt makes these states Stale until the composition group is re-run (`npm run bench -- --agent --group composicao --repeat 3`).

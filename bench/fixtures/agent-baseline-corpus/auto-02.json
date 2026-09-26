@@ -1,0 +1,345 @@
+{
+ "id": "auto-02",
+ "at": "2026-09-26T07:19:51.489Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Monte balcões e aéreos nessa parede e me mande o PDF.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_xr2rKKnv8oEUKUBpjTzgvI4X",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Confirmar a parede e a janela existentes\",\"Montar balcão e aéreos evitando a janela\",\"Conferir o desenho e gerar o PDF\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Monte balcões e aéreos nessa parede e me mande o PDF.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_dAesvGZvDVgiS7PS587VUtho",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Monte balcões e aéreos nessa parede e me mande o PDF.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_r1EOionkwsj0o4ojzJZpaxPj",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\":0,\"largura\":3200,\"altura\":850,\"profundidade\":580,\"base\":0,\"tipo\":\"niche\",\"nome\":\"Balcão de cozinha\",\"modulos\":4,\"largura_max_modulo\":900,\"frente\":\"double\",\"gavetas\":3,\"material\":\"oak\",\"material_frente\":\"oak\",\"pes\":100,\"desviar_obstaculos\":true,\"folga\":50,\"substituir\":true}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Monte balcões e aéreos nessa parede e me mande o PDF.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_jAuOzK6rR1ncbmjIbUFDWrNr",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\":0,\"largura\":3200,\"altura\":700,\"profundidade\":350,\"base\":1500,\"tipo\":\"niche\",\"nome\":\"Aéreo de cozinha\",\"modulos\":4,\"largura_max_modulo\":900,\"frente\":\"double\",\"gavetas\":3,\"material\":\"oak\",\"material_frente\":\"oak\",\"pes\":0,\"desviar_obstaculos\":true,\"folga\":50,\"substituir\":false}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Monte balcões e aéreos nessa parede e me mande o PDF.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_0ahhqeTnf1QhDu1JzlmCHA5Q",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "13|Pedido: Monte balcões e aéreos nessa parede e me mande o PDF.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_cip8ZvYMo5ZLDTBAmav1SfJE",
+      "type": "function",
+      "function": {
+       "name": "export_file",
+       "arguments": "{\"formato\":\"pdf\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "15|Pedido: Monte balcões e aéreos nessa parede e me mande o PDF.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_apl1i6AMOaPTUF9REZjtRdh7",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Montei o balcão de 3,20 m e os aéreos em dois trechos, somando 1,84 m, desviando da janela. O PDF foi gerado.\",\"sugestoes\":[\"Confira o orçamento\",\"Veja o plano de corte\",\"Ajuste a altura dos aéreos\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.94,
+      "probabilities": {
+       "studio": 0.04,
+       "ask": 0,
+       "options": 0,
+       "build": 0.95,
+       "view": 0,
+       "edit": 0.01
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.95
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.37
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.93
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.15
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.31
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.2
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.21
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.84
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 1322,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.98
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.93
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.05
+     }
+    },
+    "usage": {
+     "input_tokens": 425,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.92
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.85
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 517,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

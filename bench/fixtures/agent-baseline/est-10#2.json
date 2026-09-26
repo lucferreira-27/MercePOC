@@ -1,0 +1,123 @@
+{
+ "id": "est-10",
+ "at": "2026-09-26T06:35:56.085Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Quero uma estante de 1,6 m de largura por 2 m de altura, com nichos abertos em cima e portas embaixo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_zjayOMUhAx1VHUrOpxm8lGNK",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"resize\",\"width\":1600,\"height\":2000},{\"kind\":\"cell.split\",\"id\":\"module-1:root\",\"axis\":\"y\",\"gapMm\":450},{\"kind\":\"front.set\",\"id\":\"module-1:root:low\",\"type\":\"double\"}],\"rotulo\":\"Estante 160 × 200 cm\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Quero uma estante de 1,6 m de largura por 2 m de altura, com nichos abertos em cima e portas embaixo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_i2m8CVPQqw7530sb05vc5JM5",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"asset.add\",\"asset\":\"estante\",\"width\":1600,\"height\":2000,\"depth\":350,\"materialId\":\"oak\",\"frontMaterialId\":\"oak\",\"placement\":\"replace\"}],\"rotulo\":\"Estante 160 × 200 cm\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Quero uma estante de 1,6 m de largura por 2 m de altura, com nichos abertos em cima e portas embaixo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_1LNw1c7ebuceEllvxE60jK0w",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Quero uma estante de 1,6 m de largura por 2 m de altura, com nichos abertos em cima e portas embaixo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_zDkIS70QGpiFEaxtiMD3Uwl6",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"front.set\",\"id\":\"e-e1:root:low\",\"type\":\"double\",\"materialId\":\"oak\"}],\"rotulo\":\"Portas inferiores na estante\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Quero uma estante de 1,6 m de largura por 2 m de altura, com nichos abertos em cima e portas embaixo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_XmVZxv4cB74aQHoBMVdvFMLm",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "13|Pedido: Quero uma estante de 1,6 m de largura por 2 m de altura, com nichos abertos em cima e portas embaixo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_ouUcQBaS4oITnjya6AQAbUoi",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"A estante ficou com 160 × 200 × 35 cm, em carvalho natural, com nichos abertos na parte de cima e portas duplas embaixo. O desenho mostra duas colunas lado a lado.\",\"sugestoes\":[\"Abrir as portas para conferir\",\"Ver o orçamento atualizado\",\"Gerar um PDF do projeto\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": null
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": null
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": null
+  }
+ ]
+}

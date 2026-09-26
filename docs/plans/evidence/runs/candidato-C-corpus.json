@@ -1,0 +1,5023 @@
+{
+ "at": "2026-09-26T11:59:13.232Z",
+ "offline": false,
+ "agent": true,
+ "label": "final C (7907cab) · luna high · corpus ×1",
+ "provider": "api.commandcode.ai",
+ "providerModel": "gpt-6-luna",
+ "effort": "high",
+ "askGate": true,
+ "photoLoop": false,
+ "repeat": 1,
+ "concurrency": 3,
+ "price": {
+  "input": 0.5,
+  "output": 2,
+  "cachedInput": 0.05
+ },
+ "argv": "--agent --model luna --ids amb-01,amb-02,amb-03,amb-04,uni-01,uni-02,uni-03,mon-01,mon-02,mon-03,mon-04,mon-05,mon-06,div-01,div-02,div-03,div-04,div-05,pra-01,pra-02,pra-03,lim-01,lim-02,lim-03,lim-04,cop-01,cop-02,con-01,con-02,con-04,con-03,rec-01,rec-02,rec-03,ref-01,ref-02,nav-01,nav-02,tip-01,tip-02,sug-01,sug-02,sug-03,bib-01,bib-02,bib-03,bib-04,bib-05,bib-06,est-01,est-02,est-03,est-04,est-05,est-06,auto-01,auto-02,tc-01,op-01,est-10 --concurrency 3 --record --fixtures bench/fixtures/agent-final-corpus-C --out bench/results/final-C-corpus.json --label final C (7907cab) · luna high · corpus ×1",
+ "code": {
+  "head": "7907cab",
+  "dirtyFiles": 8
+ },
+ "promptHash": "f1e8aa6c5b11",
+ "fixtures": "G:\\MercePOC\\bench\\fixtures\\agent-final-corpus-C",
+ "rejected": 12,
+ "fast": false,
+ "model": "luna",
+ "cases": 60,
+ "valid": 60,
+ "infra": 0,
+ "skipped": [],
+ "passed": 59,
+ "passRate": 0.9833333333333333,
+ "latencyMs": {
+  "n": 60,
+  "mean": 20808,
+  "median": 12198,
+  "p90": 43945,
+  "max": 152640,
+  "min": 262
+ },
+ "providerCalls": {
+  "n": 60,
+  "mean": 4,
+  "median": 3,
+  "p90": 7,
+  "max": 27,
+  "min": 0
+ },
+ "retries": 0,
+ "networkRetries": 0,
+ "providerMsTotal": 468363,
+ "costUsd": 0.37817599999999996,
+ "groups": {
+  "ambiguidade": {
+   "total": 4,
+   "ok": 4,
+   "passRate": 1,
+   "latency": {
+    "n": 4,
+    "mean": 5031,
+    "median": 7137,
+    "p90": 12232,
+    "max": 12232,
+    "min": 354
+   },
+   "retries": 0
+  },
+  "unidades": {
+   "total": 3,
+   "ok": 3,
+   "passRate": 1,
+   "latency": {
+    "n": 3,
+    "mean": 14555,
+    "median": 13813,
+    "p90": 20458,
+    "max": 20458,
+    "min": 9393
+   },
+   "retries": 0
+  },
+  "montagem": {
+   "total": 6,
+   "ok": 6,
+   "passRate": 1,
+   "latency": {
+    "n": 6,
+    "mean": 19608,
+    "median": 19393,
+    "p90": 30743,
+    "max": 30743,
+    "min": 13816
+   },
+   "retries": 0
+  },
+  "divisao": {
+   "total": 5,
+   "ok": 5,
+   "passRate": 1,
+   "latency": {
+    "n": 5,
+    "mean": 16198,
+    "median": 10960,
+    "p90": 32258,
+    "max": 32258,
+    "min": 6983
+   },
+   "retries": 0
+  },
+  "prateleiras": {
+   "total": 3,
+   "ok": 3,
+   "passRate": 1,
+   "latency": {
+    "n": 3,
+    "mean": 9638,
+    "median": 9076,
+    "p90": 12198,
+    "max": 12198,
+    "min": 7641
+   },
+   "retries": 0
+  },
+  "limites": {
+   "total": 4,
+   "ok": 4,
+   "passRate": 1,
+   "latency": {
+    "n": 4,
+    "mean": 53839,
+    "median": 52837,
+    "p90": 118766,
+    "max": 118766,
+    "min": 8757
+   },
+   "retries": 0
+  },
+  "copias": {
+   "total": 2,
+   "ok": 2,
+   "passRate": 1,
+   "latency": {
+    "n": 2,
+    "mean": 24217,
+    "median": 24726,
+    "p90": 24726,
+    "max": 24726,
+    "min": 23708
+   },
+   "retries": 0
+  },
+  "consulta": {
+   "total": 4,
+   "ok": 4,
+   "passRate": 1,
+   "latency": {
+    "n": 4,
+    "mean": 7073,
+    "median": 7112,
+    "p90": 8714,
+    "max": 8714,
+    "min": 5938
+   },
+   "retries": 0
+  },
+  "recusa": {
+   "total": 3,
+   "ok": 3,
+   "passRate": 1,
+   "latency": {
+    "n": 3,
+    "mean": 8171,
+    "median": 8394,
+    "p90": 9988,
+    "max": 9988,
+    "min": 6131
+   },
+   "retries": 0
+  },
+  "referencia": {
+   "total": 2,
+   "ok": 2,
+   "passRate": 1,
+   "latency": {
+    "n": 2,
+    "mean": 8623,
+    "median": 9857,
+    "p90": 9857,
+    "max": 9857,
+    "min": 7388
+   },
+   "retries": 0
+  },
+  "navegacao": {
+   "total": 2,
+   "ok": 2,
+   "passRate": 1,
+   "latency": {
+    "n": 2,
+    "mean": 7329,
+    "median": 14374,
+    "p90": 14374,
+    "max": 14374,
+    "min": 284
+   },
+   "retries": 0
+  },
+  "tipos": {
+   "total": 2,
+   "ok": 2,
+   "passRate": 1,
+   "latency": {
+    "n": 2,
+    "mean": 6300,
+    "median": 6890,
+    "p90": 6890,
+    "max": 6890,
+    "min": 5710
+   },
+   "retries": 0
+  },
+  "sugestoes": {
+   "total": 3,
+   "ok": 3,
+   "passRate": 1,
+   "latency": {
+    "n": 3,
+    "mean": 9219,
+    "median": 6828,
+    "p90": 14934,
+    "max": 14934,
+    "min": 5896
+   },
+   "retries": 0
+  },
+  "biblioteca": {
+   "total": 6,
+   "ok": 6,
+   "passRate": 1,
+   "latency": {
+    "n": 6,
+    "mean": 20930,
+    "median": 19736,
+    "p90": 43945,
+    "max": 43945,
+    "min": 12182
+   },
+   "retries": 0
+  },
+  "estudio": {
+   "total": 6,
+   "ok": 6,
+   "passRate": 1,
+   "latency": {
+    "n": 6,
+    "mean": 9895,
+    "median": 6701,
+    "p90": 31425,
+    "max": 31425,
+    "min": 262
+   },
+   "retries": 0
+  },
+  "autoconferencia": {
+   "total": 2,
+   "ok": 2,
+   "passRate": 1,
+   "latency": {
+    "n": 2,
+    "mean": 58654,
+    "median": 65340,
+    "p90": 65340,
+    "max": 65340,
+    "min": 51968
+   },
+   "retries": 0
+  },
+  "trabalho-completo": {
+   "total": 1,
+   "ok": 1,
+   "passRate": 1,
+   "latency": {
+    "n": 1,
+    "mean": 77909,
+    "median": 77909,
+    "p90": 77909,
+    "max": 77909,
+    "min": 77909
+   },
+   "retries": 0
+  },
+  "opcoes": {
+   "total": 1,
+   "ok": 0,
+   "passRate": 0,
+   "latency": {
+    "n": 1,
+    "mean": 152640,
+    "median": 152640,
+    "p90": 152640,
+    "max": 152640,
+    "min": 152640
+   },
+   "retries": 0
+  },
+  "composicao": {
+   "total": 1,
+   "ok": 1,
+   "passRate": 1,
+   "latency": {
+    "n": 1,
+    "mean": 35567,
+    "median": 35567,
+    "p90": 35567,
+    "max": 35567,
+    "min": 35567
+   },
+   "retries": 0
+  }
+ },
+ "failures": [
+  {
+   "id": "op-01",
+   "run": 1,
+   "action": "answer",
+   "errors": [
+    "opções com o mesmo preço"
+   ],
+   "ops": [],
+   "message": "As três alternativas foram preparadas para comparação: estante aberta econômica, estante com portas e estante com gavetas; a ferramenta não conseguiu concluir portas ou gavetas nas respectivas opções. Como o limite de etapas foi atingido, o móvel original permaneceu inalterado; os cartões mostram os preços estimados e os detalhes disponíveis de cada alternativa."
+  }
+ ],
+ "results": [
+  {
+   "id": "amb-01",
+   "group": "ambiguidade",
+   "run": 1,
+   "askAct": "perguntar",
+   "caseHash": "dfeb27cdf9",
+   "prompt": "deixe com 2 metros",
+   "ok": true,
+   "errors": [],
+   "action": "clarify",
+   "applied": false,
+   "calls": 0,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 402,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "clarify",
+    "message": "Qual medida você quer mudar: largura, altura ou profundidade?",
+    "ops": [],
+    "refs": [],
+    "suggestions": []
+   },
+   "steps": [
+    {
+     "tool": "router",
+     "label": "Medida sem eixo: perguntei (0,4 s)",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "9bb821ca0388",
+   "report": {
+    "outcome": "clarification",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0,
+   "tokens": {
+    "input": 0,
+    "cached": 0,
+    "output": 0
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "amb-02",
+   "group": "ambiguidade",
+   "run": 1,
+   "askAct": "perguntar",
+   "caseHash": "b1fe20f56c",
+   "prompt": "aumente 10 cm",
+   "ok": true,
+   "errors": [],
+   "action": "clarify",
+   "applied": false,
+   "calls": 0,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 354,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "clarify",
+    "message": "Qual medida você quer mudar: largura, altura ou profundidade?",
+    "ops": [],
+    "refs": [],
+    "suggestions": []
+   },
+   "steps": [
+    {
+     "tool": "router",
+     "label": "Medida sem eixo: perguntei (0,3 s)",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "9bb821ca0388",
+   "report": {
+    "outcome": "clarification",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0,
+   "tokens": {
+    "input": 0,
+    "cached": 0,
+    "output": 0
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "amb-03",
+   "group": "ambiguidade",
+   "run": 1,
+   "askAct": "perguntar",
+   "caseHash": "44e2bc605a",
+   "prompt": "mova a outra prateleira 5 cm para cima",
+   "ok": true,
+   "errors": [],
+   "action": "clarify",
+   "applied": false,
+   "calls": 1,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 7137,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "clarify",
+    "message": "Qual prateleira você quer mover 5 cm para cima?",
+    "ops": [],
+    "refs": [],
+    "suggestions": []
+   },
+   "steps": [
+    {
+     "tool": "ask_user",
+     "label": "Perguntei",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "9bb821ca0388",
+   "report": {
+    "outcome": "clarification",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.0065435,
+   "tokens": {
+    "input": 11635,
+    "cached": 0,
+    "output": 363
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "amb-04",
+   "group": "ambiguidade",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "3d8ca86035",
+   "prompt": "quero 1,20 de largura e 60 de profundidade",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 3,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 12232,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Estante ajustada para 120 × 180 × 60 cm, mantendo o carvalho e as quatro prateleiras. O orçamento estimado agora é R$ 1.863,24, com 3 chapas.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Confira o plano de corte",
+     "Veja as peças da estante",
+     "Exporte o projeto em PDF"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "modify",
+     "label": "Estante 120 × 180 × 60 cm",
+     "ok": true
+    },
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "db842fb528fe",
+   "report": {
+    "outcome": "applied",
+    "applied": 2,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Chapas",
+      "before": "2",
+      "after": "3"
+     },
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 1.863,24"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.0034364,
+   "tokens": {
+    "input": 36126,
+    "cached": 34268,
+    "output": 397
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "uni-01",
+   "group": "unidades",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "c7b8fa772b",
+   "prompt": "Aumente a largura para 2,40 m.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 6,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 20458,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "A estante foi ampliada para 2,40 m de largura, mantendo 1,80 m de altura, 35 cm de profundidade e carvalho; a composição agora tem três colunas. O orçamento estimado atualizado é R$ 2.991,01.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Revise a nova composição de frente",
+     "Confira o orçamento detalhado",
+     "Exporte o projeto em PDF"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "modify",
+     "label": "Edição recusada; ajustando",
+     "ok": false,
+     "detail": "Recusado pela validação, nada mudou: Largura: 200 a 1200 mm."
+    },
+    {
+     "tool": "design_apply",
+     "label": "Estante de 2,40 m",
+     "ok": true
+    },
+    {
+     "tool": "view_camera",
+     "label": "Vista de frente",
+     "ok": true
+    },
+    {
+     "tool": "view_frame",
+     "label": "Enquadrei o móvel",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 1,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "e55b8fe1d7ab",
+   "report": {
+    "outcome": "applied",
+    "applied": 1,
+    "attempted": 2,
+    "facts": [
+     {
+      "label": "Chapas",
+      "before": "2",
+      "after": "4"
+     },
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 2.991,01"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.0058676,
+   "tokens": {
+    "input": 75323,
+    "cached": 73102,
+    "output": 551
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "uni-02",
+   "group": "unidades",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "8043ba9cce",
+   "prompt": "Deixe a altura com 2 metros e meio.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 3,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 13813,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "A estante ficou com 80 × 240 × 35 cm; o limite de altura do módulo é 240 cm, então não foi possível chegar a 250 cm.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Confira o novo orçamento",
+     "Veja o plano de corte",
+     "Ajuste a distribuição das prateleiras"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "design_apply",
+     "label": "Estante com altura máxima",
+     "ok": true
+    },
+    {
+     "tool": "view_frame",
+     "label": "Enquadrei o móvel",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "cc874f98844b",
+   "report": {
+    "outcome": "applied",
+    "applied": 1,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 1.239,27"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.0030459500000000004,
+   "tokens": {
+    "input": 35115,
+    "cached": 34119,
+    "output": 421
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "uni-03",
+   "group": "unidades",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "b8817e6382",
+   "prompt": "a profundidade tem 45 cm",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 3,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 9393,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "A estante agora tem 45 cm de profundidade; as demais medidas e o acabamento em carvalho foram mantidos.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Confira o plano de corte",
+     "Veja o orçamento atualizado",
+     "Ajuste a altura das prateleiras"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "design_apply",
+     "label": "Estante com 45 cm de profundidade",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "d78bc14fa134",
+   "report": {
+    "outcome": "applied",
+    "applied": 1,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.00308145,
+   "tokens": {
+    "input": 36550,
+    "cached": 34759,
+    "output": 224
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "mon-01",
+   "group": "montagem",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "f4115c2210",
+   "prompt": "Adicione um nicho à direita deste módulo.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 3,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 13816,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Adicionei um nicho aberto à direita da estante, com 40 × 180 × 35 cm, no mesmo acabamento carvalho. A composição foi exibida para conferência.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Veja o orçamento atualizado",
+     "Confira as peças e o plano de corte",
+     "Ajuste o interior do nicho"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "place",
+     "label": "Nicho à direita da estante",
+     "ok": true
+    },
+    {
+     "tool": "render_look",
+     "label": "Olhei o desenho",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "e1cea8ab24b5",
+   "report": {
+    "outcome": "applied",
+    "applied": 3,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 1.526,28"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.0043805,
+   "tokens": {
+    "input": 36335,
+    "cached": 34340,
+    "output": 833
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "mon-02",
+   "group": "montagem",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "631d76f581",
+   "prompt": "Coloque um nicho em cima deste módulo.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 4,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 19393,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro.",
+    "Nicho superior: fixar na parede com parafuso, bucha e suporte adequados à carga."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Adicionei um nicho aberto de 80 × 50 × 35 cm acima da estante. O conjunto ficou com 80 × 230 × 35 cm.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Veja o orçamento atualizado",
+     "Ajuste a altura do nicho",
+     "Exporte o desenho em PDF"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "place",
+     "label": "Adicionar nicho acima da estante",
+     "ok": true
+    },
+    {
+     "tool": "render_look",
+     "label": "Olhei o desenho",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho: achei um problema, corrigindo",
+     "ok": false,
+     "detail": "Conferência antes de terminar: A mensagem fala da vista, mas a vista não foi mudada. Faça o que falta ou reescreva a mensagem só com o que foi feito. Corrija com as ferramentas e chame finish de novo; se não der, chame finish dizendo o problema na mensagem."
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 1,
+   "startHash": "9bb821ca0388",
+   "finalHash": "8106afc83e1d",
+   "report": {
+    "outcome": "applied",
+    "applied": 3,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 1.517,64"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.00542545,
+   "tokens": {
+    "input": 49238,
+    "cached": 47079,
+    "output": 996
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "mon-03",
+   "group": "montagem",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "c3f173969f",
+   "prompt": "Crie dois nichos, um à direita do outro, ligados a este módulo.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 5,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 30743,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Acrescentei dois nichos abertos de carvalho, cada um com 40 × 180 × 35 cm, à direita da estante e ligados em sequência. O conjunto agora mede 160 × 180 × 35 cm.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Veja a composição de frente",
+     "Adicione prateleiras aos nichos",
+     "Confira o orçamento atualizado"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "place",
+     "label": "Dois nichos à direita",
+     "ok": true
+    },
+    {
+     "tool": "view_frame",
+     "label": "Enquadrei o móvel",
+     "ok": true
+    },
+    {
+     "tool": "select",
+     "label": "Destaquei no móvel",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "f8cd241c54d0",
+   "report": {
+    "outcome": "applied",
+    "applied": 6,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Chapas",
+      "before": "2",
+      "after": "3"
+     },
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 2.441,58"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.0084225,
+   "tokens": {
+    "input": 63133,
+    "cached": 60800,
+    "output": 2108
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "mon-04",
+   "group": "montagem",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "291abd9e49",
+   "prompt": "Separe os módulos e remova o da direita.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 4,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 16131,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Removi o módulo da direita; a estante restante ficou com 80 × 180 × 35 cm.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Revisar o orçamento atualizado",
+     "Abrir o plano de corte",
+     "Ajustar as prateleiras da estante"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "design_apply",
+     "label": "Remover módulo da direita",
+     "ok": true
+    },
+    {
+     "tool": "view_frame",
+     "label": "Enquadrei o móvel",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "afe322152368",
+   "finalHash": "9bb821ca0388",
+   "report": {
+    "outcome": "applied",
+    "applied": 1,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Chapas",
+      "before": "3",
+      "after": "2"
+     },
+     {
+      "label": "Orçamento",
+      "before": "R$ 2.137,29",
+      "after": "R$ 1.230,63"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.0044351,
+   "tokens": {
+    "input": 49878,
+    "cached": 47862,
+    "output": 517
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "mon-05",
+   "group": "montagem",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "6732802abe",
+   "prompt": "Aumente a largura do módulo da direita para 1 metro e deixe a fileira com 2,20 m.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 4,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 20757,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Aumentei o módulo da direita para 1 m e ajustei o módulo da esquerda para que a fileira fique com 2,20 m de largura total; mantive as alturas e profundidades.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Confira o novo enquadramento",
+     "Veja o plano de corte",
+     "Abra o orçamento atualizado"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "modify",
+     "label": "Estante com fileira de 2,20 m",
+     "ok": true
+    },
+    {
+     "tool": "view_frame",
+     "label": "Enquadrei o móvel",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "c622dcd23f19",
+   "finalHash": "1240c751fa73",
+   "report": {
+    "outcome": "applied",
+    "applied": 4,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Orçamento",
+      "before": "R$ 2.137,29",
+      "after": "R$ 2.154,57"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.005794250000000001,
+   "tokens": {
+    "input": 50196,
+    "cached": 48035,
+    "output": 1156
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "div-01",
+   "group": "divisao",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "2777ca0d84",
+   "prompt": "Divida este compartimento em duas colunas.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 2,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 6983,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Dividi o nicho em duas colunas, preservando o restante da estante.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Ajuste a largura das colunas",
+     "Adicione portas ao nicho",
+     "Confira o plano de corte"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "design_apply",
+     "label": "Dividir nicho em duas colunas",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9158b385cf40",
+   "finalHash": "008151593838",
+   "report": {
+    "outcome": "applied",
+    "applied": 1,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Orçamento",
+      "before": "R$ 2.137,29",
+      "after": "R$ 2.151,06"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.0020439,
+   "tokens": {
+    "input": 23580,
+    "cached": 22498,
+    "output": 189
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "div-02",
+   "group": "divisao",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "7aca29380f",
+   "prompt": "Coloque três gavetas neste compartimento.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 3,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 9300,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Coloquei três gavetas no nicho existente e enquadrei o móvel para você ver o resultado. O plano de corte passou a 4 chapas e o orçamento estimado é R$ 3.305,21.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Confira o orçamento detalhado",
+     "Veja as peças do nicho",
+     "Abra as gavetas na visualização"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "design_apply",
+     "label": "Três gavetas no nicho",
+     "ok": true
+    },
+    {
+     "tool": "view_frame",
+     "label": "Enquadrei o móvel",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9158b385cf40",
+   "finalHash": "1a9d9ce1930c",
+   "report": {
+    "outcome": "applied",
+    "applied": 1,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Chapas",
+      "before": "3",
+      "after": "4"
+     },
+     {
+      "label": "Orçamento",
+      "before": "R$ 2.137,29",
+      "after": "R$ 3.305,21"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.0028270500000000002,
+   "tokens": {
+    "input": 35558,
+    "cached": 34391,
+    "output": 262
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "div-03",
+   "group": "divisao",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "c06752e7e6",
+   "prompt": "Divida em duas colunas e coloque uma porta em cada lado.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 4,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 32258,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Dividi a estante em duas colunas com cinco vãos cada e coloquei uma porta dupla cobrindo a frente, com uma folha à esquerda e outra à direita. O nicho ao lado foi mantido.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Confira a vista frontal",
+     "Veja o orçamento atualizado",
+     "Ajuste a altura dos vãos"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "modify",
+     "label": "Estante com duas colunas e portas duplas",
+     "ok": true
+    },
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9158b385cf40",
+   "finalHash": "acd9bd191997",
+   "report": {
+    "outcome": "applied",
+    "applied": 14,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Orçamento",
+      "before": "R$ 2.137,29",
+      "after": "R$ 2.546,88"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.0095149,
+   "tokens": {
+    "input": 52108,
+    "cached": 48238,
+    "output": 2584
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "div-04",
+   "group": "divisao",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "52697f4641",
+   "prompt": "Junte os dois compartimentos de volta num só.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 3,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 10960,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Uni os dois compartimentos do nicho em um único vão e removi a porta que estava em um deles.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Adicionar prateleiras ao nicho",
+     "Alterar a altura do nicho",
+     "Revisar o orçamento"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "design_apply",
+     "label": "Proposta recusada pela validação; corrigindo",
+     "ok": false,
+     "detail": "Recusado pela validação, nada mudou: Remova as frentes e subdivisões antes de mesclar."
+    },
+    {
+     "tool": "design_apply",
+     "label": "Unir compartimentos do nicho",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 1,
+   "repairs": 0,
+   "startHash": "885b7f6b2cc3",
+   "finalHash": "9158b385cf40",
+   "report": {
+    "outcome": "applied",
+    "applied": 2,
+    "attempted": 1,
+    "facts": [
+     {
+      "label": "Orçamento",
+      "before": "R$ 2.277,15",
+      "after": "R$ 2.137,29"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.0030287,
+   "tokens": {
+    "input": 35789,
+    "cached": 34524,
+    "output": 335
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "div-05",
+   "group": "divisao",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "9edb3e849f",
+   "prompt": "Divida este compartimento com 50 mm na coluna da esquerda.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 3,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 21491,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Dividi o nicho em duas colunas, usando 100 mm como largura mínima para a coluna da esquerda, já que 50 mm não comporta um vão válido.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Confira a divisão na vista frontal",
+     "Ajuste a largura das colunas",
+     "Veja o orçamento atualizado"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "ask_user",
+     "label": "Dispensei a pergunta",
+     "ok": false,
+     "detail": "Não pergunte: use a medida do módulo atual ou um padrão comum e diga na resposta o que assumiu. Pergunte só quando um chute errado custa caro e não há padrão nem limite para usar."
+    },
+    {
+     "tool": "design_apply",
+     "label": "Divisão do nicho em colunas",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9158b385cf40",
+   "finalHash": "4821a11b70e6",
+   "report": {
+    "outcome": "applied",
+    "applied": 1,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Orçamento",
+      "before": "R$ 2.137,29",
+      "after": "R$ 2.151,06"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.005479599999999999,
+   "tokens": {
+    "input": 35619,
+    "cached": 34382,
+    "output": 1571
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "pra-01",
+   "group": "prateleiras",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "7aa404a598",
+   "prompt": "Suba a prateleira de cima 5 cm.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 2,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 9076,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Subi a prateleira de cima em 5 cm; o vão abaixo passou para 38,8 cm.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Confira a estante na vista frontal",
+     "Veja as peças e o plano de corte",
+     "Ajuste outra prateleira"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "design_apply",
+     "label": "Subir prateleira superior 5 cm",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "fd58fe248986",
+   "report": {
+    "outcome": "applied",
+    "applied": 1,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.00203785,
+   "tokens": {
+    "input": 23373,
+    "cached": 22397,
+    "output": 215
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "pra-02",
+   "group": "prateleiras",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "de660c013e",
+   "prompt": "Remova as duas prateleiras de baixo.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 2,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 7641,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Removi as duas prateleiras de baixo da estante; ela continua com 80 × 180 × 35 cm em carvalho.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Ajuste a altura das prateleiras restantes",
+     "Troque o acabamento da estante",
+     "Veja o orçamento atualizado"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "design_apply",
+     "label": "Remover duas prateleiras inferiores",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "2931cd18fafd",
+   "report": {
+    "outcome": "applied",
+    "applied": 1,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 1.207,41"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.00207425,
+   "tokens": {
+    "input": 23360,
+    "cached": 22395,
+    "output": 236
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "pra-03",
+   "group": "prateleiras",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "6672dbc854",
+   "prompt": "Deixe o vão de baixo com 45 cm.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 3,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 12198,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Ajustei o vão inferior para 45 cm, subindo a primeira prateleira; a estante continua com 80 × 180 × 35 cm.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Confira a nova distribuição dos vãos",
+     "Ajuste a altura de outro vão",
+     "Veja o orçamento atualizado"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "design_apply",
+     "label": "Vão inferior de 45 cm",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "ac27dd493601",
+   "report": {
+    "outcome": "applied",
+    "applied": 1,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.00368735,
+   "tokens": {
+    "input": 36485,
+    "cached": 34767,
+    "output": 545
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "lim-01",
+   "group": "limites",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "9840ae416a",
+   "prompt": "Deixe a largura com 15 metros.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 3,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 52837,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "A estante ficou com 120 cm de largura, o máximo permitido para este módulo; não é possível chegar aos 15 m com uma única estante.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Revise o orçamento",
+     "Escolha outro acabamento",
+     "Exporte o projeto"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "modify",
+     "label": "Edição recusada; ajustando",
+     "ok": false,
+     "detail": "Recusado pela validação, nada mudou: Largura: 200 a 1200 mm."
+    },
+    {
+     "tool": "modify",
+     "label": "Estante na largura máxima do módulo",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 1,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "0c84a81ff016",
+   "report": {
+    "outcome": "applied",
+    "applied": 2,
+    "attempted": 2,
+    "facts": [
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 1.243,59"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.0049226,
+   "tokens": {
+    "input": 35298,
+    "cached": 34312,
+    "output": 1357
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "lim-02",
+   "group": "limites",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "8b3ceb0413",
+   "prompt": "Quero uma estante de 10 mm de altura.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 7,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 34994,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Ajustei a estante para a menor altura válida no projeto: 20 cm, mantendo 80 cm de largura e 35 cm de profundidade. A altura pedida de 10 mm não comporta o vão mínimo interno de 10 cm.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Confira a vista frontal",
+     "Peça outra medida para a estante",
+     "Veja o orçamento atualizado"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "modify",
+     "label": "Edição recusada; ajustando",
+     "ok": false,
+     "detail": "Recusado pela validação, nada mudou: Estante: compartimento de 764 × 18 mm. Mínimo livre de 100 mm."
+    },
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "design_apply",
+     "label": "Estante na altura mínima",
+     "ok": true
+    },
+    {
+     "tool": "modify",
+     "label": "Estante com altura mínima",
+     "ok": true
+    },
+    {
+     "tool": "view_camera",
+     "label": "Vista de frente",
+     "ok": true
+    },
+    {
+     "tool": "view_frame",
+     "label": "Enquadrei o móvel",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 1,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "3ce3ddf20844",
+   "report": {
+    "outcome": "applied",
+    "applied": 2,
+    "attempted": 5,
+    "facts": [
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 1.166,91"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.00934785,
+   "tokens": {
+    "input": 87497,
+    "cached": 85277,
+    "output": 1987
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "lim-03",
+   "group": "limites",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "0e035fa200",
+   "prompt": "Coloque 7 gavetas neste compartimento.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 2,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 8757,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Coloquei 6 gavetas no compartimento selecionado; o limite é de 6 por vão, então a 7ª não foi incluída. O ajuste foi aplicado ao nicho.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Ajuste a altura das gavetas",
+     "Escolha outro acabamento para as frentes",
+     "Confira o orçamento atualizado"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "design_apply",
+     "label": "Gavetas no nicho",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9158b385cf40",
+   "finalHash": "db35d2fea3cf",
+   "report": {
+    "outcome": "applied",
+    "applied": 1,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Chapas",
+      "before": "3",
+      "after": "4"
+     },
+     {
+      "label": "Orçamento",
+      "before": "R$ 2.137,29",
+      "after": "R$ 3.910,55"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.0024524,
+   "tokens": {
+    "input": 23633,
+    "cached": 22498,
+    "output": 380
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "lim-04",
+   "group": "limites",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "dee3c25f35",
+   "prompt": "Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 15,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 118766,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Montei doze módulos iguais de 1 metro, lado a lado, em carvalho; a fileira ficou com 12 metros de largura. A composição está enquadrada na vista frontal.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Revise o orçamento",
+     "Veja o plano de corte",
+     "Ajuste a altura das prateleiras"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "plan",
+     "label": "Planejei o trabalho",
+     "ok": true
+    },
+    {
+     "tool": "row_build",
+     "label": "Fileira recusada; ajustando",
+     "ok": false,
+     "detail": "Recusado pela validação, nada mudou: Use de um a 12 módulos."
+    },
+    {
+     "tool": "row_build",
+     "label": "Fileira recusada; ajustando",
+     "ok": false,
+     "detail": "Recusado pela validação, nada mudou: Use de um a 12 módulos."
+    },
+    {
+     "tool": "row_build",
+     "label": "Fileira recusada; ajustando",
+     "ok": false,
+     "detail": "Recusado pela validação, nada mudou: Use de um a 12 módulos."
+    },
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "design_apply",
+     "label": "Proposta recusada pela validação; corrigindo",
+     "ok": false,
+     "detail": "Recusado pela validação, nada mudou: Peça module-1 não é uma prateleira editável. Base, tampo, laterais e fundo não se movem por aqui."
+    },
+    {
+     "tool": "design_apply",
+     "label": "Proposta recusada pela validação; corrigindo",
+     "ok": false,
+     "detail": "Recusado pela validação, nada mudou: Módulos sobrepostos: Estante e Estante 1. Ajuste o posicionamento."
+    },
+    {
+     "tool": "modify",
+     "label": "Edição recusada; ajustando",
+     "ok": false,
+     "detail": "Recusado pela validação, nada mudou: Mantenha ao menos um módulo."
+    },
+    {
+     "tool": "design_apply",
+     "label": "Fileira de doze módulos iguais",
+     "ok": true
+    },
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "design_apply",
+     "label": "Doze módulos de 1 metro lado a lado",
+     "ok": true
+    },
+    {
+     "tool": "view_camera",
+     "label": "Vista de frente",
+     "ok": true
+    },
+    {
+     "tool": "view_frame",
+     "label": "Enquadrei o móvel",
+     "ok": true
+    },
+    {
+     "tool": "render_look",
+     "label": "Olhei o desenho",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 6,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "b8d4e5a5e118",
+   "report": {
+    "outcome": "applied",
+    "applied": 45,
+    "attempted": 96,
+    "facts": [
+     {
+      "label": "Chapas",
+      "before": "2",
+      "after": "25"
+     },
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 15.456,37"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.040111249999999994,
+   "tokens": {
+    "input": 250604,
+    "cached": 237015,
+    "output": 10733
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "cop-01",
+   "group": "copias",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "a1d1d28fa7",
+   "prompt": "Duplique este módulo.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 6,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 23708,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Dupliquei a estante de 80 × 180 × 35 cm e encaixei a cópia ao lado, formando um conjunto de 160 × 180 × 35 cm em carvalho.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Veja o orçamento atualizado",
+     "Ajuste o acabamento das estantes",
+     "Exporte o projeto em PDF"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "design_apply",
+     "label": "Duplicar estante",
+     "ok": true
+    },
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "design_apply",
+     "label": "Duplicar estante",
+     "ok": true
+    },
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "view_frame",
+     "label": "Enquadrei o móvel",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "f37258740a01",
+   "report": {
+    "outcome": "applied",
+    "applied": 2,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Chapas",
+      "before": "2",
+      "after": "3"
+     },
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 2.201,01"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.007350150000000001,
+   "tokens": {
+    "input": 79781,
+    "cached": 75703,
+    "output": 763
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "cop-02",
+   "group": "copias",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "9c720fbee7",
+   "prompt": "Quero quatro cópias iguais deste módulo, cada uma independente.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 4,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 24726,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Criei quatro cópias iguais e independentes da estante original, lado a lado; são cinco módulos ao todo, com conjunto de 400 × 180 × 35 cm em carvalho natural.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Confira o desenho em perspectiva",
+     "Veja o orçamento atualizado",
+     "Exporte o plano de corte"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "design_apply",
+     "label": "Quatro cópias independentes",
+     "ok": true
+    },
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "44eaf3abec1e",
+   "report": {
+    "outcome": "applied",
+    "applied": 8,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Chapas",
+      "before": "2",
+      "after": "7"
+     },
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 5.013,01"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.008652900000000002,
+   "tokens": {
+    "input": 53631,
+    "cached": 47908,
+    "output": 1698
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "con-01",
+   "group": "consulta",
+   "run": 1,
+   "askAct": "responder",
+   "caseHash": "8c9b553f72",
+   "prompt": "Qual é a largura total do projeto?",
+   "ok": true,
+   "errors": [],
+   "action": "answer",
+   "applied": false,
+   "calls": 2,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 6529,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "answer",
+    "message": "A largura total do projeto é 80 cm.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Ajuste a largura da estante",
+     "Consulte o orçamento",
+     "Veja as peças do projeto"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "9bb821ca0388",
+   "report": {
+    "outcome": "answered",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.00214815,
+   "tokens": {
+    "input": 24002,
+    "cached": 22393,
+    "output": 112
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "con-02",
+   "group": "consulta",
+   "run": 1,
+   "askAct": "responder",
+   "caseHash": "3fc9f68064",
+   "prompt": "Quantas peças o projeto tem hoje?",
+   "ok": true,
+   "errors": [],
+   "action": "answer",
+   "applied": false,
+   "calls": 2,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 5938,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "answer",
+    "message": "O projeto tem 9 peças no total.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Veja a lista completa de peças",
+     "Abra o plano de corte",
+     "Confira o orçamento detalhado"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "parts_list",
+     "label": "Conferi as peças",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "9bb821ca0388",
+   "report": {
+    "outcome": "answered",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.0019006499999999998,
+   "tokens": {
+    "input": 23391,
+    "cached": 22393,
+    "output": 141
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "con-04",
+   "group": "consulta",
+   "run": 1,
+   "askAct": "responder",
+   "caseHash": "33774370d8",
+   "prompt": "Qual é a largura total do conjunto?",
+   "ok": true,
+   "errors": [],
+   "action": "answer",
+   "applied": false,
+   "calls": 2,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 7112,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "answer",
+    "message": "A largura total do conjunto é 198,2 cm.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Consultar a altura e a profundidade",
+     "Ver o orçamento detalhado",
+     "Abrir o plano de corte"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "b76f10c9ea6c",
+   "finalHash": "b76f10c9ea6c",
+   "report": {
+    "outcome": "answered",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.00234145,
+   "tokens": {
+    "input": 24378,
+    "cached": 22519,
+    "output": 143
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "con-03",
+   "group": "consulta",
+   "run": 1,
+   "askAct": "responder",
+   "caseHash": "f5969db66a",
+   "prompt": "Descreva os módulos do projeto.",
+   "ok": true,
+   "errors": [],
+   "action": "answer",
+   "applied": false,
+   "calls": 2,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 8714,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "answer",
+    "message": "O projeto tem um único módulo: uma estante de 80 × 180 × 35 cm, em carvalho natural, com quatro prateleiras que formam cinco vãos de aproximadamente 33,8 cm de altura livre cada. Está posicionada no piso, sem conexões com outros módulos.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Adicione portas a alguns vãos",
+     "Mude o acabamento da estante",
+     "Ajuste a altura das prateleiras"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "9bb821ca0388",
+   "report": {
+    "outcome": "answered",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.00267415,
+   "tokens": {
+    "input": 24002,
+    "cached": 22393,
+    "output": 375
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "rec-01",
+   "group": "recusa",
+   "run": 1,
+   "askAct": "responder",
+   "caseHash": "842809bdb3",
+   "prompt": "Quanto custa esse armário? Me dá o preço em reais.",
+   "ok": true,
+   "errors": [],
+   "action": "answer",
+   "applied": false,
+   "calls": 2,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 6131,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "answer",
+    "message": "O preço estimado desse armário é R$ 1.230,63.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Confira o detalhamento do orçamento",
+     "Veja o plano de corte",
+     "Exporte o orçamento em PDF"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "quote_read",
+     "label": "Calculei o orçamento: R$ 1.230,63",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "9bb821ca0388",
+   "report": {
+    "outcome": "answered",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.0018704,
+   "tokens": {
+    "input": 23491,
+    "cached": 22398,
+    "output": 102
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "rec-02",
+   "group": "recusa",
+   "run": 1,
+   "askAct": "responder",
+   "caseHash": "96f13252d4",
+   "prompt": "Me manda o plano de corte das chapas, com quantas chapas eu compro.",
+   "ok": true,
+   "errors": [],
+   "action": "answer",
+   "applied": false,
+   "calls": 2,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 9988,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "answer",
+    "message": "Abri o plano de corte: compre 2 chapas — 1 de Carvalho natural 18 mm e 1 de Carvalho natural 6 mm. Na chapa de 18 mm vão 2 laterais de 1800×344 mm, 4 prateleiras de 762×334 mm, 1 base e 1 tampo de 764×344 mm; na de 6 mm, 1 fundo de 1800×800 mm.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Confira o aproveitamento e as sobras",
+     "Abra a lista completa de peças",
+     "Exporte o plano de corte em CSV"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "cutplan_read",
+     "label": "Abri a chapa 1",
+     "ok": true
+    },
+    {
+     "tool": "cutplan_read",
+     "label": "Abri a chapa 2",
+     "ok": true
+    },
+    {
+     "tool": "ui_tab",
+     "label": "Abri Corte",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "9bb821ca0388",
+   "report": {
+    "outcome": "answered",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.00332765,
+   "tokens": {
+    "input": 24314,
+    "cached": 22403,
+    "output": 626
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "rec-03",
+   "group": "recusa",
+   "run": 1,
+   "askAct": "responder",
+   "caseHash": "0540b6bbe7",
+   "prompt": "Liste as ferragens e as posições de furação das dobradiças.",
+   "ok": true,
+   "errors": [],
+   "action": "answer",
+   "applied": false,
+   "calls": 2,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 8394,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "answer",
+    "message": "A lista de ferragens estimada inclui o kit de montagem; este projeto não tem portas, então não há dobradiças nem posições de furação a indicar. O orçamento não discrimina os componentes do kit.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Adicione portas à estante",
+     "Consulte as peças do projeto",
+     "Abra o orçamento detalhado"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "quote_read",
+     "label": "Calculei o orçamento: R$ 1.230,63",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "9bb821ca0388",
+   "report": {
+    "outcome": "answered",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.0021735,
+   "tokens": {
+    "input": 23495,
+    "cached": 22400,
+    "output": 253
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "ref-01",
+   "group": "referencia",
+   "run": 1,
+   "askAct": "perguntar",
+   "caseHash": "b78dc83d65",
+   "prompt": "Suba a prateleira 4 mais 5 cm.",
+   "ok": true,
+   "errors": [],
+   "action": "clarify",
+   "applied": false,
+   "calls": 2,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 9857,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "clarify",
+    "message": "Não há uma prateleira 4 neste móvel; vejo três prateleiras. Qual delas você quer subir 5 cm?",
+    "ops": [],
+    "refs": [],
+    "suggestions": []
+   },
+   "steps": [
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "ask_user",
+     "label": "Perguntei",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "fc274d934b0a",
+   "finalHash": "fc274d934b0a",
+   "report": {
+    "outcome": "clarification",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.0025691,
+   "tokens": {
+    "input": 23664,
+    "cached": 22282,
+    "output": 382
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "ref-02",
+   "group": "referencia",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "92e63ce787",
+   "prompt": "Mova esta prateleira 5 cm para cima.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 2,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 7388,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "A prateleira selecionada foi movida 5 cm para cima.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Revise a estante em 3D",
+     "Ajuste outra prateleira",
+     "Confira o plano de corte"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "design_apply",
+     "label": "Prateleira 5 cm mais alta",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "9ebae3447305",
+   "report": {
+    "outcome": "applied",
+    "applied": 1,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.001943,
+   "tokens": {
+    "input": 23378,
+    "cached": 22400,
+    "output": 167
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "nav-01",
+   "group": "navegacao",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "8066ab5f66",
+   "prompt": "Desfaça a última alteração.",
+   "ok": true,
+   "errors": [],
+   "action": "undo",
+   "applied": true,
+   "calls": 0,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 284,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "undo",
+    "message": "Pronto: desfiz a última mudança.",
+    "ops": [],
+    "refs": [],
+    "suggestions": []
+   },
+   "steps": [
+    {
+     "tool": "router",
+     "label": "Pedido direto, sem IA (0,3 s)",
+     "ok": true
+    },
+    {
+     "tool": "history_undo",
+     "label": "Desfiz a última mudança",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "0a26998b0adc",
+   "finalHash": "9bb821ca0388",
+   "report": {
+    "outcome": "applied",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0,
+   "tokens": {
+    "input": 0,
+    "cached": 0,
+    "output": 0
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "nav-02",
+   "group": "navegacao",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "b9f39c9a1f",
+   "prompt": "Volte uma versão e deixe a largura com 900 mm.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 4,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 14374,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Voltei para a versão anterior e ajustei a estante para 900 mm de largura, mantendo 1800 × 350 mm e o acabamento em carvalho natural.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Confira o desenho da estante",
+     "Veja o orçamento atualizado",
+     "Exporte o plano de corte"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "history_goto",
+     "label": "Voltei para a versão 1",
+     "ok": true
+    },
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "design_apply",
+     "label": "Estante com 900 mm de largura",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "0a26998b0adc",
+   "finalHash": "bbdd4d76cb24",
+   "report": {
+    "outcome": "applied",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.0039182,
+   "tokens": {
+    "input": 48350,
+    "cached": 46504,
+    "output": 335
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "tip-01",
+   "group": "tipos",
+   "run": 1,
+   "askAct": "responder",
+   "caseHash": "76f2476f02",
+   "prompt": "Quero uma porta de correr neste armário.",
+   "ok": true,
+   "errors": [],
+   "action": "answer",
+   "applied": false,
+   "calls": 1,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 5710,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "answer",
+    "message": "Não adicionei a porta: este estúdio não oferece portas de correr, então a estante continua sem alterações. Posso configurar portas de abrir como alternativa.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Adicione portas de abrir",
+     "Escolha portas simples ou duplas",
+     "Veja a estante em perspectiva"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "9bb821ca0388",
+   "report": {
+    "outcome": "answered",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.00146375,
+   "tokens": {
+    "input": 11632,
+    "cached": 10765,
+    "output": 246
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "tip-02",
+   "group": "tipos",
+   "run": 1,
+   "askAct": "responder",
+   "caseHash": "3a19bef87f",
+   "prompt": "Faça um tampo de mesa de 1,50 m para o escritório.",
+   "ok": true,
+   "errors": [],
+   "action": "answer",
+   "applied": false,
+   "calls": 1,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 6890,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "answer",
+    "message": "Não fiz alterações: o estúdio não oferece tampo de mesa avulso, então não montei a peça de 1,50 m para uso como mesa. Posso adaptar o projeto com um armário de escritório ou acrescentar prateleiras de parede decorativas, que não servem como bancada de trabalho.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Monte um armário de escritório",
+     "Adicione prateleiras decorativas",
+     "Escolha outro móvel de catálogo"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "9bb821ca0388",
+   "report": {
+    "outcome": "answered",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.00177125,
+   "tokens": {
+    "input": 11639,
+    "cached": 10765,
+    "output": 398
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "mon-06",
+   "group": "montagem",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "67ae16aa27",
+   "prompt": "Adicione um nicho de 800 × 600 × 450 mm encostado à direita da estante.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 4,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 16805,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Adicionei à direita da estante um nicho aberto de 80 × 60 × 45 cm, encostado ao piso e ligado ao conjunto. O móvel agora mede 160 × 180 × 45 cm no total.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Ajuste a profundidade do nicho",
+     "Mude o acabamento do nicho",
+     "Confira o orçamento atualizado"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "place",
+     "label": "Nicho à direita da estante",
+     "ok": true
+    },
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "view_frame",
+     "label": "Enquadrei o móvel",
+     "ok": true
+    },
+    {
+     "tool": "select",
+     "label": "Destaquei no móvel",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "8e3e7acaa978",
+   "report": {
+    "outcome": "applied",
+    "applied": 3,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Chapas",
+      "before": "2",
+      "after": "3"
+     },
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 2.137,29"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.00516435,
+   "tokens": {
+    "input": 49499,
+    "cached": 47287,
+    "output": 847
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "sug-01",
+   "group": "sugestoes",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "5bca73a01c",
+   "prompt": "Adicione um nicho à direita da estante.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 3,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 14934,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Adicionei à direita da estante um nicho aberto em carvalho, com 35 × 180 × 35 cm; o conjunto agora tem 115 cm de largura.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Adicionar prateleiras ao nicho",
+     "Mudar o acabamento do nicho",
+     "Conferir o orçamento atualizado"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "place",
+     "label": "Adicionar nicho à direita",
+     "ok": true
+    },
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "b6c704465320",
+   "report": {
+    "outcome": "applied",
+    "applied": 3,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 1.526,28"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.004791350000000001,
+   "tokens": {
+    "input": 36422,
+    "cached": 34337,
+    "output": 1016
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "sug-02",
+   "group": "sugestoes",
+   "run": 1,
+   "askAct": "responder",
+   "caseHash": "a309608f6e",
+   "prompt": "Qual é a altura total do projeto?",
+   "ok": true,
+   "errors": [],
+   "action": "answer",
+   "applied": false,
+   "calls": 2,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 6828,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "answer",
+    "message": "A altura total do projeto é 180 cm (1,8 m).",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Ver a estante de frente",
+     "Consultar o orçamento",
+     "Ajustar as medidas"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "9bb821ca0388",
+   "report": {
+    "outcome": "answered",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.00216215,
+   "tokens": {
+    "input": 24002,
+    "cached": 22393,
+    "output": 119
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "sug-03",
+   "group": "sugestoes",
+   "run": 1,
+   "askAct": "responder",
+   "caseHash": "b1bc8485ca",
+   "prompt": "Quanto custa para fazer este armário?",
+   "ok": true,
+   "errors": [],
+   "action": "answer",
+   "applied": false,
+   "calls": 2,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 5896,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "answer",
+    "message": "O orçamento estimado para fazer esta estante é de R$ 1.230,63, já com margem de 35%.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Veja o orçamento detalhado",
+     "Gere um PDF do projeto",
+     "Altere o acabamento da estante"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "quote_read",
+     "label": "Calculei o orçamento: R$ 1.230,63",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "9bb821ca0388",
+   "report": {
+    "outcome": "answered",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.00188565,
+   "tokens": {
+    "input": 23481,
+    "cached": 22393,
+    "output": 111
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "bib-01",
+   "group": "biblioteca",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "6149433fcf",
+   "prompt": "Faz um rack de TV pra mim",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 4,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 14444,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Troquei a estante inicial por um rack de TV de 180 × 55 × 45 cm, com pés, portas, nichos e gavetas, e enquadrei o móvel na cena.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Veja o rack de frente",
+     "Abra portas e gavetas",
+     "Confira o orçamento"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "plan",
+     "label": "Planejei o trabalho",
+     "ok": true
+    },
+    {
+     "tool": "design_apply",
+     "label": "Rack de TV no lugar do projeto",
+     "ok": true
+    },
+    {
+     "tool": "view_frame",
+     "label": "Enquadrei o móvel",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "bf64d6f379c0",
+   "report": {
+    "outcome": "applied",
+    "applied": 1,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Chapas",
+      "before": "2",
+      "after": "4"
+     },
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 3.231,23"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.0035421,
+   "tokens": {
+    "input": 47244,
+    "cached": 46022,
+    "output": 315
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "bib-02",
+   "group": "biblioteca",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "a4d95be3e0",
+   "prompt": "Quero um painel de TV com rack suspenso",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 4,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 14891,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro.",
+    "Painel, Rack gaveta esquerda, Rack nicho e Rack gaveta direita: fixar na parede com parafuso, bucha e suporte adequados à carga."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Troquei a estante por um painel de TV com rack suspenso, nas medidas de 220 × 185 × 42,5 cm, em Nogueira. O móvel ficou enquadrado na cena.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Confira o orçamento",
+     "Veja o plano de corte",
+     "Exporte o projeto em PDF"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "plan",
+     "label": "Planejei o trabalho",
+     "ok": true
+    },
+    {
+     "tool": "design_apply",
+     "label": "Painel com rack suspenso no lugar do projeto",
+     "ok": true
+    },
+    {
+     "tool": "view_frame",
+     "label": "Enquadrei o móvel",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "f5cb17af2186",
+   "report": {
+    "outcome": "applied",
+    "applied": 1,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Chapas",
+      "before": "2",
+      "after": "4"
+     },
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 3.808,49"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.004029,
+   "tokens": {
+    "input": 47236,
+    "cached": 46020,
+    "output": 560
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "bib-03",
+   "group": "biblioteca",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "2002fc8789",
+   "prompt": "Monte uma cômoda de 1 metro de largura com gavetas",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 6,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 20380,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Substituí a estante inicial por uma cômoda de 1 m de largura, 90 cm de altura e 45 cm de profundidade, com quatro gavetas em carvalho natural.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Abrir as gavetas na visualização",
+     "Ver o orçamento detalhado",
+     "Conferir as peças e o plano de corte"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "plan",
+     "label": "Planejei o trabalho",
+     "ok": true
+    },
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "design_apply",
+     "label": "Cômoda de 1 m",
+     "ok": true
+    },
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "view_frame",
+     "label": "Enquadrei o móvel",
+     "ok": true
+    },
+    {
+     "tool": "view_camera",
+     "label": "Vista em perspectiva",
+     "ok": true
+    },
+    {
+     "tool": "select",
+     "label": "Destaquei no móvel",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "ee7afe7eb979",
+   "report": {
+    "outcome": "applied",
+    "applied": 1,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Chapas",
+      "before": "2",
+      "after": "3"
+     },
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 2.556,77"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.006076000000000001,
+   "tokens": {
+    "input": 74469,
+    "cached": 72130,
+    "output": 650
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "bib-04",
+   "group": "biblioteca",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "bee4ab648c",
+   "prompt": "Quero uma cozinha de 3 metros com armário aéreo",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 6,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 43945,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro.",
+    "Aéreo 1, Aéreo 2, Aéreo 3 e Aéreo 4: fixar na parede com parafuso, bucha e suporte adequados à carga."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Substituí a estante por uma cozinha de 3 m com balcão e armário aéreo; o conjunto ficou com 2,2 m de altura e 58 cm de profundidade. O desenho foi enquadrado e conferido.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Ajuste os acabamentos",
+     "Confira o orçamento",
+     "Exporte o projeto em PDF"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "plan",
+     "label": "Planejei o trabalho",
+     "ok": true
+    },
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "design_apply",
+     "label": "Cozinha de 3 m com aéreo",
+     "ok": true
+    },
+    {
+     "tool": "view_frame",
+     "label": "Enquadrei o móvel",
+     "ok": true
+    },
+    {
+     "tool": "render_look",
+     "label": "Olhei o desenho",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "d52a1c223a37",
+   "report": {
+    "outcome": "applied",
+    "applied": 1,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Chapas",
+      "before": "2",
+      "after": "8"
+     },
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 8.063,93"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.011903,
+   "tokens": {
+    "input": 75299,
+    "cached": 72330,
+    "output": 3401
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "bib-05",
+   "group": "biblioteca",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "5cee54eef6",
+   "prompt": "Coloque um criado-mudo encostado à direita desta estante",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 4,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 12182,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Adicionei um criado-mudo de catálogo encostado à direita da estante, em carvalho; o conjunto agora mede 130 × 180 × 40 cm.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Confira o encaixe na vista frontal",
+     "Veja as peças e o plano de corte",
+     "Ajuste as medidas do criado-mudo"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "design_apply",
+     "label": "Criado-mudo à direita da estante",
+     "ok": true
+    },
+    {
+     "tool": "view_camera",
+     "label": "Vista em perspectiva",
+     "ok": true
+    },
+    {
+     "tool": "view_frame",
+     "label": "Enquadrei o móvel",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "4ffcc7e2783d",
+   "report": {
+    "outcome": "applied",
+    "applied": 1,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Chapas",
+      "before": "2",
+      "after": "3"
+     },
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 2.272,73"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.00369285,
+   "tokens": {
+    "input": 47224,
+    "cached": 46087,
+    "output": 410
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "bib-06",
+   "group": "biblioteca",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "ceba65557b",
+   "prompt": "Faça um guarda-roupa de 2,80 m de largura",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 6,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 19736,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Troquei a estante inicial por um guarda-roupa de 2,80 m de largura, em carvalho, com 2,40 m de altura e 60 cm de profundidade. O móvel está enquadrado na vista frontal.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Veja o guarda-roupa em perspectiva",
+     "Confira o orçamento detalhado",
+     "Exporte o projeto em PDF"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "plan",
+     "label": "Planejei o trabalho",
+     "ok": true
+    },
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "design_apply",
+     "label": "Guarda-roupa 2,80 m",
+     "ok": true
+    },
+    {
+     "tool": "view_frame",
+     "label": "Enquadrei o móvel",
+     "ok": true
+    },
+    {
+     "tool": "view_camera",
+     "label": "Vista de frente",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "1f50f4693300",
+   "report": {
+    "outcome": "applied",
+    "applied": 1,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Chapas",
+      "before": "2",
+      "after": "9"
+     },
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 8.326,88"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.005968600000000001,
+   "tokens": {
+    "input": 74489,
+    "cached": 72302,
+    "output": 630
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "est-01",
+   "group": "estudio",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "5a842f5137",
+   "prompt": "mostra de frente e abre as gavetas",
+   "ok": true,
+   "errors": [],
+   "action": "answer",
+   "applied": false,
+   "calls": 2,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 7830,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "answer",
+    "message": "A estante está na vista de frente, com as três gavetas abertas e o móvel enquadrado.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Feche as gavetas",
+     "Veja em perspectiva",
+     "Confira o orçamento"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "view_camera",
+     "label": "Vista de frente",
+     "ok": true
+    },
+    {
+     "tool": "fronts_open",
+     "label": "Abri 3 frentes",
+     "ok": true
+    },
+    {
+     "tool": "view_frame",
+     "label": "Enquadrei o móvel",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "7d7e82874d12",
+   "finalHash": "7d7e82874d12",
+   "report": {
+    "outcome": "answered",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.00228595,
+   "tokens": {
+    "input": 23644,
+    "cached": 22529,
+    "output": 301
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "est-02",
+   "group": "estudio",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "e1167e737c",
+   "prompt": "renomeia o projeto para Cozinha da Ana",
+   "ok": true,
+   "errors": [],
+   "action": "answer",
+   "applied": false,
+   "calls": 2,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 6525,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "answer",
+    "message": "Projeto renomeado para “Cozinha da Ana”.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Ajuste as medidas da estante",
+     "Troque o acabamento",
+     "Veja o orçamento"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "project_rename",
+     "label": "Renomeei para \"Cozinha da Ana\"",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "9bb821ca0388",
+   "report": {
+    "outcome": "answered",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.00173025,
+   "tokens": {
+    "input": 23312,
+    "cached": 22395,
+    "output": 76
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "est-03",
+   "group": "estudio",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "c27e759a1e",
+   "prompt": "gera o PDF e baixa o CSV das peças",
+   "ok": true,
+   "errors": [],
+   "action": "answer",
+   "applied": false,
+   "calls": 0,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 262,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "answer",
+    "message": "Pronto: gerei o PDF, gerei a lista de peças.",
+    "ops": [],
+    "refs": [],
+    "suggestions": []
+   },
+   "steps": [
+    {
+     "tool": "router",
+     "label": "Pedido direto, sem IA (0,3 s)",
+     "ok": true
+    },
+    {
+     "tool": "export_file",
+     "label": "Gerei o PDF",
+     "ok": true
+    },
+    {
+     "tool": "export_file",
+     "label": "Gerei a lista de peças",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "9bb821ca0388",
+   "report": {
+    "outcome": "answered",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0,
+   "tokens": {
+    "input": 0,
+    "cached": 0,
+    "output": 0
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "est-04",
+   "group": "estudio",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "a4a4951d32",
+   "prompt": "a parede tem 2,8 m de largura e 2,6 m de altura",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 4,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 31425,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Registrei a parede com 2,8 m de largura e 2,6 m de altura. Como essas medidas não foram informadas, usei 3 m de profundidade do cômodo e 7 cm de rodapé; a estante existente cabe, com 80 cm de folga na altura.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Ative a visualização do ambiente",
+     "Ajuste a estante à parede",
+     "Informe as medidas reais do cômodo"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "ask_user",
+     "label": "Dispensei a pergunta",
+     "ok": false,
+     "detail": "Não pergunte: use as medidas do ambiente que já existem, ou as padrão, e diga quais usou. Pergunte só quando um chute errado custa caro e não há padrão nem limite para usar."
+    },
+    {
+     "tool": "room_set",
+     "label": "Parede de 2.8 × 2.6 m",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "5c9f6a28b69f",
+   "report": {
+    "outcome": "applied",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.00790295,
+   "tokens": {
+    "input": 49168,
+    "cached": 47309,
+    "output": 2304
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "est-05",
+   "group": "estudio",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "e99d079c50",
+   "prompt": "sobe a margem para 35%",
+   "ok": true,
+   "errors": [],
+   "action": "answer",
+   "applied": false,
+   "calls": 2,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 6629,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "answer",
+    "message": "A margem foi definida em 35%; o orçamento permanece em R$ 1.230,63.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Consultar o orçamento detalhado",
+     "Ver o plano de corte",
+     "Exportar o orçamento em PDF"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "prices_set",
+     "label": "Ajustei os preços: total R$ 1.230,63",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "9bb821ca0388",
+   "report": {
+    "outcome": "answered",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.0020061,
+   "tokens": {
+    "input": 23321,
+    "cached": 22392,
+    "output": 211
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "est-06",
+   "group": "estudio",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "bb70caea9f",
+   "prompt": "volta para a versão 1",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 2,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 6701,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "Voltei para a versão 1: a estante inicial, com 80 × 180 × 35 cm.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Ajuste as medidas da estante",
+     "Mude o acabamento",
+     "Confira o orçamento"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "history_goto",
+     "label": "Voltei para a versão 1",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "bbdd4d76cb24",
+   "finalHash": "9bb821ca0388",
+   "report": {
+    "outcome": "applied",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.0017975,
+   "tokens": {
+    "input": 23251,
+    "cached": 22360,
+    "output": 117
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "auto-01",
+   "group": "autoconferencia",
+   "run": 1,
+   "askAct": "livre",
+   "caseHash": "4d4f0b90ab",
+   "prompt": "Coloque um armário aéreo de 80 cm de largura bem no meio da parede, a 1,5 m do piso.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 8,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 51968,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro.",
+    "Armário aéreo: fixar na parede com parafuso, bucha e suporte adequados à carga."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "O centro da parede está bloqueado pela janela; para não cobri-la, instalei o armário aéreo de 80 × 60 × 35 cm imediatamente à direita dela, com a base a 1,50 m do piso. A estante existente e a janela foram mantidas.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Confira o encaixe na parede",
+     "Veja o orçamento atualizado",
+     "Mude a altura do armário"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "place",
+     "label": "Peça não coube; ajustando",
+     "ok": false,
+     "detail": "Nada foi montado: Armário aéreo (800 × 600 mm, x 1200–2000, y 1500–2100): cobre janela (x 970–2230, y 1070–2130 mm). Livre nessa altura: 2230–3200 mm. Sem largura ou altura, o app encolhe a peça até o espaço livre."
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho: achei um problema, corrigindo",
+     "ok": false,
+     "detail": "Conferência antes de terminar: O pedido pede armários aéreos e não há nenhum módulo suspenso. Faça o que falta, ou diga na mensagem por que não deu. Corrija com as ferramentas e chame finish de novo; se não der, chame finish dizendo o problema na mensagem."
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho: achei um problema, corrigindo",
+     "ok": false,
+     "detail": "Conferência antes de terminar: O pedido pede armários aéreos e não há nenhum módulo suspenso. Faça o que falta, ou diga na mensagem por que não deu. Corrija com as ferramentas e chame finish de novo; se não der, chame finish dizendo o problema na mensagem."
+    },
+    {
+     "tool": "place",
+     "label": "Armário aéreo à direita da janela",
+     "ok": true
+    },
+    {
+     "tool": "view_camera",
+     "label": "Vista de frente",
+     "ok": true
+    },
+    {
+     "tool": "view_frame",
+     "label": "Enquadrei o móvel",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 1,
+   "repairs": 2,
+   "startHash": "19bd5e4d3efa",
+   "finalHash": "4e1fa0d9db81",
+   "report": {
+    "outcome": "applied",
+    "applied": 3,
+    "attempted": 0,
+    "facts": [
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 1.774,14"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.013996950000000001,
+   "tokens": {
+    "input": 104311,
+    "cached": 101419,
+    "output": 3740
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "auto-02",
+   "group": "autoconferencia",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "a6ec4c765b",
+   "prompt": "Monte balcões e aéreos nessa parede e me mande o PDF.",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 9,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 65340,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro.",
+    "Aéreo 1 e Aéreo 2: fixar na parede com parafuso, bucha e suporte adequados à carga."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "A estante inicial foi substituída pelo balcão em carvalho ao longo de 3,20 m, com 90 cm de altura total, e pelos aéreos em dois trechos ao lado da janela, somando 1,84 m; a área da janela ficou livre. O PDF foi gerado para download.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Revise o orçamento detalhado",
+     "Veja o plano de corte",
+     "Ajuste a divisão dos módulos"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "plan",
+     "label": "Planejei o trabalho",
+     "ok": true
+    },
+    {
+     "tool": "room_set",
+     "label": "room_set",
+     "ok": false,
+     "detail": "Medida fora do limite do ambiente: schemaVersion Invalid input: expected 1"
+    },
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "row_build",
+     "label": "Balcão: 4 módulos",
+     "ok": true
+    },
+    {
+     "tool": "row_build",
+     "label": "Aéreo: 2 módulos, desviando de janela",
+     "ok": true
+    },
+    {
+     "tool": "render_look",
+     "label": "Olhei o desenho",
+     "ok": true
+    },
+    {
+     "tool": "export_file",
+     "label": "Gerei o PDF",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho: achei um problema, corrigindo",
+     "ok": false,
+     "detail": "Conferência antes de terminar: A mensagem não diz que saiu Estante. Diga na resposta que saiu (e por quê). Corrija com as ferramentas e chame finish de novo; se não der, chame finish dizendo o problema na mensagem."
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 1,
+   "repairs": 1,
+   "startHash": "19bd5e4d3efa",
+   "finalHash": "7b88640df94e",
+   "report": {
+    "outcome": "applied",
+    "applied": 23,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Chapas",
+      "before": "2",
+      "after": "5"
+     },
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 5.616,49"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.017304700000000003,
+   "tokens": {
+    "input": 117017,
+    "cached": 113444,
+    "output": 4923
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "tc-01",
+   "group": "trabalho-completo",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "c6405af8a1",
+   "prompt": "Cozinha para uma parede de 3,2 m com janela de 1,2 m no meio: balcões embaixo e aéreos dos dois lados da janela. Mostre de frente e me mande o PDF",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 12,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 77909,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro.",
+    "Aéreo esquerdo 1 e Aéreo direito 1: fixar na parede com parafuso, bucha e suporte adequados à carga."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "A Estante inicial foi substituída porque o pedido era montar uma cozinha nova. Ficou um balcão de 3,20 m de largura, 90 cm de altura total e 58 cm de profundidade, com dois aéreos de 92 cm de largura, um de cada lado da janela; considerei a janela centralizada, de 1,20 × 1,00 m, com peitoril a 1,00 m. A vista frontal está selecionada e o PDF foi gerado.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Confira o orçamento da cozinha",
+     "Ajuste a altura dos aéreos",
+     "Exporte a lista de peças"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "plan",
+     "label": "Planejei o trabalho",
+     "ok": true
+    },
+    {
+     "tool": "room_set",
+     "label": "Parede de 3.2 × 2.4 m",
+     "ok": true
+    },
+    {
+     "tool": "room_obstacles",
+     "label": "Marquei a parede",
+     "ok": true
+    },
+    {
+     "tool": "row_build",
+     "label": "Balcão inferior: 4 módulos",
+     "ok": true
+    },
+    {
+     "tool": "row_build",
+     "label": "Aéreo esquerdo: 1 módulo, desviando de Janela central",
+     "ok": true
+    },
+    {
+     "tool": "row_build",
+     "label": "Aéreo direito: 1 módulo, desviando de Janela central",
+     "ok": true
+    },
+    {
+     "tool": "view_camera",
+     "label": "Vista de frente",
+     "ok": true
+    },
+    {
+     "tool": "view_frame",
+     "label": "Enquadrei o móvel",
+     "ok": true
+    },
+    {
+     "tool": "render_look",
+     "label": "Olhei o desenho",
+     "ok": true
+    },
+    {
+     "tool": "export_file",
+     "label": "Gerei o PDF",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho: achei um problema, corrigindo",
+     "ok": false,
+     "detail": "Conferência antes de terminar: A mensagem não diz que saiu Estante. Diga na resposta que saiu (e por quê). Corrija com as ferramentas e chame finish de novo; se não der, chame finish dizendo o problema na mensagem."
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 1,
+   "startHash": "9bb821ca0388",
+   "finalHash": "35eeb2925eb2",
+   "report": {
+    "outcome": "applied",
+    "applied": 23,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Chapas",
+      "before": "2",
+      "after": "5"
+     },
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 4.942,57"
+     }
+    ],
+    "verification": null
+   },
+   "costUsd": 0.019435599999999997,
+   "tokens": {
+    "input": 152141,
+    "cached": 148922,
+    "output": 5190
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "op-01",
+   "group": "opcoes",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "9a3c9b7e7f",
+   "prompt": "Me dá 3 opções de estante para uma parede de 2 m: uma mais barata, uma com portas e uma com gavetas",
+   "ok": false,
+   "errors": [
+    "opções com o mesmo preço"
+   ],
+   "action": "answer",
+   "applied": false,
+   "calls": 27,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 152640,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "answer",
+    "message": "As três alternativas foram preparadas para comparação: estante aberta econômica, estante com portas e estante com gavetas; a ferramenta não conseguiu concluir portas ou gavetas nas respectivas opções. Como o limite de etapas foi atingido, o móvel original permaneceu inalterado; os cartões mostram os preços estimados e os detalhes disponíveis de cada alternativa.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Rever as opções nos cartões",
+     "Aplicar a opção aberta",
+     "Ajustar o projeto original"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "options_make",
+     "label": "Montei 2 opções para comparar",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho: achei um problema, corrigindo",
+     "ok": false,
+     "detail": "Conferência antes de terminar: O pedido pede gavetas e o móvel não tem nenhuma. Faça o que falta, ou diga na mensagem por que não deu. Corrija com as ferramentas e chame finish de novo; se não der, chame finish dizendo o problema na mensagem."
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho: achei um problema, corrigindo",
+     "ok": false,
+     "detail": "Conferência antes de terminar: O pedido pede gavetas e o móvel não tem nenhuma. Faça o que falta, ou diga na mensagem por que não deu. Corrija com as ferramentas e chame finish de novo; se não der, chame finish dizendo o problema na mensagem."
+    },
+    {
+     "tool": "options_make",
+     "label": "Montei 3 opções para comparar",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 2,
+   "startHash": "9bb821ca0388",
+   "finalHash": "9bb821ca0388",
+   "report": {
+    "outcome": "answered",
+    "applied": 0,
+    "attempted": null,
+    "facts": null,
+    "verification": null
+   },
+   "costUsd": 0.06950604999999999,
+   "tokens": {
+    "input": 257173,
+    "cached": 223961,
+    "output": 20851
+   },
+   "infra": false,
+   "attempts": 1
+  },
+  {
+   "id": "est-10",
+   "group": "composicao",
+   "run": 1,
+   "askAct": "agir",
+   "caseHash": "e93b674b90",
+   "prompt": "Quero uma estante de 1,6 m de largura por 2 m de altura, com nichos abertos em cima e portas embaixo",
+   "ok": true,
+   "errors": [],
+   "action": "update",
+   "applied": true,
+   "calls": 9,
+   "retries": 0,
+   "networkRetries": 0,
+   "latencyMs": 35567,
+   "warnings": [
+    "Perfil demonstrativo. Conferir ferragens, furação, montagem, cargas e estabilidade com um marceneiro."
+   ],
+   "decision": {
+    "action": "update",
+    "message": "A estante foi substituída por um modelo de 160 × 200 × 35 cm, com nichos abertos na parte superior e portas duplas na base. O desenho foi enquadrado na vista frontal para conferência.",
+    "ops": [],
+    "refs": [],
+    "suggestions": [
+     "Abra as portas para conferir o interior",
+     "Troque o acabamento da estante",
+     "Consulte o orçamento atualizado"
+    ]
+   },
+   "steps": [
+    {
+     "tool": "plan",
+     "label": "Planejei o trabalho",
+     "ok": true
+    },
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "design_apply",
+     "label": "Estante 160 × 200 com portas",
+     "ok": true
+    },
+    {
+     "tool": "state_read",
+     "label": "Li o projeto",
+     "ok": true
+    },
+    {
+     "tool": "design_apply",
+     "label": "Portas na base da estante",
+     "ok": true
+    },
+    {
+     "tool": "view_camera",
+     "label": "Vista de frente",
+     "ok": true
+    },
+    {
+     "tool": "view_frame",
+     "label": "Enquadrei o móvel",
+     "ok": true
+    },
+    {
+     "tool": "render_look",
+     "label": "Olhei o desenho",
+     "ok": true
+    },
+    {
+     "tool": "finish",
+     "label": "Conferi o trabalho",
+     "ok": true
+    }
+   ],
+   "rejected": 0,
+   "repairs": 0,
+   "startHash": "9bb821ca0388",
+   "finalHash": "b52b0ff14d57",
+   "report": {
+    "outcome": "applied",
+    "applied": 2,
+    "attempted": null,
+    "facts": [
+     {
+      "label": "Chapas",
+      "before": "2",
+      "after": "3"
+     },
+     {
+      "label": "Orçamento",
+      "before": "R$ 1.230,63",
+      "after": "R$ 2.687,28"
+     }
+    ],
+    "verification": null
+   },
+   "final": {
+    "design": {
+     "schemaVersion": 3,
+     "profile": {
+      "version": 1,
+      "panel": 18,
+      "back": 6,
+      "front": 18,
+      "reveal": 2,
+      "drawer": 15,
+      "drawerBottom": 6,
+      "slideSpace": 13,
+      "rearSpace": 20
+     },
+     "modules": [
+      {
+       "id": "estante-e1",
+       "name": "Coluna esquerda",
+       "width": 809,
+       "height": 2000,
+       "depth": 350,
+       "materialId": "oak",
+       "back": true,
+       "position": [
+        0,
+        0,
+        0
+       ],
+       "rotation": 0,
+       "root": {
+        "id": "estante-e1:root",
+        "split": {
+         "id": "estante-e1:root:divider",
+         "axis": "y",
+         "ratio": 0.19424460431654678,
+         "children": [
+          {
+           "id": "estante-e1:root:low",
+           "front": {
+            "id": "front-d035ca5e-c08",
+            "type": "double",
+            "hinge": "left",
+            "materialId": "oak",
+            "heights": [
+             1
+            ]
+           }
+          },
+          {
+           "id": "estante-e1:root:high",
+           "split": {
+            "id": "estante-e1:root:high:divider",
+            "axis": "y",
+            "ratio": 0.24387096774193548,
+            "children": [
+             {
+              "id": "estante-e1:root:high:low"
+             },
+             {
+              "id": "estante-e1:root:high:high",
+              "split": {
+               "id": "estante-e1:root:high:high:divider",
+               "axis": "y",
+               "ratio": 0.3275563258232236,
+               "children": [
+                {
+                 "id": "estante-e1:root:high:high:low"
+                },
+                {
+                 "id": "estante-e1:root:high:high:high",
+                 "split": {
+                  "id": "estante-e1:root:high:high:high:divider",
+                  "axis": "y",
+                  "ratio": 0.5,
+                  "children": [
+                   {
+                    "id": "estante-e1:root:high:high:high:low"
+                   },
+                   {
+                    "id": "estante-e1:root:high:high:high:high"
+                   }
+                  ]
+                 }
+                }
+               ]
+              }
+             }
+            ]
+           }
+          }
+         ]
+        }
+       },
+       "legacyIds": false
+      },
+      {
+       "id": "estante-e2",
+       "name": "Coluna direita",
+       "width": 809,
+       "height": 2000,
+       "depth": 350,
+       "materialId": "oak",
+       "back": true,
+       "position": [
+        791,
+        0,
+        0
+       ],
+       "rotation": 0,
+       "root": {
+        "id": "estante-e2:root",
+        "split": {
+         "id": "estante-e2:root:divider",
+         "axis": "y",
+         "ratio": 0.19424460431654678,
+         "children": [
+          {
+           "id": "estante-e2:root:low",
+           "front": {
+            "id": "front-d45747f6-598",
+            "type": "double",
+            "hinge": "left",
+            "materialId": "oak",
+            "heights": [
+             1
+            ]
+           }
+          },
+          {
+           "id": "estante-e2:root:high",
+           "split": {
+            "id": "estante-e2:root:high:divider",
+            "axis": "y",
+            "ratio": 0.24387096774193548,
+            "children": [
+             {
+              "id": "estante-e2:root:high:low"
+             },
+             {
+              "id": "estante-e2:root:high:high",
+              "split": {
+               "id": "estante-e2:root:high:high:divider",
+               "axis": "y",
+               "ratio": 0.3275563258232236,
+               "children": [
+                {
+                 "id": "estante-e2:root:high:high:low"
+                },
+                {
+                 "id": "estante-e2:root:high:high:high",
+                 "split": {
+                  "id": "estante-e2:root:high:high:high:divider",
+                  "axis": "y",
+                  "ratio": 0.5,
+                  "children": [
+                   {
+                    "id": "estante-e2:root:high:high:high:low"
+                   },
+                   {
+                    "id": "estante-e2:root:high:high:high:high"
+                   }
+                  ]
+                 }
+                }
+               ]
+              }
+             }
+            ]
+           }
+          }
+         ]
+        }
+       },
+       "legacyIds": false
+      }
+     ],
+     "connections": [
+      {
+       "id": "connection-0b58ac99-ffc",
+       "parent": "estante-e1",
+       "child": "estante-e2",
+       "side": "right",
+       "shared": true,
+       "align": "front",
+       "offset": 0
+      }
+     ]
+    },
+    "room": null
+   },
+   "costUsd": 0.010930200000000001,
+   "tokens": {
+    "input": 122285,
+    "cached": 117614,
+    "output": 1357
+   },
+   "infra": false,
+   "attempts": 1
+  }
+ ]
+}

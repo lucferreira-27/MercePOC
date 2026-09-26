@@ -1,0 +1,311 @@
+{
+ "id": "bib-05",
+ "at": "2026-09-26T07:18:57.811Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Coloque um criado-mudo encostado à direita desta estante",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_csMmPaSMwvipzfG76UTpTx57",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"asset.add\",\"asset\":\"criado-mudo\",\"placement\":\"right\",\"materialId\":\"oak\",\"frontMaterialId\":\"oak\"}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Coloque um criado-mudo encostado à direita desta estante",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_yNYepegjpLmY12FvRaUQT8KQ",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Coloque um criado-mudo encostado à direita desta estante",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_Ii3YD3PvaACweAEiV41EgMTL",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"cm-m\",\"position\":[800,0,25]}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Coloque um criado-mudo encostado à direita desta estante",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_5n9LSlYBeh2Ihji1Cj0Ah2kC",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "11|Pedido: Coloque um criado-mudo encostado à direita desta estante",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_KyiC1eEttlSfiKgFhvAXqgKX",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Acrescentei um criado-mudo de 50 × 40 × 40 cm, em carvalho, encostado à direita da estante de 80 × 180 × 35 cm.\",\"sugestoes\":[\"Ajuste a altura do criado-mudo\",\"Mude o acabamento do criado-mudo\",\"Confira o orçamento atualizado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.92,
+      "probabilities": {
+       "view": 0,
+       "studio": 0,
+       "options": 0,
+       "edit": 0.06,
+       "build": 0.94,
+       "ask": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.36
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.41
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.01
+     }
+    },
+    "usage": {
+     "input_tokens": 1320,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.1
+     }
+    },
+    "usage": {
+     "input_tokens": 423,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.95
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 523,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

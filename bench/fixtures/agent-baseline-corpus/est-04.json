@@ -1,0 +1,357 @@
+{
+ "id": "est-04",
+ "at": "2026-09-26T07:19:23.042Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: a parede tem 2,8 m de largura e 2,6 m de altura",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_QfhSnhrBkX0GcXuj5BnvfGaF",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: a parede tem 2,8 m de largura e 2,6 m de altura",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_zux3r1NExELiXobhdnlRyccD",
+      "type": "function",
+      "function": {
+       "name": "ask_user",
+       "arguments": "{\"pergunta\":\"Para registrar o ambiente, preciso também da profundidade do cômodo e da altura do rodapé. Quais são essas medidas?\",\"opcoes\":[{\"rotulo\":\"Vou informar profundidade e rodapé\",\"ids\":[]},{\"rotulo\":\"Não sei as medidas; deixar sem ambiente por enquanto\",\"ids\":[]}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: a parede tem 2,8 m de largura e 2,6 m de altura",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_94B8un07Fr9XbnokTONN5Pph",
+      "type": "function",
+      "function": {
+       "name": "room_set",
+       "arguments": "{\"largura\":2800,\"altura\":2600,\"profundidade\":3000,\"rodape\":100}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: a parede tem 2,8 m de largura e 2,6 m de altura",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_VsS0a8c1JbubA1vPnr66xaZP",
+      "type": "function",
+      "function": {
+       "name": "view_toggle",
+       "arguments": "{\"o_que\":\"room\",\"ligado\":true}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: a parede tem 2,8 m de largura e 2,6 m de altura",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_nJVt5LX9ows3VJaNWMZoE2G7",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Registrei a parede com 2,8 m de largura e 2,6 m de altura; como você não informou as outras medidas, usei 3 m de profundidade do cômodo e rodapé de 10 cm. A estante de 80 × 180 × 35 cm cabe, com 80 cm livres acima.\",\"sugestoes\":[\"Ajuste a estante à largura da parede\",\"Informe a profundidade e o rodapé reais\",\"Confira o orçamento atualizado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "ask",
+      "confidence": 0.43,
+      "probabilities": {
+       "options": 0,
+       "view": 0,
+       "edit": 0.05,
+       "build": 0.41,
+       "ask": 0.54,
+       "studio": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.64
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1324,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 427,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "alvo_vago,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "vague": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "alvo_vago": {
+      "type": "noul",
+      "noul": 0.08
+     }
+    },
+    "usage": {
+     "input_tokens": 365,
+     "output_tokens": 40
+    }
+   }
+  },
+  {
+   "asked": "especie",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "especie": {
+      "type": "choice",
+      "choice": "ambiente",
+      "confidence": 0.62,
+      "probabilities": {
+       "valor": 0.32,
+       "preferencia": 0,
+       "peca": 0,
+       "limite": 0,
+       "ambiente": 0.68,
+       "outro": 0,
+       "eixo": 0
+      }
+     }
+    },
+    "usage": {
+     "input_tokens": 483,
+     "output_tokens": 77
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 554,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

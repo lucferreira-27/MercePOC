@@ -1,0 +1,294 @@
+{
+ "id": "coz-03",
+ "at": "2026-09-26T06:30:24.593Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: \"Não cabe: o móvel tem 4,86 m de largura e a parede tem 3,00 m\" arrume isso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_KtKFCedJN1InzsDzTy4283fN",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: \"Não cabe: o móvel tem 4,86 m de largura e a parede tem 3,00 m\" arrume isso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_KxJpuA2W5EbW0I95VUFYA8Mr",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"c-b1\",\"width\":444},{\"kind\":\"module.edit\",\"id\":\"c-b2\",\"width\":444},{\"kind\":\"module.edit\",\"id\":\"c-b3\",\"width\":444},{\"kind\":\"module.edit\",\"id\":\"c-b4\",\"width\":444},{\"kind\":\"module.edit\",\"id\":\"c-b5\",\"width\":444},{\"kind\":\"module.edit\",\"id\":\"apoio-cozinha-a1\",\"width\":444},{\"kind\":\"module.edit\",\"id\":\"apoio-cozinha-a2\",\"width\":444},{\"kind\":\"module.edit\",\"id\":\"c-a1\",\"width\":614.4},{\"kind\":\"module.edit\",\"id\":\"c-a2\",\"width\":614.4},{\"kind\":\"module.edit\",\"id\":\"c-a3\",\"width\":614.4},{\"kind\":\"module.edit\",\"id\":\"c-a4\",\"width\":614.4},{\"kind\":\"module.edit\",\"id\":\"c-a5\",\"width\":614.4},{\"kind\":\"connect\",\"parent\":\"c-b5\",\"child\":\"apoio-cozinha-a1\",\"side\":\"right\",\"shared\":true,\"align\":\"front\",\"offset\":0}],\"rotulo\":\"Ajuste para caber na parede de 3 m\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: \"Não cabe: o móvel tem 4,86 m de largura e a parede tem 3,00 m\" arrume isso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_p385Sv6mPjPCUR0lkxKvBsdp",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"c-b1\",\"width\":474.4},{\"kind\":\"module.edit\",\"id\":\"c-b2\",\"width\":474.4},{\"kind\":\"module.edit\",\"id\":\"c-b3\",\"width\":474.4},{\"kind\":\"module.edit\",\"id\":\"c-b4\",\"width\":474.4},{\"kind\":\"module.edit\",\"id\":\"c-b5\",\"width\":474.4},{\"kind\":\"module.edit\",\"id\":\"c-a1\",\"width\":574.4},{\"kind\":\"module.edit\",\"id\":\"c-a2\",\"width\":574.4},{\"kind\":\"module.edit\",\"id\":\"c-a3\",\"width\":574.4},{\"kind\":\"module.edit\",\"id\":\"c-a4\",\"width\":574.4},{\"kind\":\"module.edit\",\"id\":\"c-a5\",\"width\":574.4},{\"kind\":\"module.edit\",\"id\":\"apoio-cozinha-a1\",\"width\":259},{\"kind\":\"module.edit\",\"id\":\"apoio-cozinha-a2\",\"width\":259},{\"kind\":\"disconnect\",\"child\":\"apoio-cozinha-a2\"},{\"kind\":\"module.edit\",\"id\":\"apoio-cozinha-a1\",\"position\":[2318,0,0]},{\"kind\":\"connect\",\"parent\":\"apoio-cozinha-a1\",\"child\":\"apoio-cozinha-a2\",\"side\":\"right\",\"shared\":true,\"align\":\"front\",\"offset\":0}],\"rotulo\":\"Ajuste para caber na parede de 3 m\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: \"Não cabe: o móvel tem 4,86 m de largura e a parede tem 3,00 m\" arrume isso",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_mNQreU2tK2DjC20CWD1lLw1V",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Ajustei os módulos para o conjunto caber na parede de 3 m: agora ele mede 2,98 m de largura, com cerca de 2,4 cm de folga. Mantive a composição e os acabamentos existentes.\",\"sugestoes\":[\"Confira o encaixe na parede\",\"Veja o orçamento atualizado\",\"Mostre o móvel de frente\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 0.99,
+      "probabilities": {
+       "options": 0,
+       "edit": 1,
+       "studio": 0,
+       "view": 0,
+       "build": 0,
+       "ask": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.69
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.43
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.46
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.15
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.38
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 1337,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 440,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.83
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 527,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

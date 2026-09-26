@@ -1,0 +1,277 @@
+{
+ "id": "mat-01",
+ "at": "2026-09-26T06:24:09.088Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Reduco a quantidade placas necesseria, entao tudo do mesmo material",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_egXARFCPFUIS6aRsQV2CeAaQ",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Reduco a quantidade placas necesseria, entao tudo do mesmo material",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_8jzUrN1eHcwJJdTpSs6SkxWm",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.edit\",\"id\":\"nicho-destaque\",\"materialId\":\"walnut\"},{\"kind\":\"module.edit\",\"id\":\"prateleira-destaque\",\"materialId\":\"walnut\"},{\"kind\":\"module.edit\",\"id\":\"nicho-complementar\",\"materialId\":\"walnut\"}],\"rotulo\":\"Padronizar material em nogueira\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Reduco a quantidade placas necesseria, entao tudo do mesmo material",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_gcZwmGLy2zwx7NpZhbSfx2Ld",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Padronizei todos os módulos no mesmo material, Nogueira, para reduzir a variedade de chapas; o painel também já era Nogueira. As medidas e a posição na parede foram mantidas.\",\"sugestoes\":[\"Confira o novo orçamento\",\"Veja o plano de corte\",\"Compare outro acabamento\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 0.99,
+      "probabilities": {
+       "studio": 0,
+       "ask": 0,
+       "options": 0,
+       "edit": 0.99,
+       "build": 0.01,
+       "view": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.45
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.67
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.42
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.24
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 1320,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.05
+     }
+    },
+    "usage": {
+     "input_tokens": 423,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.57
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.29
+     }
+    },
+    "usage": {
+     "input_tokens": 515,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,442 @@
+{
+ "id": "imp-01",
+ "at": "2026-09-26T06:25:46.646Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Coloque uma estante de vidro curva de 3 metros bem na frente da TV",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_sP91YcQB2jaNvQfzp6ZSXR0X",
+      "type": "function",
+      "function": {
+       "name": "ask_user",
+       "arguments": "{\"pergunta\":\"O estúdio não modela vidro nem formas curvas. Posso adaptar para uma estante reta, mas colocá-la literalmente diante da TV pode bloqueá-la; qual alternativa prefere?\",\"opcoes\":[{\"rotulo\":\"Reta de 3 m diante da TV, mesmo bloqueando\",\"ids\":[]},{\"rotulo\":\"Reta de 3 m ao lado da TV\",\"ids\":[]},{\"rotulo\":\"Não alterar o projeto\",\"ids\":[]}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Coloque uma estante de vidro curva de 3 metros bem na frente da TV",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_TBO4YWeFYuXgO6I81vaih12k",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Trocar o painel por uma estante reta de 3 m\",\"Desviar os módulos da TV e mostrar o resultado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Coloque uma estante de vidro curva de 3 metros bem na frente da TV",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_m2r18ALYYsDdOYWEjq4hnDsd",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Coloque uma estante de vidro curva de 3 metros bem na frente da TV",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_afpCJLAQyQ4FonEsWmmukRpq",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.remove\",\"id\":\"p\"},{\"kind\":\"module.add\",\"id\":\"estante\",\"preset\":\"shelf\",\"name\":\"Estante reta\"},{\"kind\":\"module.edit\",\"id\":\"estante\",\"width\":1200,\"height\":2100,\"depth\":350,\"materialId\":\"walnut\",\"back\":true,\"position\":[0,0,0]}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Coloque uma estante de vidro curva de 3 metros bem na frente da TV",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_mBjsFnlqd4zJwjwTH1XzrezJ",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Substituir o painel por uma estante reta de 3 m\",\"Conferir a aparência e o encaixe na parede\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Coloque uma estante de vidro curva de 3 metros bem na frente da TV",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_7K8khQpFWXBSP7yhjiE6rDsT",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\":400,\"largura\":3000,\"altura\":2100,\"profundidade\":350,\"base\":0,\"tipo\":\"shelf\",\"nome\":\"Estante reta\",\"modulos\":4,\"largura_max_modulo\":900,\"frente\":\"none\",\"gavetas\":1,\"material\":\"walnut\",\"material_frente\":\"walnut\",\"pes\":0,\"desviar_obstaculos\":true,\"folga\":50,\"substituir\":true}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "14|Pedido: Coloque uma estante de vidro curva de 3 metros bem na frente da TV",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_rB16jJ16a8ZW5LS7TEymFfA0",
+      "type": "function",
+      "function": {
+       "name": "view_camera",
+       "arguments": "{\"vista\":\"front\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "16|Pedido: Coloque uma estante de vidro curva de 3 metros bem na frente da TV",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_EjPpDC6aylrbSC9l0p2iwLSZ",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "18|Pedido: Coloque uma estante de vidro curva de 3 metros bem na frente da TV",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_8wv51yq98iiKlN6JS53lHr5b",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "21|Pedido: Coloque uma estante de vidro curva de 3 metros bem na frente da TV",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_Nix6LfG7EOOV9UJTN8U6axdg",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Adaptei o pedido para uma estante reta aberta em nogueira, sem vidro nem curva, posicionada ao lado da TV para não bloqueá-la. Por causa da TV e da tomada, couberam dois módulos que somam 1,37 m de largura; você pode pedir outra posição ou medida para ajustar.\",\"sugestoes\":[\"Mudar a estante para outra parede\",\"Ajustar a altura ou profundidade\",\"Ver o orçamento detalhado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.95,
+      "probabilities": {
+       "view": 0.01,
+       "studio": 0,
+       "options": 0,
+       "build": 0.96,
+       "ask": 0,
+       "edit": 0.03
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.2
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.76
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.49
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.66
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.39
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.21
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.31
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.01
+     }
+    },
+    "usage": {
+     "input_tokens": 1323,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.42
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 426,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "alvo_vago,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "vague": {
+      "type": "noul",
+      "noul": 0.62
+     },
+     "alvo_vago": {
+      "type": "noul",
+      "noul": 0.07
+     }
+    },
+    "usage": {
+     "input_tokens": 364,
+     "output_tokens": 40
+    }
+   }
+  },
+  {
+   "asked": "especie",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "especie": {
+      "type": "choice",
+      "choice": "preferencia",
+      "confidence": 0.83,
+      "probabilities": {
+       "valor": 0,
+       "peca": 0.01,
+       "limite": 0.12,
+       "ambiente": 0.01,
+       "preferencia": 0.85,
+       "outro": 0.01,
+       "eixo": 0
+      }
+     }
+    },
+    "usage": {
+     "input_tokens": 497,
+     "output_tokens": 79
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.41
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.94
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.3
+     }
+    },
+    "usage": {
+     "input_tokens": 544,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}
