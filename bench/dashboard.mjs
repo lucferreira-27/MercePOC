@@ -19,7 +19,7 @@ const OUT = join(RESULTS, 'painel.html');
 const PRICES = {
   'deepseek@commandcode': [0.14, 0.56, 0.014],
   'deepseek@zen': [0.3, 1.2, 0.006],
-  'luna@commandcode': [0.5, 2, 0.05],
+  'luna@commandcode': [0.1, 0.5, 0.01],
   'luna@zen': [0.1, 0.5, 0.01],
   'mimo@commandcode': [0.14, 0.28, 0.0028],
 };

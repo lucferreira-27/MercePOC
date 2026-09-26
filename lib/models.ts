@@ -5,7 +5,7 @@
  * preço. O custo do turno é calculado aqui, com a tabela abaixo, e por isso é
  * uma estimativa: quem tem o preço contratado ajusta em `.env` com
  * `MERCE_PRICE_<CHAVE>=entrada,saída,entrada-em-cache` (dólares por milhão de
- * tokens), por exemplo `MERCE_PRICE_LUNA=0.5,2,0.05`.
+ * tokens), por exemplo `MERCE_PRICE_LUNA=0.1,0.5,0.01`.
  *
  * Este arquivo não lê segredo nenhum: o cliente importa a lista para o seletor
  * de modelo e a conta do custo; chaves e URLs ficam em `modelProfile`, que só
@@ -55,7 +55,7 @@ export const MODELS: ModelInfo[] = [
     // Medido nos casos difíceis: low acerta 4/10, high 9/10. Pergunta demais
     // sem o portão do perguntar (lib/agent/ask-gate.ts).
     reasoning: 'high',
-    price: { input: 0.5, output: 2, cachedInput: 0.05 },
+    price: { input: 0.1, output: 0.5, cachedInput: 0.01 },
   },
   {
     key: 'deepseek',
