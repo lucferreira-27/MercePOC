@@ -1,0 +1,345 @@
+{
+ "id": "lav-01",
+ "at": "2026-09-26T22:30:15.895Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_oJTl4SVRAWRhs8l8pxVPvssI",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Conferir o móvel e os espaços livres na parede\",\"Adicionar dois móveis complementares sem alterar o existente\",\"Visualizar e enquadrar a composição no ambiente\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_58T9DwhSnx98qX1JMzFCcLta",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_THnDzPbbEqDWue46ztVZinfl",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"estante-lateral\",\"nome\":\"Estante lateral\",\"tipo\":\"estante\",\"largura\":900,\"altura\":1900,\"profundidade\":350,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":400,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":400,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":400,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":400,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":4,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":50,\"y\":0}},{\"ref\":\"armario-lateral\",\"nome\":\"Armário baixo lateral\",\"tipo\":\"armario\",\"largura\":900,\"altura\":750,\"profundidade\":400,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":700,\"colunas\":1,\"frente\":\"porta_dupla\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"porta_dupla\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":2250,\"y\":0}},{\"ref\":\"prateleira-lateral\",\"nome\":\"Prateleira decorativa\",\"tipo\":\"prateleira\",\"largura\":900,\"altura\":30,\"profundidade\":250,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":100,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"armario-lateral\",\"lado\":\"acima\",\"folga\":250,\"alinhar\":\"centro\",\"x\":0,\"y\":0}}],\"substituir\":false,\"rotulo\":\"Adição de móveis laterais\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_ykpSIlRmRVtv5tR598sAKN5g",
+      "type": "function",
+      "function": {
+       "name": "view_toggle",
+       "arguments": "{\"o_que\":\"room\",\"ligado\":true}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_JXs1rTbEG64IKoCJt4ZymBWt",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "13|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_TJDmMIHrNvRfME6oOuBLMlWV",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "15|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_oyoS17qlUZOjTUVJbJoB1fYc",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Acrescentei uma estante aberta de carvalho à esquerda e um armário baixo com prateleira decorativa à direita, preservando o móvel existente. Ativei a visualização do ambiente e enquadrei a composição para conferir o resultado.\",\"sugestoes\":[\"Abra o orçamento atualizado\",\"Veja o plano de corte\",\"Altere os acabamentos\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.75,
+      "probabilities": {
+       "view": 0,
+       "build": 0.8,
+       "ask": 0,
+       "options": 0,
+       "studio": 0,
+       "edit": 0.2
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.95
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.69
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.23
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.38
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1319,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.05
+     }
+    },
+    "usage": {
+     "input_tokens": 422,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.88
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 534,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

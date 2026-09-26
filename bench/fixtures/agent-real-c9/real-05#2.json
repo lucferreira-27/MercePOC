@@ -1,0 +1,234 @@
+{
+ "id": "real-05",
+ "at": "2026-09-26T22:39:16.618Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Quero essa prateleira com nichos que está na parede, em cima da cama.\nImagem 1: foto de referência deste pedido (real-quarto-nicho.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_3xmlaZLc3zQUVjq77KIOLX0K",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Estimar a escala pela porta e inventariar o nicho\",\"Preparar a parede e marcar a porta da foto\",\"Substituir a estante inicial pelo nicho suspenso\",\"Conferir a composição na cena\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Quero essa prateleira com nichos que está na parede, em cima da cama.\nImagem 1: foto de referência deste pedido (real-quarto-nicho.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_BzwCTHlh4YCb9yL0RSUQa8Qr",
+      "type": "function",
+      "function": {
+       "name": "room_set",
+       "arguments": "{\"largura\":2600,\"altura\":2600,\"profundidade\":3500,\"rodape\":100}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Quero essa prateleira com nichos que está na parede, em cima da cama.\nImagem 1: foto de referência deste pedido (real-quarto-nicho.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_f7koE8esTeg7GnP5NiGQm1Ps",
+      "type": "function",
+      "function": {
+       "name": "room_set",
+       "arguments": "{\"largura\":3200,\"altura\":2600,\"profundidade\":3500,\"rodape\":100}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Quero essa prateleira com nichos que está na parede, em cima da cama.\nImagem 1: foto de referência deste pedido (real-quarto-nicho.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_mJ502drZqLwZRkpJXYMu6s8p",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Inventário: 1 corpo horizontal, 3 nichos abertos, sem pés\",\"Escalar pela porta: estimativa de 1,68 × 0,26 × 0,25 m\",\"Marcar a parede de 3,30 m e a porta à esquerda\",\"Trocar a estante inicial pela peça em tom de madeira escura\",\"Conferir proporções e posição acima da cama na cena\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Quero essa prateleira com nichos que está na parede, em cima da cama.\nImagem 1: foto de referência deste pedido (real-quarto-nicho.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_wAdLe2F6fIJlAcN0FB5PIKK1",
+      "type": "function",
+      "function": {
+       "name": "room_set",
+       "arguments": "{\"largura\":3300,\"altura\":2600,\"profundidade\":3500,\"rodape\":100}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Quero essa prateleira com nichos que está na parede, em cima da cama.\nImagem 1: foto de referência deste pedido (real-quarto-nicho.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_uBHEwYHw6GvoX8cLbeLotQxC",
+      "type": "function",
+      "function": {
+       "name": "room_obstacles",
+       "arguments": "{\"add\":[{\"kind\":\"door\",\"label\":\"Porta\",\"xMm\":0,\"yMm\":0,\"widthMm\":800,\"heightMm\":2100}],\"move\":[],\"remove\":[]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "14|Pedido: Quero essa prateleira com nichos que está na parede, em cima da cama.\nImagem 1: foto de referência deste pedido (real-quarto-nicho.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_ejnfZSJnpJSsQJgtqVOjU2Tn",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"nicho-parede\",\"nome\":\"Nicho triplo sobre a cama\",\"tipo\":\"estante\",\"largura\":1650,\"altura\":300,\"profundidade\":250,\"pes\":0,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":264,\"colunas\":3,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":3,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"centro\",\"x\":900,\"y\":1350}}],\"substituir\":true,\"rotulo\":\"Nicho triplo sobre a cama\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "16|Pedido: Quero essa prateleira com nichos que está na parede, em cima da cama.\nImagem 1: foto de referência deste pedido (real-quarto-nicho.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_6xuF8FvaIWsYdk43m1XU1rqI",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "19|Pedido: Quero essa prateleira com nichos que está na parede, em cima da cama.\nImagem 1: foto de referência deste pedido (real-quarto-nicho.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_uXt2JjpCfDr4oJRWa20u0iIv",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Recriei o nicho de parede em nogueira com 165 × 30 × 25 cm, três vãos abertos, instalado a 1,35 m do piso; a escala foi estimada pela porta de 80 × 210 cm, com margem esperada de ±10–20%. A cama, os objetos e os suportes aparentes não foram modelados; medir a parede e a altura da cama refinaria o posicionamento.\",\"sugestoes\":[\"Ajuste a altura do nicho\",\"Troque o acabamento da madeira\",\"Confira o orçamento e o corte\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.28
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 427,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.51
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.06
+     }
+    },
+    "usage": {
+     "input_tokens": 585,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

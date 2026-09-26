@@ -1,0 +1,200 @@
+{
+ "id": "real-12",
+ "at": "2026-09-26T22:38:29.737Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Faz essa prateleira de nichos igual à da foto.\nImagem 1: foto de referência deste pedido (real-nicho-frente.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_MRMMk8UpooJOiBNLYc5QL7JD",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Inventariar a prateleira: 4 nichos abertos em uma faixa\",\"Estimar proporções e acabamento pela foto\",\"Substituir a estante inicial e conferir a cena\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Faz essa prateleira de nichos igual à da foto.\nImagem 1: foto de referência deste pedido (real-nicho-frente.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_QBGAuUVwNUs8wc08xy5Lu79G",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"prateleira-tv\",\"nome\":\"Prateleira de nichos\",\"tipo\":\"estante\",\"largura\":1400,\"altura\":300,\"profundidade\":250,\"pes\":0,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":264,\"colunas\":4,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":4,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"centro\",\"x\":0,\"y\":1200}}],\"substituir\":true,\"rotulo\":\"Prateleira de nichos da foto\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Faz essa prateleira de nichos igual à da foto.\nImagem 1: foto de referência deste pedido (real-nicho-frente.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_0GGOhhszwcCFgZ9B9wrcAa7E",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "9|Pedido: Faz essa prateleira de nichos igual à da foto.\nImagem 1: foto de referência deste pedido (real-nicho-frente.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_YU8n7PMl6h4djlyF6aJRf6nK",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "11|Pedido: Faz essa prateleira de nichos igual à da foto.\nImagem 1: foto de referência deste pedido (real-nicho-frente.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_87jTy61n4s0whcb8qklM8WqH",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"prateleira-nichos\",\"nome\":\"Prateleira de nichos\",\"tipo\":\"estante\",\"largura\":1200,\"altura\":200,\"profundidade\":250,\"pes\":0,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":164,\"colunas\":3,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":3,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"centro\",\"x\":0,\"y\":1200}}],\"substituir\":true,\"rotulo\":\"Prateleira de nichos da foto\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "13|Pedido: Faz essa prateleira de nichos igual à da foto.\nImagem 1: foto de referência deste pedido (real-nicho-frente.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_0fZ3E64PAuCHsXVqH5Nwq3jp",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "16|Pedido: Faz essa prateleira de nichos igual à da foto.\nImagem 1: foto de referência deste pedido (real-nicho-frente.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_QqpRBV21UUWTiahHy0PKsuQn",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Fiz uma prateleira suspensa de 120 × 20 × 25 cm, com três nichos abertos em nogueira; usei as caixas de componentes da foto como referência de escala, com erro estimado de ±10–20%. Medir a largura real e a altura de instalação fecharia o ajuste; os suportes metálicos visíveis na foto não são modelados.\",\"sugestoes\":[\"Ajuste a largura com a medida real\",\"Escolha outro acabamento para a prateleira\",\"Confira o orçamento detalhado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 422,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.47
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 568,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

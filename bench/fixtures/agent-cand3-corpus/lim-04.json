@@ -1,0 +1,379 @@
+{
+ "id": "lim-04",
+ "at": "2026-09-26T22:20:49.351Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_FfrljMq4aGmPvDhO1vZwpJDN",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Substituir a estante inicial por uma fileira de 12 módulos\",\"Manter altura, profundidade e acabamento da estante atual\",\"Conferir o resultado e enquadrar a composição\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_eB167bHoliwdFOXcp0pSrmKN",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\":0,\"largura\":12000,\"altura\":1800,\"profundidade\":350,\"base\":0,\"tipo\":\"shelf\",\"nome\":\"Estante\",\"modulos\":12,\"largura_max_modulo\":1000,\"frente\":\"none\",\"gavetas\":1,\"material\":\"oak\",\"material_frente\":\"oak\",\"pes\":0,\"desviar_obstaculos\":true,\"folga\":50,\"substituir\":true}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_s3YrehDyQpQ35yUbd7Nkd6za",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_syOFrs6KVOmn0MJhDFid83UP",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"rotulo\":\"Estante com 12 módulos de 1 m\",\"ops\":[{\"kind\":\"module.remove\",\"id\":\"module-1\"},{\"kind\":\"module.add\",\"id\":\"estante-01\",\"preset\":\"shelf\",\"name\":\"Estante 1\"},{\"kind\":\"module.edit\",\"id\":\"estante-01\",\"width\":1000,\"height\":1800,\"depth\":350,\"materialId\":\"oak\",\"position\":[0,0,0]},{\"kind\":\"module.add\",\"id\":\"estante-02\",\"preset\":\"shelf\",\"name\":\"Estante 2\"},{\"kind\":\"module.edit\",\"id\":\"estante-02\",\"width\":1000,\"height\":1800,\"depth\":350,\"materialId\":\"oak\"},{\"kind\":\"connect\",\"parent\":\"estante-01\",\"child\":\"estante-02\",\"side\":\"right\",\"shared\":true,\"align\":\"front\",\"offset\":0},{\"kind\":\"module.add\",\"id\":\"estante-03\",\"preset\":\"shelf\",\"name\":\"Estante 3\"},{\"kind\":\"module.edit\",\"id\":\"estante-03\",\"width\":1000,\"height\":1800,\"depth\":350,\"materialId\":\"oak\"},{\"kind\":\"connect\",\"parent\":\"estante-02\",\"child\":\"estante-03\",\"side\":\"right\",\"shared\":true,\"align\":\"front\",\"offset\":0},{\"kind\":\"module.add\",\"id\":\"estante-04\",\"preset\":\"shelf\",\"name\":\"Estante 4\"},{\"kind\":\"module.edit\",\"id\":\"estante-04\",\"width\":1000,\"height\":1800,\"depth\":350,\"materialId\":\"oak\"},{\"kind\":\"connect\",\"parent\":\"estante-03\",\"child\":\"estante-04\",\"side\":\"right\",\"shared\":true,\"align\":\"front\",\"offset\":0},{\"kind\":\"module.add\",\"id\":\"estante-05\",\"preset\":\"shelf\",\"name\":\"Estante 5\"},{\"kind\":\"module.edit\",\"id\":\"estante-05\",\"width\":1000,\"height\":1800,\"depth\":350,\"materialId\":\"oak\"},{\"kind\":\"connect\",\"parent\":\"estante-04\",\"child\":\"estante-05\",\"side\":\"right\",\"shared\":true,\"align\":\"front\",\"offset\":0},{\"kind\":\"module.add\",\"id\":\"estante-06\",\"preset\":\"shelf\",\"name\":\"Estante 6\"},{\"kind\":\"module.edit\",\"id\":\"estante-06\",\"width\":1000,\"height\":1800,\"depth\":350,\"materialId\":\"oak\"},{\"kind\":\"connect\",\"parent\":\"estante-05\",\"child\":\"estante-06\",\"side\":\"right\",\"shared\":true,\"align\":\"front\",\"offset\":0},{\"kind\":\"module.add\",\"id\":\"estante-07\",\"preset\":\"shelf\",\"name\":\"Estante 7\"},{\"kind\":\"module.edit\",\"id\":\"estante-07\",\"width\":1000,\"height\":1800,\"depth\":350,\"materialId\":\"oak\"},{\"kind\":\"connect\",\"parent\":\"estante-06\",\"child\":\"estante-07\",\"side\":\"right\",\"shared\":true,\"align\":\"front\",\"offset\":0},{\"kind\":\"module.add\",\"id\":\"estante-08\",\"preset\":\"shelf\",\"name\":\"Estante 8\"},{\"kind\":\"module.edit\",\"id\":\"estante-08\",\"width\":1000,\"height\":1800,\"depth\":350,\"materialId\":\"oak\"},{\"kind\":\"connect\",\"parent\":\"estante-07\",\"child\":\"estante-08\",\"side\":\"right\",\"shared\":true,\"align\":\"front\",\"offset\":0},{\"kind\":\"module.add\",\"id\":\"estante-09\",\"preset\":\"shelf\",\"name\":\"Estante 9\"},{\"kind\":\"module.edit\",\"id\":\"estante-09\",\"width\":1000,\"height\":1800,\"depth\":350,\"materialId\":\"oak\"},{\"kind\":\"connect\",\"parent\":\"estante-08\",\"child\":\"estante-09\",\"side\":\"right\",\"shared\":true,\"align\":\"front\",\"offset\":0},{\"kind\":\"module.add\",\"id\":\"estante-10\",\"preset\":\"shelf\",\"name\":\"Estante 10\"},{\"kind\":\"module.edit\",\"id\":\"estante-10\",\"width\":1000,\"height\":1800,\"depth\":350,\"materialId\":\"oak\"},{\"kind\":\"connect\",\"parent\":\"estante-09\",\"child\":\"estante-10\",\"side\":\"right\",\"shared\":true,\"align\":\"front\",\"offset\":0},{\"kind\":\"module.add\",\"id\":\"estante-11\",\"preset\":\"shelf\",\"name\":\"Estante 11\"},{\"kind\":\"module.edit\",\"id\":\"estante-11\",\"width\":1000,\"height\":1800,\"depth\":350,\"materialId\":\"oak\"},{\"kind\":\"connect\",\"parent\":\"estante-10\",\"child\":\"estante-11\",\"side\":\"right\",\"shared\":true,\"align\":\"front\",\"offset\":0},{\"kind\":\"module.add\",\"id\":\"estante-12\",\"preset\":\"shelf\",\"name\":\"Estante 12\"},{\"kind\":\"module.edit\",\"id\":\"estante-12\",\"width\":1000,\"height\":1800,\"depth\":350,\"materialId\":\"oak\"},{\"kind\":\"connect\",\"parent\":\"estante-11\",\"child\":\"estante-12\",\"side\":\"right\",\"shared\":true,\"align\":\"front\",\"offset\":0}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_hpR16No4Ah9hA0Q0wjhhdPv7",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\":0,\"largura\":6000,\"altura\":1800,\"profundidade\":350,\"base\":0,\"tipo\":\"shelf\",\"nome\":\"Estante\",\"modulos\":6,\"largura_max_modulo\":1000,\"frente\":\"none\",\"gavetas\":1,\"material\":\"oak\",\"material_frente\":\"oak\",\"pes\":0,\"desviar_obstaculos\":true,\"folga\":50,\"substituir\":true}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_264Pj54naP41d4J99j4rUyTQ",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\":6000,\"largura\":6000,\"altura\":1800,\"profundidade\":350,\"base\":0,\"tipo\":\"shelf\",\"nome\":\"Estante\",\"modulos\":6,\"largura_max_modulo\":1000,\"frente\":\"none\",\"gavetas\":1,\"material\":\"oak\",\"material_frente\":\"oak\",\"pes\":0,\"desviar_obstaculos\":true,\"folga\":50,\"substituir\":false}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "14|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_TrgL4A5LGbkigPEdqGMZogSm",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "16|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_f0raQT8OWeEiESPEATS30SRW",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "18|Pedido: Crie doze módulos iguais de 1 metro, um ao lado do outro.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_5De3TGF1ShWuxufoFEKeFCNd",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Substituí a estante inicial por uma fileira de 12 módulos iguais de 1 m, em carvalho, com 1,8 m de altura e 35 cm de profundidade. A composição ocupa 12 m de largura.\",\"sugestoes\":[\"Ajuste a divisão interna dos módulos\",\"Mude o acabamento da estante\",\"Abra o orçamento detalhado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.98,
+      "probabilities": {
+       "options": 0,
+       "studio": 0,
+       "build": 0.98,
+       "ask": 0,
+       "view": 0,
+       "edit": 0.02
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.24
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.45
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.75
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.75
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.13
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.26
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1323,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 426,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.39
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.96
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.42
+     }
+    },
+    "usage": {
+     "input_tokens": 531,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

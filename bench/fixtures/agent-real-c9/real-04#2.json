@@ -1,0 +1,166 @@
+{
+ "id": "real-04",
+ "at": "2026-09-26T22:37:32.619Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Quero fazer esse gaveteiro de madeira da esquerda, com as 6 gavetas.\nImagem 1: foto de referência deste pedido (real-quarto-guarda-roupa.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_qMStN9LoSLSe2SCpndg6Ejgs",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Estimar proporções e acabamento do gaveteiro esquerdo na foto\",\"Trocar a estante pelo gaveteiro de seis gavetas\",\"Conferir visualmente o resultado e ajustar se preciso\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Quero fazer esse gaveteiro de madeira da esquerda, com as 6 gavetas.\nImagem 1: foto de referência deste pedido (real-quarto-guarda-roupa.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_Ktwo8VyzvjxfDfjGZPkw4sLU",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"gaveteiro-madeira\",\"nome\":\"Gaveteiro de madeira\",\"tipo\":\"gaveteiro\",\"largura\":540,\"altura\":1100,\"profundidade\":400,\"pes\":100,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":1064,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":6}],\"vaos\":1,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":6,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}}],\"substituir\":true,\"rotulo\":\"Gaveteiro de madeira com 6 gavetas\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Quero fazer esse gaveteiro de madeira da esquerda, com as 6 gavetas.\nImagem 1: foto de referência deste pedido (real-quarto-guarda-roupa.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_7croXE2UpOqZ8ybbqfZfaJr5",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "9|Pedido: Quero fazer esse gaveteiro de madeira da esquerda, com as 6 gavetas.\nImagem 1: foto de referência deste pedido (real-quarto-guarda-roupa.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_ACgWSHBRtVoC4DVCXQ5LUZzT",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "11|Pedido: Quero fazer esse gaveteiro de madeira da esquerda, com as 6 gavetas.\nImagem 1: foto de referência deste pedido (real-quarto-guarda-roupa.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_eGXGiZWyOW5KZgDT5yEIW7bo",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Troquei a estante por um gaveteiro de madeira escura com seis gavetas e pés, estimado em 54 × 120 × 40 cm. Usei como régua a proporção em relação ao guarda-roupa da foto; a estimativa pode variar ±10–20% e os puxadores da imagem não foram reproduzidos — medir o móvel original fecharia as dimensões.\",\"sugestoes\":[\"Confira as medidas com uma trena\",\"Escolha outro tom de madeira\",\"Revise o orçamento e o plano de corte\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.99
+     }
+    },
+    "usage": {
+     "input_tokens": 427,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.95
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.46
+     }
+    },
+    "usage": {
+     "input_tokens": 574,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,260 @@
+{
+ "id": "sug-01",
+ "at": "2026-09-26T22:21:16.316Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Adicione um nicho à direita da estante.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_FJY2b2iWJXH7sPepZ68HuJwy",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"nicho-direita\",\"nome\":\"Nicho lateral\",\"tipo\":\"nicho\",\"largura\":400,\"altura\":600,\"profundidade\":350,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":564,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"module-1\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"centro\",\"x\":0,\"y\":0}}],\"substituir\":false,\"rotulo\":\"Nicho à direita\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Adicione um nicho à direita da estante.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_vf0eZe6OvWZHUp5XGKRnrGKh",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Adicionei à direita da estante um nicho aberto de 40 × 60 × 35 cm, centralizado na altura e no mesmo acabamento carvalho.\",\"sugestoes\":[\"Veja a composição em perspectiva\",\"Adicione portas ou gavetas ao nicho\",\"Confira o orçamento atualizado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 0.92,
+      "probabilities": {
+       "build": 0.07,
+       "studio": 0,
+       "ask": 0,
+       "edit": 0.93,
+       "view": 0,
+       "options": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.73
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.64
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.58
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.13
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.01
+     }
+    },
+    "usage": {
+     "input_tokens": 1316,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 419,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.97
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.05
+     }
+    },
+    "usage": {
+     "input_tokens": 513,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,311 @@
+{
+ "id": "uni-01",
+ "at": "2026-09-26T22:18:46.278Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Aumente a largura para 2,40 m.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_dym7l5t2k4VRFGhzfRpQI9D3",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Aumente a largura para 2,40 m.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_kyQKfQQhbAxSTU4PMDLd2TAf",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"module.duplicate\",\"id\":\"module-1\",\"newId\":\"estante-2\"},{\"kind\":\"module.duplicate\",\"id\":\"module-1\",\"newId\":\"estante-3\"},{\"kind\":\"connect\",\"parent\":\"module-1\",\"child\":\"estante-2\",\"side\":\"right\",\"shared\":false,\"align\":\"front\",\"offset\":0},{\"kind\":\"connect\",\"parent\":\"estante-2\",\"child\":\"estante-3\",\"side\":\"right\",\"shared\":false,\"align\":\"front\",\"offset\":0}],\"rotulo\":\"Estante com 2,40 m\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Aumente a largura para 2,40 m.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_n0aulbKMypPXHEOYZrRWVIaW",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Aumente a largura para 2,40 m.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_D3kkPu0QYs1jcicxnKujxXdq",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Aumente a largura para 2,40 m.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_uMnOrRmyvXEHkf7NonvvXI5b",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"A largura da estante foi ampliada para 2,40 m, mantendo 1,80 m de altura, 35 cm de profundidade e o acabamento em carvalho. O conjunto agora tem três módulos iguais.\",\"sugestoes\":[\"Veja a estante de frente\",\"Ajuste as divisões internas\",\"Confira o orçamento\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 1,
+      "probabilities": {
+       "options": 0,
+       "edit": 1,
+       "build": 0,
+       "ask": 0,
+       "studio": 0,
+       "view": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.91
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.24
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1319,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 422,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.94
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.07
+     }
+    },
+    "usage": {
+     "input_tokens": 527,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

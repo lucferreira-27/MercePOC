@@ -94,7 +94,14 @@ export class AgentContext {
     this.room = project.room;
     this.label = request.trim().slice(0, 90) || 'Pedido à IA';
     this.turnStart = { design: this.design, room: this.room };
+    this.starting = project.revisions.length === 1 && project.messages.filter((m) => m.role === 'user').length <= 1;
   }
+  /**
+   * O pedido parte do projeto de partida (a estante que ninguém pediu, a
+   * mesma regra do projeto_inicial do estado): ela vai ser trocada, então
+   * não bloqueia porta ou janela na parede nem precisa de aviso ao sair.
+   */
+  readonly starting: boolean;
 
   /** Operações que o rascunho atual carrega desde o começo do pedido, em ordem. */
   get allOps(): ShelfOp[] {

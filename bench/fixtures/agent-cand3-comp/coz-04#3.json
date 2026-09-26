@@ -1,0 +1,277 @@
+{
+ "id": "coz-04",
+ "at": "2026-09-26T22:29:47.881Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Deixe a bancada com 90 cm de altura",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_9zYwmNGGTj4XLNxFVgtIFoQF",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Deixe a bancada com 90 cm de altura",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_HNcDmSF2Z2r35uMJEt2zQ3WK",
+      "type": "function",
+      "function": {
+       "name": "modify",
+       "arguments": "{\"remover\":[],\"mover\":[],\"medidas\":[{\"id\":\"c-b1\",\"largura\":734,\"altura\":800,\"altura_total\":900,\"profundidade\":600,\"pes\":100,\"manter\":\"esquerda\"},{\"id\":\"c-b2\",\"largura\":734,\"altura\":800,\"altura_total\":900,\"profundidade\":600,\"pes\":100,\"manter\":\"esquerda\"},{\"id\":\"c-b3\",\"largura\":734,\"altura\":800,\"altura_total\":900,\"profundidade\":600,\"pes\":100,\"manter\":\"esquerda\"},{\"id\":\"c-b4\",\"largura\":734,\"altura\":800,\"altura_total\":900,\"profundidade\":600,\"pes\":100,\"manter\":\"esquerda\"},{\"id\":\"c-b5\",\"largura\":736,\"altura\":800,\"altura_total\":900,\"profundidade\":600,\"pes\":100,\"manter\":\"esquerda\"}],\"interior\":[],\"rotulo\":\"Bancada com 90 cm de altura\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Deixe a bancada com 90 cm de altura",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_EeCDFosZTuxnqdrPpubp1slA",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"A bancada ficou com 90 cm de altura total, incluindo os pés, e mantive a fileira e os aéreos como estavam.\",\"sugestoes\":[\"Confira a vista frontal\",\"Revise o orçamento atualizado\",\"Veja as peças e o plano de corte\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 1,
+      "probabilities": {
+       "ask": 0,
+       "options": 0,
+       "build": 0,
+       "edit": 1,
+       "studio": 0,
+       "view": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.92
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.6
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.24
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1317,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 420,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.7
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.05
+     }
+    },
+    "usage": {
+     "input_tokens": 505,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

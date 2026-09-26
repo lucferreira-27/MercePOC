@@ -1,7 +1,7 @@
 import { applyObstacleEdits } from '@/lib/room';
 import { applyRequest, get, moveCursor, save, settleRoom, view, revise, type Clarification, type Message } from '@/lib/store';
 import { sameOrigin } from '@/lib/utils';
-import { interpretStream, reviewResult, withFallback } from '@/lib/gateway';
+import { interpretStream, reviewAndCorrect, withFallback, type CheckedReview } from '@/lib/gateway';
 import { materials } from '@/lib/furniture';
 import {
   describeDesignChanges,
@@ -330,10 +330,11 @@ export async function POST(req: Request) {
       // (ou uma resposta que nunca chega) não pode apagar o pedido.
       version = save(p, version).version;
       persistedUser = true;
-      // Foto fica no caminho antigo: com duas imagens em cada etapa, o modelo
-      // barato pensa ~40 s por chamada e o laço estoura o tempo antes do
-      // layout inteiro; o caminho antigo monta de uma vez e revisa (bench foto).
-      if (agentMode && !image) {
+      // Foto também vai pelo laço: com o inventário da foto e o place montando
+      // cada corpo de uma vez, ele copia melhor que o caminho antigo nas fotos
+      // reais (bench/photo-real.mjs: 60% no antigo, 70%+ no laço) e monta o
+      // ambiente (parede, janela, porta, TV), que o antigo não mede.
+      if (agentMode) {
         // Assistente em laço: a IA usa as ferramentas do estúdio até terminar
         // e o pedido inteiro vira uma versão. A fala pública dela aparece como
         // a proposta da etapa, como no caminho antigo.
@@ -368,9 +369,7 @@ export async function POST(req: Request) {
       // O desenho do resultado e o veredito da conferência entram na resposta
       // como imagem e como leitura, não como se fossem o texto da IA.
       let resultImage: ImageRef | undefined;
-      let resultReview:
-        | { fidelity: 'parecido' | 'parcial' | 'diferente'; verdict: string; corrections: number }
-        | undefined;
+      let resultReview: CheckedReview | undefined;
       // Turno com foto: a IA recebe também o desenho do projeto atual, para
       // planejar sabendo como a peça está hoje, e não só em milímetros.
       const currentView = image
@@ -546,32 +545,25 @@ export async function POST(req: Request) {
           detail: 'Comparando o resultado com a foto de referência.',
         });
         try {
-          const review = await reviewResult({
-            photo: await imageDataUrl(image.id, jpeg ? 'jpeg' : 'webp'),
-            result: await planDataUrl(drawingParts(canonical(preview.design))),
-            design: preview.design,
-            applied: ops,
-            request: b.message,
-            model,
-            room: p.room,
-            signal,
-            onUsage: (u) => recordUsage(u, model),
-          });
-          let corrections = 0;
-          if (review?.ops.length) {
-            const fixed = executeRequest(preview.design, review.ops);
-            if (fixed.ok && JSON.stringify(fixed.design) !== JSON.stringify(preview.design)) {
-              preview = fixed;
-              ops = [...ops, ...review.ops];
-              corrections = review.ops.length;
-            }
+          const checked = await reviewAndCorrect(
+            {
+              photo: await imageDataUrl(image.id, jpeg ? 'jpeg' : 'webp'),
+              result: await planDataUrl(drawingParts(canonical(preview.design))),
+              design: preview.design,
+              applied: ops,
+              request: b.message,
+              model,
+              room: p.room,
+              signal,
+              onUsage: (u) => recordUsage(u, model),
+            },
+            executeRequest,
+          );
+          if (checked?.ops.length) {
+            preview = { ...preview, design: checked.design };
+            ops = [...ops, ...checked.ops];
           }
-          if (review)
-            resultReview = {
-              fidelity: review.fidelity,
-              verdict: review.verdict,
-              corrections,
-            };
+          if (checked) resultReview = checked.review;
           signal.throwIfAborted();
         } catch (e) {
           // A conferência é um extra: sem ela o turno segue com o resultado que

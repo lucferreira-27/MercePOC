@@ -1,0 +1,149 @@
+{
+ "id": "real-10",
+ "at": "2026-09-26T22:42:23.731Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Faz esse armário branco do micro-ondas que fica do lado da geladeira.\nImagem 1: foto de referência deste pedido (real-cozinha-torre.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_coDp2TE2gF1MtU7Vz98BIGpl",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Inventariar o armário branco: um corpo alto, portas, nicho e gaveta\",\"Estimar medidas pela altura da geladeira e substituir a estante inicial\",\"Conferir o resultado na cena e ajustar se necessário\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Faz esse armário branco do micro-ondas que fica do lado da geladeira.\nImagem 1: foto de referência deste pedido (real-cozinha-torre.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_Ja9MTuOmRiwtuxThlXvjbPkm",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"torre-micro\",\"nome\":\"Armário torre do micro-ondas\",\"tipo\":\"armario\",\"largura\":600,\"altura\":1800,\"profundidade\":600,\"pes\":0,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":520,\"colunas\":1,\"frente\":\"porta_dupla\",\"gavetas\":1},{\"altura\":110,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":1},{\"altura\":300,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":780,\"colunas\":1,\"frente\":\"porta_dupla\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"white\"},\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}}],\"substituir\":true,\"rotulo\":\"Torre branca do micro-ondas\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Faz esse armário branco do micro-ondas que fica do lado da geladeira.\nImagem 1: foto de referência deste pedido (real-cozinha-torre.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_gnK5131KabZPUkmxibe6WvzB",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "9|Pedido: Faz esse armário branco do micro-ondas que fica do lado da geladeira.\nImagem 1: foto de referência deste pedido (real-cozinha-torre.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_kY0B0uCNfYbRvls56xzd7oqh",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Recriei o armário branco do micro-ondas com portas superiores e inferiores, nicho aberto e uma gaveta, estimado em 60 × 180 × 60 cm pela altura de referência da geladeira (~175 cm). A estimativa pode variar cerca de 10–20%; medir a altura e a largura reais do armário fecharia o dimensionamento.\",\"sugestoes\":[\"Ajuste as medidas com a trena\",\"Confira o orçamento e o plano de corte\",\"Adicione puxadores ao desenho\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.08
+     }
+    },
+    "usage": {
+     "input_tokens": 428,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.36
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.61
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.07
+     }
+    },
+    "usage": {
+     "input_tokens": 564,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

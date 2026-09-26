@@ -2308,6 +2308,9 @@ export default function Home() {
                               {m.report.review.corrections === 1 ? 'ão' : 'ões'} depois de olhar.
                             </em>
                           )}
+                          {m.report.review.rejected && (
+                            <em>Tentei corrigir depois de olhar, mas a correção não passou na conferência do app e ficou de fora.</em>
+                          )}
                         </div>
                       )}
                     </>

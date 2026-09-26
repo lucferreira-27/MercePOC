@@ -76,7 +76,9 @@ export function TurnProgress({
     return () => clearInterval(t);
   }, []);
   const stage = currentStage(events, pulse);
-  const stages = STAGES.filter((s) => s.id !== 'review' || withPhoto);
+  // A conferência do desenho só existe no caminho antigo (o laço confere com
+  // render_look): a etapa aparece quando ela começa, não em todo pedido com foto.
+  const stages = STAGES.filter((s) => s.id !== 'review' || (withPhoto && events.some((e) => e.stage === 'reviewing')));
   const index = stages.findIndex((s) => s.id === stage);
   // Quando cada etapa terminou: a chegada do primeiro evento de uma seguinte.
   const doneAt = (i: number) => {
