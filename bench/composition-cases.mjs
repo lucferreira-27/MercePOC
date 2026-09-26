@@ -9,7 +9,7 @@
  * `tv-03` é o caso guardado: as expectativas foram escritas antes de rodar o
  * candidato e não mudam depois de ver o resultado.
  */
-import { checkComposition, sheetClaims, sheetFacts } from './oracle.mjs';
+import { checkComposition, clearFloorSpans, floorGaps, moduleBoxes, offWall, sheetClaims, sheetFacts } from './oracle.mjs';
 
 /** Juiz comum dos pedidos criativos: regras duras do oráculo. */
 const composition =
@@ -30,8 +30,24 @@ const composition =
   };
 
 export const compositionGroup = {
-  composicao: 'Composição criativa em volta da TV e o pacote de regressão do redesenho (oráculo próprio)',
+  composicao:
+    'Pacote do redesenho: composição em volta da TV, cozinha, lavanderia, guarda-roupa, estante, layout, edição exata e pedido impossível (oráculo próprio)',
 };
+
+/** Regras duras comuns (geometria, encaixe, TV, fixação do que entrou, protegidos, Ctrl+Z). */
+const hard = (got, extra = {}) =>
+  checkComposition({
+    before: got.before,
+    after: got.designAfter,
+    roomBefore: got.roomBefore,
+    roomAfter: got.room,
+    content: got.content,
+    undo: got.undo,
+    ...extra,
+  });
+/** Afirma ter feito o que o estúdio não tem (mesa, cadeira, vidro, curva)? */
+const claimsUnsupported = (text, words) =>
+  new RegExp(`\\b(adicionei|coloquei|montei|criei|incluí|fiz)\\b[^.]*\\b(${words})`, 'i').test(text) && !/não|nao|sem|fora/i.test(text);
 
 export const compositionCases = [
   {
@@ -65,6 +81,237 @@ export const compositionCases = [
     setup: { scene: 'bench/scenes/parede-tv.json' },
     learned: 'Caso guardado: parede lisa sem painel, rack de TV da biblioteca embaixo. Expectativa congelada antes do candidato.',
     expect: { action: 'update', applied: true, agent: composition() },
+  },
+  {
+    id: 'coz-01',
+    group: 'composicao',
+    askAct: 'agir',
+    agentOnly: true,
+    prompt: 'adicione outros moveis junto que fazem snetidom em uma cozinha, uma mesa, cadeiras, etc',
+    setup: { scene: 'bench/scenes/cozinha-apoio.json' },
+    learned: 'Pedido real: a IA montou um apoio, descartou com history_undo, montou outro; o registro guardou a operação descartada. Mesa e cadeira não existem no estúdio.',
+    expect: {
+      action: 'update',
+      applied: true,
+      content: { mustMatch: [/mesa|cadeira/i] },
+      agent: (got) => {
+        const r = hard(got, { requireAddition: true });
+        if (!r.ok) return r.failures.join('; ');
+        if (claimsUnsupported(got.content, 'mesa|cadeira')) return 'diz que pôs mesa ou cadeira';
+        const off = offWall(got.designAfter, got.room);
+        return off.length ? `fora da parede: ${off.join(', ')}` : true;
+      },
+    },
+  },
+  {
+    id: 'coz-02',
+    group: 'composicao',
+    askAct: 'agir',
+    agentOnly: true,
+    prompt: 'arrume o layout: tudo encostado na parede, os armários de baixo juntos, sem vão entre eles, e os aéreos na altura de antes',
+    setup: { scene: 'bench/scenes/cozinha-baguncada.json' },
+    learned: 'Mudança de layout: só posições mudam; medidas, frentes e acabamentos ficam. Pedido real parecido esbarrou em "Selecione uma prateleira horizontal".',
+    expect: {
+      action: 'update',
+      applied: true,
+      agent: (got) => {
+        const before = got.before.modules;
+        const after = got.designAfter.modules;
+        if (after.length !== before.length) return `${before.length} → ${after.length} módulos`;
+        const strip = (m) => JSON.stringify({ ...m, position: 0, name: 0 });
+        const changed = before.filter((m) => strip(m) !== strip(after.find((v) => v.id === m.id) ?? {}));
+        if (changed.length) return `mudou mais que a posição: ${changed.map((m) => m.name).join(', ')}`;
+        const off = offWall(got.designAfter, null);
+        if (off.length) return `fora da parede: ${off.join(', ')}`;
+        const gaps = floorGaps(got.designAfter);
+        if (gaps.length) return `vão entre os de baixo: ${gaps.join('; ')}`;
+        const { boxes } = moduleBoxes(got.designAfter);
+        const uppers = after.filter((m) => m.wall).map((m) => Math.round(boxes.get(m.id).minY));
+        return uppers.every((y) => y === 1500) ? true : `aéreos com base em ${[...new Set(uppers)].join(', ')} mm (antes: 1500)`;
+      },
+    },
+  },
+  {
+    id: 'coz-03',
+    group: 'composicao',
+    askAct: 'agir',
+    agentOnly: true,
+    prompt: '"Não cabe: o móvel tem 4,86 m de largura e a parede tem 3,00 m" arrume isso',
+    setup: { scene: 'bench/scenes/cozinha-3m.json' },
+    learned: 'A parede de 3 m foi medida depois da cozinha: o certo é caber nela sem mexer na parede.',
+    expect: {
+      action: 'update',
+      applied: true,
+      agent: (got) => {
+        if (got.room?.widthMm !== 3000) return `mexeu na parede (${got.room?.widthMm} mm)`;
+        const r = hard(got, { protect: [] });
+        if (!r.ok) return r.failures.join('; ');
+        const { boxes } = moduleBoxes(got.designAfter);
+        const low = got.designAfter.modules.filter((m) => boxes.get(m.id).minY <= 5).length;
+        const high = got.designAfter.modules.filter((m) => m.wall).length;
+        return low >= 3 && high >= 2 ? true : `sobrou pouca cozinha: ${low} de baixo, ${high} aéreos`;
+      },
+    },
+  },
+  {
+    id: 'coz-04',
+    group: 'composicao',
+    askAct: 'agir',
+    agentOnly: true,
+    prompt: 'Deixe a bancada com 90 cm de altura',
+    setup: { scene: 'bench/scenes/cozinha-apoio.json' },
+    learned: 'Edição exata numa fileira com painéis compartilhados: a altura vale para a fileira toda, e os aéreos não podem bater.',
+    expect: {
+      action: 'update',
+      applied: true,
+      agent: (got) => {
+        const r = hard(got, { protect: got.before.modules.filter((m) => m.wall).map((m) => m.id) });
+        if (!r.ok) return r.failures.join('; ');
+        const bases = got.designAfter.modules.filter((m) => !m.wall);
+        const wrong = bases.filter((m) => Math.abs(m.height + (m.feet ?? 0) - 900) > 2);
+        if (wrong.length) return `altura total fora de 900 mm: ${wrong.map((m) => `${m.name} ${m.height + (m.feet ?? 0)}`).join(', ')}`;
+        const widths = bases.filter((m) => got.before.modules.find((v) => v.id === m.id)?.width !== m.width);
+        return widths.length ? `mudou a largura de ${widths.map((m) => m.name).join(', ')}` : true;
+      },
+    },
+  },
+  {
+    id: 'lav-01',
+    group: 'composicao',
+    askAct: 'agir',
+    agentOnly: true,
+    prompt: 'Adicone mais moveis e deixe o ceneario mais realista',
+    setup: { scene: 'bench/scenes/lavanderia-2.json' },
+    learned:
+      'Pedido real (DeepSeek): estourou o tempo, gravou 4 módulos e um móvel de 4,20 m numa parede de 3,20 m, e a resposta disse "O móvel não mudou".',
+    expect: {
+      action: ['update', 'answer'],
+      agent: (got) => {
+        const r = hard(got, { requireAddition: got.action === 'update' });
+        if (!r.ok) return r.failures.join('; ');
+        if (got.action === 'update' && /não mudou/i.test(got.content)) return 'diz que não mudou, mas mudou';
+        return true;
+      },
+    },
+  },
+  {
+    id: 'lav-02',
+    group: 'composicao',
+    askAct: 'agir',
+    agentOnly: true,
+    prompt: 'Deixe um vão livre de 60 cm para a máquina de lavar à esquerda do armário e coloque um armário aéreo em cima dela',
+    setup: { scene: 'bench/scenes/lavanderia-3.json' },
+    learned: 'Pedido real parecido: criou caixas chamadas "Vão máquina de lavar". O nome não faz o vão: o oráculo confere o espaço livre.',
+    expect: {
+      action: 'update',
+      applied: true,
+      agent: (got) => {
+        const r = hard(got);
+        if (!r.ok) return r.failures.join('; ');
+        const { boxes, bounds } = moduleBoxes(got.designAfter);
+        const wallX = got.room.anchor?.x ?? bounds.min[0] - (got.room.offsetMm ?? 0);
+        const armario = Math.min(...['l1', 'l2'].map((id) => boxes.get(id).minX)) - wallX;
+        const spans = clearFloorSpans(got.designAfter, got.room).filter(([a, b]) => b - a >= 595 && b <= armario + 1);
+        if (!spans.length) return 'sem vão livre de 60 cm no piso à esquerda do armário';
+        const over = got.designAfter.modules.filter((m) => {
+          const b = boxes.get(m.id);
+          return b.minY >= 850 && spans.some(([a, c]) => Math.min(b.maxX - wallX, c) - Math.max(b.minX - wallX, a) > 300);
+        });
+        return over.length ? true : 'sem armário aéreo em cima do vão';
+      },
+    },
+  },
+  {
+    id: 'gr-01',
+    group: 'composicao',
+    askAct: 'agir',
+    agentOnly: true,
+    prompt: 'Adicione um módulo de 60 cm à direita do guarda-roupa, com a mesma altura e profundidade, com prateleiras e uma porta',
+    setup: { scene: 'bench/scenes/guarda-roupa-quarto.json' },
+    learned: 'Guarda-roupa que cresce de lado: mesma altura e profundidade, encostado, com interior e frente.',
+    expect: {
+      action: 'update',
+      applied: true,
+      agent: (got) => {
+        const r = hard(got, { requireAddition: true });
+        if (!r.ok) return r.failures.join('; ');
+        const had = new Set(got.before.modules.map((m) => m.id));
+        const added = got.designAfter.modules.filter((m) => !had.has(m.id));
+        if (added.length !== 1) return `${added.length} módulos novos`;
+        const m = added[0];
+        if (Math.abs(m.width - 600) > 20) return `largura ${m.width}`;
+        if (m.height !== 2400 || m.depth !== 600) return `altura/profundidade ${m.height}/${m.depth}`;
+        const { boxes } = moduleBoxes(got.designAfter);
+        const right = Math.max(...got.before.modules.map((v) => boxes.get(v.id).maxX));
+        if (Math.abs(boxes.get(m.id).minX - right) > 20) return 'não encostou à direita do guarda-roupa';
+        const parts = got.parts.filter((p) => p.owners.includes(m.id));
+        if (parts.filter((p) => p.kind === 'shelf').length < 2) return 'menos de 2 prateleiras';
+        return parts.some((p) => p.kind === 'door') ? true : 'sem porta';
+      },
+    },
+  },
+  {
+    id: 'gr-02',
+    group: 'composicao',
+    askAct: 'livre',
+    agentOnly: true,
+    prompt: 'Coloque uma sapateira de 60 cm ao lado do guarda-roupa',
+    setup: { scene: 'bench/scenes/guarda-roupa-porta.json' },
+    learned: 'Sem lugar: o canto fica à esquerda e a porta do quarto 8 cm à direita. O certo é dizer o conflito e o que dá para fazer, sem tapar a porta nem mexer na parede.',
+    expect: {
+      action: ['update', 'answer', 'clarify'],
+      agent: (got) => {
+        if (JSON.stringify(got.room?.obstacles) !== JSON.stringify(got.roomBefore?.obstacles) || got.room?.widthMm !== got.roomBefore?.widthMm)
+          return 'mexeu na parede ou na porta';
+        const r = hard(got, { protect: got.action === 'update' ? [] : undefined });
+        if (!r.ok) return r.failures.join('; ');
+        if (got.action !== 'update' && !/porta|espaço|cabe|canto/i.test(got.content)) return 'não explicou o conflito';
+        return true;
+      },
+    },
+  },
+  {
+    id: 'est-10',
+    group: 'composicao',
+    askAct: 'agir',
+    agentOnly: true,
+    prompt: 'Quero uma estante de 1,6 m de largura por 2 m de altura, com nichos abertos em cima e portas embaixo',
+    learned: 'Estante do zero sobre o projeto novo: medidas ditadas valem, e o interior precisa ter nichos em cima e portas embaixo.',
+    expect: {
+      action: 'update',
+      applied: true,
+      agent: (got) => {
+        const r = hard(got, { protect: [] });
+        if (!r.ok) return r.failures.join('; ');
+        const d = got.designAfter;
+        if (Math.abs(d.width - 1600) > 20 || Math.abs(d.height - 2000) > 20) return `medidas ${Math.round(d.width)} × ${Math.round(d.height)}`;
+        const doors = got.parts.filter((p) => p.kind === 'door');
+        if (!doors.length) return 'sem portas';
+        if (doors.some((p) => p.position[1] > 1000)) return 'porta na parte de cima';
+        const open = got.cells.filter((c) => !c.node.split && !c.node.front && c.origin[1] > 900);
+        return open.length >= 2 ? true : 'menos de 2 nichos abertos em cima';
+      },
+    },
+  },
+  {
+    id: 'esc-01',
+    group: 'composicao',
+    askAct: 'agir',
+    agentOnly: true,
+    prompt: 'Monte uma estante para livros em volta da janela, com armários baixos embaixo dela',
+    setup: { scene: 'bench/scenes/escritorio-janela.json' },
+    learned: 'Caso guardado fora de TV: janela no meio da parede e uma cômoda no canto. Expectativa congelada antes do candidato.',
+    expect: {
+      action: 'update',
+      applied: true,
+      agent: (got) => {
+        const r = hard(got, { requireAddition: true });
+        if (!r.ok) return r.failures.join('; ');
+        const had = new Set(got.before.modules.map((m) => m.id));
+        const shelves = got.parts.filter((p) => p.kind === 'shelf' && p.owners.some((o) => !had.has(o))).length;
+        return shelves >= 3 ? true : `só ${shelves} prateleiras novas`;
+      },
+    },
   },
   {
     id: 'mat-01',

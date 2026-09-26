@@ -73,6 +73,12 @@ export type LoopOptions = {
   onPulse?: (bytes: number, reasoning: number) => void;
   /** Troca o provedor (testes e benchmark gravado). */
   call?: typeof callModel;
+  /**
+   * Chamado quando as etapas ou o tempo acabam sem finish, antes da última
+   * chamada: o turno decide o que fica (rascunho válido) ou volta (inválido)
+   * e devolve a frase que a IA precisa saber para não descrever outra coisa.
+   */
+  onExhausted?: () => string | undefined;
 };
 
 /**
@@ -251,8 +257,12 @@ export async function runLoop(ctx: AgentContext, o: LoopOptions) {
   // Limite de etapas: uma última chamada só com finish, para a resposta
   // contar o que ficou pronto e o que faltou, em vez de um resumo seco.
   const last = byName.get('finish');
+  const settled = !ctx.finish && !ctx.ask ? o.onExhausted?.() : undefined;
   if (last && !ctx.finish && !ctx.ask) {
-    messages.push({ role: 'user', content: 'Limite de etapas ou de tempo deste pedido atingido. Chame finish agora: diga o que ficou pronto e o que faltou, sem prometer o que não foi feito.' });
+    messages.push({
+      role: 'user',
+      content: `Limite de etapas ou de tempo deste pedido atingido. ${settled ? `${settled} ` : ''}Chame finish agora: diga o que ficou pronto e o que faltou, sem prometer o que não foi feito.`,
+    });
     try {
       const cap = AbortSignal.timeout(FINISH_MS);
       const reply = await call({ model, messages, tools: toolSpecs([last]), signal: o.signal ? AbortSignal.any([o.signal, cap]) : cap, onUsage: usage });
@@ -270,5 +280,5 @@ export async function runLoop(ctx: AgentContext, o: LoopOptions) {
       if (o.signal?.aborted) throw e;
     }
   }
-  return { steps: maxSteps, exhausted: true };
+  return { steps: maxSteps, exhausted: true, timedOut };
 }

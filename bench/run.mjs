@@ -355,6 +355,7 @@ async function runAgentCase(project, benchCase, image, selection, telemetry, fix
     roomBefore,
     undo: undone,
     parts: generateDesign(designAfter).parts,
+    cells: generateDesign(designAfter).cells,
     startHash: stateHash(before, roomBefore),
     finalHash: stateHash(designAfter, room),
     report: { outcome: answer.result?.outcome ?? null, applied: answer.result?.appliedOperations?.length ?? 0, attempted: answer.result?.attemptedOperations?.length ?? null, facts: answer.report?.facts ?? null, verification: answer.report?.verification ?? null },

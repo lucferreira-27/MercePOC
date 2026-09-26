@@ -16,7 +16,7 @@ import { fitReport } from '../lib/room.ts';
 import { cutPlan } from '../lib/cutplan.ts';
 
 /** Folga mínima em volta da tela: nada que avance para a frente chega mais perto. */
-export const TV_CLEARANCE = 50;
+export const TV_CLEARANCE = 30;
 const EPS = 2;
 
 /** Caixa de cada módulo no mundo (x, y, z), pela união das peças dele. */
@@ -237,4 +237,52 @@ export function sheetClaims(text, design) {
       out.push(`fala em ${n} chapas, e o plano final tem ${f.sheets}`);
   }
   return out;
+}
+
+/**
+ * Plano da parede para uma cena sem ambiente: o fundo mais recuado dos
+ * módulos. Com ambiente, a parede dele.
+ */
+export function wallPlane(design, room) {
+  const { boxes, bounds } = moduleBoxes(design);
+  if (room) return wallOf(room, bounds).z;
+  return Math.min(...[...boxes.values()].map((b) => b.minZ));
+}
+
+/** Módulos que não encostam o fundo na parede (nem apoiam em outro por conexão em cima). */
+export function offWall(design, room) {
+  const { boxes } = moduleBoxes(design);
+  const z = wallPlane(design, room);
+  const onTop = new Set(design.connections.filter((c) => c.side === 'top').map((c) => c.child));
+  return design.modules.filter((m) => !onTop.has(m.id) && Math.abs(boxes.get(m.id).minZ - z) > EPS).map((m) => m.name);
+}
+
+/** Vãos maiores que `tol` entre módulos de piso vizinhos (ordenados em x). */
+export function floorGaps(design, tol = 5) {
+  const { boxes } = moduleBoxes(design);
+  const floor = design.modules
+    .filter((m) => boxes.get(m.id).minY <= 5)
+    .map((m) => ({ name: m.name, ...boxes.get(m.id) }))
+    .sort((a, b) => a.minX - b.minX);
+  const out = [];
+  for (let i = 1; i < floor.length; i++) {
+    const gap = floor[i].minX - floor[i - 1].maxX;
+    if (gap > tol) out.push(`${Math.round(gap)} mm entre ${floor[i - 1].name} e ${floor[i].name}`);
+  }
+  return out;
+}
+
+/** Trechos da parede (x) sem nada abaixo de `y` na faixa do piso: vão livre para aparelho. */
+export function clearFloorSpans(design, room, below = 900) {
+  const { boxes, bounds } = moduleBoxes(design);
+  const wall = wallOf(room, bounds);
+  const taken = [...boxes.values()].filter((b) => b.minY < below).map((b) => [b.minX - wall.x, b.maxX - wall.x]).sort((a, b) => a[0] - b[0]);
+  const spans = [];
+  let x = 0;
+  for (const [a, b] of taken) {
+    if (a - x > 1) spans.push([x, a]);
+    x = Math.max(x, b);
+  }
+  if (room.widthMm - x > 1) spans.push([x, room.widthMm]);
+  return spans;
 }

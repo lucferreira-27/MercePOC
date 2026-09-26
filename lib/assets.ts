@@ -8,7 +8,7 @@ import {
   type ModularOp,
 } from './composition';
 import { materialIds, type MaterialId } from './furniture';
-import type { Room } from './room';
+import { TV_CLEARANCE_MM, type Room } from './room';
 
 /**
  * Biblioteca de móveis prontos. Cada ativo é uma receita paramétrica que monta
@@ -182,11 +182,26 @@ function columns(total: number, target: number, min = 1, max = 6) {
 }
 const inner = (h: number) => h - 2 * P;
 
-/** TV de exemplo (55") presa na parede: dá escala a sala. */
-function tvRoom(width: number, tvBottom: number, wallWidth = Math.max(3600, width + 1600)): Room {
+/** Tamanhos comuns de TV (largura e altura com a moldura, em mm). */
+const TV_SIZES = [
+  { inches: 65, w: 1450, h: 830 },
+  { inches: 55, w: 1230, h: 710 },
+  { inches: 50, w: 1120, h: 650 },
+  { inches: 43, w: 970, h: 560 },
+  { inches: 32, w: 720, h: 420 },
+];
+/** A maior TV comum que cabe num vão com a folga dos dois lados; null se nenhuma cabe. */
+function tvFor(gap: number) {
+  return TV_SIZES.find((t) => t.w + 2 * TV_CLEARANCE_MM <= gap) ?? null;
+}
+
+/** TV de exemplo presa na parede: dá escala a sala. 55" por padrão; null, sem TV. */
+function tvRoom(width: number, tvBottom: number, wallWidth = Math.max(3600, width + 1600), tv: { inches: number; w: number; h: number } | null = TV_SIZES[1]): Room {
   const offset = Math.round((wallWidth - width) / 2);
-  const tvW = 1230,
-    tvH = 710;
+  if (!tv)
+    return { schemaVersion: 1, widthMm: wallWidth, heightMm: 2700, depthMm: 3500, baseboardMm: 0, offsetMm: offset, obstacles: [] };
+  const tvW = tv.w,
+    tvH = tv.h;
   return {
     schemaVersion: 1,
     widthMm: wallWidth,
@@ -195,7 +210,7 @@ function tvRoom(width: number, tvBottom: number, wallWidth = Math.max(3600, widt
     baseboardMm: 0,
     offsetMm: offset,
     obstacles: [
-      { id: 'ob-tv', kind: 'tv', label: 'TV 55"', xMm: Math.round(offset + width / 2 - tvW / 2), yMm: Math.round(tvBottom), widthMm: tvW, heightMm: tvH },
+      { id: 'ob-tv', kind: 'tv', label: `TV ${tv.inches}"`, xMm: Math.round(offset + width / 2 - tvW / 2), yMm: Math.round(tvBottom), widthMm: tvW, heightMm: tvH },
       { id: 'ob-tomada', kind: 'outlet', xMm: Math.round(offset + width + 150), yMm: 300, widthMm: 80, heightMm: 80 },
     ],
   };
@@ -290,7 +305,9 @@ export const assets: Asset[] = [
     front: 'graphite',
     intro: (p) =>
       `Montei um conjunto de sala de ${cm(p.width)} cm: rack grafite de ${cm(p.width - 900)} × 50 × ${cm(p.depth)} cm com gavetas e portas, entre duas torres de nogueira de 45 × ${cm(p.height)} × 35 cm alinhadas pelo fundo. Peça para alargar o rack, trocar as torres por portas ou mudar os acabamentos.`,
-    room: (p, width) => tvRoom(width, 800),
+    // A TV fica entre as torres: a de 55" (1230 mm) entrava nas torres no
+    // tamanho padrão (1200 mm entre elas). Vai a maior que cabe com folga.
+    room: (p, width) => tvRoom(width, 800, undefined, tvFor(width - 900)),
     build(b, p) {
       const tower = (key: string, name: string) => {
         const id = b.box(key, name, [450, p.height, 350], p.body);

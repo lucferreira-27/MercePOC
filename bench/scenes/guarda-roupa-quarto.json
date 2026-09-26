@@ -1,0 +1,160 @@
+{
+ "about": "Guarda-roupa de 1,8 m no canto esquerdo de uma parede de 3,6 m; a porta do quarto fica a 2,8 m do canto.",
+ "source": {
+  "generated": "asset guarda-roupa com largura 1800",
+  "capturedAt": "2026-09-26T06:24:53.084Z"
+ },
+ "design": {
+  "schemaVersion": 3,
+  "profile": {
+   "version": 1,
+   "panel": 18,
+   "back": 6,
+   "front": 18,
+   "reveal": 2,
+   "drawer": 15,
+   "drawerBottom": 6,
+   "slideSpace": 13,
+   "rearSpace": 20
+  },
+  "modules": [
+   {
+    "id": "gg1",
+    "name": "Cabideiro",
+    "width": 909,
+    "height": 2400,
+    "depth": 600,
+    "materialId": "white",
+    "back": true,
+    "position": [
+     0,
+     0,
+     0
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "gg1:root",
+     "split": {
+      "id": "gg1:root:divider",
+      "axis": "y",
+      "ratio": 0.8081841432225064,
+      "children": [
+       {
+        "id": "gg1:root:low",
+        "front": {
+         "id": "front-13dd0a83-0db",
+         "type": "double",
+         "hinge": "left",
+         "materialId": "freijo",
+         "heights": [
+          1
+         ]
+        }
+       },
+       {
+        "id": "gg1:root:high",
+        "front": {
+         "id": "front-c480b6a6-457",
+         "type": "double",
+         "hinge": "left",
+         "materialId": "freijo",
+         "heights": [
+          1
+         ]
+        }
+       }
+      ]
+     }
+    },
+    "legacyIds": false
+   },
+   {
+    "id": "gg2",
+    "name": "Coluna de portas",
+    "width": 909,
+    "height": 2400,
+    "depth": 600,
+    "materialId": "white",
+    "back": true,
+    "position": [
+     891,
+     0,
+     0
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "gg2:root",
+     "split": {
+      "id": "gg2:root:divider",
+      "axis": "y",
+      "ratio": 0.8081841432225064,
+      "children": [
+       {
+        "id": "gg2:root:low",
+        "front": {
+         "id": "front-c1da3092-48e",
+         "type": "double",
+         "hinge": "left",
+         "materialId": "freijo",
+         "heights": [
+          1
+         ]
+        }
+       },
+       {
+        "id": "gg2:root:high",
+        "front": {
+         "id": "front-4fbbf085-480",
+         "type": "double",
+         "hinge": "left",
+         "materialId": "freijo",
+         "heights": [
+          1
+         ]
+        }
+       }
+      ]
+     }
+    },
+    "legacyIds": false
+   }
+  ],
+  "connections": [
+   {
+    "id": "connection-409b975a-566",
+    "parent": "gg1",
+    "child": "gg2",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   }
+  ]
+ },
+ "room": {
+  "schemaVersion": 1,
+  "widthMm": 3600,
+  "heightMm": 2700,
+  "depthMm": 3200,
+  "baseboardMm": 0,
+  "offsetMm": 0,
+  "obstacles": [
+   {
+    "id": "ob-porta",
+    "kind": "door",
+    "xMm": 2800,
+    "yMm": 0,
+    "widthMm": 760,
+    "heightMm": 2100
+   },
+   {
+    "id": "ob-tomada",
+    "kind": "outlet",
+    "xMm": 2300,
+    "yMm": 300,
+    "widthMm": 80,
+    "heightMm": 80
+   }
+  ]
+ }
+}

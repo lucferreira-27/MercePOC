@@ -1,0 +1,138 @@
+{
+ "about": "Armário de lavanderia (2 módulos) antes do pedido que criou caixas chamadas \"Vão máquina de lavar\".",
+ "source": {
+  "projectId": "3bfb3a0e-7829-4321-bddd-2f975786e9b0",
+  "project": "Armário de lavanderia 3",
+  "revisionId": "8bc7ba72-ace1-4b95-a7ab-9197e0faae22",
+  "revisionNumber": 1,
+  "label": "Modelo: Armário de lavanderia",
+  "capturedAt": "2026-09-26T06:23:32.306Z"
+ },
+ "design": {
+  "schemaVersion": 3,
+  "profile": {
+   "version": 1,
+   "panel": 18,
+   "back": 6,
+   "front": 18,
+   "reveal": 2,
+   "drawer": 15,
+   "drawerBottom": 6,
+   "slideSpace": 13,
+   "rearSpace": 20
+  },
+  "modules": [
+   {
+    "id": "l1",
+    "name": "Vassoureiro",
+    "width": 450,
+    "height": 2200,
+    "depth": 500,
+    "materialId": "white",
+    "back": true,
+    "position": [
+     0,
+     0,
+     0
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "l1:root",
+     "front": {
+      "id": "front-5b8c31e6-413",
+      "type": "single",
+      "hinge": "left",
+      "materialId": "white",
+      "heights": [
+       1
+      ]
+     }
+    },
+    "legacyIds": false
+   },
+   {
+    "id": "l2",
+    "name": "Portas e nicho",
+    "width": 768,
+    "height": 2200,
+    "depth": 500,
+    "materialId": "white",
+    "back": true,
+    "position": [
+     591,
+     0,
+     0
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "l2:root",
+     "split": {
+      "id": "l2:root:divider",
+      "axis": "y",
+      "ratio": 0.4193849021435228,
+      "children": [
+       {
+        "id": "l2:root:low",
+        "front": {
+         "id": "front-5516bb50-714",
+         "type": "double",
+         "hinge": "left",
+         "materialId": "white",
+         "heights": [
+          1
+         ]
+        }
+       },
+       {
+        "id": "l2:root:high",
+        "split": {
+         "id": "l2:root:high:divider",
+         "axis": "y",
+         "ratio": 0.6335504885993485,
+         "children": [
+          {
+           "id": "l2:root:high:low"
+          },
+          {
+           "id": "l2:root:high:high",
+           "front": {
+            "id": "front-d9b317b8-99e",
+            "type": "double",
+            "hinge": "left",
+            "materialId": "white",
+            "heights": [
+             1
+            ]
+           }
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    "legacyIds": false
+   }
+  ],
+  "connections": [
+   {
+    "id": "connection-6fd983a4-f31",
+    "parent": "l1",
+    "child": "l2",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   }
+  ]
+ },
+ "room": {
+  "schemaVersion": 1,
+  "widthMm": 3200,
+  "heightMm": 2700,
+  "depthMm": 3500,
+  "baseboardMm": 0,
+  "offsetMm": 1000,
+  "obstacles": []
+ }
+}

@@ -1,0 +1,243 @@
+{
+ "about": "Guarda-roupa do modelo (2,4 m) no quarto de exemplo: canto à esquerda e a porta do quarto 8 cm à direita.",
+ "source": {
+  "generated": "modelo guarda-roupa da biblioteca, padrão",
+  "capturedAt": "2026-09-26T06:24:53.077Z"
+ },
+ "design": {
+  "schemaVersion": 3,
+  "profile": {
+   "version": 1,
+   "panel": 18,
+   "back": 6,
+   "front": 18,
+   "reveal": 2,
+   "drawer": 15,
+   "drawerBottom": 6,
+   "slideSpace": 13,
+   "rearSpace": 20
+  },
+  "modules": [
+   {
+    "id": "g1",
+    "name": "Cabideiro",
+    "width": 918,
+    "height": 2400,
+    "depth": 600,
+    "materialId": "white",
+    "back": true,
+    "position": [
+     0,
+     0,
+     0
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "g1:root",
+     "split": {
+      "id": "g1:root:divider",
+      "axis": "y",
+      "ratio": 0.8081841432225064,
+      "children": [
+       {
+        "id": "g1:root:low",
+        "front": {
+         "id": "front-77d66d82-cb0",
+         "type": "double",
+         "hinge": "left",
+         "materialId": "freijo",
+         "heights": [
+          1
+         ]
+        }
+       },
+       {
+        "id": "g1:root:high",
+        "front": {
+         "id": "front-cbede285-ed9",
+         "type": "double",
+         "hinge": "left",
+         "materialId": "freijo",
+         "heights": [
+          1
+         ]
+        }
+       }
+      ]
+     }
+    },
+    "legacyIds": false
+   },
+   {
+    "id": "g2",
+    "name": "Gaveteiro",
+    "width": 918,
+    "height": 2400,
+    "depth": 600,
+    "materialId": "white",
+    "back": true,
+    "position": [
+     900,
+     0,
+     0
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "g2:root",
+     "split": {
+      "id": "g2:root:divider",
+      "axis": "y",
+      "ratio": 0.8081841432225064,
+      "children": [
+       {
+        "id": "g2:root:low",
+        "split": {
+         "id": "g2:root:low:divider",
+         "axis": "y",
+         "ratio": 0.3407880724174654,
+         "children": [
+          {
+           "id": "g2:root:low:low",
+           "front": {
+            "id": "front-7212f1c8-a39",
+            "type": "drawers",
+            "hinge": "left",
+            "materialId": "freijo",
+            "heights": [
+             1,
+             1,
+             1
+            ]
+           }
+          },
+          {
+           "id": "g2:root:low:high",
+           "front": {
+            "id": "front-41a2c9e4-a1f",
+            "type": "double",
+            "hinge": "left",
+            "materialId": "freijo",
+            "heights": [
+             1
+            ]
+           }
+          }
+         ]
+        }
+       },
+       {
+        "id": "g2:root:high",
+        "front": {
+         "id": "front-bd607928-e3f",
+         "type": "double",
+         "hinge": "left",
+         "materialId": "freijo",
+         "heights": [
+          1
+         ]
+        }
+       }
+      ]
+     }
+    },
+    "legacyIds": false
+   },
+   {
+    "id": "g3",
+    "name": "Coluna de portas",
+    "width": 600,
+    "height": 2400,
+    "depth": 600,
+    "materialId": "white",
+    "back": true,
+    "position": [
+     1641,
+     0,
+     0
+    ],
+    "rotation": 0,
+    "root": {
+     "id": "g3:root",
+     "split": {
+      "id": "g3:root:divider",
+      "axis": "y",
+      "ratio": 0.8081841432225064,
+      "children": [
+       {
+        "id": "g3:root:low",
+        "front": {
+         "id": "front-e060e4c7-964",
+         "type": "single",
+         "hinge": "right",
+         "materialId": "freijo",
+         "heights": [
+          1
+         ]
+        }
+       },
+       {
+        "id": "g3:root:high",
+        "front": {
+         "id": "front-102470d9-83a",
+         "type": "single",
+         "hinge": "right",
+         "materialId": "freijo",
+         "heights": [
+          1
+         ]
+        }
+       }
+      ]
+     }
+    },
+    "legacyIds": false
+   }
+  ],
+  "connections": [
+   {
+    "id": "connection-25bea1e8-a68",
+    "parent": "g1",
+    "child": "g2",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   },
+   {
+    "id": "connection-23877a90-cb9",
+    "parent": "g2",
+    "child": "g3",
+    "side": "right",
+    "shared": true,
+    "align": "front",
+    "offset": 0
+   }
+  ]
+ },
+ "room": {
+  "schemaVersion": 1,
+  "widthMm": 3300,
+  "heightMm": 2700,
+  "depthMm": 3000,
+  "baseboardMm": 0,
+  "offsetMm": 0,
+  "obstacles": [
+   {
+    "id": "ob-porta",
+    "kind": "door",
+    "xMm": 2480,
+    "yMm": 0,
+    "widthMm": 760,
+    "heightMm": 2100
+   },
+   {
+    "id": "ob-tomada",
+    "kind": "outlet",
+    "xMm": 3050,
+    "yMm": 300,
+    "widthMm": 80,
+    "heightMm": 80
+   }
+  ]
+ }
+}

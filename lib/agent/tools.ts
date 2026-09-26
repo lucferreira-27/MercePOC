@@ -35,6 +35,7 @@ import { contextSnapshot } from './snapshot';
 import { planRow } from './macros';
 import { askJev, noulOf, type JevAnswer, type JevQuestion } from './jev';
 import { askGateOn, askVerdict, blockText } from './ask-gate';
+import { designFacts, factClaims, factsLine } from './facts';
 import { EXPORT_KINDS, UI_TABS, VIEW_MODES, type OptionCard, type Tool, type ToolResult } from './types';
 
 /** Inferência do tipo dos argumentos a partir do esquema. */
@@ -92,6 +93,7 @@ const partsList = tool({
         return [p.id, p.name, `${r1(p.c)}×${r1(p.l)}×${p.thickness}`, p.material, Object.entries(e).filter(([, v]) => v).map(([k]) => k).join('') || '-', numbers.get(p.id) ?? '-'].join(' | ');
       });
     const head = `${rows.length} de ${parts.length} peças. Colunas: id | nome | C×L×E mm | material | fita (c1 frente, c2 trás, l1, l2) | nº corte`;
+    ctx.note('parts');
     return ok([head, ...rows.slice(0, 120)].join('\n') + (rows.length > 120 ? `\n… mais ${rows.length - 120}` : ''), 'Conferi as peças');
   },
 });
@@ -104,6 +106,7 @@ const quoteRead = tool({
   run: (ctx) => {
     const q = quote(generateDesign(ctx.design).parts as ModularPart[], ctx.design.modules.length, ctx.prices);
     const lines = q.lines.map((l) => `${l.section} | ${l.label} | ${l.qty} ${l.unit} × ${money(l.unitPrice)} = ${money(l.total)}`);
+    ctx.note('quote');
     return ok(
       [...lines, `Custo ${money(q.cost)} + margem ${ctx.prices.margin}% ${money(q.marginValue)} = total ${money(q.total)}`].join('\n'),
       `Calculei o orçamento: ${money(q.total)}`,
@@ -119,6 +122,7 @@ const cutplanRead = tool({
   running: () => 'Conferindo o plano de corte',
   run: (ctx, a) => {
     const plan = cutPlan(generateDesign(ctx.design).parts);
+    ctx.note('cut');
     if (a.chapa) {
       const s = plan.sheets[a.chapa - 1];
       if (!s) return fail(`Não existe a chapa ${a.chapa}; o plano tem ${plan.sheets.length}.`);
@@ -142,12 +146,16 @@ const designApply = tool({
   running: (a) => a.rotulo ?? 'Desenhando',
   run: (ctx, a) => {
     const before = ctx.design;
+    const roomBefore = ctx.room;
     const r = executeRequest(before, a.ops as ShelfOp[]);
-    if (!r.ok) return fail(`Recusado pela validação, nada mudou: ${r.error}`, 'Proposta recusada pela validação; corrigindo');
+    if (!r.ok) {
+      ctx.attempted.push({ ops: a.ops as ShelfOp[], error: r.error });
+      return fail(`Recusado pela validação, nada mudou: ${r.error}`, 'Proposta recusada pela validação; corrigindo');
+    }
     if (JSON.stringify(r.design) === JSON.stringify(before)) return ok('Sem efeito: o projeto já estava assim.', 'Nada a mudar');
     ctx.setDesign(r.design, a.ops as ShelfOp[]);
     const changes = describeDesignChanges(before, r.design);
-    const fit = fitNote(ctx, before, r.design);
+    const fit = fitNote(ctx, before, r.design, roomBefore) + sheetNote(ctx, before, r.design);
     const had = namedIds(before);
     const fresh = [...namedIds(r.design)].filter((id) => !had.has(id));
     const titles = describeHighlights(before, r.design, a.ops as ShelfOp[]).map((h) => h.title);
@@ -218,7 +226,10 @@ const rowBuild = tool({
     const room = plan.anchor && ctx.room ? { ...ctx.room, anchor: plan.anchor } : ctx.room;
     const before = ctx.design;
     const r = executeRequest(before, plan.ops);
-    if (!r.ok) return fail(`Recusado pela validação, nada mudou: ${r.error}`, 'Fileira recusada; ajustando');
+    if (!r.ok) {
+      ctx.attempted.push({ ops: plan.ops, error: r.error });
+      return fail(`Recusado pela validação, nada mudou: ${r.error}`, 'Fileira recusada; ajustando');
+    }
     if (room !== ctx.room) ctx.room = room;
     ctx.setDesign(r.design, plan.ops);
     const parts = plan.segments.map((v) => `${v.from}–${v.to} mm: ${v.ids.join(', ')} (compartimentos ${v.ids.map((id) => `${id}:root`).join(', ')})`);
@@ -447,7 +458,9 @@ const historyUndo = tool({
   args: z.object({}).strict(),
   run: (ctx) => {
     if (ctx.designChanged || ctx.roomChanged) {
-      ctx.rebase();
+      // O rascunho sai inteiro: as operações dele ficam como desfeitas, fora
+      // do registro do que o pedido gravou.
+      ctx.discard();
       return ok('Descartei as mudanças deste pedido.', 'Descartei as mudanças');
     }
     const r = undo(ctx.project);
@@ -587,6 +600,12 @@ const finishTool = tool({
     .strict(),
   run: async (ctx, a) => {
     const issues = checkWork(ctx);
+    // Números da resposta contra o estado que fica (não contra a última leitura).
+    const wrong = factClaims(a.mensagem, designFacts(ctx.design, ctx.prices), designFacts(ctx.turnStart.design, ctx.prices));
+    if (wrong.length)
+      issues.push(
+        `A mensagem ${wrong.join('; ')}. Fatos do estado final: ${factsLine(designFacts(ctx.design, ctx.prices))}. Reescreva só com esses números.`,
+      );
     if (!issues.length && ctx.repairs < 2) {
       const [gaps, missing] = await Promise.all([claimsMatch(ctx, a.mensagem), requestMissing(ctx)]);
       if (missing?.length) issues.push(`O pedido ${missing.join('; ')}. Faça o que falta, ou diga na mensagem por que não deu.`);
@@ -600,6 +619,7 @@ const finishTool = tool({
         'Conferi o trabalho: achei um problema, corrigindo',
       );
     }
+    ctx.checked = true;
     ctx.finish = {
       message: issues.length ? `${a.mensagem}\n\nAtenção: ${issues.join(' ')}` : a.mensagem,
       suggestions: normalizeSuggestions(a.sugestoes),
@@ -612,14 +632,28 @@ const finishTool = tool({
  * Encaixe depois de uma mudança, para a IA ver na hora se piorou: sem isso
  * ela movia módulos "para alinhar" e só descobria na conferência final.
  */
-function fitNote(ctx: AgentContext, before: Design, after: Design) {
+function fitNote(ctx: AgentContext, before: Design, after: Design, roomBefore = ctx.room) {
   const room = ctx.room;
   if (!room) return '';
-  const was = new Set(fitReport(before, room).issues.map((i) => i.message));
+  const was = new Set((roomBefore ? fitReport(before, roomBefore).issues : []).map(issueKey));
   const now = fitReport(after, room).issues;
-  const worse = now.filter((i) => !was.has(i.message));
+  const worse = now.filter((i) => !was.has(issueKey(i)));
   if (worse.length) return ` ATENÇÃO, esta mudança piorou o encaixe: ${worse.map((i) => i.message).join('; ')}. Desfaça ou corrija.`;
   return ` ${fitSummary(after, room)}.`;
+}
+
+/** Quem causa o problema de encaixe: o mesmo problema antes e depois tem a mesma chave. */
+const issueKey = (i: { code: string; key?: string }) => i.key ?? i.code;
+
+/**
+ * Chapas depois de uma mudança, quando o plano de corte mudou: material e
+ * espessura decidem as chapas, e a IA trocava a cor achando que reduzia.
+ */
+function sheetNote(ctx: AgentContext, before: Design, after: Design) {
+  const a = designFacts(before, ctx.prices),
+    b = designFacts(after, ctx.prices);
+  if (JSON.stringify(a.groups) === JSON.stringify(b.groups)) return '';
+  return ` Plano de corte agora: ${factsLine(b)} (antes: ${a.sheets}).`;
 }
 
 /** O que o pedido fez de fato, para conferir as ações que a resposta afirma. */
@@ -799,10 +833,19 @@ export function checkWork(ctx: AgentContext): string[] {
   const issues: string[] = [];
   const room = ctx.room;
   const start = ctx.turnStart;
-  if (room && JSON.stringify(ctx.design) !== JSON.stringify(start.design)) {
-    const before = new Set((start.room ? fitReport(start.design, start.room).issues : []).map((i) => i.code));
+  const designMoved = JSON.stringify(ctx.design) !== JSON.stringify(start.design);
+  const roomMoved = JSON.stringify(room ?? null) !== JSON.stringify(start.room ?? null);
+  if (room && (designMoved || roomMoved)) {
+    // Pelo causador (código, obstáculo e módulo): uma TV já tapada não
+    // esconde outro módulo novo na frente dela.
+    const before = new Set((start.room ? fitReport(start.design, start.room).issues : []).map(issueKey));
     for (const issue of fitReport(ctx.design, room).issues)
-      if (!before.has(issue.code)) issues.push(`Ambiente: ${issue.message}`);
+      if (!before.has(issueKey(issue)))
+        issues.push(
+          designMoved
+            ? `Ambiente: ${issue.message}`
+            : `Ambiente: com as medidas novas, ${issue.message.charAt(0).toLowerCase()}${issue.message.slice(1)}. Diga isso na resposta; não mude o móvel sem pedido.`,
+        );
   }
   const parts = generateDesign(ctx.design).parts as ModularPart[];
   const oldParts = new Map((generateDesign(start.design).parts as ModularPart[]).map((p) => [p.id, JSON.stringify([p.size, p.position])]));
@@ -820,7 +863,10 @@ const renderLook = tool({
     'Mostra para você o desenho do rascunho agora (frontal e isométrico), numa imagem logo depois dos resultados. Use para conferir proporção e aparência, principalmente comparando com a foto de referência, antes do finish.',
   args: z.object({}).strict(),
   running: () => 'Olhando o desenho',
-  run: async (ctx) => ok('O desenho vem na próxima mensagem.', 'Olhei o desenho', await planDataUrl(drawingParts(canonical(ctx.design)))),
+  run: async (ctx) => {
+    ctx.note('look');
+    return ok('O desenho vem na próxima mensagem.', 'Olhei o desenho', await planDataUrl(drawingParts(canonical(ctx.design))));
+  },
 });
 
 // ---------------------------------------------------------------- opções
