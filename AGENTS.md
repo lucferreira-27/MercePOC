@@ -18,6 +18,22 @@ Checklist per change:
 - Overlaps: tooltips vs neighboring buttons, labels vs card edges.
 - Compare against the mockup or previous screenshot when one exists.
 
+## Branches and production
+
+- `dev` is the development branch. Work, test and commit on `dev` in
+  `G:\MercePOC`. Feature PRs target `dev`, not `main`.
+- `main` is production. It only moves through a `dev` → `main` merge once the
+  changes are tested and ready. Never commit or push directly to `main`
+  (the private repo has no branch protection, so nothing else enforces this).
+- There is no hosted deployment or CI. Production runs locally from a
+  separate worktree at `G:\MercePOC-prod` that always stays on `main`, with
+  its own `node_modules`, `dist/` and a copy of `.env`.
+- To release: merge `dev` into `main`, then in `G:\MercePOC-prod` run
+  `git pull`, `npm install` (if dependencies changed) and `npm run build`,
+  and restart the server there with `Start-Merce.ps1`.
+- Both folders serve on port 4310, so stop one server before starting the
+  other. `Start-Merce.ps1` reuses whatever server already answers on 4310.
+
 ## Pull requests
 
 - Every PR includes at least one screenshot relevant to the feature, taken
