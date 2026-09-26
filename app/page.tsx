@@ -318,6 +318,8 @@ export default function Home() {
     [reviewFocus, setReviewFocus] = useState<string[] | null>(null),
     // Linha da conversa sob o cursor fora da revisão: só acende as peças.
     [hoverFocus, setHoverFocus] = useState<string[] | null>(null),
+    // Plano de corte sob o cursor: a chapa ou a peça acende no móvel.
+    [cutFocus, setCutFocus] = useState<{ ids: string[]; mode: 'sheet' | 'piece' } | null>(null),
     [scrubbing, setScrubbing] = useState(false),
     [model, setModel] = useState<ModelKey>('deepseek'),
     [available, setAvailable] = useState<ModelKey[]>([]),
@@ -663,12 +665,16 @@ export default function Home() {
   // Diff na cena contra o antes do turno: cresce quadro a quadro na reprodução.
   const sceneDiff = useMemo(() => {
     if (!visualParams) return null;
-    // Montando ao vivo: o que o assistente acabou de pôr brilha como peça nova.
+    // Montando ao vivo: o que o assistente acabou de pôr brilha como peça nova,
+    // sem esmaecer o resto (o móvel parecia quebrado enquanto ele trabalhava).
     if (agentDraft && p)
-      return { ...partDiff(drawingParts(canonical(p.revisions[p.cursor].params)), drawingParts(canonical(agentDraft.params))), focus: null };
+      return { ...partDiff(drawingParts(canonical(p.revisions[p.cursor].params)), drawingParts(canonical(agentDraft.params))), focus: null, dim: false };
     if (!reviewData || !reviewFrame) {
       // Passar o mouse numa linha não mexe na cena: acende as peças dela no
       // desenho que já está à vista, se ainda existem.
+      // Peça ou chapa do plano de corte sob o cursor: acende no móvel, sem
+      // esmaecer o resto.
+      if (cutFocus?.ids.length) return { added: [], changed: [], removed: [], focus: cutFocus.ids, dim: false };
       if (!hoverFocus?.length) return null;
       const focus = selectedPartIds(visualParams, hoverFocus);
       return focus.length ? { added: [], changed: [], removed: [], focus } : null;
@@ -676,7 +682,7 @@ export default function Home() {
     const d = partDiff(reviewData.beforeParts, drawingParts(canonical(reviewFrame.design)));
     const focus = reviewFocus?.length ? selectedPartIds(visualParams, reviewFocus) : null;
     return { ...d, focus };
-  }, [reviewData, reviewFrame, visualParams, reviewFocus, hoverFocus, agentDraft, p]);
+  }, [reviewData, reviewFrame, visualParams, reviewFocus, hoverFocus, cutFocus, agentDraft, p]);
   const historyCount = p?.revisions.length ?? 0;
   const displayParts=useMemo(()=>visualParts.map(part=>openingPose(part as ModularPart,historyPreview!==null?0:opened[(part as ModularPart).motion?.id??'']??0)),[visualParts,opened,historyPreview]);
   const displaySelected = useMemo(() => (visualParams ? selectedPartIds(visualParams, selected) : []), [visualParams, selected]);
@@ -2808,6 +2814,7 @@ export default function Home() {
               onSnapshot={onSnapshot}
               onSpinSuppressed={setReducedMotion}
               diff={sceneDiff}
+              cutFocus={tab === 'cut' ? cutFocus : null}
               keyboard={!paletteOpen && !galleryOpen}
               movable={!busy && !pending && historyPreview === null && !reviewLocked && !exploded}
               onMove={onMoveFurniture}
@@ -3124,6 +3131,7 @@ export default function Home() {
                   selected={displaySelected}
                   onSelect={(id, extend) => toggleSelected(id, extend)}
                   onDownload={() => download(`${slug(p.name)}-corte.csv`, cutPlanCSV(quote.plan), 'text/csv;charset=utf-8')}
+                  onFocus={setCutFocus}
                 />
               )}
               {tab === 'parts' && (

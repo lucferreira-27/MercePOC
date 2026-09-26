@@ -5,12 +5,14 @@ import { DIFF_GLOW, finishTexture, panelUV, SELECTION_GLOW } from './scene-mater
 /**
  * Diff na cena: peças que entraram brilham em verde, as que mudaram em âmbar
  * e o resto esmaece para a mudança saltar aos olhos. `focus` é a linha da
- * conversa sob o cursor: só as peças dela ficam acesas.
+ * conversa sob o cursor: só as peças dela ficam acesas. `dim: false` só
+ * acende, sem esmaecer o resto: o móvel sendo montado ao vivo fica sólido.
  */
 export type SceneDiff = {
   added: ReadonlySet<string>;
   changed: ReadonlySet<string>;
   focus?: ReadonlySet<string> | null;
+  dim?: boolean;
 };
 /**
  * Arestas: discretas em repouso, na cor de destaque quando o cursor passa ou a
@@ -431,7 +433,7 @@ export class FurnitureMotion {
               : null
         : null;
       // Sem marca durante o diff, a peça esmaece: o que mudou salta aos olhos.
-      const fade = this.diff && !mark && !e.selected ? 0.32 : 1;
+      const fade = this.diff && this.diff.dim !== false && !mark && !e.selected ? 0.32 : 1;
       e.mesh.material.opacity =
         THREE.MathUtils.lerp(e.from.opacity, e.to.opacity, t) * fade;
       const transparent = e.mesh.material.opacity < 0.999;
