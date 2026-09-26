@@ -239,6 +239,15 @@ function Piece({
         {`${p.n}. ${shortName(p.name)} · ${mmText(p.w)} × ${mmText(p.h)} mm${p.rotated ? ' · girada' : ''}`}
       </title>
       <rect x={p.x} y={p.y} width={p.w} height={p.h} strokeWidth={(on ? 2.4 : hot ? 2 : 1) * u} />
+      {hot && onPiece && (
+        // "Corte aqui": o mesmo tracejado que aparece na peça do móvel.
+        <path
+          className="cd-cut"
+          d={`M ${p.x + 2.5 * u} ${p.y + 2.5 * u} h ${Math.max(p.w - 5 * u, 0)} v ${Math.max(p.h - 5 * u, 0)} h ${-Math.max(p.w - 5 * u, 0)} Z`}
+          strokeWidth={1.6 * u}
+          strokeDasharray={`${5 * u} ${3 * u}`}
+        />
+      )}
       {text && (
         <text
           className="cd-label"

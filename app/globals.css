@@ -2136,6 +2136,24 @@ kbd {
   font-size: 13px;
   color: var(--muted);
 }
+/* Tesoura do "corte aqui": a vista a põe no começo do tracejado da peça. */
+.cut-scissors {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.28);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
 .scene-dims {
   position: absolute;
   inset: 0;
@@ -4115,7 +4133,7 @@ kbd {
 }
 .cut-row:hover,
 .cut-row.hot {
-  background: var(--surface-2);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-2));
 }
 .cut-row.on {
   background: var(--accent-soft);
@@ -4225,12 +4243,17 @@ kbd {
   cursor: pointer;
 }
 .cd-piece.hot > rect {
-  fill: color-mix(in srgb, var(--piece) 85%, var(--surface));
-  stroke: var(--ink);
+  fill: color-mix(in srgb, var(--accent) 26%, color-mix(in srgb, var(--piece) 75%, var(--surface)));
+  stroke: var(--accent);
 }
 .cd-piece.on > rect {
   fill: color-mix(in srgb, var(--accent) 42%, var(--surface));
   stroke: var(--accent);
+}
+.cd-cut {
+  fill: none;
+  stroke: var(--ink);
+  pointer-events: none;
 }
 .cd-label {
   text-anchor: middle;
@@ -4268,8 +4291,8 @@ kbd {
   stroke: color-mix(in srgb, var(--piece) 45%, var(--line-strong));
 }
 :root[data-theme='dark'] .cut-drawing:not(.print) .cd-piece.hot > rect {
-  fill: color-mix(in srgb, var(--piece) 40%, var(--surface-2));
-  stroke: var(--ink);
+  fill: color-mix(in srgb, var(--accent) 24%, color-mix(in srgb, var(--piece) 34%, var(--surface-2)));
+  stroke: var(--accent);
 }
 :root[data-theme='dark'] .cut-drawing:not(.print) .cd-piece.on > rect {
   fill: color-mix(in srgb, var(--accent) 38%, var(--surface-2));

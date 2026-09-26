@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Download, Maximize2, RotateCw, X } from 'lucide-react';
 import type { CutPlan, CutSheet, Placement } from '@/lib/cutplan';
 import { CutSheetDrawing, mmText, pieceTone, shortName, type CutLabel } from './cut-sheet-drawing';
@@ -62,11 +62,17 @@ export function CutPlanPanel({
   selected,
   onSelect,
   onDownload,
+  onFocus,
 }: {
   plan: CutPlan;
   selected: string[];
   onSelect: (id: string, extend: boolean) => void;
   onDownload: () => void;
+  /**
+   * O que acende no móvel: a chapa sob o cursor acende todas as peças dela;
+   * uma peça (no desenho ou na lista), só ela. `null` apaga.
+   */
+  onFocus?: (focus: { ids: string[]; mode: 'sheet' | 'piece' } | null) => void;
 }) {
   const { spec } = plan;
   const [filter, setFilter] = useState<string>('all');
@@ -78,6 +84,8 @@ export function CutPlanPanel({
   const [label, setLabel] = usePref<CutLabel>('merce.cut.label', 'dims');
   const [offcuts, setOffcuts] = usePref('merce.cut.offcuts', true);
   const [hovered, setHovered] = useState<string | null>(null);
+  // Chapa sob o cursor: o cartão (a chapa aberta) ou uma miniatura.
+  const [hot, setHot] = useState<CutSheet | 'card' | null>(null);
   const [expanded, setExpanded] = useState(false);
   const group = plan.groups.some((g) => g.key === filter) ? filter : 'all';
   const visible = group === 'all' ? plan.sheets : plan.sheets.filter((s) => s.key === group);
@@ -105,6 +113,25 @@ export function CutPlanPanel({
   const efficiency = totalSheets ? used / (totalSheets * spec.length * spec.width) : 0;
   const pieces = plan.sheets.reduce((a, s) => a + s.placements.length, 0);
   const spare = plan.sheets.reduce((a, s) => a + offcutArea(s), 0);
+  const hotSheet = hot === 'card' ? sheet : hot;
+  const focusSink = useRef(onFocus);
+  useEffect(() => {
+    focusSink.current = onFocus;
+  }, [onFocus]);
+  const focus = useMemo(
+    () =>
+      hovered
+        ? { ids: [hovered], mode: 'piece' as const }
+        : hotSheet
+          ? { ids: hotSheet.placements.map((p) => p.id), mode: 'sheet' as const }
+          : null,
+    [hovered, hotSheet],
+  );
+  useEffect(() => {
+    focusSink.current?.(focus);
+  }, [focus]);
+  // Saiu da aba: o móvel apaga.
+  useEffect(() => () => focusSink.current?.(null), []);
   const go = (delta: number) => setCursor(Math.min(Math.max(at + delta, 0), visible.length - 1));
   const pick = (p: Placement, extend: boolean) => onSelect(p.id, extend);
 
@@ -179,6 +206,7 @@ export function CutPlanPanel({
             onPrev={() => go(-1)}
             onNext={() => go(1)}
             onExpand={() => setExpanded(true)}
+            onHot={(on) => setHot(on ? 'card' : null)}
           >
             <CutSheetDrawing
               spec={spec}
@@ -202,6 +230,8 @@ export function CutPlanPanel({
                   className={i === at ? 'on' : ''}
                   title={`${s.material} ${s.thickness} mm · chapa ${s.index} · ${percent(s.efficiency)}`}
                   onClick={() => setCursor(i)}
+                  onMouseEnter={() => setHot(s)}
+                  onMouseLeave={() => setHot(null)}
                 >
                   <MiniSheet plan={plan} sheet={s} selected={selected} />
                   <span>
@@ -258,6 +288,7 @@ function SheetCard({
   onPrev,
   onNext,
   onExpand,
+  onHot,
   children,
 }: {
   plan: CutPlan;
@@ -267,6 +298,8 @@ function SheetCard({
   onPrev: () => void;
   onNext: () => void;
   onExpand?: () => void;
+  /** Cursor entrou ou saiu da chapa. */
+  onHot?: (on: boolean) => void;
   children: React.ReactNode;
 }) {
   const ofMaterial = plan.sheets.filter((s) => s.key === sheet.key).length;
@@ -306,7 +339,13 @@ function SheetCard({
           )}
         </div>
       </header>
-      <div className="cut-card-body">{children}</div>
+      <div
+        className="cut-card-body"
+        onMouseEnter={onHot && (() => onHot(true))}
+        onMouseLeave={onHot && (() => onHot(false))}
+      >
+        {children}
+      </div>
       <footer className="cut-card-foot">
         <span>
           <b>{sheet.placements.length}</b> {sheet.placements.length === 1 ? 'peça' : 'peças'}

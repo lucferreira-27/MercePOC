@@ -9,7 +9,7 @@ import type { Obstacle, Room } from '@/lib/room';
 import { feetOf, generateComposition } from '@/lib/composition';
 import { buildFeet, buildRoom, obstacleCrosses, referenceRoom, roomFocus, ROOM_PALETTE, type SceneBounds } from '@/lib/scene-room';
 import { buildObstacle, tintFrame } from '@/lib/scene-obstacles';
-import { Pencil, Trash2, X } from 'lucide-react';
+import { Pencil, Scissors, Trash2, X } from 'lucide-react';
 import { buildDims, type DimLabel } from '@/lib/scene-dims';
 import {
   FurnitureMotion,
@@ -19,6 +19,7 @@ import {
   TRANSITION_MS,
 } from '@/lib/furniture-motion';
 import { DIFF_GLOW } from '@/lib/scene-materials';
+import { buildCutMarks, scissorsPose, type CutMarkMode } from '@/lib/cut-marks';
 import type { ModularOp } from '@/lib/composition';
 import { DEFAULT_DRAG_MODE, MOVE_GRID, constrainDrag, lockedAxes, moduleBoxes, moveGroup, moveOp, quickBlock, rotateOp, selectedGroup, shortMm, snapDelta, tryOp, type DragMode, type MoveGroup, type Vec3 } from '@/lib/move';
 import { floorBound, obstacleOverlap, wallAt } from '@/lib/room';
@@ -55,6 +56,8 @@ type Runtime = {
   confirmPlacing?: () => void;
   feet?: { group: THREE.Group; dispose: () => void };
   ghosts?: { group: THREE.Group; dispose: () => void };
+  /** Tracejado de corte nas peças do plano sob o cursor; `scissors` é a peça que leva a tesoura. */
+  cutMarks?: { marks: ReturnType<typeof buildCutMarks>; scissors: { mesh: THREE.Mesh; size: readonly number[] } | null };
   dims?: { lines: THREE.LineSegments; labels: DimLabel[]; dispose: () => void };
   labelEls: HTMLSpanElement[];
   /** Móvel em movimento (arrasto ou setas), ainda não gravado. */
@@ -174,6 +177,7 @@ function FurnitureView({
   onSnapshot,
   onSpinSuppressed,
   diff = null,
+  cutFocus = null,
   movable = false,
   onMove,
   onMoveObstacle,
@@ -209,8 +213,14 @@ function FurnitureView({
   /**
    * Diff do turno na cena: o que entrou e mudou brilha, o que saiu aparece
    * como fantasma vermelho, e `focus` acende só as peças da linha da conversa.
+   * `dim: false` mantém o resto sólido (montagem ao vivo).
    */
-  diff?: { added: string[]; changed: string[]; removed: Part[]; focus?: string[] | null } | null;
+  diff?: { added: string[]; changed: string[]; removed: Part[]; focus?: string[] | null; dim?: boolean } | null;
+  /**
+   * Plano de corte sob o cursor: tracejado de "corte aqui" nas peças. Numa
+   * peça (`piece`) vem com a tesoura; na chapa inteira (`sheet`), mais leve.
+   */
+  cutFocus?: { ids: string[]; mode: CutMarkMode } | null;
   params: Design;
   parts: Part[];
   selected: string[];
@@ -250,6 +260,7 @@ function FurnitureView({
   } | null>(null);
   const host = useRef<HTMLDivElement>(null),
     labelHost = useRef<HTMLDivElement>(null),
+    scissorsEl = useRef<HTMLDivElement>(null),
     callback = useRef(onSelect),
     runtime = useRef<Runtime | null>(null);
   const [error, setError] = useState(false);
@@ -853,6 +864,7 @@ function FurnitureView({
       const w = el.clientWidth,
         h = el.clientHeight;
       renderer.setSize(w, h);
+      state.cutMarks?.marks.resize(w, h);
       camera.aspect = w / Math.max(h, 1);
       camera.updateProjectionMatrix();
       state.dirty = true;
@@ -906,6 +918,15 @@ function FurnitureView({
         bar.style.opacity = off ? '0' : '1';
         bar.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(Math.max(8, at.y))}px) translate(-50%, -100%)`;
       }
+      // Tesoura no começo do tracejado da peça, seguindo a câmera.
+      const shears = scissorsEl.current;
+      if (shears) {
+        const target = state.cutMarks?.scissors;
+        const pose = target ? scissorsPose(target.mesh, target.size, camera, el.clientWidth, el.clientHeight) : null;
+        shears.style.opacity = pose ? '1' : '0';
+        if (pose)
+          shears.style.transform = `translate(${Math.round(pose.x)}px, ${Math.round(pose.y)}px) translate(-50%, -50%) rotate(${pose.angle.toFixed(1)}deg)`;
+      }
       // Rótulos das cotas: HTML nítido em qualquer zoom, reposicionado a cada
       // quadro direto no DOM, sem passar pelo React.
       if (state.dims && state.labelEls.length) {
@@ -932,6 +953,7 @@ function FurnitureView({
       state.room?.dispose();
       state.feet?.dispose();
       state.ghosts?.dispose();
+      state.cutMarks?.marks.dispose();
       state.dims?.dispose();
       shadowFloor.geometry.dispose();
       shadowFloor.material.dispose();
@@ -988,6 +1010,7 @@ function FurnitureView({
             added: new Set(diff.added),
             changed: new Set(diff.changed),
             focus: diff.focus?.length ? new Set(diff.focus) : null,
+            dim: diff.dim,
           }
         : null,
     );
@@ -1025,6 +1048,24 @@ function FurnitureView({
       },
     };
   }, [diff]);
+  // Tracejado de corte: refeito a cada troca de alvo (e se as peças mudam).
+  useEffect(() => {
+    const s = runtime.current;
+    if (!s) return;
+    s.cutMarks?.marks.dispose();
+    s.cutMarks = undefined;
+    s.dirty = true;
+    if (!cutFocus?.ids.length) return;
+    const sizes = new Map(parts.map((part) => [part.id, part.size]));
+    const targets = cutFocus.ids.flatMap((id) => {
+      const entry = s.motion.entries.get(id);
+      const size = sizes.get(id);
+      return entry && !entry.exiting && size ? [{ mesh: entry.mesh as THREE.Mesh, size }] : [];
+    });
+    if (!targets.length) return;
+    const marks = buildCutMarks(targets, cutFocus.mode, s.renderer.getSize(new THREE.Vector2()));
+    s.cutMarks = { marks, scissors: cutFocus.mode === 'piece' ? targets[0] : null };
+  }, [cutFocus, parts]);
   useEffect(() => {
     const state = runtime.current;
     if (state) state.motion.setHover(hover?.id ?? null);
@@ -1535,6 +1576,9 @@ function FurnitureView({
           </button>
         </div>
       )}
+      <div className="cut-scissors" ref={scissorsEl} aria-hidden="true">
+        <Scissors size={15} strokeWidth={2.2} />
+      </div>
       <div className="scene-dims" ref={labelHost} aria-hidden="true">
         {dimLabels.map((label, i) => (
           <span key={i + label.text} className={'dim-label ' + label.tone}>
