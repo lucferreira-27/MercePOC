@@ -1,5 +1,5 @@
-import { aiMaxTokens, aiTimeoutMs, modelKey, profile, type ModelChoice } from '../gateway';
-import { modelInfo, type ProviderUsage } from '../models';
+import { AI_FIRST_BYTE_MS, aiCallMs, aiMaxTokens, aiStallMs, aiTimeoutMs, modelKey, profile, type ModelChoice } from '../gateway';
+import { modelInfo, reasoningEffort, type ProviderUsage } from '../models';
 import { readEvents } from '../sse';
 
 /** Mensagem no formato de chat do provedor (compatível com OpenAI). */
@@ -40,11 +40,17 @@ export async function callModel(options: {
   const fast = Boolean(info.fastProfile);
   const idle = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
+  // Primeiro byte com folga (o modelo pensa antes); depois do primeiro, um
+  // silêncio de aiStallMs já é fluxo parado, e o laço tenta de novo ou troca
+  // de modelo em vez de esperar os 120 s do caminho antigo.
+  let started = false;
   const reset = () => {
     clearTimeout(timer);
-    timer = setTimeout(() => idle.abort(), aiTimeoutMs());
+    timer = setTimeout(() => idle.abort(), started ? aiStallMs() : Math.min(aiTimeoutMs(), AI_FIRST_BYTE_MS));
   };
   reset();
+  // Fluxo vivo que não termina também é queda: o laço tenta de novo ou troca de modelo.
+  const cap = setTimeout(() => idle.abort(), aiCallMs());
   try {
     const response = await fetch(`${prof.baseUrl}/chat/completions`, {
       method: 'POST',
@@ -52,7 +58,7 @@ export async function callModel(options: {
       signal: AbortSignal.any([idle.signal, ...(options.signal ? [options.signal] : [])]),
       body: JSON.stringify({
         model: prof.model,
-        ...(info.reasoning ? { reasoning_effort: info.reasoning } : {}),
+        ...(reasoningEffort(info) ? { reasoning_effort: reasoningEffort(info) } : {}),
         ...(fast ? {} : { stream_options: { include_usage: true } }),
         max_tokens: aiMaxTokens(),
         stream: true,
@@ -76,6 +82,7 @@ export async function callModel(options: {
       reasoning = 0;
     const calls = new Map<number, ToolCall>();
     await readEvents(response, ({ data }) => {
+      started = true;
       reset();
       bytes += data.length;
       if (data === '[DONE]') return;
@@ -121,5 +128,6 @@ export async function callModel(options: {
     return { content: content.trim(), calls: list, finish };
   } finally {
     clearTimeout(timer);
+    clearTimeout(cap);
   }
 }

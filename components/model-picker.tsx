@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { Bug, Check, ChevronDown, Cpu } from 'lucide-react';
-import { MODELS, modelInfo, type ModelKey } from '@/lib/models';
+import { MODELS, modelInfo, reasoningLabel, type ModelKey } from '@/lib/models';
 
 /** Preço por milhão de tokens em uma linha curta: "US$ 0,14 / 0,56". */
 function priceLine(key: ModelKey) {
@@ -62,7 +62,7 @@ export function ModelPicker({
       >
         <Cpu size={13} />
         <span>{info.label}</span>
-        {info.reasoning && <em>baixo</em>}
+        {info.reasoning && <em>{info.reasoning === 'high' ? 'alto' : 'baixo'}</em>}
         <ChevronDown size={12} />
       </button>
       {open && (
@@ -87,7 +87,7 @@ export function ModelPicker({
                 <span className="model-text">
                   <strong>
                     {m.label}
-                    {m.reasoning && <em>raciocínio baixo</em>}
+                    {m.reasoning && <em>{reasoningLabel(m)}</em>}
                     {m.fastProfile && <em>rápido</em>}
                   </strong>
                   <small>{usable ? m.blurb : 'Sem credencial neste servidor (.env)'}</small>

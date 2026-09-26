@@ -6,6 +6,7 @@ import { materialIds } from '../furniture';
 import { edgeSides, mergePrices, money, quote, type Prices } from '../quote';
 import {
   applyObstacleEdits,
+  furnitureOnWall,
   emptyRoom,
   fitReport,
   fitSummary,
@@ -33,6 +34,7 @@ import type { AgentContext } from './context';
 import { contextSnapshot } from './snapshot';
 import { planRow } from './macros';
 import { askJev, noulOf, type JevAnswer, type JevQuestion } from './jev';
+import { askGateOn, askVerdict, blockText } from './ask-gate';
 import { EXPORT_KINDS, UI_TABS, VIEW_MODES, type OptionCard, type Tool, type ToolResult } from './types';
 
 /** Inferência do tipo dos argumentos a partir do esquema. */
@@ -159,7 +161,7 @@ const designApply = tool({
 const rowBuild = tool({
   name: 'row_build',
   description:
-    'Monta uma fileira de módulos ao longo da parede, com a conta feita pelo app: divide o vão em módulos de até 90 cm (ou `modulos`), liga com painel compartilhado, encosta na parede e, com desviar_obstaculos, parte a fileira em volta de janela, porta ou coluna na faixa de altura dela. Use para balcões (base 0), aéreos (base ~1500) e colunas. inicio é mm a partir do canto esquerdo da parede (sem ambiente: do lado esquerdo do móvel atual). substituir troca o móvel inteiro pela fileira.',
+    'Monta uma fileira de módulos ao longo da parede, com a conta feita pelo app: divide o vão em módulos de até 90 cm (ou `modulos`), liga com painel compartilhado, encosta na parede e, com desviar_obstaculos, parte a fileira em volta de janela, porta, coluna e dos móveis que já estão na parede, na faixa de altura dela (não precisa calcular onde o móvel atual termina). Use para balcões (base 0), aéreos (base ~1500) e colunas. inicio é mm a partir do canto esquerdo da parede (sem ambiente: do lado esquerdo do móvel atual). substituir troca o móvel inteiro pela fileira.',
   args: z
     .object({
       inicio: z.number().min(-5000).max(12000),
@@ -203,7 +205,14 @@ const rowBuild = tool({
       replace: a.substituir,
     });
     const gone = plan.skipped.map((v) => `${Math.round(v.from)}–${Math.round(v.to)} mm (${v.why})`);
-    if (!plan.ops.length) return fail(`Nada coube: ${gone.join('; ') || 'vão vazio'}.`);
+    if (!plan.ops.length) {
+      // Sem os trechos livres a IA mudava a janela de lugar ou chutava outro início.
+      const free = plan.free.map((v) => `${v.from}–${v.to} mm`);
+      return fail(
+        `Nada coube: ${gone.join('; ') || 'vão vazio'}.${free.length ? ` Livre nessa altura: ${free.join(', ')}. Use inicio e largura dentro de um desses trechos, ou pule esta fileira e diga por quê.` : ' Não há trecho livre nessa altura: pule esta fileira e diga por quê.'}`,
+        'Nada coube nesse trecho da parede',
+      );
+    }
     // A parede fica presa onde está: módulos novos à esquerda ou a troca do
     // móvel não podem arrastar a parede junto.
     const room = plan.anchor && ctx.room ? { ...ctx.room, anchor: plan.anchor } : ctx.room;
@@ -214,9 +223,13 @@ const rowBuild = tool({
     ctx.setDesign(r.design, plan.ops);
     const parts = plan.segments.map((v) => `${v.from}–${v.to} mm: ${v.ids.join(', ')} (compartimentos ${v.ids.map((id) => `${id}:root`).join(', ')})`);
     const count = plan.segments.reduce((n, v) => n + v.ids.length, 0);
+    // A IA repetia a largura pedida na resposta ("bancada de 2 m") quando só
+    // parte coube: o resultado diz a largura montada, com todas as letras.
+    const built = plan.segments.reduce((n, v) => n + v.to - v.from, 0);
+    const short = built < a.largura - 1 ? ` Montado: ${built} mm dos ${a.largura} mm pedidos (o resto não coube). Na resposta, diga ${built} mm, não ${a.largura} mm.` : '';
     const fronts = a.frente && a.frente !== 'none' ? `Frentes: ${a.frente === 'drawers' ? `${a.gavetas ?? 3} gavetas` : a.frente === 'double' ? 'porta dupla' : 'porta simples'} em cada módulo.` : 'Sem frentes: para pôr, front.set em cada "<id>:root".';
     return ok(
-      `Fileira "${a.nome}" montada no lugar certo (encostada na parede, fora dos obstáculos): não mova nem refaça. ${parts.join('; ')}. ${fronts}${gone.length ? ` Pulado: ${gone.join('; ')}.` : ''} Medidas gerais: ${mm(r.design)}.${room ? ` ${fitSummary(r.design, room)}.` : ''}`,
+      `Fileira "${a.nome}" montada no lugar certo (encostada na parede, fora dos obstáculos): não mova nem refaça. ${parts.join('; ')}. ${fronts}${gone.length ? ` Pulado: ${gone.join('; ')}.` : ''}${short} Medidas gerais: ${mm(r.design)}.${room ? ` ${fitSummary(r.design, room)}.` : ''}`,
       `${a.nome}: ${count} ${count === 1 ? 'módulo' : 'módulos'}${gone.length ? `, desviando de ${plan.skipped.map((v) => v.why).join(', ')}` : ''}`,
     );
   },
@@ -259,13 +272,14 @@ const roomObstacles = tool({
   running: () => 'Marcando a parede',
   run: (ctx, a) => {
     const had = new Set((ctx.room?.obstacles ?? []).map((o) => o.id));
-    const edited = applyObstacleEdits(ctx.room, a, ctx.design.width);
+    // Janela e porta não vão para trás do móvel: o app acha o lugar livre.
+    const edited = applyObstacleEdits(ctx.room, a, ctx.design.width, ctx.room ? furnitureOnWall(canonical(ctx.design), ctx.room) : []);
     const clash = obstacleClash(edited.room.obstacles ?? []);
     if (clash) return fail(clash);
     ctx.setRoom(edited.room);
     const fresh = (edited.room.obstacles ?? []).filter((o) => !had.has(o.id)).map((o) => `${o.id} (${o.kind})`);
     return ok(
-      `${fresh.length ? `Novos: ${fresh.join(', ')}. ` : ''}${edited.skipped.length ? `Não coube: ${edited.skipped.join(', ')}. ` : ''}${fitSummary(ctx.design, edited.room)}.`,
+      `${fresh.length ? `Novos: ${fresh.join(', ')}. ` : ''}${edited.moved.length ? `Ajustei para um lugar livre: ${edited.moved.join('; ')}. ` : ''}${edited.skipped.length ? `Não coube: ${edited.skipped.join(', ')}. ` : ''}${fitSummary(ctx.design, edited.room)}.${edited.skipped.length ? ' Para o que não coube: use uma medida que caiba num trecho livre, ou siga sem ele.' : ''} A parede está marcada: siga para os móveis.`,
       edited.skipped.length ? 'Parte dos obstáculos não coube na parede' : 'Marquei a parede',
     );
   },
@@ -342,9 +356,11 @@ const uiTab = tool({
 const exportFile = tool({
   name: 'export_file',
   description:
-    'Gera um arquivo da versão que este pedido grava: pdf (desenho, orçamento, peças e corte), png (foto da vista), parts-csv (lista de peças), cut-csv (plano de corte), cortecloud, json (projeto). Sai no fim do pedido.',
+    'Gera um arquivo da versão que este pedido grava: pdf (desenho, orçamento, peças e corte), png (foto da vista), parts-csv (lista de peças), cut-csv (plano de corte), cortecloud, json (projeto). Sai no fim do pedido, como download na tela da pessoa: só quando ela pediu o arquivo.',
   args: z.object({ formato: z.enum(EXPORT_KINDS) }).strict(),
-  run: (ctx, a) => {
+  run: async (ctx, a) => {
+    if (!(await fileAsked(ctx)))
+      return fail('A pessoa não pediu arquivo neste pedido: não exporte por conta própria (vira um download na tela dela). Siga sem arquivo.', 'Arquivo não pedido; segui sem');
     ctx.effect({ type: 'export', kind: a.formato });
     const name = { pdf: 'o PDF', png: 'a foto da vista', 'parts-csv': 'a lista de peças', 'cut-csv': 'o plano de corte', cortecloud: 'o arquivo Cortecloud', json: 'o projeto em JSON' }[a.formato];
     return ok(`Feito: ${name} é gerado automaticamente quando este pedido terminar, a partir da versão final. Diga à pessoa que foi gerado.`, `Gerei ${name}`);
@@ -541,7 +557,14 @@ const askUser = tool({
         .max(6),
     })
     .strict(),
-  run: (ctx, a) => {
+  run: async (ctx, a) => {
+    // Perguntar ou fazer: pergunta com padrão ou limite volta para a IA
+    // fazer. Uma vez por pedido: se ela insistir, a pergunta segue.
+    if (!ctx.askGated && askGateOn()) {
+      ctx.askGated = true;
+      const verdict = await askVerdict(a.pergunta, { pedido: ctx.request, selected: ctx.selected.length > 0, shelves: ctx.design.shelves.length });
+      if (verdict && !verdict.legit) return fail(blockText(verdict), 'Dispensei a pergunta');
+    }
     const alive = new Set(entityIds(ctx.design));
     ctx.ask = {
       question: a.pergunta,
@@ -556,7 +579,9 @@ const finishTool = tool({
     'Termina o pedido com a resposta à pessoa (1 a 3 frases, pt-BR, sem ids internos, só o que as ferramentas fizeram) e 2 ou 3 sugestões de próximo passo. O app confere o trabalho antes: se voltar um problema, corrija e chame finish de novo.',
   args: z
     .object({
-      mensagem: z.string().trim().min(1).max(1500),
+      // Resposta longa é onde a IA soma totais de cabeça e erra: as do bench
+      // ficam abaixo de 700 caracteres (mediana 267).
+      mensagem: z.string().trim().min(1).max(700, 'Mensagem longa demais: 1 a 3 frases (até 700 caracteres), só o que mudou, sem somar totais de cabeça. Chame finish de novo.'),
       sugestoes: z.array(z.string().max(80)).max(4).default([]),
     })
     .strict(),
@@ -703,6 +728,20 @@ export const WANTS = {
   },
 } as const;
 export const WANTS_MIN = 0.7;
+
+/** Palavras de arquivo no pedido: basta uma para o export valer. */
+const FILE_WORDS = /\b(pdf|csv|png|json|cortecloud|arquivo|baix|export|imprim|planilha|download|mand[ae]|envi[ae]|plano de corte|lista de peças)/i;
+/**
+ * O pedido pede arquivo? Pelas palavras, ou pelo Jev (WANTS, perguntado no
+ * começo do turno). Download que ninguém pediu aparecia no fim de "deixe o
+ * cenário mais realista".
+ */
+async function fileAsked(ctx: AgentContext) {
+  // O roteador só escolhe exportar quando o Jev leu um pedido de arquivo.
+  if (ctx.direct || FILE_WORDS.test(ctx.request)) return true;
+  const answers = await ctx.wants;
+  return (noulOf(answers?.arquivo) ?? 0) >= 0.5; // barra baixa: só barra o arquivo que claramente ninguém pediu
+}
 
 export function wantQuestions(): Record<string, JevQuestion> {
   return Object.fromEntries(Object.entries(WANTS).map(([k, c]) => [k, { type: 'noul', instructions: `\`pedido\` ${c.q}` }]));

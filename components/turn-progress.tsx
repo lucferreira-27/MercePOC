@@ -3,7 +3,7 @@ import { PixelMascot } from './pixel-mascot';
 import { useEffect, useRef, useState } from 'react';
 import { Check, RotateCcw } from 'lucide-react';
 import type { Progress } from '@/lib/progress';
-import { modelInfo, tokensLabel, usd, type ModelKey, type TurnUsage } from '@/lib/models';
+import { modelInfo, reasoningLabel, tokensLabel, usd, type ModelKey, type TurnUsage } from '@/lib/models';
 import type { AgentStep } from '@/lib/agent/types';
 import { AgentSteps } from './agent-steps';
 
@@ -125,7 +125,7 @@ export function TurnProgress({
           <strong>{agent ? (agent.running ?? (agent.steps.length ? 'Trabalhando no pedido' : steps[Math.max(0, index)]?.active)) : (steps[Math.max(0, index)]?.active ?? 'Trabalhando')}</strong>
           <small>
             {info.label}
-            {info.reasoning ? ' · raciocínio baixo' : ''}
+            {info.reasoning ? ` · ${reasoningLabel(info)}` : ''}
             {retry ? ` · nova tentativa ${retry}` : ''}
           </small>
           <time className="tp-clock">{clock(elapsed)}</time>

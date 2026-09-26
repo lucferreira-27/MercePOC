@@ -17,7 +17,9 @@
     "bench": "tsx bench/run.mjs",
     "bench:doc": "tsx bench/doc.mjs",
     "bench:router": "tsx bench/router.mjs",
-    "bench:claims": "tsx bench/claims.mjs"
+    "bench:claims": "tsx bench/claims.mjs",
+    "bench:askact": "tsx bench/askact.mjs",
+    "bench:dash": "tsx bench/dashboard.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",

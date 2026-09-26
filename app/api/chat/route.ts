@@ -1,7 +1,7 @@
 import { applyObstacleEdits } from '@/lib/room';
 import { applyRequest, get, moveCursor, save, settleRoom, view, revise, type Clarification, type Message } from '@/lib/store';
 import { sameOrigin } from '@/lib/utils';
-import { interpretStream, reviewResult } from '@/lib/gateway';
+import { interpretStream, reviewResult, withFallback } from '@/lib/gateway';
 import { materials } from '@/lib/furniture';
 import {
   describeDesignChanges,
@@ -179,8 +179,9 @@ export async function POST(req: Request) {
     const price = priceOf(modelChoice, process.env);
     let turnUsage: TurnUsage = emptyUsage(modelChoice);
     let usageListener: (usage: TurnUsage) => void = () => {};
-    const recordUsage = (usage: ProviderUsage) => {
-      turnUsage = addUsage(turnUsage, usage, price);
+    // A reserva (fallbackModel) responde com outro preço.
+    const recordUsage = (usage: ProviderUsage, model?: ModelKey) => {
+      turnUsage = addUsage(turnUsage, usage, model && model !== modelChoice ? priceOf(model, process.env) : price);
       usageListener(turnUsage);
     };
     const usageField = () => (turnUsage.calls ? { usage: turnUsage } : {});
@@ -373,7 +374,14 @@ export async function POST(req: Request) {
       const currentView = image
         ? await planDataUrl(drawingParts(canonical(before)))
         : undefined;
-      let d = await interpretStream(
+      // Provedor fora no caminho antigo: a mesma chamada na reserva, que fica
+      // para as correções e a conferência da foto deste turno.
+      let model = modelChoice;
+      const switchTo = (alt: ModelKey) => {
+        model = alt;
+        progress({ stage: 'connecting', label: `Trocando para ${modelInfo(alt).label}`, detail: 'O provedor falhou; tentando o modelo de reserva.' });
+      };
+      let d = await withFallback(model, (m) => interpretStream(
         before,
         baseRev.id,
         baseRev.number,
@@ -394,11 +402,11 @@ export async function POST(req: Request) {
         0,
         signal,
         text,
-        modelChoice,
+        m,
         p.room,
         currentView,
-        recordUsage,
-      );
+        (u) => recordUsage(u, m),
+      ), signal, switchTo);
       signal.throwIfAborted();
       progress({
         stage: 'validating',
@@ -458,7 +466,7 @@ export async function POST(req: Request) {
           label: 'Corrigindo o posicionamento',
           detail: `${preview.error} Pedindo uma proposta corrigida.`,
         });
-        d = await interpretStream(
+        d = await withFallback(model, (m) => interpretStream(
           before,
           baseRev.id,
           baseRev.number,
@@ -484,11 +492,11 @@ export async function POST(req: Request) {
           0,
           signal,
           text,
-          modelChoice,
+          m,
           p.room,
           currentView,
-          recordUsage,
-        );
+          (u) => recordUsage(u, m),
+        ), signal, switchTo);
         signal.throwIfAborted();
         if (d.refs.length) userMsg.context!.referencedPartIds = d.refs;
         if (d.action !== 'update') break;
@@ -542,10 +550,10 @@ export async function POST(req: Request) {
             design: preview.design,
             applied: ops,
             request: b.message,
-            model: modelChoice,
+            model,
             room: p.room,
             signal,
-            onUsage: recordUsage,
+            onUsage: (u) => recordUsage(u, model),
           });
           let corrections = 0;
           if (review?.ops.length) {

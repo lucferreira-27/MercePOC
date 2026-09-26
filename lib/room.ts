@@ -379,40 +379,114 @@ export const obstacleEditsSchema = z
   .strict();
 export type ObstacleEdits = z.infer<typeof obstacleEditsSchema>;
 
+/** Um móvel visto da parede: intervalo em x (mm do canto esquerdo) e faixa de altura. */
+export type FurnitureSpan = { x0: number; x1: number; y0: number; y1: number; name: string };
+
+/** Onde cada módulo do projeto está na parede do ambiente. */
+export function furnitureOnWall(design: Composition, room: Room): FurnitureSpan[] {
+  const g = generateComposition(design);
+  const wall = wallAt(room, g.bounds);
+  const boxes = moduleBoxes(g.parts);
+  return design.modules.flatMap((m) => {
+    const b = boxes.get(m.id);
+    return b ? [{ x0: b.minX - wall.x, x1: b.maxX - wall.x, y0: b.minY, y1: b.maxY, name: m.name }] : [];
+  });
+}
+
 /**
  * Aplica o pedido da IA ao ambiente. Sem ambiente informado, começa um com a
- * parede de um quarto comum e largura para caber o móvel. Obstáculo fora dos
- * limites é recusado sem derrubar o turno: volta a lista do que não entrou.
+ * parede de um quarto comum e largura para caber o móvel.
+ *
+ * Obstáculo novo em cima de outro, fora da parede, ou janela e porta atrás
+ * de um móvel (`furniture`) não é recusado: vai para o lugar livre mais
+ * perto do pedido, e `moved` diz para onde e por quê. Recusado, a IA
+ * tentava de novo às cegas e gastava o pedido marcando a parede. Só o que
+ * não cabe em lugar nenhum volta em `skipped`, com o motivo.
  */
-export function applyObstacleEdits(room: Room | undefined, edits: ObstacleEdits, furnitureWidthMm = 0) {
+export function applyObstacleEdits(room: Room | undefined, edits: ObstacleEdits, furnitureWidthMm = 0, furniture: readonly FurnitureSpan[] = []) {
   const base: Room = room ?? { ...emptyRoom(), widthMm: Math.max(3000, Math.ceil((furnitureWidthMm + 1200) / 100) * 100) };
   const skipped: string[] = [];
+  const moved: string[] = [];
   let list = [...(base.obstacles ?? [])].filter((o) => !edits.remove.includes(o.id));
+  // Janela e porta atrás de móvel alto não fazem sentido; tomada e TV podem.
+  const hiddenBy = (o: Obstacle, x0 = framed(o).x0, x1 = framed(o).x1) => {
+    if (o.kind !== 'window' && o.kind !== 'door') return null;
+    const f = framed(o);
+    return furniture.find((m) => x0 < m.x1 && x1 > m.x0 && f.y0 < m.y1 && f.y1 > m.y0) ?? null;
+  };
+  /** Por que o lugar pedido não serve; null quando serve. */
+  const problem = (o: Obstacle, others: readonly Obstacle[]) => {
+    const f = framed(o);
+    if (f.x0 < 0 || f.x1 > base.widthMm) return 'passava da parede';
+    if (f.y1 > base.heightMm) return 'passava do teto';
+    const hit = obstacleOverlap(o, others);
+    if (hit) return `batia em ${obstacleWord(hit)}`;
+    const behind = hiddenBy(o);
+    return behind ? `ficava atrás de ${behind.name}` : null;
+  };
+  /**
+   * Trechos da parede livres na faixa de altura do obstáculo (sem outro
+   * obstáculo e, para janela e porta, sem móvel na frente): o que a IA
+   * precisa para escolher outra medida de uma vez, em vez de tentar às cegas.
+   */
+  const freeStretches = (o: Obstacle, others: readonly Obstacle[]) => {
+    const f = framed(o);
+    const blocks = [
+      ...others.map(framed).filter((b) => b.y0 < f.y1 && b.y1 > f.y0),
+      ...(o.kind === 'window' || o.kind === 'door' ? furniture.filter((m) => m.y0 < f.y1 && m.y1 > f.y0) : []),
+    ].sort((a, b) => a.x0 - b.x0);
+    const out: string[] = [];
+    let x = 0;
+    for (const b of blocks) {
+      if (b.x0 - x >= 200) out.push(`${Math.round(x)}–${Math.round(b.x0)}`);
+      x = Math.max(x, b.x1);
+    }
+    if (base.widthMm - x >= 200) out.push(`${Math.round(x)}–${base.widthMm}`);
+    return out;
+  };
+  /** O lugar pedido ou o livre mais perto dele; o motivo quando não há. */
+  const place = (o: Obstacle, others: readonly Obstacle[]): Obstacle | string => {
+    const why = problem(o, others);
+    if (!why) return o;
+    const x = freeSpot(o, { widthMm: base.widthMm, obstacles: [...others] }, (x0, x1) => !!hiddenBy(o, x0, x1), o.xMm);
+    const spot = x === null ? null : { ...o, xMm: x };
+    // Sem lugar de verdade (o freeSpot cai no lugar ainda atrás do móvel):
+    // recusa com os trechos livres, nunca "ajusta" para outro lugar ruim.
+    if (!spot || problem(spot, others)) {
+      const free = freeStretches(o, others);
+      return `sem trecho livre de ${Math.round(framed(o).x1 - framed(o).x0)} mm nessa altura${free.length ? `; livres: ${free.join(', ')} mm` : ''}`;
+    }
+    moved.push(`${o.label ?? o.kind}: pedido em x ${Math.round(o.xMm)}, ficou em x ${x} (${why})`);
+    return spot;
+  };
   for (const m of edits.move) {
     const i = list.findIndex((o) => o.id === m.id);
     if (i < 0) {
-      skipped.push(m.id);
+      skipped.push(`${m.id} (não existe)`);
       continue;
     }
     const { id: _id, ...rest } = m;
     void _id;
-    const next = { ...list[i], ...Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined)) };
-    if (obstacleSchema.safeParse(next).success && !obstacleOverlap(next, list)) list[i] = next;
-    else skipped.push(m.id);
+    const next = { ...list[i], ...Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined)) } as Obstacle;
+    const spot = obstacleSchema.safeParse(next).success ? place(next, list.filter((o) => o.id !== next.id)) : 'medida fora do limite';
+    if (typeof spot === 'string') skipped.push(`${m.id} (${spot})`);
+    else list[i] = spot;
   }
   const taken = new Set(list.map((o) => o.id));
   for (const a of edits.add) {
     let n = 1;
     while (taken.has(`${a.kind}-${n}`)) n++;
-    const next = { id: `${a.kind}-${n}`, ...a };
-    // Em cima de outro obstáculo não entra: volta como "não coube".
-    if (obstacleSchema.safeParse(next).success && list.length < ROOM_LIMITS.obstacles && !obstacleOverlap(next, list)) {
-      list.push(next);
-      taken.add(next.id);
-    } else skipped.push(a.label ?? a.kind);
+    const next = { id: `${a.kind}-${n}`, ...a } as Obstacle;
+    const valid = obstacleSchema.safeParse(next).success;
+    const spot = !valid ? 'medida fora do limite' : list.length >= ROOM_LIMITS.obstacles ? `limite de ${ROOM_LIMITS.obstacles} obstáculos` : place(next, list);
+    if (typeof spot === 'string') skipped.push(`${a.label ?? a.kind} (${spot})`);
+    else {
+      list.push(spot);
+      taken.add(spot.id);
+    }
   }
   list = list.map((o) => ({ ...o, xMm: Math.round(o.xMm), yMm: Math.round(o.yMm) }));
-  return { room: { ...base, obstacles: list }, skipped };
+  return { room: { ...base, obstacles: list }, skipped, moved };
 }
 
 /**
@@ -479,6 +553,18 @@ function mergeBox(a: Box, b: Box): Box {
   };
 }
 
+/** Caixa de cada módulo (x ao longo da parede, y do piso): a união das peças dele. */
+export function moduleBoxes(parts: readonly ModularPart[]) {
+  const modules = new Map<string, Box>();
+  for (const part of parts)
+    for (const owner of part.owners) {
+      const box = partBox(part);
+      const current = modules.get(owner);
+      modules.set(owner, current ? mergeBox(current, box) : box);
+    }
+  return modules;
+}
+
 /** O que a parede vê: cruzar em x (ao longo dela) e em y (do piso para cima). */
 function crosses(a: Box, b: Box) {
   return (
@@ -497,16 +583,14 @@ export function fitReport(design: Composition, room: Room): FitReport {
   const issues: FitIssue[] = [];
   // O envelope é a união das caixas das peças; a caixa de cada módulo é a união
   // das peças dele (um painel compartilhado pertence aos dois).
-  const modules = new Map<string, Box>();
-  for (const part of g.parts)
-    for (const owner of part.owners) {
-      const box = partBox(part);
-      const current = modules.get(owner);
-      modules.set(owner, current ? mergeBox(current, box) : box);
-    }
+  const modules = moduleBoxes(g.parts);
   const obstacles = room.obstacles ?? [];
   const crossed = new Set<string>();
   const obstacleIssues: FitIssue[] = [];
+  // Tomada atrás do móvel é comum e tem solução de obra (recorte no fundo ou
+  // mudar a tomada): vira nota, não problema de encaixe. Como problema, a IA
+  // gastava o pedido inteiro mudando tomada de lugar.
+  const behind: string[] = [];
   const offset = roomOffset(room, g.bounds);
   const gap = wallGap(room, g.bounds);
   for (const obstacle of obstacles) {
@@ -526,8 +610,12 @@ export function fitReport(design: Composition, room: Room): FitReport {
     for (const movel of design.modules) {
       const box = modules.get(movel.id);
       if (!box || !crosses(area, box)) continue;
-      crossed.add(obstacle.id);
       const who = obstacle.label ?? KIND_WORD[obstacle.kind];
+      if (obstacle.kind === 'outlet') {
+        behind.push(`${who} fica atrás do módulo ${movel.name}: recorte no fundo ou mude a tomada de lugar na obra.`);
+        continue;
+      }
+      crossed.add(obstacle.id);
       obstacleIssues.push({
         code: 'obstacle-overlap',
         message: `${who} (x de ${plain(obstacle.xMm)} a ${plain(obstacle.xMm + obstacle.widthMm)} na parede) cruza o módulo ${movel.name}`,
@@ -588,7 +676,8 @@ export function fitReport(design: Composition, room: Room): FitReport {
     notes.push(
       `Rodapé de ${plain(room.baseboardMm)}: recue a base do móvel para encostar na parede.`,
     );
-  const checked = obstacles.filter((o) => o.kind !== 'tv');
+  notes.push(...behind);
+  const checked = obstacles.filter((o) => o.kind !== 'tv' && o.kind !== 'outlet');
   if (checked.length && !crossed.size)
     notes.push(
       `${checked.length === 1 ? 'Obstáculo conferido' : `${checked.length} obstáculos conferidos`}: nenhum cruza o móvel, contado do canto esquerdo da parede.`,

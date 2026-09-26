@@ -9,12 +9,29 @@ import type { Progress, TextPreview } from './progress';
 import { readStringField } from './partial-json';
 import { imageDataUrl } from './images';
 import { materials } from './furniture';
-import { modelInfo, type ModelKey, type ProviderUsage } from './models';
+import { fallbackModel, modelInfo, reasoningEffort, type ModelKey, type ProviderUsage } from './models';
 /** `true`/`false` é o contrato antigo do modo rápido (bench, scripts). */
 export type ModelChoice = ModelKey | boolean;
 export function modelKey(choice: ModelChoice | undefined): ModelKey {
   if (typeof choice === 'string') return choice;
   return choice ? 'qwen-fast' : 'deepseek';
+}
+/** Falha do provedor (fluxo parado, 429, 5xx, rede), não do pedido. */
+export const PROVIDER_ERROR = /interrompida|\b(429|5\d\d)\b|fetch failed|ECONNRESET|ETIMEDOUT|socket|terminated|operation was aborted/i;
+/**
+ * Roda a chamada no modelo pedido e, se o provedor falhar, uma vez no modelo
+ * de reserva (`fallbackModel`). `onSwitch` avisa a troca, para as chamadas
+ * seguintes do turno já irem para a reserva.
+ */
+export async function withFallback<T>(model: ModelKey, run: (m: ModelKey) => Promise<T>, signal?: AbortSignal, onSwitch?: (m: ModelKey) => void): Promise<T> {
+  try {
+    return await run(model);
+  } catch (e) {
+    const alt = fallbackModel(model);
+    if (!alt || signal?.aborted || !PROVIDER_ERROR.test((e as Error).message)) throw e;
+    onSwitch?.(alt);
+    return run(alt);
+  }
 }
 /** Nome de cada acabamento: "nogueira" no pedido vira materialId walnut. */
 export const FINISHES = materials.map((m) => `${m.id}=${m.name}`).join(', ');
@@ -32,6 +49,24 @@ export const FINISHES = materials.map((m) => `${m.id}=${m.name}`).join(', ');
  */
 export function aiTimeoutMs() {
   return Number(process.env.MERCE_AI_TIMEOUT_MS) || 120000;
+}
+/**
+ * Silêncio no meio do fluxo que já é queda (laço do assistente). Medido no
+ * Command Code: chamada viva fica no máximo ~8 s sem mandar nada; a que para,
+ * para de vez (32 s de fluxo e nada mais). `MERCE_AI_STALL_MS` troca.
+ */
+export function aiStallMs() {
+  return Number(process.env.MERCE_AI_STALL_MS) || 30000;
+}
+/** Espera do primeiro byte no laço: o modelo pode pensar antes de mandar algo. */
+export const AI_FIRST_BYTE_MS = 60000;
+/**
+ * Duração máxima de uma chamada do laço. Medido no Command Code: chamada boa
+ * do pedido de lavanderia leva ~30 s; uma ficou 568 s mandando bytes sem
+ * terminar (o silêncio nunca passava de aiStallMs). `MERCE_AI_CALL_MS` troca.
+ */
+export function aiCallMs() {
+  return Number(process.env.MERCE_AI_CALL_MS) || 90000;
 }
 export function aiMaxTokens() {
   return Number(process.env.MERCE_AI_MAX_TOKENS) || 16000;
@@ -306,7 +341,7 @@ ${imageNote}` : turnMessage,
           model: prof.model,
           // Esforço mínimo no provedor padrão. O gateway da Command Code valida
           // low..max e não tem valor para desligar o raciocínio: 'low' é o piso.
-          ...(info.reasoning ? { reasoning_effort: info.reasoning } : {}),
+          ...(reasoningEffort(info) ? { reasoning_effort: reasoningEffort(info) } : {}),
           // O último pedaço do fluxo traz os tokens gastos: é daí que sai o custo.
           ...(fast ? {} : { stream_options: { include_usage: true } }),
           max_tokens: aiMaxTokens(),
@@ -568,7 +603,7 @@ export async function reviewResult(params: {
   const reviewInfo = modelInfo(modelKey(params.model));
   const body = {
     model: prof.model,
-    ...(reviewInfo.reasoning ? { reasoning_effort: reviewInfo.reasoning } : {}),
+    ...(reasoningEffort(reviewInfo) ? { reasoning_effort: reasoningEffort(reviewInfo) } : {}),
     // O mesmo teto da chamada principal: comparar duas imagens gasta
     // raciocínio suficiente para 4000 tokens acabarem antes do veredito, e a
     // resposta chegava vazia.

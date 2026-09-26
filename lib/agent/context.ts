@@ -46,6 +46,10 @@ export class AgentContext {
   wants: Promise<Record<string, JevAnswer> | null> | null = null;
   /** Conferências que já voltaram para a IA corrigir. */
   repairs = 0;
+  /** O portão do perguntar já conferiu uma pergunta: a próxima segue direto. */
+  askGated = false;
+  /** Ações escolhidas pelo roteador (Jev leu o pedido), não pela IA. */
+  direct = false;
   /** Houve troca de versão (desfazer, voltar) no meio do turno. */
   navigated = false;
   /** Projeto de onde o turno saiu, quando abriu outro (alternativa, novo). */
