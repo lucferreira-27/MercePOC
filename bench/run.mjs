@@ -29,6 +29,8 @@
  * duas vezes) e, se continuar, a linha sai com `infra: true`, fora da taxa.
  */
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { createHash } from 'node:crypto';
+import { execSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
@@ -36,14 +38,16 @@ import { basename, dirname, join, resolve } from 'node:path';
 // O banco do benchmark é temporário: a base real nunca é tocada.
 process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-bench-'));
 
-const { applyRequest, create, get, revise, save } = await import('../lib/store.ts');
+const { applyRequest, create, get, revise, save, undo } = await import('../lib/store.ts');
 const { saveImage } = await import('../lib/images.ts');
 const { planDataUrl } = await import('../lib/plan-render.ts');
 const { interpretStream, profile } = await import('../lib/gateway.ts');
 const { addUsage, emptyUsage, priceOf, modelInfo, reasoningEffort, MODEL_KEYS } = await import('../lib/models.ts');
-const { executeRequest, generateDesign, entityIds, canonical } = await import('../lib/studio.ts');
+const { executeRequest, generateDesign, entityIds, canonical, normalize } = await import('../lib/studio.ts');
 const { drawingParts } = await import('../lib/composition.ts');
 const { runAgentTurn } = await import('../lib/agent/turn.ts');
+const { AGENT_SYSTEM } = await import('../lib/agent/prompt.ts');
+const { toolSpecs } = await import('../lib/agent/loop.ts');
 const { DEFAULT_PRICES } = await import('../lib/quote.ts');
 const { callModel } = await import('../lib/agent/model.ts');
 const { fitReport } = await import('../lib/room.ts');
@@ -92,7 +96,8 @@ const INFRA_WAITS = [10_000, 30_000];
 const photoLoop = flag('photo-loop');
 // O laço grava outra coisa (a sequência de respostas do modelo e do Jev):
 // pasta própria, para não misturar com as decisões do caminho antigo.
-const fixtureDir = resolve(agent ? 'bench/fixtures/agent' : 'bench/fixtures');
+// --fixtures <pasta>: gravações do laço noutra pasta (a base fica separada do candidato).
+const fixtureDir = resolve(value('fixtures', agent ? 'bench/fixtures/agent' : 'bench/fixtures'));
 // Offline o Jev responde da gravação; sem chave, askJev nem chamaria o fetch.
 if (agent && offline) process.env.TYPESAFE_API_KEY ||= 'offline';
 
@@ -110,6 +115,20 @@ function loadEnv(file) {
 }
 loadEnv(resolve(value('env', '.env')));
 
+
+/** Impressão curta de um estado (design canônico + ambiente), para ligar a evidência ao estado. */
+const stateHash = (design, room) =>
+  createHash('sha256').update(JSON.stringify({ design: canonical(design), room: room ?? null })).digest('hex').slice(0, 12);
+/** Revisão do código e mudanças locais, para a rodada ser interpretável depois. */
+const codeRevision = (() => {
+  try {
+    const head = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+    const dirty = execSync('git status --porcelain', { encoding: 'utf8' }).split(/\r?\n/).filter(Boolean).length;
+    return { head, dirtyFiles: dirty };
+  } catch {
+    return null;
+  }
+})();
 
 // --ids a,b,c: exatamente estes casos (ex.: só os que costumam errar).
 const onlyIds = value('ids') ? new Set(value('ids').split(',').map((v) => v.trim())) : null;
@@ -234,6 +253,8 @@ async function interpretWithRepair(before, revision, messages, selection, contex
  */
 async function runAgentCase(project, benchCase, image, selection, telemetry, fixtureFile) {
   const revision = project.revisions[project.cursor];
+  const before = revision.params;
+  const roomBefore = project.room ?? null;
   const user = {
     id: 'bench-user',
     role: 'user',
@@ -322,7 +343,21 @@ async function runAgentCase(project, benchCase, image, selection, telemetry, fix
   const options = answer.clarification?.options ?? [];
   const alive = new Set(entityIds(designAfter));
   const room = final.room;
+  // Um Ctrl+Z depois do turno (sem gravar): tem de voltar ao começo.
+  let undone = null;
+  if (final.revisions[final.cursor].id !== revision.id) {
+    const copy = get(r.projectId);
+    undo(copy);
+    undone = { design: copy.revisions[copy.cursor].params, room: copy.room ?? null };
+  }
   return {
+    before,
+    roomBefore,
+    undo: undone,
+    parts: generateDesign(designAfter).parts,
+    startHash: stateHash(before, roomBefore),
+    finalHash: stateHash(designAfter, room),
+    report: { outcome: answer.result?.outcome ?? null, applied: answer.result?.appliedOperations?.length ?? 0, attempted: answer.result?.attemptedOperations?.length ?? null, facts: answer.report?.facts ?? null, verification: answer.report?.verification ?? null },
     design: designAfter,
     effects: r.state.effects ?? [],
     fronts: r.state.viewAction ?? null,
@@ -439,6 +474,14 @@ async function runCase(benchCase, run, imagePath) {
   };
   try {
     const project = get(create().id);
+    // Cena gravada (cópia isolada de um projeto real ou variação): vira a
+    // versão de partida, com o ambiente dela.
+    if (benchCase.setup?.scene) {
+      const scene = JSON.parse(readFileSync(resolve(benchCase.setup.scene), 'utf8'));
+      project.room = scene.room;
+      revise(project, normalize(scene.design), `preparação ${benchCase.id}`);
+      save(project, project.version);
+    }
     if (benchCase.setup?.room) {
       project.room = benchCase.setup.room;
       save(project, project.version);
@@ -483,6 +526,12 @@ async function runCase(benchCase, run, imagePath) {
       row.applied = got.applied;
       row.steps = got.steps;
       row.decision = { action: got.action, message: got.content, ops: [], refs: [], suggestions: got.suggestions };
+      // Tentativas recusadas (validação, argumento, nada coube) e a evidência do estado.
+      row.rejected = got.steps.filter((s) => !s.ok && s.tool !== 'finish' && s.tool !== 'ask_user').length;
+      row.repairs = got.steps.filter((s) => !s.ok && s.tool === 'finish').length;
+      row.startHash = got.startHash;
+      row.finalHash = got.finalHash;
+      row.report = got.report;
       row.errors.push(
         ...evaluate(
           benchCase,
@@ -490,6 +539,7 @@ async function runCase(benchCase, run, imagePath) {
           { design: got.designAfter, before, parts: generated.parts, cells: generated.cells, content: got.content },
         ),
       );
+      if (got.oracle) row.oracle = { ok: got.oracle.ok, failures: got.oracle.failures, facts: got.oracle.facts };
       row.ok = row.errors.length === 0;
       throw null;
     }
@@ -646,7 +696,7 @@ async function worker() {
       ? ` · ${row.decision.suggestions.length} sugestão(ões)`
       : '';
     console.log(
-      `${mark} ${row.id}${repeat > 1 ? `#${run}` : ''} · ${row.action.padEnd(7)} · ${String(row.latencyMs).padStart(6)} ms · ${row.calls} chamada(s)${sugestoes}${row.retries ? ` · ${row.retries} correção(ões)` : ''}${row.ok ? '' : ` · ${row.errors.join(' | ')}`}`,
+      `${mark} ${row.id}${repeat > 1 ? `#${run}` : ''} · ${row.action.padEnd(7)} · ${String(row.latencyMs).padStart(6)} ms · ${row.calls} chamada(s)${sugestoes}${row.retries ? ` · ${row.retries} correção(ões)` : ''}${row.rejected ? ` · ${row.rejected} recusa(s)` : ''}${row.ok ? '' : ` · ${row.errors.join(' | ')}`}`,
     );
     if (budgetSeconds && (Date.now() - startedAll) / 1000 > budgetSeconds && !stopped) {
       console.log(`\n(orçamento de ${budgetSeconds}s atingido: parando)`);
@@ -747,6 +797,11 @@ const summary = {
   concurrency,
   price: priceOf(model, process.env),
   argv: args.join(' '),
+  code: codeRevision,
+  // Versão do que o modelo vê: regras fixas e ferramentas.
+  promptHash: createHash('sha256').update(AGENT_SYSTEM + JSON.stringify(toolSpecs())).digest('hex').slice(0, 12),
+  fixtures: agent ? fixtureDir : null,
+  rejected: results.reduce((a, r) => a + (r.rejected ?? 0), 0),
   fast,
   model,
   cases: results.length,
