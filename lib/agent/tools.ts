@@ -353,7 +353,8 @@ const roomSet = tool({
     .strict(),
   running: () => 'Medindo a parede',
   run: (ctx, a) => {
-    const base: Room = ctx.room ?? emptyRoom();
+    // Ambiente sem schemaVersion (projeto antigo, cena de teste) não pode travar a medida da parede.
+    const base: Room = { ...(ctx.room ?? emptyRoom()), schemaVersion: 1 };
     const next = {
       ...base,
       ...(a.largura !== undefined ? { widthMm: a.largura } : {}),
