@@ -228,3 +228,13 @@ void test('place: peça encostada num módulo fica ligada a ele (ao lado, em cim
   if ('error' in loose) return;
   assert.ok(!loose.ops.some((o) => o.kind === 'connect'));
 });
+
+void test('place: peça de piso na frente de um painel que começa acima do chão fica em pé na frente dele', () => {
+  const s = scene('painel-tv');
+  const d = normalize(s.design);
+  // O painel vai de 50 a 1850 mm do piso: um balcão no chão cobre só a parte de baixo dele.
+  const plan = planPieces(d, s.room!, [{ ref: 'b', nome: 'Balcão', tipo: 'gaveteiro', largura: 800, altura: 500, profundidade: 400, onde: { x: 900, y: 0 } }]);
+  assert.ok(!('error' in plan && plan.error), JSON.stringify(plan));
+  if ('error' in plan) return;
+  assert.equal(plan.placed[0].box.d0, 12.5 + 12.5, 'o fundo encosta na frente do painel');
+});

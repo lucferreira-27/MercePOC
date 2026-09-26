@@ -298,3 +298,19 @@ void test('evidência velha: "conferi o desenho" depois de mudar o móvel volta 
   assert.equal(answer.content, 'Pus um nicho à direita da TV.');
   assert.deepEqual(answer.report?.evidence, { look: 'stale' });
 });
+
+void test('mudança afirmada: "mudei a vista" não é mudar o móvel; "coloquei um nicho" sem nicho é', async () => {
+  const s = start('Mostra de frente', 'painel-tv');
+  const { fake, seen } = scripted([
+    () => reply(call('view_camera', { vista: 'front' }), call('finish', { mensagem: 'Mudei a vista para a frente.', sugestoes: [] })),
+  ]);
+  await turn(s, fake);
+  assert.equal(seen.length, 1, 'sem reparo para frase de vista');
+  const t = start('Nicho à direita', 'painel-tv');
+  const { fake: f2, seen: s2 } = scripted([
+    () => reply(call('finish', { mensagem: 'Coloquei um nicho à direita da TV.', sugestoes: [] })),
+    () => reply(call('finish', { mensagem: 'Não coloquei o nicho: nada foi montado.', sugestoes: [] })),
+  ]);
+  await turn(t, f2);
+  assert.match(JSON.stringify(s2[1].at(-1)!.content), /nada mudou neste pedido/);
+});

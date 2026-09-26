@@ -192,7 +192,10 @@ export function resolvePiece(scene: Scene, design: Design, piece: Piece, placed:
         oy = Math.min(r.y1, m.y1) - Math.max(r.y0, m.y0);
       if (ox <= 0.5 || oy <= 0.5) continue;
       const inside = r.x0 >= m.x0 - 0.5 && r.x1 <= m.x1 + 0.5 && r.y0 >= m.y0 - 0.5 && r.y1 <= m.y1 + 0.5;
-      if (!inside) partial = m;
+      // No piso, a peça fica em pé na frente do painel mesmo passando da borda
+      // dele; presa, pela metade do painel não fecha.
+      const standing = r.y0 <= 5;
+      if (!inside && !standing) partial = m;
       else if (m.d1 > d0) {
         d0 = m.d1;
         name = m.name;

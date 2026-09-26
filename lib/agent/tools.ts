@@ -772,8 +772,10 @@ const SHOWN = /(desenho|imagem)[^.]{0,40}(exibid|mostrad|apresentad)[^.]{0,30}(p
 
 /** Verbos de quem mudou o móvel, na primeira pessoa, fora de negação ("não coloquei"). */
 const CHANGE_VERBS = /(montei|adicionei|acrescentei|coloquei|criei|pus|instalei|removi|tirei|troquei|mudei|ajustei|aumentei|diminuí|diminui|reduzi|passei|substituí|substitui|dividi|reorganizei|alinhei|encostei|movi|unifiquei)/i;
+/** Frase sobre tela, arquivo, preço ou versão: "mudei a vista" não é mudar o móvel. */
+const NOT_FURNITURE = /(vista|câmera|camera|\baba\b|cotas|enquadr|arquivo|pdf|csv|png|json|orçamento|orcamento|preço|preco|margem|nome do projeto|renome|versão|versao|parede|ambiente|explodid)/i;
 function claimsChange(text: string) {
-  return text.split(/(?<=[.!?;])\s+/).some((s) => CHANGE_VERBS.test(s) && !/(?:^|[\s,;(])(não|nao|nem|sem)\s[^.]{0,20}(montei|adicionei|acrescentei|coloquei|criei|pus|instalei|removi|tirei|troquei|mudei|ajustei|aumentei|diminu|reduzi|passei|substitu|dividi|reorganizei|alinhei|encostei|movi|unifiquei)/i.test(s));
+  return text.split(/(?<=[.!?;])\s+/).some((s) => CHANGE_VERBS.test(s) && !NOT_FURNITURE.test(s) && !/(?:^|[\s,;(])(não|nao|nem|sem)\s[^.]{0,20}(montei|adicionei|acrescentei|coloquei|criei|pus|instalei|removi|tirei|troquei|mudei|ajustei|aumentei|diminu|reduzi|passei|substitu|dividi|reorganizei|alinhei|encostei|movi|unifiquei)/i.test(s));
 }
 
 /** Quem causa o problema de encaixe: o mesmo problema antes e depois tem a mesma chave. */
