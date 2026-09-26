@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PANEL_LIMITS } from '../composition';
+import { isFlat, LEDGE_LIMITS, PANEL_LIMITS } from '../composition';
 import { materialIds, type MaterialId } from '../furniture';
 import { TV_CLEARANCE_MM, type Room } from '../room';
 import type { Design, ShelfOp } from '../studio';
@@ -29,7 +29,7 @@ export const whereSchema = z
   .strict();
 export type Where = z.infer<typeof whereSchema>;
 
-export const PIECE_TYPES = ['nicho', 'estante', 'armario', 'gaveteiro', 'painel', 'vao'] as const;
+export const PIECE_TYPES = ['nicho', 'estante', 'armario', 'gaveteiro', 'painel', 'prateleira', 'vao'] as const;
 export const pieceSchema = z
   .object({
     ref: z
@@ -37,7 +37,9 @@ export const pieceSchema = z
       .regex(/^[a-z][a-z0-9-]{0,24}$/, 'ref: letras minúsculas, números e hífen (ex. nicho-esq)')
       .describe('Id do módulo novo; outras peças do lote podem usar como referência'),
     nome: z.string().trim().min(1).max(40),
-    tipo: z.enum(PIECE_TYPES),
+    tipo: z
+      .enum(PIECE_TYPES)
+      .describe('nicho (caixa aberta), estante (caixa com prateleiras), armario (prateleiras atrás de porta), gaveteiro, painel (chapa de parede), prateleira (tábua horizontal presa na parede ou no painel; altura é a espessura), vao (espaço livre reservado)'),
     largura: z.number().min(10).max(PANEL_LIMITS.long).optional(),
     altura: z.number().min(10).max(PANEL_LIMITS.long).optional(),
     profundidade: z.number().min(10).max(800).optional(),
@@ -56,12 +58,14 @@ const DEFAULTS: Record<Piece['tipo'], { floor: [number, number, number]; wall: [
   armario: { floor: [800, 850, 550], wall: [700, 700, 350] },
   gaveteiro: { floor: [600, 750, 500], wall: [600, 400, 350] },
   painel: { floor: [1200, 1800, 25], wall: [1200, 1800, 25] },
+  prateleira: { floor: [800, 25, 250], wall: [800, 25, 250] },
   vao: { floor: [600, 850, 600], wall: [600, 850, 600] },
 };
 /** Limites por tipo: caixa, painel de parede, vão reservado. */
 function limitsOf(tipo: Piece['tipo']) {
   if (tipo === 'painel') return { w: [200, PANEL_LIMITS.long], h: [200, PANEL_LIMITS.long], d: PANEL_LIMITS.thickness as readonly number[] };
   if (tipo === 'vao') return { w: [100, 5000], h: [100, 2700], d: [100, 1000] };
+  if (tipo === 'prateleira') return { w: [200, LEDGE_LIMITS.long], h: LEDGE_LIMITS.thickness as readonly number[], d: LEDGE_LIMITS.depth as readonly number[] };
   // Caixa mais larga que 1200 mm vira fileira de módulos com painel compartilhado.
   return { w: [200, 4 * 1200], h: [200, 2400], d: [200, 800] };
 }
@@ -78,7 +82,7 @@ export function findRef(scene: Scene, design: Design, key: string, placed: reado
   const m = scene.modules.find((v) => v.id === key) ?? scene.modules.find((v) => v.name.toLowerCase() === k);
   if (m) {
     const mod = design.modules.find((v) => v.id === m.id)!;
-    return { name: m.name, box: m, kind: 'module', module: m, feet: mod.feet ?? 0, depth: mod.kind === 'panel' ? undefined : mod.depth, height: mod.kind === 'panel' ? undefined : mod.height };
+    return { name: m.name, box: m, kind: 'module', module: m, feet: mod.feet ?? 0, depth: isFlat(mod) ? undefined : mod.depth, height: isFlat(mod) ? undefined : mod.height };
   }
   const words: Record<string, string> = { tv: 'tv', televisão: 'tv', televisao: 'tv', janela: 'window', porta: 'door', coluna: 'column', tomada: 'outlet' };
   const z =
@@ -92,7 +96,7 @@ export function findRef(scene: Scene, design: Design, key: string, placed: reado
   return null;
 }
 
-export type Placed = { ref: string; id: string; name: string; box: Box3; feet: number; height: number; notes: string[]; surface: string; cells: string[][]; material?: MaterialId };
+export type Placed = { ref: string; id: string; ids?: string[]; name: string; box: Box3; feet: number; height: number; notes: string[]; surface: string; cells: string[][]; material?: MaterialId; shelf?: boolean };
 
 const round = (v: number) => Math.round(v);
 const span = (a: number, b: number) => `${round(a)}–${round(b)}`;
@@ -130,11 +134,12 @@ export function resolvePiece(scene: Scene, design: Design, piece: Piece, placed:
   let feet = piece.pes ?? (beside && moduleRef ? (ref!.feet ?? 0) : 0);
   // Altura do vizinho só para móvel alto (armário, estante) ou fileira de
   // aéreos: um gaveteiro ao lado de um vassoureiro de 2,2 m ficava com 2,2 m.
-  const copyHeight = beside && moduleRef && (piece.tipo === 'armario' || piece.tipo === 'estante' || ref!.box.y0 > 5);
+  const flat = piece.tipo === 'painel' || piece.tipo === 'prateleira';
+  const copyHeight = beside && moduleRef && !flat && (piece.tipo === 'armario' || piece.tipo === 'estante' || ref!.box.y0 > 5);
   let height = piece.altura ?? (copyHeight ? ref!.height! : dh);
-  const depth = piece.profundidade ?? (beside && moduleRef && piece.tipo !== 'painel' ? ref!.depth! : dd);
+  const depth = piece.profundidade ?? (beside && moduleRef && !flat ? ref!.depth! : dd);
   const auto = { w: piece.largura === undefined, h: piece.altura === undefined };
-  if (piece.tipo === 'painel' || piece.tipo === 'vao') feet = 0;
+  if (flat || piece.tipo === 'vao') feet = 0;
   const lim = limitsOf(piece.tipo);
   const outOf = (v: number, [a, b]: readonly number[], what: string) => (v < a || v > b ? `${what} de ${round(v)} mm fora do limite de ${piece.tipo} (${a} a ${b} mm)` : null);
   const bad = [
@@ -293,6 +298,48 @@ function reach(scene: Scene, at: Box3, ignore: ReadonlySet<string>, extra: reado
   };
 }
 
+/**
+ * A ligação que a peça ganha com a referência, quando encosta nela como o
+ * motor liga: ao lado, no mesmo piso e com fundo ou frente alinhados; ou em
+ * cima, centrada e alinhada. Sem giro, sem painel nem prateleira de parede.
+ */
+function linkFor(design: Design, scene: Scene, placed: readonly Placed[], piece: Piece, box: Box3, ids: readonly string[]) {
+  const key = piece.onde.de;
+  const side = piece.onde.lado;
+  if (!key || !side || side === 'abaixo') return null;
+  const near = (a: number, b: number) => Math.abs(a - b) < 1;
+  const mod = design.modules.find((m) => m.id === key);
+  const prev = placed.find((v) => v.ref === key || v.id === key);
+  let parent: string | undefined, name: string, ref: Box3;
+  if (mod) {
+    if (mod.kind || mod.rotation) return null;
+    const s = scene.modules.find((m) => m.id === mod.id);
+    if (!s) return null;
+    parent = mod.id;
+    name = mod.name;
+    ref = s;
+  } else if (prev && !prev.shelf && prev.ids?.length && prev.box.d1 > 0) {
+    // Peça do mesmo lote: a da ponta que encosta nesta.
+    parent = side === 'esquerda' ? prev.ids[0] : prev.ids[prev.ids.length - 1];
+    if (side === 'acima' && prev.ids.length > 1) return null;
+    name = prev.name;
+    ref = prev.box;
+  } else return null;
+  // Uma fileira nova à esquerda: a ponta direita dela já é filha na fileira.
+  if (side === 'esquerda' && ids.length > 1) return null;
+  const child = side === 'esquerda' ? ids[ids.length - 1] : ids[0];
+  const align = near(box.d0, ref.d0) ? ('back' as const) : near(box.d1, ref.d1) ? ('front' as const) : null;
+  if (!align) return null;
+  if (side === 'direita' || side === 'esquerda') {
+    const touching = side === 'direita' ? near(box.x0, ref.x1) : near(box.x1, ref.x0);
+    if (!touching || !near(box.y0, ref.y0)) return null;
+    return { parent, child, side: side === 'direita' ? ('right' as const) : ('left' as const), align, name };
+  }
+  const centered = near((box.x0 + box.x1) / 2, (ref.x0 + ref.x1) / 2);
+  if (!near(box.y0, ref.y1) || !centered || ids.length > 1) return null;
+  return { parent, child, side: 'top' as const, align, name };
+}
+
 /** Id livre: a ref pedida, ou com sufixo se já existe. */
 function freeId(design: Design, placed: readonly Placed[], ref: string) {
   const taken = new Set([...design.modules.map((m) => m.id), ...placed.map((p) => p.id)]);
@@ -313,13 +360,13 @@ export function planPieces(design: Design, room: Room | undefined, pieces: reado
   // aparece no projeto. Carvalho de fábrica ao lado de móvel branco abria
   // três grupos de chapa a mais.
   const count = new Map<string, number>();
-  for (const m of design.modules) if (m.kind !== 'panel') count.set(m.materialId, (count.get(m.materialId) ?? 0) + 1);
+  for (const m of design.modules) if (!isFlat(m)) count.set(m.materialId, (count.get(m.materialId) ?? 0) + 1);
   const common = [...count].sort((a, b) => b[1] - a[1])[0]?.[0] as MaterialId | undefined;
   const finishOf = (piece: Piece): MaterialId | undefined => {
     if (piece.material) return piece.material as MaterialId;
     const ref = piece.onde.de ? design.modules.find((m) => m.id === piece.onde.de) : undefined;
     const prev = piece.onde.de ? placed.find((v) => v.ref === piece.onde.de) : undefined;
-    return (ref && ref.kind !== 'panel' ? ref.materialId : prev?.material) ?? common;
+    return (ref && !isFlat(ref) ? ref.materialId : prev?.material) ?? common;
   };
   for (const piece of pieces) {
     const r = resolvePiece(scene, design, piece, placed);
@@ -335,7 +382,8 @@ export function planPieces(design: Design, room: Room | undefined, pieces: reado
     const id = freeId(design, placed, piece.ref);
     // Larga demais para um módulo: fileira de módulos iguais, com painel
     // compartilhado, do mesmo tamanho total (cada junta economiza 18 mm).
-    const count = piece.tipo === 'painel' ? 1 : Math.ceil((r.width + PROFILE.panel) / MODULE_MAX - 1e-9);
+    const flatPiece = piece.tipo === 'painel' || piece.tipo === 'prateleira';
+    const count = flatPiece ? 1 : Math.ceil((r.width + PROFILE.panel) / MODULE_MAX - 1e-9);
     const widths = count > 1 ? splitWidths(r.width + (count - 1) * PROFILE.panel, count) : [r.width];
     const wx = scene.origin.x + r.box.x0 + widths[0] / 2;
     const wz = scene.origin.z + r.box.d0 + r.depth / 2;
@@ -348,7 +396,12 @@ export function planPieces(design: Design, room: Room | undefined, pieces: reado
     for (const [i, width] of widths.entries()) {
       const mid = i === 0 ? id : freeId(design, placed, `${id}-${i + 1}`);
       ids.push(mid);
-      ops.push({ kind: 'module.add', id: mid, preset: piece.tipo === 'painel' ? 'panel' : 'niche', name: count > 1 ? `${piece.nome} ${i + 1}` : piece.nome });
+      ops.push({
+        kind: 'module.add',
+        id: mid,
+        preset: piece.tipo === 'painel' ? 'panel' : piece.tipo === 'prateleira' ? 'ledge' : 'niche',
+        name: count > 1 ? `${piece.nome} ${i + 1}` : piece.nome,
+      });
       ops.push({
         kind: 'module.edit',
         id: mid,
@@ -357,11 +410,11 @@ export function planPieces(design: Design, room: Room | undefined, pieces: reado
         depth: r.depth,
         ...(finishOf(piece) ? { materialId: finishOf(piece) } : {}),
         ...(r.feet ? { feet: r.feet } : {}),
-        ...(r.hung && !resting && piece.tipo !== 'painel' ? { wall: true } : {}),
+        ...(r.hung && !resting && !flatPiece ? { wall: true } : {}),
         ...(i === 0 ? { position: [wx, r.box.y0, wz] as [number, number, number] } : {}),
       });
       if (i > 0) ops.push({ kind: 'connect', parent: ids[i - 1], child: mid, side: 'right', shared: true, align: 'back', offset: 0 });
-      if (piece.tipo !== 'painel') {
+      if (!flatPiece) {
         const spec: Interior = piece.interior ?? defaultInterior(piece.tipo as 'nicho', r.height);
         const inside = interiorOps(mid, { width, height: r.height }, spec);
         if ('error' in inside) return { error: `${piece.nome}: ${inside.error}`, placed };
@@ -371,7 +424,15 @@ export function planPieces(design: Design, room: Room | undefined, pieces: reado
       }
     }
     if (count > 1) r.notes.push(`${count} módulos de ${widths.join(' + ')} mm com painel compartilhado (${ids.join(', ')})`);
-    placed.push({ ref: piece.ref, id, name: piece.nome, box: r.box, feet: r.feet, height: r.height, notes: r.notes, surface: r.surface, cells, material: finishOf(piece) });
+    // Encostada num módulo (ao lado no mesmo piso, ou centrada em cima), a
+    // peça fica ligada a ele: anda junto no arrasto e no mover. "À direita
+    // deste módulo" sempre quis dizer isso no estúdio.
+    const link = !flatPiece ? linkFor(design, scene, placed, piece, r.box, ids) : null;
+    if (link) {
+      ops.push({ kind: 'connect', parent: link.parent, child: link.child, side: link.side, shared: false, align: link.align, offset: 0 });
+      r.notes.push(`ligado a ${link.name} (anda junto)`);
+    }
+    placed.push({ ref: piece.ref, id, ids, name: piece.nome, box: r.box, feet: r.feet, height: r.height, notes: r.notes, surface: r.surface, cells, material: finishOf(piece), ...(piece.tipo === 'prateleira' ? { shelf: true } : {}) });
   }
   return { ops, placed, scene, reserved };
 }
@@ -382,5 +443,5 @@ export function placedLine(p: Placed) {
   if (p.surface === 'piso' && !p.cells.length && b.d1 === 0)
     return `${p.name}: vão reservado de ${round(b.x1 - b.x0)} × ${round(b.y1 - b.y0)} mm em x ${span(b.x0, b.x1)} (nada entra nele)`;
   const cells = p.cells.length ? `; vãos (de baixo para cima): ${p.cells.map((r) => r.join(' ')).join(' | ')}` : '';
-  return `${p.name} (id ${p.id}): ${round(b.x1 - b.x0)} × ${round(b.y1 - b.y0)} × ${round(b.d1 - b.d0)} mm, x ${span(b.x0, b.x1)}, y ${span(b.y0, b.y1)}, ${b.y0 <= 5 ? 'no piso' : p.surface === 'parede' ? 'preso na parede' : `preso no ${p.surface}`}${p.notes.length ? ` (${p.notes.join('; ')})` : ''}${cells}`;
+  return `${p.name} (id ${p.id}): ${round(b.x1 - b.x0)} × ${round(b.y1 - b.y0)} × ${round(b.d1 - b.d0)} mm${p.shelf ? ' (prateleira de parede: largura × espessura × profundidade)' : ''}, x ${span(b.x0, b.x1)}, y ${span(b.y0, b.y1)}, ${b.y0 <= 5 ? 'no piso' : p.surface === 'parede' ? 'preso na parede' : `preso no ${p.surface}`}${p.notes.length ? ` (${p.notes.join('; ')})` : ''}${cells}`;
 }

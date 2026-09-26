@@ -172,3 +172,59 @@ void test('parede: resumo com o que está fixo, o que ocupa e onde cabe no paine
   assert.deepEqual(sum.fixos[0].x, [1285, 2515]);
   assert.deepEqual((sum.livre_nos_paineis as Record<string, Record<string, string[]>>).p['meio (900–1500)'], ['800–1255', '2545–3000']);
 });
+
+void test('prateleira de parede: tábua horizontal presa na parede, com limites próprios e sem compartimentos', async () => {
+  const { executeRequest } = await import('../lib/studio');
+  const base = normalize(scene('painel-tv').design);
+  const ok = executeRequest(base, [
+    { kind: 'module.add', id: 'pp', preset: 'ledge', name: 'Prateleira' },
+    { kind: 'module.edit', id: 'pp', width: 900, height: 30, depth: 280, position: [0, 700, 12.5 + 140] },
+  ]);
+  assert.ok(ok.ok, !ok.ok ? ok.error : '');
+  if (!ok.ok) return;
+  const board = generateDesign(ok.design).parts.find((p) => p.id === 'pp:ledge')!;
+  assert.equal(board.kind, 'shelf');
+  assert.deepEqual([board.c, board.l, board.thickness], [900, 280, 30], 'corta como tábua: comprimento × fundo × espessura');
+  const thick = executeRequest(ok.design, [{ kind: 'module.edit', id: 'pp', height: 80 }]);
+  assert.ok(!thick.ok && /15 a 60 mm de espessura/.test(thick.error));
+  const split = executeRequest(ok.design, [{ kind: 'cell.split', id: 'pp:root', axis: 'y' }]);
+  assert.ok(!split.ok && /prateleira de parede: não tem compartimentos/.test(split.error));
+  const box = executeRequest(base, [{ kind: 'module.add', id: 'b', preset: 'niche' }, { kind: 'module.edit', id: 'b', height: 60 }]);
+  assert.ok(!box.ok && /Altura: 200 a 2400/.test(box.error), 'caixa continua com 200 mm de altura mínima');
+});
+
+void test('place: prateleira sobre a TV fica fora da folga da tela; na frente dela é conflito', () => {
+  const s = scene('painel-tv');
+  const d = normalize(s.design);
+  const above = planPieces(d, s.room!, [{ ref: 'topo', nome: 'Prateleira', tipo: 'prateleira', onde: { de: 'tv', lado: 'acima', folga: 0 } }]);
+  assert.ok('error' in above && /tapa TV|encosta na tela|passa|teto|painel/.test(above.error!), 'colada na TV: dentro da folga');
+  const front = planPieces(d, s.room!, [{ ref: 'f', nome: 'Prateleira', tipo: 'prateleira', largura: 600, onde: { x: 1600, y: 1400 } }]);
+  assert.ok('error' in front && /tapa TV/.test(front.error!));
+  const side = planPieces(d, s.room!, [{ ref: 's', nome: 'Prateleira', tipo: 'prateleira', onde: { de: 'tv', lado: 'esquerda' } }]);
+  assert.ok(!('error' in side && side.error), JSON.stringify(side));
+});
+
+void test('place: peça encostada num módulo fica ligada a ele (ao lado, em cima e em cadeia no mesmo lote)', async () => {
+  const { executeRequest, migrateParams } = await import('../lib/studio');
+  const { defaults } = await import('../lib/furniture');
+  const d = migrateParams(defaults);
+  const plan = planPieces(d, undefined, [
+    { ref: 'n1', nome: 'Nicho 1', tipo: 'nicho', onde: { de: 'module-1', lado: 'direita' } },
+    { ref: 'n2', nome: 'Nicho 2', tipo: 'nicho', onde: { de: 'n1', lado: 'direita' } },
+    { ref: 'topo', nome: 'Nicho de cima', tipo: 'nicho', onde: { de: 'module-1', lado: 'acima' } },
+  ]);
+  assert.ok(!('error' in plan && plan.error), JSON.stringify(plan));
+  if ('error' in plan) return;
+  const r = executeRequest(d, plan.ops);
+  assert.ok(r.ok, !r.ok ? r.error : '');
+  if (!r.ok) return;
+  assert.deepEqual(
+    r.design.connections.map((c) => `${c.parent}>${c.child}:${c.side}`),
+    ['module-1>n1:right', 'n1>n2:right', 'module-1>topo:top'],
+  );
+  // Com folga não encosta: fica solta.
+  const loose = planPieces(d, undefined, [{ ref: 'n', nome: 'Nicho', tipo: 'nicho', onde: { de: 'module-1', lado: 'direita', folga: 100 } }]);
+  assert.ok(!('error' in loose && loose.error));
+  if ('error' in loose) return;
+  assert.ok(!loose.ops.some((o) => o.kind === 'connect'));
+});

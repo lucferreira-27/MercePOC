@@ -23,6 +23,12 @@ const panelHints = [
   'Altura: 200 a 2700 mm (o menor lado até 1800).',
   'Espessura: 15 a 60 mm.',
 ];
+/** Prateleira de parede: tábua de até 2700 mm, 15 a 60 de espessura, 150 a 600 de fundo. */
+const ledgeHints = [
+  'Largura: 200 a 2700 mm.',
+  'Espessura: 15 a 60 mm.',
+  'Profundidade: 150 a 600 mm.',
+];
 const axisHints = [
   'X: -20000 a 20000 mm.',
   'Y: 0 a 20000 mm.',
@@ -442,6 +448,31 @@ function ModularEditorPanel({
                         </button>
                       </div>
                     </div>
+                  ) : mod.kind === 'ledge' ? (
+                    <div className="tree-branch">
+                      <div className="tree-node">
+                        <span className="tree-dot" />
+                        <button
+                          className={'tree-item touch-target ' + (target === mod.id || target === `${mod.id}:ledge` ? 'active' : '')}
+                          type="button"
+                          aria-label={`Prateleira de parede ${mod.name}`}
+                          onClick={() => onSelect([`${mod.id}:ledge`])}
+                        >
+                          <span className="tree-thumb">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                              <path d="M4 5v14" />
+                              <rect x="4" y="10" width="16" height="3" rx="0.5" />
+                            </svg>
+                          </span>
+                          <span className="tree-text">
+                            <strong>Prateleira de parede</strong>
+                            <small>
+                              {mod.width} × {mod.depth} mm · {mod.height} mm de espessura
+                            </small>
+                          </span>
+                        </button>
+                      </div>
+                    </div>
                   ) : (
                     tree(mod.root)
                   )}
@@ -524,7 +555,7 @@ function ModularEditorPanel({
                 height: number(data, 'height'),
                 depth: number(data, 'depth'),
                 materialId: formText(data, 'material') as Module['materialId'],
-                ...(m.kind === 'panel'
+                ...(m.kind
                   ? {}
                   : {
                       back: data.get('back') === 'on',
@@ -561,15 +592,15 @@ function ModularEditorPanel({
           <div className="fields">
             {(['width', 'height', 'depth'] as const).map((k, i) => (
               <label key={k}>
-                {['Largura', 'Altura', m.kind === 'panel' ? 'Espessura' : 'Profundidade'][i]} (mm)
+                {(m.kind === 'ledge' ? ['Largura', 'Espessura', 'Profundidade'] : ['Largura', 'Altura', m.kind === 'panel' ? 'Espessura' : 'Profundidade'])[i]} (mm)
                 <input
                   type="number"
                   name={k}
                   defaultValue={m[k]}
-                  min={m.kind === 'panel' && i === 2 ? 15 : 200}
-                  max={(m.kind === 'panel' ? [2700, 2700, 60] : [1200, 2400, 800])[i]}
+                  min={(m.kind === 'ledge' ? [200, 15, 150] : m.kind === 'panel' ? [200, 200, 15] : [200, 200, 200])[i]}
+                  max={(m.kind === 'ledge' ? [2700, 60, 600] : m.kind === 'panel' ? [2700, 2700, 60] : [1200, 2400, 800])[i]}
                   required
-                  {...limitHint((m.kind === 'panel' ? panelHints : sizeHints)[i], (message) =>
+                  {...limitHint((m.kind === 'ledge' ? ledgeHints : m.kind === 'panel' ? panelHints : sizeHints)[i], (message) =>
                     sayLimit('module', message),
                   )}
                 />
@@ -590,7 +621,7 @@ function ModularEditorPanel({
               ))}
             </select>
           </label>
-          {m.kind !== 'panel' && (
+          {!m.kind && (
             <>
               <label className="check-label">
                 <input name="back" type="checkbox" defaultChecked={m.back} /> Fundo

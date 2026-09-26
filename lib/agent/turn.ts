@@ -248,7 +248,7 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
   const factsBefore = sameLine ? designFacts(startDesign, ctx.prices) : null;
   const factsAfter = sameLine ? designFacts(ctx.design, ctx.prices) : null;
   if (ctx.finish && !ctx.checked) {
-    const wrong = factsBefore && factsAfter ? factClaims(ctx.finish.message, factsAfter, factsBefore) : [];
+    const wrong = factsBefore && factsAfter && !ctx.options?.length ? factClaims(ctx.finish.message, factsAfter, factsBefore) : [];
     const notes = [...finalIssues, ...(wrong.length ? [`A resposta ${wrong.join('; ')}. Números do app: ${factsLine(factsAfter!)}.`] : [])];
     if (notes.length) ctx.finish.message = `${ctx.finish.message}\n\nAtenção: ${notes.join(' ')}`;
   }

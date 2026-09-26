@@ -97,5 +97,6 @@ export function sheetLevers(design: Design) {
   }
   const list = [...groups].map(([mat, names]) => `${mat} mm: ${[...names].slice(0, 6).join(', ')}`).join('; ');
   const panels = design.modules.filter((m) => m.kind === 'panel').map((m) => `${m.name} (${m.depth} mm)`);
-  return `Chapas por acabamento e espessura: ${list}.${panels.length ? ` Painel de parede aceita de 15 a 60 mm de espessura (depth): ${panels.join(', ')}.` : ''} Caixas e frentes são de 18 mm.`;
+  const ledges = design.modules.filter((m) => m.kind === 'ledge').map((m) => `${m.name} (${m.height} mm)`);
+  return `Chapas por acabamento e espessura: ${list}.${panels.length ? ` Painel de parede aceita de 15 a 60 mm de espessura (depth): ${panels.join(', ')}.` : ''}${ledges.length ? ` Prateleira de parede aceita de 15 a 60 mm (altura): ${ledges.join(', ')}.` : ''} Caixas e frentes são de 18 mm.`;
 }

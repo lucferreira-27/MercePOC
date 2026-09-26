@@ -276,7 +276,7 @@ function FurnitureView({
     () =>
       -Math.max(
         0,
-        ...params.modules.filter((m) => m.kind !== 'panel').map((m) => (m.rotation % 180 ? m.width : m.depth)),
+        ...params.modules.filter((m) => !m.kind).map((m) => (m.rotation % 180 ? m.width : m.depth)),
       ) / 2,
     [params],
   );

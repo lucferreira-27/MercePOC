@@ -46,9 +46,11 @@ export type Module = {
   legacyIds?: boolean;
   /**
    * Painel de parede (painel de TV, cabeceira): uma chapa só, sem caixa nem
-   * compartimentos. `depth` é a espessura. Ausente, o módulo é uma caixa.
+   * compartimentos. `depth` é a espessura. Prateleira de parede (`ledge`):
+   * uma tábua horizontal presa na parede ou num painel; `height` é a
+   * espessura e `depth` o quanto ela avança. Ausente, o módulo é uma caixa.
    */
-  kind?: 'panel';
+  kind?: 'panel' | 'ledge';
   /** Pés: altura em mm que levanta a caixa do piso (0 ou ausente, sem pés). */
   feet?: number;
   /** Suspenso de propósito, preso na parede (aéreo, rack suspenso). */
@@ -71,6 +73,10 @@ export type Composition = {
 };
 /** Limites do painel de parede: cabe numa chapa de 2750 × 1840 mm. */
 export const PANEL_LIMITS = { long: 2700, short: 1800, thickness: [15, 60], feet: [0, 300] } as const;
+/** Prateleira de parede: tábua de até 2700 mm (uma chapa), 15 a 60 de espessura, 150 a 600 de profundidade. */
+export const LEDGE_LIMITS = { long: 2700, thickness: [15, 60], depth: [150, 600] } as const;
+/** Módulo sem caixa (painel ou prateleira de parede): sem compartimentos, frentes, pés nem conexões. */
+export const isFlat = (m: Pick<Module, 'kind'>) => m.kind === 'panel' || m.kind === 'ledge';
 export type Foot = {
   moduleId: string;
   /** Centro do pé no mundo, em mm. */
@@ -133,8 +139,8 @@ export function validationMessage(error: z.ZodError) {
       ? (['x', 'y', 'z'][last] ?? 'position')
       : String(path.filter((p) => typeof p === 'string').at(-1) ?? 'pedido');
   const labels: Record<string, string> = {
-    width: 'Largura: 200 a 1200 mm (painel de parede até 2700 mm).',
-    height: 'Altura: 200 a 2400 mm (painel de parede até 2700 mm).',
+    width: 'Largura: 200 a 1200 mm (painel e prateleira de parede até 2700 mm).',
+    height: 'Altura: 200 a 2400 mm (painel de parede até 2700 mm; prateleira de parede: espessura de 15 a 60 mm).',
     depth: 'Profundidade: 200 a 800 mm (espessura do painel: 15 a 60 mm).',
     feet: 'Pés: 0 (sem pés) ou de 50 a 300 mm.',
     count: 'Use de uma a seis gavetas.',
@@ -152,8 +158,8 @@ export function validationMessage(error: z.ZodError) {
     z: 'Posição Z entre -20000 e 20000 mm.',
     materialId: `Acabamento inválido: use ${materialIds.join(', ')}.`,
     back: 'Fundo só aceita ligado ou desligado.',
-    preset: 'Preset inválido: use shelf, niche, rack, drawers ou panel.',
-    presets: 'Preset inválido: use shelf, niche, rack, drawers ou panel.',
+    preset: 'Preset inválido: use shelf, niche, rack, drawers, panel ou ledge.',
+    presets: 'Preset inválido: use shelf, niche, rack, drawers, panel ou ledge.',
     side: 'Posição permitida: à direita, à esquerda ou empilhado acima.',
     align: 'Alinhamento permitido: frentes ou fundos.',
   };
@@ -203,7 +209,9 @@ export const compositionSchema = z
             id: mid,
             name: z.string().trim().min(1).max(80),
             width: z.number().min(200).max(PANEL_LIMITS.long),
-            height: z.number().min(200).max(PANEL_LIMITS.long),
+            // A espessura da prateleira de parede mora na altura: o piso de 200
+            // mm da caixa e do painel é conferido por tipo, logo abaixo.
+            height: z.number().min(LEDGE_LIMITS.thickness[0]).max(PANEL_LIMITS.long),
             depth: z.number().min(PANEL_LIMITS.thickness[0]).max(800),
             materialId: material,
             back: z.boolean(),
@@ -220,7 +228,7 @@ export const compositionSchema = z
             ]),
             root: cellSchema,
             legacyIds: z.boolean().optional(),
-            kind: z.literal('panel').optional(),
+            kind: z.enum(['panel', 'ledge']).optional(),
             feet: z.number().min(0).max(PANEL_LIMITS.feet[1]).optional(),
             wall: z.boolean().optional(),
           })
@@ -236,9 +244,18 @@ export const compositionSchema = z
               if (m.root.split || m.root.front)
                 fail('root', `${m.name}: painel de parede não tem compartimentos nem frentes.`);
               if (m.feet) fail('feet', `${m.name}: painel de parede não leva pés.`);
+              if (m.height < 200) fail('height', `${m.name}: painel de parede com 200 a 2700 mm de altura.`);
+            } else if (m.kind === 'ledge') {
+              if (m.height > LEDGE_LIMITS.thickness[1])
+                fail('height', `${m.name}: prateleira de parede com 15 a 60 mm de espessura (altura).`);
+              if (m.depth < LEDGE_LIMITS.depth[0] || m.depth > LEDGE_LIMITS.depth[1])
+                fail('depth', `${m.name}: prateleira de parede com 150 a 600 mm de profundidade.`);
+              if (m.root.split || m.root.front)
+                fail('root', `${m.name}: prateleira de parede não tem compartimentos nem frentes.`);
+              if (m.feet) fail('feet', `${m.name}: prateleira de parede não leva pés.`);
             } else {
               if (m.width > 1200) fail('width', 'Largura: 200 a 1200 mm.');
-              if (m.height > 2400) fail('height', 'Altura: 200 a 2400 mm.');
+              if (m.height > 2400 || m.height < 200) fail('height', 'Altura: 200 a 2400 mm.');
               if (m.depth < 200) fail('depth', 'Profundidade: 200 a 800 mm.');
             }
             if (m.feet && m.feet < 50) fail('feet', 'Pés: 0 (sem pés) ou de 50 a 300 mm.');
@@ -350,7 +367,7 @@ export function migrateComposition(
     connections: [],
   };
 }
-export type PresetId = 'shelf' | 'niche' | 'rack' | 'drawers' | 'panel';
+export type PresetId = 'shelf' | 'niche' | 'rack' | 'drawers' | 'panel' | 'ledge';
 export function preset(type: PresetId, id = uid('module')): Module {
   const base = migrateComposition(legacy.migrateParams(defaults)).modules[0];
   base.id = id;
@@ -363,6 +380,14 @@ export function preset(type: PresetId, id = uid('module')): Module {
     base.width = 1800;
     base.height = 1200;
     base.depth = 25;
+    base.back = false;
+  } else if (type === 'ledge') {
+    // Prateleira de parede: tábua de 25 mm presa na parede, 25 cm de fundo.
+    base.kind = 'ledge';
+    base.name = 'Prateleira de parede';
+    base.width = 800;
+    base.height = 25;
+    base.depth = 250;
     base.back = false;
   } else if (type === 'shelf') {
     base.name = 'Estante';
@@ -423,8 +448,8 @@ function cellBy(d: Composition, id: string) {
         result = { m, c };
     });
   if (!result) throw new Error(`Compartimento ${id} não encontrado.`);
-  if (result.m.kind === 'panel')
-    throw new Error(`${result.m.name} é um painel de parede: não tem compartimentos nem frentes.`);
+  if (isFlat(result.m))
+    throw new Error(`${result.m.name} é ${result.m.kind === 'ledge' ? 'uma prateleira de parede' : 'um painel de parede'}: não tem compartimentos nem frentes.`);
   return result;
 }
 function sharedSides(d: Composition, m: Module) {
@@ -509,7 +534,7 @@ export function layout(d: Composition) {
   const cells: CellInfo[] = [];
   const panels: { m: Module; c: Cell; origin: Vec; size: Vec }[] = [];
   for (const m of d.modules) {
-    if (m.kind === 'panel') continue;
+    if (isFlat(m)) continue;
     const depth = m.depth - (m.back ? PROFILE.back : 0);
     let order = 0;
     // `covered`: uma porta de um vão acima já cobre este (prateleiras atrás da porta).
@@ -713,7 +738,14 @@ export function generateComposition(input: Composition, validate = true) {
       m.depth,
       'panel',
     );
-  for (const m of d.modules.filter((v) => v.kind !== 'panel')) {
+  // Prateleira de parede: uma tábua horizontal, com fita nos quatro lados.
+  for (const m of d.modules.filter((v) => v.kind === 'ledge')) {
+    add(m, `${m.id}:ledge`, 'Prateleira de parede', [m.width, m.height, m.depth], [0, m.height / 2, 0], m.height, 'shelf');
+    const board = parts[parts.length - 1];
+    const band = board.edges.c1;
+    board.edges = { c1: band, c2: band, l1: band, l2: band };
+  }
+  for (const m of d.modules.filter((v) => !isFlat(v))) {
     const s = sharedSides(d, m);
     const w = m.width,
       h = m.height,
@@ -1002,13 +1034,13 @@ export function generateComposition(input: Composition, validate = true) {
       // Uma frase para todos os presos na parede: quatro avisos iguais tomavam
       // o painel inteiro.
       ...(() => {
-        const hung = d.modules.filter((m) => m.kind === 'panel' || m.wall).map((m) => m.name);
+        const hung = d.modules.filter((m) => isFlat(m) || m.wall).map((m) => m.name);
         if (!hung.length) return [];
         const names = hung.length === 1 ? hung[0] : `${hung.slice(0, -1).join(', ')} e ${hung.at(-1)}`;
         return [`${names}: fixar na parede com parafuso, bucha e suporte adequados à carga.`];
       })(),
       ...d.modules
-        .filter((m) => m.position[1] > 0 && m.kind !== 'panel' && !m.wall)
+        .filter((m) => m.position[1] > 0 && !isFlat(m) && !m.wall)
         .map((m) => `${m.name}: revisar apoio e fixação do módulo elevado.`),
     ],
   };
@@ -1019,7 +1051,7 @@ export const modularOpSchema = z.union(
     z.object({
       kind: z.literal('module.add'),
       id: mid.optional(),
-      preset: z.enum(['shelf', 'niche', 'rack', 'drawers', 'panel']),
+      preset: z.enum(['shelf', 'niche', 'rack', 'drawers', 'panel', 'ledge']),
       name: z.string().min(1).max(80).optional(),
     }),
     z.object({
@@ -1029,7 +1061,7 @@ export const modularOpSchema = z.union(
       // Caixa até 1200 × 2400 × 200–800; painel de parede até 2700 e 15–60 de
       // espessura. O limite de cada tipo é conferido no módulo.
       width: z.number().min(200).max(PANEL_LIMITS.long).optional(),
-      height: z.number().min(200).max(PANEL_LIMITS.long).optional(),
+      height: z.number().min(LEDGE_LIMITS.thickness[0]).max(PANEL_LIMITS.long).optional(),
       depth: z.number().min(PANEL_LIMITS.thickness[0]).max(800).optional(),
       materialId: material.optional(),
       back: z.boolean().optional(),
@@ -1221,7 +1253,7 @@ export function applyModularOp(
       }
       for (const other of d.modules) if (row.has(other.id) && other.id !== m.id) other.feet = op.feet;
     }
-    if (m.kind !== 'panel')
+    if (!isFlat(m))
       resizeCells(
         m.root,
         [m.width - 36, m.height - 36],
@@ -1245,9 +1277,9 @@ export function applyModularOp(
     if (reference.id === attached.id)
       throw new Error('Um módulo não pode ser conectado a si mesmo.');
     for (const m of [reference, attached])
-      if (m.kind === 'panel')
+      if (isFlat(m))
         throw new Error(
-          `${m.name} é um painel de parede e não se conecta: posicione com module.edit {position}.`,
+          `${m.name} é ${m.kind === 'ledge' ? 'uma prateleira de parede' : 'um painel de parede'} e não se conecta: posicione com module.edit {position}.`,
         );
     if (op.side === 'top' && attached.feet)
       throw new Error(`${attached.name} vai em cima de outro módulo: tire os pés (feet 0) antes.`);
@@ -1408,7 +1440,7 @@ export function feetOf(d: Composition): Foot[] {
   const out: Foot[] = [];
   for (const m of d.modules) {
     const h = m.feet ?? 0;
-    if (!h || m.kind === 'panel') continue;
+    if (!h || isFlat(m)) continue;
     const x = m.width / 2 - 50,
       z = m.depth / 2 - 40;
     for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Composition, Module } from '../composition';
+import { isFlat, type Composition, type Module } from '../composition';
 import type { Room } from '../room';
 import type { Design, ShelfOp } from '../studio';
 import { clearOps, interiorOps, interiorSchema } from './interior';
@@ -105,9 +105,9 @@ export function planModify(design: Design, room: Room | undefined, a: Modify): {
         error: `${m.name}: altura da caixa ${e.altura} + pés ${feet} = ${e.altura + feet} mm, mas altura_total diz ${e.altura_total} mm. Mande só altura_total (com os pés) ou só altura (da caixa).`,
       };
     const height = e.altura_total !== undefined ? e.altura_total - feet : e.altura;
-    if (height !== undefined && m.kind !== 'panel' && (height < 200 || height > 2400))
+    if (height !== undefined && !isFlat(m) && (height < 200 || height > 2400))
       return { error: `${m.name}: altura da caixa de ${height} mm fora de 200 a 2400 mm${e.altura_total !== undefined ? ` (${e.altura_total} menos ${feet} mm de pés)` : ''}.` };
-    const row = m.kind === 'panel' ? [m.id] : sharedRow(design, m.id);
+    const row = isFlat(m) ? [m.id] : sharedRow(design, m.id);
     const shared: Partial<Module> = {
       ...(height !== undefined ? { height } : {}),
       ...(e.profundidade !== undefined ? { depth: e.profundidade } : {}),
@@ -141,7 +141,7 @@ export function planModify(design: Design, room: Room | undefined, a: Modify): {
   for (const e of a.interior ?? []) {
     const m = byId(design, e.id);
     if (!m) return missing(e.id);
-    if (m.kind === 'panel') return { error: `${m.name} é um painel de parede: não tem interior.` };
+    if (isFlat(m)) return { error: `${m.name} é ${m.kind === 'ledge' ? 'uma prateleira de parede' : 'um painel de parede'}: não tem interior.` };
     const { id: _id, ...spec } = e;
     void _id;
     const size = { width: m.width, height: m.height };
@@ -166,9 +166,9 @@ export function planModify(design: Design, room: Room | undefined, a: Modify): {
       const piece: Piece = {
         ref: m.id,
         nome: m.name,
-        tipo: m.kind === 'panel' ? 'painel' : 'nicho',
+        tipo: m.kind === 'panel' ? 'painel' : m.kind === 'ledge' ? 'prateleira' : 'nicho',
         largura: cur.x1 - cur.x0,
-        altura: m.kind === 'panel' ? m.height : m.height,
+        altura: m.height,
         profundidade: m.depth,
         pes: m.feet ?? 0,
         onde: where,
@@ -187,7 +187,7 @@ export function planModify(design: Design, room: Room | undefined, a: Modify): {
       if (parent) ops.push({ kind: 'disconnect', child: m.id });
       ops.push({ kind: 'module.edit', id: m.id, position: [m.position[0] + dx, m.position[1] + dy, m.position[2] + dz] });
       // O suspenso que desce ao piso deixa de ser suspenso, e vice-versa.
-      if (m.kind !== 'panel') {
+      if (!isFlat(m)) {
         const wall = r.box.y0 > 5;
         if (!!m.wall !== wall) ops.push({ kind: 'module.edit', id: m.id, wall });
       }

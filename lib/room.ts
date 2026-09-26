@@ -749,7 +749,7 @@ export function fitReport(design: Composition, room: Room): FitReport {
     });
   issues.push(...tvIssues, ...obstacleIssues);
   // Painel e módulo suspenso vão presos na parede: não precisam tocar o piso.
-  const hung = design.modules.every((m) => m.kind === 'panel' || m.wall);
+  const hung = design.modules.every((m) => m.kind === 'panel' || m.kind === 'ledge' || m.wall);
   if (base > ON_FLOOR && !hung)
     issues.push({
       code: 'floor-gap',

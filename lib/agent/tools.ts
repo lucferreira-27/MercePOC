@@ -688,7 +688,10 @@ const finishTool = tool({
   run: async (ctx, a) => {
     const issues = checkWork(ctx);
     // Números da resposta contra o estado que fica (não contra a última leitura).
-    const wrong = factClaims(a.mensagem, designFacts(ctx.design, ctx.prices), designFacts(ctx.turnStart.design, ctx.prices));
+    // Com opções montadas, a resposta compara os cartões (números do app, do
+    // options_make) e o projeto não muda: essas duas conferências não valem.
+    const options = !!ctx.options?.length;
+    const wrong = options ? [] : factClaims(a.mensagem, designFacts(ctx.design, ctx.prices), designFacts(ctx.turnStart.design, ctx.prices));
     if (wrong.length)
       issues.push(
         `A mensagem ${wrong.join('; ')}. Fatos do estado final: ${factsLine(designFacts(ctx.design, ctx.prices))}. Reescreva só com esses números.`,
@@ -699,7 +702,7 @@ const finishTool = tool({
       issues.push('A mensagem diz que mudou o móvel, mas nada mudou neste pedido (as peças foram recusadas ou não foram montadas). Monte de novo com o que o erro indicou, ou diga que não deu e por quê.');
     // Objetivo mensurável (menos chapas, menor custo): conferido no estado
     // final, com as alavancas, em vez de aceitar a ação feita como prova.
-    const goal = objectiveOf(ctx.request);
+    const goal = options ? null : objectiveOf(ctx.request);
     if (goal) {
       const b = designFacts(ctx.turnStart.design, ctx.prices),
         n = designFacts(ctx.design, ctx.prices);
