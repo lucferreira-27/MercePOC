@@ -18,6 +18,7 @@
     "bench:doc": "tsx bench/doc.mjs",
     "bench:router": "tsx bench/router.mjs",
     "bench:claims": "tsx bench/claims.mjs",
+    "bench:askact": "tsx bench/askact.mjs",
     "bench:dash": "tsx bench/dashboard.mjs"
   },
   "dependencies": {

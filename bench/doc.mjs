@@ -14,9 +14,10 @@ const lines = [head, '', '<!-- catalogo -->', '<!-- gerado por bench/doc.mjs: n�
 for (const [group, about] of Object.entries(groups)) {
   const list = cases.filter((c) => c.group === group);
   lines.push(`### ${group} · ${about}`, '');
-  lines.push('| caso | pedido | expectativa | o que já aprendemos |', '|---|---|---|---|');
+  lines.push('| caso | o certo é | pedido | expectativa | o que já aprendemos |', '|---|---|---|---|---|');
   for (const c of list) {
     const expect = [];
+    if (c.expect.agent) expect.push('resultado do laço conferido');
     if (c.expect.action) {
       const actions = Array.isArray(c.expect.action) ? c.expect.action.join(' ou ') : c.expect.action;
       expect.push(`ação ${actions}`);
@@ -28,7 +29,8 @@ for (const [group, about] of Object.entries(groups)) {
     if (c.expect.content?.mustMatch) expect.push(`resposta cita ${c.expect.content.mustMatch.map(String).join(', ')}`);
     if (c.expect.content?.mustNotMatch) expect.push(`resposta não traz ${c.expect.content.mustNotMatch.map(String).join(', ')}`);
     lines.push(
-      `| \`${c.id}\` | ${c.prompt} | ${expect.join('; ') || 'não travar'} | ${(c.learned ?? '').replace(/\n/g, ' ')} |`,
+      // A barra das regex quebraria a tabela: escapa.
+      `| \`${c.id}\` | ${c.askAct} | ${c.prompt} | ${expect.join('; ').replace(/\|/g, '\\|') || 'não travar'} | ${(c.learned ?? '').replace(/\n/g, ' ')} |`,
     );
   }
   lines.push('');

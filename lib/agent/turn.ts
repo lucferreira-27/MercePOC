@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { drawingParts } from '../composition';
 import { reviewResult, type ModelChoice } from '../gateway';
 import { imageDataUrl, saveImage, type ImageRef } from '../images';
-import type { ProviderUsage } from '../models';
+import type { ModelKey, ProviderUsage } from '../models';
 import { planDataUrl, planPng } from '../plan-render';
 import type { Progress, TurnOutcome } from '../progress';
 import type { Prices } from '../quote';
@@ -33,7 +33,8 @@ export type AgentTurnInput = {
   signal: AbortSignal;
   progress: (event: Progress) => void;
   emit: (event: AgentEvent) => void;
-  onUsage: (usage: ProviderUsage) => void;
+  /** Gasto de cada chamada; `model` é quem respondeu (a reserva, se o provedor falhou). */
+  onUsage: (usage: ProviderUsage, model?: ModelKey) => void;
   onText?: (text: string) => void;
   onPulse?: (bytes: number, reasoning: number) => void;
   /** Custo do turno, para gravar na resposta. */
@@ -72,6 +73,7 @@ export async function runAgentTurn(input: AgentTurnInput) {
   const seconds = ((Date.now() - t0) / 1000).toFixed(1).replace('.', ',');
   if (route.kind === 'direct') {
     ctx.steps.push({ tool: 'router', label: `Pedido direto, sem IA (${seconds} s)`, ok: true });
+    ctx.direct = true;
     for (const id of route.actions) {
       const a = DIRECT[id];
       const t = TOOLS.find((v) => v.name === a.tool)!;
@@ -187,7 +189,13 @@ export async function runAgentTurn(input: AgentTurnInput) {
     ? ctx.ask.question
     : (ctx.finish?.message ??
       (done
-        ? `Parei no limite de etapas deste pedido. ${ctx.steps.filter((s) => s.ok).map((s) => s.label).slice(-6).join('; ') || 'Nada foi aplicado'}.`
+        ? // Sem finish nem na última chamada (provedor lento): a resposta vem
+          // das mudanças de verdade, em frases, e diz como continuar.
+          [
+            'Não terminei tudo no tempo deste pedido.',
+            changes.length && ctx.designChanged ? `Ficou pronto: ${changes.slice(0, 4).map((c) => c.charAt(0).toLowerCase() + c.slice(1)).join('; ')}.` : 'O móvel não mudou.',
+            'Peça "continue" para eu seguir de onde parei.',
+          ].join(' ')
         : 'Pronto.'));
   const clarification: Clarification | undefined = ctx.ask
     ? { id: randomUUID(), question: ctx.ask.question, baseRevisionId: p.revisions[p.cursor].id, options: ctx.ask.options, pendingMessage: input.request }

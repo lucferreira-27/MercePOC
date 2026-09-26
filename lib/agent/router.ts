@@ -92,6 +92,8 @@ const AXIS_WORDS = /\b(larg|alt[oa]|altura|profund|fundo|comprim|pé[- ]direito|
 const HAS_MEASURE = /\d/;
 /** Número que não é medida do móvel: porcentagem, dinheiro, quantidade de peças. */
 const NOT_SIZE = /%|r\$|reais|pre[çc]o|margem|gavetas?|portas?|prateleiras?|m[óo]dulos?|vers[ãa]o/i;
+/** Medida do móvel no texto sem dizer o eixo ("aumente 10 cm"). */
+export const axisMissing = (request: string) => HAS_MEASURE.test(request) && !AXIS_WORDS.test(request) && !NOT_SIZE.test(request);
 const GATES = ['g_movel', 'g_config', 'g_pergunta', 'g_alvo'] as const;
 
 /** A decisão, separada da chamada: testável com respostas gravadas. */
@@ -113,7 +115,7 @@ export function decideRoute(request: string, answers: Record<string, JevAnswer> 
     const partial = (noulOf(answers.multi) ?? 0) >= ROUTE.multiMin && picked.length < 2;
     if (picked.length && picked.length <= ROUTE.maxDirect && !clash && !partial) return { kind: 'direct', actions: picked, intent: name };
   }
-  if (sure && name === 'edit' && vague >= ROUTE.vagueMin && HAS_MEASURE.test(request) && !AXIS_WORDS.test(request) && !NOT_SIZE.test(request))
+  if (sure && name === 'edit' && vague >= ROUTE.vagueMin && axisMissing(request))
     return { kind: 'ask_axis', intent: name };
   return { kind: 'agent', intent: name, budget: (name && ROUTE.budget[name]) || ROUTE.budget.default };
 }

@@ -191,6 +191,15 @@ void test('obstáculo que cruza o módulo: obstacle-overlap nomeia os dois', () 
   assert.ok(free.notes.some((note) => note.includes('nenhum cruza o móvel')));
 });
 
+void test('tomada atrás do móvel é nota, não problema de encaixe', () => {
+  const design = composition([box('a', 1200, 2400, -600)]);
+  const outlet: Obstacle = { id: 'ob-1', kind: 'outlet', label: 'Tomada da máquina', xMm: 300, yMm: 1000, widthMm: 80, heightMm: 80 };
+  const report = fitReport(design, room({ obstacles: [outlet] }));
+  assert.equal(report.fits, true, JSON.stringify(report.issues));
+  assert.deepEqual(report.crossed, []);
+  assert.ok(report.notes.some((note) => /^Tomada da máquina fica atrás do módulo .*: recorte no fundo/.test(note)));
+});
+
 void test('giro da porta vira nota só quando alcança o móvel', () => {
   const design = composition([box('a', 1200, 2400, -600)]);
   const door: Obstacle = {

@@ -21,3 +21,12 @@ export const ROUTE = {
   /** Chamadas ao modelo por intenção (o plano ainda soma um bônus). */
   budget: { default: 12, build: 16, options: 16, edit: 12, ask: 6, view: 8, studio: 8 } as Record<string, number>,
 };
+
+/**
+ * Perguntar ou fazer (lib/agent/ask-gate.ts). Calibrado com as perguntas
+ * reais em `bench/askact-cases.mjs`: ao mudar, rode `npm run bench:askact`.
+ */
+export const ASK = {
+  /** Medida sem eixo, ou alvo vago, acima disto: a pergunta de eixo ou de peça vale. */
+  vagueMin: 0.7,
+};

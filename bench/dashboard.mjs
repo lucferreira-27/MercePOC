@@ -44,19 +44,41 @@ function inferMeta(file, s) {
     effort,
     mode,
     photoLoop: s.photoLoop ?? null,
+    askGate: s.askGate ?? null,
     argv: s.argv ?? null,
   };
 }
 
-/** Só o que o painel usa: tira o design de prévia e as operações cruas. */
-function slimResult(r) {
+/**
+ * Só o que o painel usa: tira o design de prévia e as operações cruas.
+ *
+ * A linha é reavaliada com a regra de perguntar ou agir de hoje (o rótulo
+ * askAct do caso): uma rodada antiga que perguntou num caso 'agir' passava e
+ * agora falha, marcada como `regraded`. O resto da expectativa não dá para
+ * refazer sem o projeto; `stale` diz quando a regra do caso mudou desde a
+ * rodada (null: rodada de antes da impressão do caso).
+ */
+function slimResult(r, rules) {
   const ops = r.decision?.ops ?? [];
+  const now = rules.cases[r.id];
+  let errors = r.errors ?? [];
+  let ok = r.ok;
+  let regraded = false;
+  const miss = now ? rules.askActMiss(now.askAct, r.action) : null;
+  if (miss && !errors.includes(miss)) {
+    errors = [miss, ...errors];
+    regraded = r.ok;
+    ok = false;
+  }
   return {
     id: r.id,
     group: r.group,
-    run: r.run,
-    ok: r.ok,
-    errors: r.errors ?? [],
+    run: r.run ?? 1,
+    ok,
+    regraded,
+    stale: r.caseHash ? (now ? r.caseHash !== now.hash : null) : null,
+    infra: r.infra || errors.some((e) => rules.INFRA_ERROR.test(e)),
+    errors,
     action: r.action,
     applied: r.applied,
     calls: r.calls ?? 0,
@@ -76,7 +98,14 @@ function slimResult(r) {
 }
 
 export async function buildDashboard({ quiet = false } = {}) {
-  const { cases, groups } = await import(pathToFileURL(resolve('bench/cases.mjs')).href);
+  // Sem cache de módulo: com --serve o painel pega a regra nova a cada recarga.
+  const url = pathToFileURL(resolve('bench/cases.mjs')).href + `?t=${statSync(resolve('bench/cases.mjs')).mtimeMs}`;
+  const { cases, groups, askActMiss, INFRA_ERROR, caseHash } = await import(url);
+  const rules = {
+    askActMiss,
+    INFRA_ERROR,
+    cases: Object.fromEntries(cases.map((c) => [c.id, { askAct: c.askAct, hash: caseHash(c) }])),
+  };
   const runs = [];
   for (const file of readdirSync(RESULTS)) {
     if (!file.endsWith('.json')) continue;
@@ -91,14 +120,14 @@ export async function buildDashboard({ quiet = false } = {}) {
       ...inferMeta(file, s),
       at: s.at ?? statSync(join(RESULTS, file)).mtime.toISOString(),
       recordedPrice: s.price ?? null,
-      results: s.results.map(slimResult),
+      results: s.results.map((r) => slimResult(r, rules)),
     });
   }
   runs.sort((a, b) => (a.at < b.at ? 1 : -1));
   const caseInfo = Object.fromEntries(
     cases.map((c) => [
       c.id,
-      { group: c.group, prompt: c.prompt, learned: c.learned ?? '', image: !!c.image, agentOnly: !!c.agentOnly },
+      { group: c.group, prompt: c.prompt, learned: c.learned ?? '', image: !!c.image, agentOnly: !!c.agentOnly, askAct: c.askAct ?? null },
     ]),
   );
   const data = { generatedAt: new Date().toISOString(), groups, cases: caseInfo, prices: PRICES, runs };
@@ -237,10 +266,40 @@ const S = {
   price: store.get('price', 'recorded'),
   partial: store.get('partial', false),
   mode: store.get('mode', ''),
-  onlyFail: false, group: '', q: '', sort: null, open: new Set(), reason: '',
+  onlyFail: false, group: '', q: '', sort: null, open: new Set(), reason: '', stale: store.get('stale', false),
 };
+// Rodada completa: pelo menos 40 casos diferentes (repetições não contam).
 const FULL = 40;
-const isFull = (r) => r.results.length >= FULL;
+const isFull = (r) => new Set(r.results.map((x) => x.id)).size >= FULL;
+const hasRepeats = (run) => run.results.some((r) => r.run > 1);
+/** Linhas que contam na taxa: erro do provedor (infra) fica de fora. */
+const validOf = (run) => run.results.filter((r) => !r.infra);
+/** Por caso, somando as repetições: n linhas válidas, ok quantas passaram. */
+function perCase(run) {
+  const m = new Map();
+  for (const r of validOf(run)) {
+    const v = m.get(r.id) || { n: 0, ok: 0, rows: [] };
+    v.n++; if (r.ok) v.ok++; v.rows.push(r);
+    m.set(r.id, v);
+  }
+  return m;
+}
+/** Acerto de cada repetição (run 1, 2, 3…): média e faixa. */
+function repeatStats(run) {
+  const by = {};
+  for (const r of validOf(run)) { const b = (by[r.run] ??= { n: 0, ok: 0 }); b.n++; if (r.ok) b.ok++; }
+  const rates = Object.values(by).map((b) => b.ok / b.n);
+  return { k: rates.length, mean: rates.reduce((a, b) => a + b, 0) / (rates.length || 1), min: Math.min(...rates), max: Math.max(...rates) };
+}
+const P = (v) => Math.round(v * 100) + '%';
+/** Célula de um caso numa rodada: ✓/✗ sem repetição, k/N com. */
+function aggCell(v, title) {
+  if (!v) return '<span class="cell none">—</span>';
+  const tone = v.ok === v.n ? 'ok' : v.ok === 0 ? 'bad' : 'warn';
+  const errs = v.rows.filter((r) => !r.ok).map((r) => (v.n > 1 ? '#' + r.run + ': ' : '') + r.errors.join(' | '));
+  const text = v.n === 1 ? (v.ok ? '✓ ' : '✗ ') + sec(v.rows[0].latencyMs) : v.ok + '/' + v.n;
+  return '<span class="cell ' + tone + '" title="' + esc((title ? title + '\\n' : '') + errs.join('\\n')) + '">' + text + '</span>';
+}
 const visibleRuns = () => D.runs.filter((r) => (S.partial || isFull(r)) && (!S.mode || r.mode === S.mode));
 
 // Rodada sem nenhum token de cache informado (provedor que não informa): o
@@ -273,35 +332,53 @@ function costOf(run, r) {
 }
 const approx = (run) => (cacheUnknown(run) ? '≈' : '');
 function stats(run) {
-  const x = run.results;
+  // Taxa e tempo pelas linhas válidas; custo e tokens por todas (infra também gasta).
+  const all = run.results;
+  const x = validOf(run);
   const ms = x.map((r) => r.latencyMs);
-  const cost = sum(x, (r) => costOf(run, r));
+  const cost = sum(all, (r) => costOf(run, r));
   return {
     n: x.length, ok: x.filter((r) => r.ok).length,
     med: pct(ms, 0.5), p90: pct(ms, 0.9), max: Math.max(0, ...ms), mean: sum(x, (r) => r.latencyMs) / (x.length || 1),
-    cost, costCase: cost / (x.length || 1),
-    out: sum(x, (r) => r.tokens?.output || 0), inp: sum(x, (r) => r.tokens?.input || 0), cached: sum(x, (r) => r.tokens?.cached || 0),
-    calls: sum(x, (r) => r.calls) / (x.length || 1),
-    provErr: x.filter((r) => reasonOf(r) === 'Provedor').length,
-    cacheRate: sum(x, (r) => r.tokens?.cached || 0) / (sum(x, (r) => r.tokens?.input || 0) || 1),
+    cost, costCase: cost / (all.length || 1),
+    out: sum(all, (r) => r.tokens?.output || 0), inp: sum(all, (r) => r.tokens?.input || 0), cached: sum(all, (r) => r.tokens?.cached || 0),
+    calls: sum(all, (r) => r.calls) / (all.length || 1),
+    provErr: all.length - x.length,
+    regraded: all.filter((r) => r.regraded).length,
+    stale: all.filter((r) => r.stale === true).length,
+    rep: hasRepeats(run) ? repeatStats(run) : null,
+    cacheRate: sum(all, (r) => r.tokens?.cached || 0) / (sum(all, (r) => r.tokens?.input || 0) || 1),
   };
 }
 
 // ---- por que falhou
+// Provedor vem da marca infra (runner ou INFRA_ERROR em bench/cases.mjs);
+// perguntar ou agir vem do rótulo askAct do caso.
 const REASONS = [
-  ['Provedor', /\\b(429|503|502|504)\\b|provedor|conexão com a IA|Insufficient|Endpoint is unavailable|rate/i],
+  ['Perguntou em vez de fazer', /perguntou em vez de/i],
+  ['Fez em vez de perguntar', /fez em vez de perguntar/i],
   ['Harness', /exceção|sem fixture|gravação acabou|preparação falhou/i],
   ['Ação errada', /ação .* fora do esperado|não criou revisão|criou revisão|não pediu esclarecimento/i],
   ['Resposta', /resposta não citou|resposta trouxe/i],
   ['Sugestões', /sugest/i],
 ];
 function reasonOf(r) {
+  if (r.infra) return 'Provedor';
   if (r.ok) return '';
   const t = r.errors.join(' | ');
   for (const [name, re] of REASONS) if (re.test(t)) return name;
   return 'Resultado do móvel';
 }
-const REASON_TONE = { Provedor: 'info', Harness: 'warn', 'Ação errada': 'bad', Resposta: 'bad', Sugestões: 'warn', 'Resultado do móvel': 'bad' };
+const REASON_TONE = {
+  Provedor: 'info', 'Perguntou em vez de fazer': 'bad', 'Fez em vez de perguntar': 'bad', Harness: 'warn', 'Ação errada': 'bad',
+  Resposta: 'bad', Sugestões: 'warn', 'Resultado do móvel': 'bad',
+};
+const ASK_ACT_TEXT = { agir: 'fazer', perguntar: 'perguntar', responder: 'responder', livre: 'perguntar ou fazer' };
+/** Marcas da linha: reavaliada pela regra nova, ou avaliada com regra que já mudou. */
+function rowMarks(r) {
+  return (r.regraded ? ' <span class="pill warn" title="Passava na rodada; falha pela regra de perguntar ou agir de hoje">regra nova</span>' : '') +
+    (r.stale ? ' <span class="pill mute" title="A expectativa do caso mudou depois desta rodada">regra antiga</span>' : '');
+}
 
 function runTags(run) {
   const tags = [
@@ -310,6 +387,7 @@ function runTags(run) {
   ];
   if (run.effort) tags.push('<span class="pill ' + (run.effort === 'none' ? 'warn' : 'mute') + '">' + esc(run.effort) + '</span>');
   tags.push('<span class="pill ' + (run.mode === 'laço' ? 'ok' : run.mode === 'offline' ? 'mute' : 'warn') + '">' + esc(run.mode) + '</span>');
+  if (run.askGate !== null) tags.push('<span class="pill ' + (run.askGate ? 'info' : 'mute') + '" title="Portão do perguntar (lib/agent/ask-gate.ts)">' + (run.askGate ? 'portão' : 'sem portão') + '</span>');
   if (!isFull(run)) tags.push('<span class="pill mute">parcial</span>');
   return tags.join(' ');
 }
@@ -401,12 +479,14 @@ function viewRuns() {
     h += '<tr class="click" data-open="' + esc(r.file) + '"><td><input type="checkbox" data-cmp="' + esc(r.file) + '"' + (S.compare.includes(r.file) ? ' checked' : '') + '></td>' +
       '<td><b>' + esc(r.label) + '</b><div>' + runTags(r) + '</div></td>' +
       '<td class="muted">' + esc(r.at.slice(0, 16).replace('T', ' ')) + '</td>' +
-      '<td class="num"><b>' + s.ok + '/' + s.n + '</b><div class="bar"><i style="width:' + (rate * 100).toFixed(0) + '%;background:' + (rate >= 0.95 ? 'var(--ok)' : rate >= 0.85 ? 'var(--warn)' : 'var(--bad)') + '"></i></div></td>' +
+      '<td class="num"><b>' + s.ok + '/' + s.n + '</b><div class="bar"><i style="width:' + (rate * 100).toFixed(0) + '%;background:' + (rate >= 0.95 ? 'var(--ok)' : rate >= 0.85 ? 'var(--warn)' : 'var(--bad)') + '"></i></div>' +
+      (s.rep ? '<div class="muted" style="font-size:12px" title="Acerto de cada repetição: média (mín a máx)">×' + s.rep.k + ' ' + P(s.rep.mean) + ' (' + P(s.rep.min) + '–' + P(s.rep.max) + ')</div>' : '') +
+      (s.regraded ? '<div><span class="pill warn" title="Linhas que passavam e falham pela regra de perguntar ou agir de hoje">' + s.regraded + ' regra nova</span></div>' : '') + '</td>' +
       '<td class="num">' + sec(s.med) + '</td><td class="num">' + sec(s.p90) + '</td><td class="num">' + sec(s.max) + '</td>' +
       '<td class="num">' + approx(r) + usd(s.costCase) + '</td><td class="num">' + approx(r) + usd(s.cost) + '</td><td class="num">' + (s.inp ? Math.round(s.cacheRate * 100) + '%' : '—') + '</td><td class="num">' + k(s.out) + '</td>' +
       '<td class="num">' + s.calls.toFixed(1) + '</td><td class="num">' + (s.provErr ? '<span class="pill info">' + s.provErr + '</span>' : '<span class="muted">0</span>') + '</td></tr>';
   }
-  h += '</tbody></table><div class="note">Custo recalculado pelos tokens com a tabela de preço escolhida em "Preço como" (padrão: a do provedor de cada rodada). Cache: o custo depende muito da fração da entrada lida do cache (no Zen, US$ 0,006/M em cache contra US$ 0,30/M fora); a coluna Cache mostra quanto de cada rodada veio do cache. ≈: rodada sem cache informado, estimada com ' + Math.round(CACHE_RATIO * 100) + '%.</div></div>';
+  h += '</tbody></table><div class="note">Acerto conta só as linhas válidas: erro do provedor (Erros prov.) fica fora. "Regra nova": linhas que passavam e falham pela regra de perguntar ou agir de hoje (askAct em bench/cases.mjs). Custo recalculado pelos tokens com a tabela de preço escolhida em "Preço como" (padrão: a do provedor de cada rodada). Cache: o custo depende muito da fração da entrada lida do cache (no Zen, US$ 0,006/M em cache contra US$ 0,30/M fora); a coluna Cache mostra quanto de cada rodada veio do cache. ≈: rodada sem cache informado, estimada com ' + Math.round(CACHE_RATIO * 100) + '%.</div></div>';
   return h;
 }
 
@@ -415,15 +495,18 @@ function viewRun() {
   S.run = run.file;
   const s = stats(run);
   const groups = {};
-  for (const r of run.results) { const g = (groups[r.group] ??= { n: 0, ok: 0, ms: [] }); g.n++; if (r.ok) g.ok++; g.ms.push(r.latencyMs); }
+  for (const r of validOf(run)) { const g = (groups[r.group] ??= { n: 0, ok: 0, ms: [] }); g.n++; if (r.ok) g.ok++; g.ms.push(r.latencyMs); }
   const reasons = {};
-  for (const r of run.results) { const why = reasonOf(r); if (why) (reasons[why] ??= []).push(r.id); }
+  const rep = hasRepeats(run);
+  for (const r of run.results) { const why = reasonOf(r); if (why) (reasons[why] ??= []).push(r.id + (rep ? '#' + r.run : '')); }
   let h = '<div class="toolbar"><select id="runpick">' + D.runs.map((r) => '<option value="' + esc(r.file) + '"' + (r.file === run.file ? ' selected' : '') + '>' + esc(r.label) + ' (' + r.results.length + ')</option>').join('') + '</select> ' + runTags(run) +
     (run.argv ? ' <span class="mono muted">' + esc(run.argv) + '</span>' : '') + '</div>';
   h += '<div class="kpis">' + [
     [s.ok + '/' + s.n, 'acerto (' + Math.round((s.ok / s.n) * 100) + '%)'], [sec(s.med), 'mediana'], [sec(s.p90), 'p90'], [sec(s.max), 'máximo'],
     [approx(run) + usd(s.cost), 'custo total' + (approx(run) ? ' (cache estimado)' : '')], [approx(run) + usd(s.costCase), 'custo por caso'], [k(s.out), 'tokens de saída'], [k(s.inp) + (s.cached ? ' (' + Math.round((s.cached / s.inp) * 100) + '% cache)' : ''), 'tokens de entrada'],
-    [s.calls.toFixed(1), 'chamadas por caso'], [String(s.provErr), 'erros de provedor'],
+    [s.calls.toFixed(1), 'chamadas por caso'], [String(s.provErr), 'erros de provedor (fora da taxa)'],
+    ...(s.rep ? [[P(s.rep.mean), s.rep.k + ' repetições: ' + P(s.rep.min) + ' a ' + P(s.rep.max)], [String([...perCase(run).values()].filter((v) => v.ok && v.ok < v.n).length), 'casos instáveis']] : []),
+    ...(s.regraded ? [[String(s.regraded), 'falham pela regra nova']] : []),
   ].map(([v, t]) => '<div class="kpi"><b>' + v + '</b><span>' + t + '</span></div>').join('') + '</div>';
   h += '<div class="grid2"><div class="card"><h2>Por grupo</h2><table><thead><tr><th>Grupo</th><th class="num">Acerto</th><th></th><th class="num">Mediana</th></tr></thead><tbody>' +
     Object.entries(groups).map(([g, v]) => '<tr class="click" data-group="' + esc(g) + '"><td><b>' + esc(g) + '</b><div class="muted" style="font-size:12px">' + esc(D.groups[g] || '') + '</div></td><td class="num">' + v.ok + '/' + v.n + '</td><td style="width:30%"><div class="bar"><i style="width:' + ((v.ok / v.n) * 100).toFixed(0) + '%;background:' + (v.ok === v.n ? 'var(--ok)' : 'var(--bad)') + '"></i></div></td><td class="num">' + sec(pct(v.ms, 0.5)) + '</td></tr>').join('') +
@@ -449,12 +532,16 @@ function caseTable(run) {
     '<input type="search" id="q" placeholder="buscar id, pedido, erro…" value="' + esc(S.q) + '">' +
     (S.reason ? '<button class="chip on" data-reason="' + esc(S.reason) + '">motivo: ' + esc(S.reason) + ' ✕</button>' : '') + '</div>';
   const th = (key, t, num) => '<th class="' + (num ? 'num' : '') + '" data-sort="cases:' + key + '">' + t + (sort && sort.key === key ? (sort.dir > 0 ? ' ▲' : ' ▼') : '') + '</th>';
+  const agg = hasRepeats(run) ? perCase(run) : null;
   h += '<table><thead><tr>' + th('id', 'Caso') + th('ok', 'Resultado') + '<th>Pedido</th>' + th('action', 'Ação') + th('latencyMs', 'Tempo', 1) + th('calls', 'Chamadas', 1) + th('out', 'Saída tok', 1) + th('cost', 'Custo', 1) + '</tr></thead><tbody>';
   for (const r of x) {
     const key = run.file + ':' + r.id + ':' + r.run;
     const why = reasonOf(r);
-    h += '<tr class="click" data-case="' + esc(key) + '"><td class="mono"><b>' + esc(r.id) + '</b><div class="muted">' + esc(r.group) + '</div></td>' +
-      '<td>' + (r.ok ? '<span class="pill ok">ok</span>' : '<span class="pill ' + (REASON_TONE[why] || 'bad') + '">' + esc(why) + '</span>') + '</td>' +
+    const v = agg && agg.get(r.id);
+    // Com repetições: a linha mostra k/N do caso e marca quando oscila.
+    const reps = v ? ' <span class="pill ' + (v.ok === v.n ? 'ok' : v.ok ? 'warn' : 'bad') + '" title="Passou em ' + v.ok + ' de ' + v.n + ' repetições">' + v.ok + '/' + v.n + (v.ok && v.ok < v.n ? ' instável' : '') + '</span>' : '';
+    h += '<tr class="click" data-case="' + esc(key) + '"><td class="mono"><b>' + esc(r.id) + '</b>' + (agg ? '<span class="muted">#' + r.run + '</span>' : '') + '<div class="muted">' + esc(r.group) + '</div></td>' +
+      '<td>' + (r.ok ? '<span class="pill ok">ok</span>' : '<span class="pill ' + (REASON_TONE[why] || 'bad') + '">' + esc(why) + '</span>') + reps + rowMarks(r) + '</td>' +
       '<td>' + esc((D.cases[r.id]?.prompt || '').slice(0, 110)) + (r.ok ? '' : '<div style="color:var(--bad);font-size:12.5px">' + esc(r.errors.join(' | ').slice(0, 200)) + '</div>') + '</td>' +
       '<td class="mono">' + esc(r.action || '') + '</td><td class="num">' + sec(r.latencyMs) + '</td><td class="num">' + r.calls + '</td><td class="num">' + k(r.tokens?.output || 0) + '</td><td class="num">' + usd(costOf(run, r)) + '</td></tr>';
     if (S.open.has(key)) h += '<tr class="detail"><td colspan="8">' + caseDetail(run, r) + '</td></tr>';
@@ -468,6 +555,7 @@ function caseDetail(run, r) {
   const t = r.tokens || {};
   let h = '<dl class="kv">';
   h += '<dt>Pedido</dt><dd>' + esc(c.prompt) + (c.image ? ' <span class="pill info">foto</span>' : '') + '</dd>';
+  if (c.askAct) h += '<dt>O certo é</dt><dd>' + esc(ASK_ACT_TEXT[c.askAct] || c.askAct) + ' <span class="muted">(askAct: ' + esc(c.askAct) + ')</span></dd>';
   if (r.errors.length) h += '<dt>Por que falhou</dt><dd><ul class="errors" style="margin:0;padding-left:18px">' + r.errors.map((e) => '<li>' + esc(e) + '</li>').join('') + '</ul></dd>';
   if (r.steps.length) h += '<dt>Etapas</dt><dd><div class="steps">' + r.steps.map((s, i) => '<span class="step' + (s.ok ? '' : ' bad') + '" title="' + esc((s.label || '') + (s.detail ? '\\n' + s.detail : '')) + '">' + (i + 1) + '. ' + esc(s.tool) + (s.ok ? '' : ' ✗') + '</span>').join('') + '</div>' +
     r.steps.filter((s) => !s.ok && s.detail).map((s) => '<div style="color:var(--bad);font-size:12.5px">' + esc(s.tool) + ': ' + esc(s.detail) + '</div>').join('') + '</dd>';
@@ -477,8 +565,8 @@ function caseDetail(run, r) {
   h += '<dt>Números</dt><dd class="mono">ação ' + esc(r.action) + (r.applied ? ' (nova versão)' : '') + ' · ' + sec(r.latencyMs) + ' · ' + r.calls + ' chamadas' + (r.retries ? ' · ' + r.retries + ' correções' : '') + (r.networkRetries ? ' · ' + r.networkRetries + ' repetições de rede' : '') +
     ' · entrada ' + k(t.input || 0) + ' (' + k(t.cached || 0) + ' cache) · saída ' + k(t.output || 0) + ' · ' + usd(costOf(run, r)) + '</dd>';
   if (c.learned) h += '<dt>Por que existe</dt><dd class="muted">' + esc(c.learned) + '</dd>';
-  const others = D.runs.filter((o) => o !== run && isFull(o)).map((o) => ({ o, r: o.results.find((v) => v.id === r.id) })).filter((v) => v.r).slice(0, 12);
-  if (others.length) h += '<dt>Em outras rodadas</dt><dd>' + others.map(({ o, r: v }) => '<span class="cell ' + (v.ok ? 'ok' : 'bad') + '" title="' + esc(o.label + ' · ' + sec(v.latencyMs) + (v.ok ? '' : ' · ' + v.errors.join(' | '))) + '">' + esc(o.label.slice(0, 18)) + '</span>').join(' ') + '</dd>';
+  const others = D.runs.filter((o) => o !== run && isFull(o)).map((o) => ({ o, v: perCase(o).get(r.id) })).filter((x) => x.v).slice(0, 12);
+  if (others.length) h += '<dt>Em outras rodadas</dt><dd>' + others.map(({ o, v }) => '<span class="cell ' + (v.ok === v.n ? 'ok' : v.ok ? 'warn' : 'bad') + '" title="' + esc(o.label + (v.n > 1 ? ' · ' + v.ok + '/' + v.n : ' · ' + sec(v.rows[0].latencyMs)) + (v.ok === v.n ? '' : ' · ' + v.rows.filter((x) => !x.ok).map((x) => x.errors.join(' | ')).join(' / '))) + '">' + esc(o.label.slice(0, 18)) + '</span>').join(' ') + '</dd>';
   return h + '</dl>';
 }
 
@@ -487,52 +575,68 @@ function viewCompare() {
   let h = '<div class="toolbar"><span class="muted">Marque as rodadas na aba Rodadas. A primeira é a base.</span></div>';
   if (runs.length < 2) return h + '<div class="card empty">Escolha pelo menos duas rodadas na aba Rodadas.</div>';
   const st = runs.map(stats);
+  const aggs = runs.map(perCase);
+  const rateOf = (v) => (v ? v.ok / v.n : null);
   h += '<div class="card"><h2>Resumo</h2><table><thead><tr><th>Rodada</th><th class="num">Acerto</th><th class="num">Mediana</th><th class="num">p90</th><th class="num">Custo/caso</th><th class="num">Saída tok</th><th class="num">vs base</th></tr></thead><tbody>';
-  const base = runs[0];
   runs.forEach((r, i) => {
     const s = st[i];
     let delta = '';
     if (i > 0) {
+      // Com repetições, melhora ou piora é a taxa do caso subir ou descer.
       const better = [], worse = [];
-      for (const b of base.results) { const v = r.results.find((x) => x.id === b.id); if (!v) continue; if (!b.ok && v.ok) better.push(b.id); if (b.ok && !v.ok) worse.push(b.id); }
+      for (const [id, b] of aggs[0]) { const v = aggs[i].get(id); if (!v) continue; if (rateOf(v) > rateOf(b)) better.push(id); if (rateOf(v) < rateOf(b)) worse.push(id); }
       delta = '<span class="pill ok" title="' + esc(better.join(', ')) + '">+' + better.length + '</span> <span class="pill bad" title="' + esc(worse.join(', ')) + '">−' + worse.length + '</span>';
     }
-    h += '<tr><td><b>' + esc(r.label) + '</b><div>' + runTags(r) + '</div></td><td class="num">' + s.ok + '/' + s.n + '</td><td class="num">' + sec(s.med) + '</td><td class="num">' + sec(s.p90) + '</td><td class="num">' + approx(r) + usd(s.costCase) + '</td><td class="num">' + k(s.out) + '</td><td class="num">' + (i ? delta : '<span class="muted">base</span>') + '</td></tr>';
+    h += '<tr><td><b>' + esc(r.label) + '</b><div>' + runTags(r) + '</div></td><td class="num">' + s.ok + '/' + s.n + (s.rep ? '<div class="muted" style="font-size:12px">' + P(s.rep.mean) + ' (' + P(s.rep.min) + '–' + P(s.rep.max) + ')</div>' : '') + (s.provErr ? '<div class="muted" style="font-size:12px">' + s.provErr + ' infra</div>' : '') + '</td><td class="num">' + sec(s.med) + '</td><td class="num">' + sec(s.p90) + '</td><td class="num">' + approx(r) + usd(s.costCase) + '</td><td class="num">' + k(s.out) + '</td><td class="num">' + (i ? delta : '<span class="muted">base</span>') + '</td></tr>';
   });
   h += '</tbody></table></div>';
   const ids = [...new Set(runs.flatMap((r) => r.results.map((x) => x.id)))];
-  const rows = ids.map((id) => ({ id, cells: runs.map((r) => r.results.find((x) => x.id === id)) }));
-  const differs = (row) => new Set(row.cells.map((c) => (c ? c.ok : null))).size > 1;
+  const rows = ids.map((id) => ({ id, cells: aggs.map((a) => a.get(id)) }));
+  const differs = (row) => new Set(row.cells.map((c) => (c ? rateOf(c).toFixed(2) : null))).size > 1;
   const shown = S.onlyFail ? rows.filter(differs) : rows;
-  h += '<div class="card"><h2>Caso a caso<small>' + rows.filter(differs).length + ' casos mudam entre as rodadas</small></h2><div class="toolbar"><label class="ctl"><input type="checkbox" id="onlyfail"' + (S.onlyFail ? ' checked' : '') + '> só os que mudam</label></div>' +
+  h += '<div class="card"><h2>Caso a caso<small>' + rows.filter(differs).length + ' casos mudam entre as rodadas' + (runs.some(hasRepeats) ? ' · k/N: passou em k de N repetições' : '') + '</small></h2><div class="toolbar"><label class="ctl"><input type="checkbox" id="onlyfail"' + (S.onlyFail ? ' checked' : '') + '> só os que mudam</label></div>' +
     '<table><thead><tr><th>Caso</th>' + runs.map((r) => '<th class="num" title="' + esc(r.label) + '">' + esc(r.label.slice(0, 22)) + '</th>').join('') + '</tr></thead><tbody>';
   for (const row of shown) {
     h += '<tr class="' + (differs(row) ? 'diffrow' : '') + '"><td class="mono"><b>' + esc(row.id) + '</b> <span class="muted">' + esc((D.cases[row.id]?.prompt || '').slice(0, 60)) + '</span></td>' +
-      row.cells.map((c) => '<td class="num">' + (c ? '<span class="cell ' + (c.ok ? 'ok' : 'bad') + '" title="' + esc(c.ok ? '' : c.errors.join(' | ')) + '">' + (c.ok ? '✓' : '✗') + ' ' + sec(c.latencyMs) + '</span>' : '<span class="cell none">—</span>') + '</td>').join('') + '</tr>';
+      row.cells.map((c) => '<td class="num">' + aggCell(c) + '</td>').join('') + '</tr>';
   }
   return h + '</tbody></table></div>';
 }
 
 function viewCases() {
   const runs = visibleRuns().filter(isFull);
+  // Por padrão só as linhas avaliadas com a regra de hoje (ou sem impressão,
+  // de antes da versão das regras, já reavaliadas em perguntar ou agir).
+  const keep = (r) => S.stale || r.stale !== true;
+  const aggs = runs.map((r) => {
+    const m = new Map();
+    for (const x of validOf(r).filter(keep)) { const v = m.get(x.id) || { n: 0, ok: 0, rows: [] }; v.n++; if (x.ok) v.ok++; v.rows.push(x); m.set(x.id, v); }
+    return m;
+  });
+  const staleRows = runs.reduce((a, r) => a + r.results.filter((x) => x.stale === true).length, 0);
   const rows = Object.entries(D.cases).map(([id, c]) => {
-    const seen = runs.map((r) => ({ r, v: r.results.find((x) => x.id === id) })).filter((x) => x.v);
-    const fails = seen.filter((x) => !x.v.ok);
-    let flips = 0;
+    const seen = runs.map((r, i) => ({ r, v: aggs[i].get(id) })).filter((x) => x.v);
+    const n = seen.reduce((a, x) => a + x.v.n, 0);
+    const failed = seen.reduce((a, x) => a + x.v.n - x.v.ok, 0);
+    const fails = seen.filter((x) => x.v.ok < x.v.n);
+    // Instável: trocou de resultado entre rodadas seguidas, ou oscilou dentro das repetições de uma rodada.
+    let flips = seen.filter((x) => x.v.ok && x.v.ok < x.v.n).length;
     const chron = [...seen].sort((a, b) => (a.r.at < b.r.at ? -1 : 1));
-    for (let i = 1; i < chron.length; i++) if (chron[i].v.ok !== chron[i - 1].v.ok) flips++;
-    return { id, c, seen, fails, flips, med: pct(seen.map((x) => x.v.latencyMs), 0.5) };
+    for (let i = 1; i < chron.length; i++) if ((chron[i].v.ok * 2 >= chron[i].v.n) !== (chron[i - 1].v.ok * 2 >= chron[i - 1].v.n)) flips++;
+    return { id, c, seen, n, failed, fails, flips, med: pct(seen.flatMap((x) => x.v.rows.map((y) => y.latencyMs)), 0.5) };
   }).filter((x) => x.seen.length);
-  rows.sort((a, b) => b.fails.length / b.seen.length - a.fails.length / a.seen.length || b.flips - a.flips);
-  let h = '<div class="card"><h2>Casos em todas as rodadas completas<small>' + runs.length + ' rodadas · os que mais falham primeiro</small></h2><table><thead><tr><th>Caso</th><th>Pedido</th><th class="num">Falhou</th><th></th><th class="num">Instável</th><th class="num">Mediana</th><th>Onde falhou</th></tr></thead><tbody>';
+  rows.sort((a, b) => b.failed / b.n - a.failed / a.n || b.flips - a.flips);
+  let h = '<div class="card"><h2>Casos em todas as rodadas completas<small>' + runs.length + ' rodadas · os que mais falham primeiro</small></h2>' +
+    '<div class="toolbar"><label class="ctl"><input type="checkbox" id="stale"' + (S.stale ? ' checked' : '') + '> incluir linhas com regra antiga (' + staleRows + ')</label></div>' +
+    '<table><thead><tr><th>Caso</th><th>Pedido</th><th class="num">Falhou</th><th></th><th class="num">Instável</th><th class="num">Mediana</th><th>Onde falhou</th></tr></thead><tbody>';
   for (const x of rows) {
-    const rate = x.fails.length / x.seen.length;
-    h += '<tr><td class="mono"><b>' + esc(x.id) + '</b><div class="muted">' + esc(x.c.group) + '</div></td><td>' + esc(x.c.prompt.slice(0, 90)) + '</td><td class="num">' + x.fails.length + '/' + x.seen.length + '</td>' +
+    const rate = x.failed / x.n;
+    h += '<tr><td class="mono"><b>' + esc(x.id) + '</b><div class="muted">' + esc(x.c.group) + (x.c.askAct ? ' · ' + esc(x.c.askAct) : '') + '</div></td><td>' + esc(x.c.prompt.slice(0, 90)) + '</td><td class="num">' + x.failed + '/' + x.n + '</td>' +
       '<td style="width:12%"><div class="bar"><i style="width:' + (rate * 100).toFixed(0) + '%;background:var(--bad)"></i></div></td>' +
       '<td class="num">' + (x.flips ? '<span class="pill warn">' + x.flips + '</span>' : '<span class="muted">0</span>') + '</td><td class="num">' + sec(x.med) + '</td>' +
-      '<td>' + x.fails.slice(0, 6).map((f) => '<span class="cell bad" title="' + esc(f.v.errors.join(' | ')) + '">' + esc(f.r.label.slice(0, 16)) + '</span>').join(' ') + '</td></tr>';
+      '<td>' + x.fails.slice(0, 6).map((f) => '<span class="cell ' + (f.v.ok ? 'warn' : 'bad') + '" title="' + esc(f.v.rows.filter((y) => !y.ok).map((y) => y.errors.join(' | ')).join(' / ')) + '">' + esc(f.r.label.slice(0, 16)) + (f.v.n > 1 ? ' ' + f.v.ok + '/' + f.v.n : '') + '</span>').join(' ') + '</td></tr>';
   }
-  return h + '</tbody></table><div class="note">Instável: quantas vezes o caso trocou de resultado entre rodadas seguidas (ordem de data). Passe o mouse para ver o motivo.</div></div>';
+  return h + '</tbody></table><div class="note">Falhou: linhas que falharam de todas as linhas do caso (repetições contam uma a uma; erro do provedor fica fora). Instável: trocou de resultado entre rodadas seguidas (ordem de data) ou oscilou entre as repetições de uma rodada. Passe o mouse para ver o motivo.</div></div>';
 }
 
 // ---- eventos
@@ -571,6 +675,7 @@ document.addEventListener('change', (e) => {
   else if (e.target.id === 'mode') S.mode = e.target.value;
   else if (e.target.id === 'runpick') { S.run = e.target.value; S.group = ''; S.reason = ''; }
   else if (e.target.id === 'onlyfail') S.onlyFail = e.target.checked;
+  else if (e.target.id === 'stale') { S.stale = e.target.checked; store.set('stale', S.stale); }
   else if (e.target.id === 'grp') S.group = e.target.value;
   else return;
   render();

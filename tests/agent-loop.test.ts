@@ -6,7 +6,9 @@ import { join } from 'node:path';
 import { create, get, save, type Message } from '../lib/store';
 import { DEFAULT_PRICES } from '../lib/quote';
 import { runAgentTurn } from '../lib/agent/turn';
-import { runLoop } from '../lib/agent/loop';
+import { fitMessage, runLoop } from '../lib/agent/loop';
+import { fallbackModel } from '../lib/models';
+import { withFallback } from '../lib/gateway';
 import { AgentContext } from '../lib/agent/context';
 import type { ChatMessage, ModelReply, ToolCall } from '../lib/agent/model';
 
@@ -152,7 +154,7 @@ void test('laço: sem finish até o limite, responde o que fez sem inventar suce
     call: fake as never,
   });
   const answer = get(r.projectId).messages.at(-1)!;
-  assert.match(answer.content, /limite de etapas/);
+  assert.equal(answer.content, 'Não terminei tudo no tempo deste pedido. O móvel não mudou. Peça "continue" para eu seguir de onde parei.');
   assert.equal(answer.result?.outcome, 'answered');
 });
 
@@ -252,6 +254,47 @@ void test('laço: queda passageira do provedor tenta a etapa de novo, sem perder
   assert.equal(get(r.projectId).messages.at(-1)!.content, 'A estante tem 80 cm de largura.');
 });
 
+void test('laço: provedor falha duas vezes, a etapa vai para o modelo de reserva e ele fica até o fim', async () => {
+  const s = start('Qual a largura?');
+  const models: string[] = [];
+  const fake = async (o: { model: string }) => {
+    models.push(o.model);
+    if (o.model === 'deepseek') throw new Error('O provedor de IA retornou 503.');
+    return models.length === 3
+      ? reply(call('state_read', {}))
+      : reply(call('finish', { mensagem: 'A estante tem 80 cm de largura.', sugestoes: [] }));
+  };
+  const r = await turn(s, fake as never, 'Qual a largura?');
+  assert.deepEqual(models, ['deepseek', 'deepseek', 'luna', 'luna']);
+  const answer = get(r.projectId).messages.at(-1)!;
+  assert.equal(answer.content, 'A estante tem 80 cm de largura.');
+  assert.match(answer.report!.steps![0].label, /Troquei para GPT-6 Luna/);
+});
+
+void test('reserva: MERCE_FALLBACK_MODEL troca ou desliga; erro que não é do provedor não troca', async () => {
+  assert.equal(fallbackModel('deepseek'), 'luna');
+  assert.equal(fallbackModel('luna'), null, 'a reserva não tem reserva');
+  process.env.MERCE_FALLBACK_MODEL = 'none';
+  assert.equal(fallbackModel('deepseek'), null);
+  process.env.MERCE_FALLBACK_MODEL = 'mimo';
+  assert.equal(fallbackModel('deepseek'), 'mimo');
+  delete process.env.MERCE_FALLBACK_MODEL;
+  const seen: string[] = [];
+  const run = async (m: string) => {
+    seen.push(m);
+    if (m === 'deepseek') throw new Error('A conexão com a IA foi interrompida. Tente novamente.');
+    return m;
+  };
+  assert.equal(await withFallback('deepseek', run), 'luna');
+  const status = async (m: string) => {
+    if (m === 'deepseek') throw new Error('O provedor de IA retornou 503. Upstream request failed.');
+    return m;
+  };
+  assert.equal(await withFallback('deepseek', status), 'luna', '5xx do provedor também troca');
+  assert.deepEqual(seen, ['deepseek', 'luna']);
+  await assert.rejects(withFallback('deepseek', async () => { throw new Error('A resposta da IA não passou na validação.'); }), /validação/);
+});
+
 void test('opções: cada variante monta num rascunho à parte, o projeto não muda e a resposta leva o cartão', async () => {
   const s = start('Me dá duas opções');
   const moduleId = s.p.revisions[0].params.modules[0].id;
@@ -294,4 +337,46 @@ void test('laço: passou do tempo, a única chamada é o finish, que conta o que
   assert.equal(r.exhausted, true);
   assert.deepEqual(seen, [['finish']]);
   assert.equal(ctx.finish?.message, 'Não deu tempo de montar a cozinha.');
+});
+
+void test('laço: chamada que não termina é cortada no prazo, sem nova tentativa, e o finish conta o que ficou', async () => {
+  const s = start('Adicione mais móveis');
+  const ctx = new AgentContext(s.p, s.version, structuredClone(DEFAULT_PRICES), 'Adicione mais móveis', [], null);
+  let hung = 0;
+  const fake = async (o: { tools: { function: { name: string } }[]; signal?: AbortSignal }) => {
+    if (o.tools.length > 1) {
+      // Provedor que segura o fluxo aberto: só sai quando o sinal corta.
+      hung++;
+      return new Promise<never>((_, reject) => o.signal?.addEventListener('abort', () => reject(new Error('This operation was aborted'))));
+    }
+    return reply(call('finish', { mensagem: 'Não terminei: o provedor ficou lento.', sugestoes: [] }));
+  };
+  const t0 = Date.now();
+  const r = await runLoop(ctx, { model: 'deepseek', system: 's', user: { role: 'user', content: 'u' }, maxMs: 300, call: fake as never });
+  assert.ok(Date.now() - t0 < 3000, 'o prazo cortou a chamada presa');
+  assert.equal(hung, 1, 'prazo não é falha do provedor: sem nova tentativa nem reserva');
+  assert.equal(r.exhausted, true);
+  assert.equal(ctx.finish?.message, 'Não terminei: o provedor ficou lento.');
+});
+
+void test('laço: arquivo que ninguém pediu não é exportado (vira download na tela da pessoa)', async () => {
+  const s = start('Adicione mais móveis e deixe o cenário mais realista');
+  const { fake, seen } = scripted([
+    () => reply(call('export_file', { formato: 'pdf' })),
+    () => reply(call('finish', { mensagem: 'Pronto.', sugestoes: [] })),
+  ]);
+  const r = await turn(s, fake, 'Adicione mais móveis e deixe o cenário mais realista');
+  assert.equal(r.state.effects.filter((e) => e.type === 'export').length, 0);
+  assert.match(seen[1].at(-1)!.content as string, /não pediu arquivo/);
+  const pdf = start('Me mande o PDF');
+  const done = await turn(pdf, scripted([() => reply(call('export_file', { formato: 'pdf' }), call('finish', { mensagem: 'PDF gerado.', sugestoes: [] }))]).fake, 'Me mande o PDF');
+  assert.equal(done.state.effects.filter((e) => e.type === 'export').length, 1, JSON.stringify(get(done.projectId).messages.at(-1)!.report?.steps));
+});
+
+void test('finish forçado: resposta longa é aparada na última frase que cabe', () => {
+  const long = `${'Montei o balcão com gavetas. '.repeat(30)}Faltou o aéreo.`;
+  const cut = fitMessage(long);
+  assert.ok(cut.length <= 700);
+  assert.ok(cut.endsWith('.'));
+  assert.equal(fitMessage('Curta.'), 'Curta.');
 });

@@ -15,13 +15,13 @@ Como trabalhar:
 - Faça o trabalho inteiro no mesmo pedido, sem pedir confirmação: tudo vira uma versão e a pessoa desfaz com Ctrl+Z. Use ask_user só quando o alvo ou o eixo de uma medida for realmente ambíguo e errar custaria caro.
 - Pode chamar várias ferramentas numa resposta; elas rodam em ordem. Cada resultado volta com os ids reais e as medidas: use-os nos passos seguintes do mesmo pedido.
 - Trabalho grande (móvel novo, cozinha, layout de foto, várias etapas): chame plan com os passos e depois execute todos.
-- Móveis ao longo de uma parede (cozinha, balcões, aéreos, fileira de armários ou colunas): meça a parede e marque janela, porta e coluna primeiro (room_set, room_obstacles), depois use row_build, uma chamada por fileira. O app divide os módulos, encosta na parede e desvia dos obstáculos; você só dá início, largura, altura, profundidade e a base (0 no piso, ~1500 aéreo). Não calcule posições à mão. Para trocar o móvel inteiro pela primeira fileira use substituir:true. Passe frente (e gavetas) já no row_build. Uma fileira montada fica: não remova nem refaça para ajustar; ajustes finos vão em design_apply com os ids exatos que row_build devolve (compartimento é "<id>:root").
+- Móveis ao longo de uma parede (cozinha, balcões, aéreos, fileira de armários ou colunas): meça a parede e marque janela, porta e coluna primeiro (room_set e UMA chamada de room_obstacles com todos eles; tomada só se a pessoa pedir, e tomada atrás de móvel não é problema), depois use row_build, uma chamada por fileira. O app divide os módulos, encosta na parede e desvia dos obstáculos; você só dá início, largura, altura, profundidade e a base (0 no piso, ~1500 aéreo). Não calcule posições à mão. Para trocar o móvel inteiro pela primeira fileira use substituir:true. Passe frente (e gavetas) já no row_build. Uma fileira montada fica: não remova nem refaça para ajustar; ajustes finos vão em design_apply com os ids exatos que row_build devolve (compartimento é "<id>:root").
 - Depois de mudar o móvel, mostre a mudança quando ajudar: view_camera, view_frame, select ou fronts_open. Não troque vista, aba ou toggles sem motivo.
-- Arquivo pedido (PDF, CSV, foto, JSON): export_file depois das mudanças.
+- Arquivo pedido (PDF, CSV, foto, JSON): export_file depois das mudanças. Sem pedido de arquivo, não exporte nada: vira um download na tela da pessoa.
 - Pedido com foto: monte o layout inteiro (row_build para fileiras), chame render_look e compare com a foto; corrija o que ficou diferente antes do finish.
 - Pedido de opções, alternativas ou ideias para comparar ("me dá 3 opções", "quais caminhos eu tenho"): options_make com 2 ou 3 variantes realmente diferentes (nome curto e o pedido completo de cada, com medidas), sem mudar o móvel. Depois finish comparando preço e o que cada uma tem; a pessoa aplica pelo cartão.
-- Termine sempre com finish. A mensagem diz só o que as ferramentas fizeram, com as medidas como a pessoa fala (cm ou m), sem ids internos (module-1, a:root, sh-3, connection-2). Se algo não deu, diga o que ficou de fora e por quê.
-- Nunca invente números: preço, chapas, peças e medidas vêm dos resultados das ferramentas ou do estado do pedido.
+- Termine sempre com finish, assim que o pedido estiver feito: não volte à parede, à vista nem ao orçamento sem motivo. A mensagem tem 1 a 3 frases e diz só o que as ferramentas fizeram, com as medidas como a pessoa fala (cm ou m), sem ids internos (module-1, a:root, sh-3, connection-2). Se algo não deu, diga o que ficou de fora e por quê.
+- Nunca invente números: preço, chapas, peças e medidas vêm dos resultados das ferramentas ou do estado do pedido. Não some totais de cabeça (largura do conjunto, gavetas, frentes, chapas): o app mostra o resumo exato ao lado da resposta.
 - Pergunta informativa: leia com as ferramentas e responda no finish, sem mudar nada.
 - Se uma ferramenta recusar, leia o erro, corrija e tente de novo; não repita o mesmo lote.
 
@@ -60,7 +60,7 @@ export function turnMessage(ctx: AgentContext, photo: boolean, request: string) 
   return `Estado deste pedido (JSON): ${JSON.stringify(contextSnapshot(ctx))}
 ${quoteLine(ctx.design, ctx.prices)}${old ? `\nA pessoa está editando a versão ${p.cursor + 1} de ${p.revisions.length}: gravar descarta as versões seguintes.` : ''}
 Conversa recente: ${JSON.stringify(recentTurns(p.messages))}
-${photo ? PHOTO_LAYOUT_RULES : 'Sem foto neste pedido: não invente medidas de foto.'}
+${photo ? PHOTO_LAYOUT_RULES : ''}
 
 Pedido: ${request}`;
 }

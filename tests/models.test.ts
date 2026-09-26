@@ -59,5 +59,6 @@ void test('formatos para gente: dólar com casas úteis e tokens em mil', () => 
 
 void test('modelo desconhecido cai no padrão do estúdio', () => {
   assert.equal(modelInfo('nada').key, 'deepseek');
-  assert.equal(modelInfo('luna').reasoning, 'low');
+  assert.equal(modelInfo('luna').reasoning, 'high', 'Luna em low acertou 4/10 nos casos difíceis; em high, 9/10');
+  assert.equal(modelInfo('deepseek').fallback, 'luna');
 });
