@@ -1835,6 +1835,9 @@ export default function Home() {
       ?.suggestions ?? [];
   const contextualSuggestions=selected.length>1?['Descreva os itens selecionados','Abra as frentes selecionadas']
     :targetCell?.node.front||targetPart?.kind==='door'||targetPart?.kind==='drawer'?['Abra esta frente','Feche esta frente','Troque esta frente para nogueira']
+    // Prateleira e painel de parede não têm compartimento: os chips falam da peça.
+    :targetPart?.id.endsWith(':ledge')?['Suba esta prateleira 10 cm','Deixe esta prateleira com 30 cm de fundo','Troque esta prateleira para nogueira']
+    :targetPart?.kind==='panel'?['Coloque nichos neste painel','Deixe este painel com 18 mm','Troque este painel para freijó']
     :p?.params.modules.some(m=>m.id===selected[0])?['Duplique este módulo','Gire este módulo em 90 graus','Mude este módulo para verde sálvia']
     :targetCell&&!targetCell.node.split?['Divida este compartimento em duas colunas','Coloque duas portas neste compartimento','Coloque três gavetas neste compartimento']
     :selected.length?['Distribua as divisões deste compartimento','Deixe 400 mm livres antes desta divisória']
