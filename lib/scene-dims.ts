@@ -70,8 +70,9 @@ export function buildDims(parts: readonly Part[], bounds: SceneBounds, room: Roo
   const heightZ = tallest ? tallest.front : z1;
   dim(new THREE.Vector3(x0 - 140, y0, heightZ), new THREE.Vector3(x0 - 140, y1, heightZ), new THREE.Vector3(-1, 0, 0), cmLabel(y1 - y0), 'main');
   // Profundidade no lado esquerdo, junto da altura: à direita ela disputava
-  // lugar com o espaço livre até a parede.
-  dim(new THREE.Vector3(x0 - 140, 0, z0), new THREE.Vector3(x0 - 140, 0, z1), new THREE.Vector3(-1, 0, 0), cmLabel(z1 - z0), 'main');
+  // lugar com o espaço livre até a parede. Na base do móvel, não no chão: num
+  // rack suspenso ela ficava solta embaixo dele, coberta pelo livre à esquerda.
+  dim(new THREE.Vector3(x0 - 140, y0, z0), new THREE.Vector3(x0 - 140, y0, z1), new THREE.Vector3(-1, 0, 0), cmLabel(z1 - z0), 'main');
   if (spans.length > 1) {
     const seen = new Set<string>();
     for (const s of spans) {
@@ -100,6 +101,11 @@ export function buildDims(parts: readonly Part[], bounds: SceneBounds, room: Roo
         'free',
       );
   }
+  // Vão até o chão de um móvel suspenso (rack flutuante, aéreo): sem ela a
+  // altura geral começava no ar e as cotas verticais não fechavam o pé-direito.
+  // Fica à direita: à esquerda, rente ao chão, o rótulo caía sobre a profundidade.
+  if (y0 > 5)
+    dim(new THREE.Vector3(x1 + 140, 0, heightZ), new THREE.Vector3(x1 + 140, y0, heightZ), new THREE.Vector3(1, 0, 0), `livre ${cmLabel(y0)}`, 'free');
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
   const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.85, depthTest: false });
