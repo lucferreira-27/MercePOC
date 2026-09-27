@@ -207,6 +207,11 @@ function handleLabel(h: WallHandle, main: boolean) {
 /** Metros com duas casas e vírgula: "2,70". */
 const metresText = (mm: number) => (mm / 1000).toFixed(2).replace('.', ',');
 
+/** Ordem de quem fica quando dois rótulos de cota se encostam. */
+const LABEL_RANK: Record<DimLabel['tone'], number> = { main: 0, free: 1, module: 2 };
+/** Tamanho medido de cada rótulo: o texto não muda enquanto o elemento vive. */
+const labelSize = new WeakMap<HTMLElement, [number, number]>();
+
 export default memo(FurnitureView);
 
 function FurnitureView({
@@ -229,6 +234,8 @@ function FurnitureView({
   caption = '',
   onSnapshot,
   onSpinSuppressed,
+  showMovePad = true,
+  touch = false,
   diff = null,
   cutFocus = null,
   movable = false,
@@ -324,6 +331,13 @@ function FurnitureView({
    * rotação automática é suprimida e o botão Girar não tem efeito nenhum.
    */
   onSpinSuppressed?: (suppressed: boolean) => void;
+  /** O app no celular mostra o controle de mover só quando a pessoa pede. */
+  showMovePad?: boolean;
+  /**
+   * Casca de toque: pôr obstáculo ou parede vira "toque move a prévia" e um
+   * botão confirma, porque no toque não existe o cursor que a prévia seguiria.
+   */
+  touch?: boolean;
 }) {
   const [hover, setHover] = useState<{
     id: string;
@@ -1171,14 +1185,14 @@ function FurnitureView({
       if (state.placing) {
         if (e.button === 0 && Math.hypot(e.clientX - down[0], e.clientY - down[1]) <= 5) {
           placingMove(e);
-          state.confirmPlacing?.();
+          if (e.pointerType === 'mouse') state.confirmPlacing?.();
         }
         return;
       }
       if (state.placingWall) {
         if (e.button === 0 && Math.hypot(e.clientX - down[0], e.clientY - down[1]) <= 5) {
           placingWallMove(e);
-          state.confirmPlacingWall?.();
+          if (e.pointerType === 'mouse') state.confirmPlacingWall?.();
         }
         return;
       }
@@ -1488,14 +1502,32 @@ function FurnitureView({
       if (state.dims && state.labelEls.length) {
         const w = el.clientWidth,
           h = el.clientHeight;
-        state.dims.labels.forEach((label, i) => {
+        // Rótulos que se encostam na tela (celular, vista de longe): fica o
+        // mais importante. Medidas gerais, depois folgas, depois módulos.
+        const placed: { x0: number; y0: number; x1: number; y1: number }[] = [];
+        const order = state.dims.labels
+          .map((label, i) => ({ label, i }))
+          .sort((a, b) => LABEL_RANK[a.label.tone] - LABEL_RANK[b.label.tone]);
+        for (const { label, i } of order) {
           const node = state.labelEls[i];
-          if (!node) return;
+          if (!node) continue;
           projected.copy(label.at).project(camera);
-          const hidden = projected.z > 1 || Math.abs(projected.x) > 1.2 || Math.abs(projected.y) > 1.2;
+          const x = ((projected.x + 1) / 2) * w,
+            y = ((1 - projected.y) / 2) * h;
+          let hidden = projected.z > 1 || Math.abs(projected.x) > 1.2 || Math.abs(projected.y) > 1.2;
+          if (!hidden) {
+            let size = labelSize.get(node);
+            if (!size) {
+              size = [node.offsetWidth, node.offsetHeight];
+              if (size[0]) labelSize.set(node, size);
+            }
+            const box = { x0: x - size[0] / 2 + 3, y0: y - size[1] / 2 + 3, x1: x + size[0] / 2 - 3, y1: y + size[1] / 2 - 3 };
+            hidden = placed.some((o) => box.x0 < o.x1 && box.x1 > o.x0 && box.y0 < o.y1 && box.y1 > o.y0);
+            if (!hidden) placed.push(box);
+          }
           node.style.opacity = hidden ? '0' : '1';
-          node.style.transform = `translate(${((projected.x + 1) / 2) * w}px, ${((1 - projected.y) / 2) * h}px) translate(-50%, -50%)`;
-        });
+          node.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+        }
       }
     };
     frame = requestAnimationFrame(draw);
@@ -2157,8 +2189,9 @@ function FurnitureView({
       role="application"
       aria-label="Modelo 3D interativo. Arraste para girar, use a roda para aproximar, arraste com o botão direito para mover a vista e clique para selecionar peças. Arraste uma peça selecionada, ou use as setas, para mudar o móvel de lugar."
     >
-      {!error && onMove && (
+      {!error && onMove && showMovePad && (
         <MovePad
+          collapsible={!touch}
           target={target?.label ?? null}
           disabled={padLocked}
           status={moveStatus}
@@ -2173,7 +2206,19 @@ function FurnitureView({
           {moveTip.text}
         </output>
       )}
-      {placing && (
+      {placing && (touch ? (
+        <output className="place-hint touch">
+          <span>
+            <strong>Toque na parede</strong> onde fica {OBSTACLE_ARTICLE[placing.kind]}. Arraste para girar a vista.
+          </span>
+          <button type="button" onClick={() => onCancelPlace?.()}>
+            Cancelar
+          </button>
+          <button type="button" className="primary" onClick={() => runtime.current?.confirmPlacing?.()}>
+            Pôr aqui
+          </button>
+        </output>
+      ) : (
         <output className="place-hint">
           <span>
             <strong>Clique na parede</strong> para pôr {OBSTACLE_ARTICLE[placing.kind]}.
@@ -2183,8 +2228,20 @@ function FurnitureView({
             Cancelar <kbd>Esc</kbd>
           </button>
         </output>
-      )}
-      {placingWall && (
+      ))}
+      {placingWall && (touch ? (
+        <output className="place-hint touch">
+          <span>
+            <strong>Toque no piso</strong> onde fica a parede. Arraste para girar a vista.
+          </span>
+          <button type="button" onClick={() => onCancelPlace?.()}>
+            Cancelar
+          </button>
+          <button type="button" className="primary" onClick={() => runtime.current?.confirmPlacingWall?.()}>
+            Pôr aqui
+          </button>
+        </output>
+      ) : (
         <output className="place-hint">
           <span>
             <strong>Clique no piso</strong> para pôr a parede.
@@ -2194,7 +2251,7 @@ function FurnitureView({
             Cancelar <kbd>Esc</kbd>
           </button>
         </output>
-      )}
+      ))}
       {chosenWall && !placing && !placingWall && (
         <div className="ob-bar wall-bar" ref={wallBar} role="toolbar" aria-label={`${chosenWall.name} escolhida`}>
           <span className="ob-bar-name">

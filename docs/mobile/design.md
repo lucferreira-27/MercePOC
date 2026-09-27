@@ -1,7 +1,7 @@
 # Merce no celular e no tablet: auditoria e direção
 
-Estado: auditoria e direção de design prontas. Implementação ainda não começou.
-Branch: `feat/app-movel` (a partir de `dev`).
+Estado: implementado em `feat/app-movel` (a partir de `dev`). Capturas em
+[capturas/](capturas/).
 
 ## Auditoria (o que existe hoje)
 
@@ -93,3 +93,33 @@ recolhida numa aba na borda.
 5. Verificação por capturas: 375 × 667, 430 × 932, 768 × 1024, 1024 × 768,
    1180 × 820, celular deitado; vazio e cheio, prévia ativa, folhas, teclado; e o
    desktop em 1440 × 900 igual ao de antes.
+
+## O que foi feito
+
+- `lib/shell.ts`: consulta da casca, espaços, pilha do botão voltar.
+- `app/layout.tsx`: `viewport-fit=cover`, `interactive-widget=resizes-content`
+  e o script que marca `data-shell="app"` antes da primeira pintura.
+- `app/page.tsx`: barra do app, navegação, janela viva da cena (arrasta para
+  qualquer canto, canto lembrado por espaço, recolhe na borda, sai de lado
+  enquanto a pessoa rola), cartão da seleção, bandeja de ferramentas, viagem
+  no tempo, folha Projeto, "olhar no móvel" com chip de volta, abas mantidas
+  montadas, teclado. O desktop continua com a mesma árvore e o mesmo visual.
+- `app/app-shell.css`: todo o visual do app, sob `.studio.app`.
+- `FurnitureView`: prévia por toque com "Pôr aqui", MovePad controlado pelo
+  cartão, e rótulos de cota que se encostam somem pelo de menor prioridade
+  (vale também no desktop, onde "180 cm" deixava de ficar sob "77,8 cm").
+- `ProjectList` saiu de `ProjectPicker` para servir à folha Projeto.
+
+## Verificação
+
+Capturas por Playwright em Chromium (tamanho real, toque, 2×): 375 × 667,
+390 × 844, 430 × 932, 844 × 390, 768 × 1024, 1024 × 768, 1180 × 820 e
+1440 × 900; tema escuro e claro; projeto vazio e cheio; seleção, mover,
+ferramentas, versões com prévia, folha Projeto, galeria, paleta, teclado,
+rever mudanças, pôr tomada, voltar do sistema. Sem rolagem horizontal em
+nenhum tamanho. Desktop comparado pixel a pixel com o `dev`: só mudaram as
+cotas sobrepostas. `npm test` (333), `npm run lint` e `tsc` verdes.
+
+Pendências conhecidas: a etiqueta de posição do obstáculo em prévia pode
+passar por baixo dos chips do topo; a janela viva não reenquadra a câmera ao
+encolher (mostra o que a cena mostrava).

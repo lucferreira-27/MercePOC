@@ -14,7 +14,7 @@ import { canRedo, canUndo, redoIsStep, undoIsStep } from '@/lib/placement';
 import { designDiff, partDiff, playbackFrames } from '@/lib/diff';
 import { readEvents } from '@/lib/sse';
 import { type Progress, type TextPreview } from '@/lib/progress';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { flushSync } from 'react-dom';
 import { renderPrintShot } from '@/lib/print-render';
 import {
@@ -70,6 +70,12 @@ import {
   RotateCcw,
   ZoomIn,
   ZoomOut,
+  SlidersHorizontal,
+  Calculator,
+  GitBranch,
+  Move,
+  Minus,
+  Search,
 } from 'lucide-react';
 import { useProjectTools } from '@/hooks/use-project-tools';
 import { useEvent } from '@/hooks/use-event';
@@ -92,7 +98,8 @@ import {
 import { type Part } from '@/lib/furniture';
 import type { Project, Message, Clarification } from '@/lib/store';
 import { ModularEditor } from '@/components/modular-editor';
-import { ProjectPicker, type ProjectSummary } from '@/components/project-picker';
+import { ProjectList, ProjectPicker, type ProjectSummary } from '@/components/project-picker';
+import { APP_SHELL_QUERY, BUILD_TABS, NUMBER_TABS, pushLayer, workspaceOfTab, WORKSPACES, type Workspace } from '@/lib/shell';
 import { OBSTACLE_ICON, RoomPanel } from '@/components/room-panel';
 import { QuotePanel } from '@/components/quote-panel';
 import { CutPlanPanel, cutPlanCSV } from '@/components/cut-plan-panel';
@@ -292,6 +299,39 @@ function partsStatOf(p: State, m: Message) {
   }
   return partsStatCache.get(key) ?? null;
 }
+/** A casca do app (celular e tablet) segue a mesma consulta do script do <head>. */
+function subscribeShell(onChange: () => void) {
+  const query = window.matchMedia(APP_SHELL_QUERY);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
+}
+const shellSnapshot = () => window.matchMedia(APP_SHELL_QUERY).matches;
+const shellServer = () => false;
+/**
+ * Camada que o botão voltar do sistema fecha (folha, modo, "olhar no móvel").
+ * Só existe enquanto `active`; fechar pela interface consome a entrada.
+ */
+function useBackLayer(active: boolean, close: () => void) {
+  const latest = useRef(close);
+  useEffect(() => {
+    latest.current = close;
+  });
+  useEffect(() => {
+    if (!active) return;
+    return pushLayer(() => latest.current());
+  }, [active]);
+}
+/** Campo de texto com foco: no toque, o teclado está na tela. */
+function isTextField(el: Element | null) {
+  return !!el && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !['checkbox', 'radio', 'range', 'button', 'submit', 'file', 'color'].includes((el as HTMLInputElement).type)) || (el as HTMLElement).isContentEditable);
+}
+const WS_NAV: { id: Workspace; label: string; icon: React.ReactNode }[] = [
+  { id: 'stage', label: 'Cena', icon: <Box size={21} /> },
+  { id: 'chat', label: 'Conversa', icon: <Sparkles size={21} /> },
+  { id: 'build', label: 'Montar', icon: <Boxes size={21} /> },
+  { id: 'numbers', label: 'Números', icon: <Calculator size={21} /> },
+];
+type PipCorner = 'tl' | 'tr' | 'bl' | 'br';
 export default function Home() {
   const [opened,setOpened] = useState<Record<string,number>>({});
   const [p, setP] = useState<State | null>(null),
@@ -394,6 +434,37 @@ export default function Home() {
     [prefsReady, setPrefsReady] = useState(false),
     [prices, setPrices] = useState<Prices>(DEFAULT_PRICES),
     [renaming, setRenaming] = useState(false);
+  // ── Casca do app (celular e tablet) ──────────────────────────────────────
+  // Um espaço de trabalho por vez; a cena fica em tela cheia (Cena) ou numa
+  // janela viva flutuante nos outros espaços. Nada disso existe no desktop.
+  const app = useSyncExternalStore(subscribeShell, shellSnapshot, shellServer);
+  const [ws, setWs] = useState<Workspace>('stage');
+  /** Espaço de onde a pessoa veio olhar algo na cena: o chip e o voltar levam de volta. */
+  const [returnTo, setReturnTo] = useState<Workspace | null>(null);
+  const [projectSheet, setProjectSheet] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [timeTravel, setTimeTravel] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
+  // Canto da janela da cena em cada espaço: na conversa no alto (as mensagens
+  // novas chegam embaixo), nos painéis embaixo (os números ficam no alto).
+  const [pip, setPip] = useState<{ corners: Partial<Record<Workspace, PipCorner>>; tucked: boolean }>({ corners: {}, tucked: false });
+  // A janela sai de lado enquanto a pessoa rola a conversa ou um painel.
+  const [pipAway, setPipAway] = useState(false);
+  const pipAwayTimer = useRef<number | undefined>(undefined);
+  const [visitedTabs, setVisitedTabs] = useState<Tab[]>([]);
+  const [chatSeen, setChatSeen] = useState(0);
+  const [keyboard, setKeyboard] = useState(false);
+  /** Última aba de cada espaço: voltar a Montar abre onde a pessoa estava. */
+  const wsTab = useRef<{ build: Tab; numbers: Tab }>({ build: 'project', numbers: 'quote' });
+  const appRef = useRef(app);
+  const wsRef = useRef(ws);
+  useEffect(() => {
+    appRef.current = app;
+    wsRef.current = ws;
+  });
+  useEffect(() => {
+    document.documentElement.dataset.shell = app ? 'app' : 'desktop';
+  }, [app]);
   // Assistente em laço (beta): etapas ao vivo, plano, o rascunho que a cena
   // mostra enquanto ele monta, e os efeitos (arquivos, preços, seleção) que
   // esperam a versão gravada chegar.
@@ -465,6 +536,14 @@ export default function Home() {
     if (readLocal('merce-inspector') === '0') setInspectorOpen(false);
     const savedTab = readLocal('merce-tab');
     if (TABS.some((v) => v.id === savedTab)) setTab(savedTab as Tab);
+    if (savedTab === 'project' || savedTab === 'room') wsTab.current.build = savedTab;
+    if (savedTab === 'quote' || savedTab === 'cut' || savedTab === 'parts') wsTab.current.numbers = savedTab;
+    const savedWs = readLocal('merce-ws');
+    if ((WORKSPACES as string[]).includes(savedWs)) setWs(savedWs as Workspace);
+    try {
+      const raw = readLocal('merce-pip');
+      if (raw) setPip((v) => ({ ...v, ...(JSON.parse(raw) as Partial<typeof v>) }));
+    } catch {}
     try {
       const raw = readLocal('merce-prices');
       if (raw) setPrices(mergePrices(JSON.parse(raw)));
@@ -532,9 +611,47 @@ export default function Home() {
       })
       .catch(() => {});
   const chooseTab = (next: Tab) => {
+    if (appRef.current) {
+      // No app, Versões é o modo viagem no tempo sobre a cena.
+      if (next === 'history') {
+        setWs('stage');
+        setTimeTravel(true);
+        return;
+      }
+      const target = workspaceOfTab(next) as 'build' | 'numbers';
+      wsTab.current[target] = next;
+      setReturnTo(null);
+      setWs(target);
+      writeLocal('merce-ws', target);
+    }
     setTab(next);
     writeLocal('merce-tab', next);
     if (!inspectorOpen) toggleInspector(true);
+  };
+  /** Troca de espaço pela navegação do app. */
+  const goTo = (next: Workspace) => {
+    setReturnTo(null);
+    setToolsOpen(false);
+    if (next === 'build' || next === 'numbers') {
+      const t = wsTab.current[next];
+      setTab(t);
+      writeLocal('merce-tab', t);
+    }
+    if (next !== 'stage') setTimeTravel(false);
+    setWs(next);
+    writeLocal('merce-ws', next);
+  };
+  /** "Ver no móvel" a partir de outro espaço: a cena abre com o caminho de volta. */
+  const look = (from: Workspace) => {
+    if (!appRef.current) return;
+    setToolsOpen(false);
+    setWs('stage');
+    setReturnTo(from === 'stage' ? null : from);
+  };
+  const goBack = () => {
+    const from = returnTo;
+    setReturnTo(null);
+    if (from) goTo(from);
   };
   const cycleTheme = () =>
     setThemeChoice((current) => {
@@ -2270,13 +2387,712 @@ export default function Home() {
     [room, params],
   );
   const printDrawing = useMemo(() => (params ? drawingParts(params) : []), [params]);
+  // ── Casca do app: efeitos ────────────────────────────────────────────────
+  // Voltar do sistema fecha a camada de cima: folha, bandeja, viagem no tempo,
+  // o "olhar no móvel" e, por fim, os diálogos grandes.
+  // Fora da Cena, voltar leva à Cena antes de sair do app (como no Android).
+  useBackLayer(app && ws !== 'stage' && returnTo === null, () => goTo('stage'));
+  useBackLayer(app && returnTo !== null, goBack);
+  useBackLayer(app && timeTravel, () => {
+    setTimeTravel(false);
+    setHistoryPreview(null);
+  });
+  useBackLayer(app && projectSheet, () => setProjectSheet(false));
+  useBackLayer(app && toolsOpen, () => setToolsOpen(false));
+  useBackLayer(app && galleryOpen, () => setGalleryOpen(false));
+  useBackLayer(app && paletteOpen, () => setPaletteOpen(false));
+  useBackLayer(app && moveOpen && selected.length > 0, () => setMoveOpen(false));
+  // Mover acompanha a seleção: sem nada escolhido, o controle some.
+  useEffect(() => {
+    if (!selected.length) setMoveOpen(false);
+  }, [selected.length]);
+  // A aba aberta fica montada: trocar de espaço não perde rolagem nem campos.
+  useEffect(() => {
+    if (app && (ws === 'build' || ws === 'numbers') && !visitedTabs.includes(tab)) setVisitedTabs((v) => [...v, tab]);
+  }, [app, ws, tab, visitedTabs]);
+  // Mensagens vistas: o selo da Conversa conta só o que chegou longe dela.
+  useEffect(() => {
+    if (app && ws === 'chat') setChatSeen(messageCount);
+  }, [app, ws, messageCount]);
+  // Pôr obstáculo ou parede é na cena: ela abre com o caminho de volta.
+  const placingNow = !!placing || !!placingWall;
+  useEffect(() => {
+    if (!appRef.current || !placingNow || wsRef.current === 'stage') return;
+    setReturnTo(wsRef.current);
+    setWs('stage');
+  }, [placingNow]);
+  // Teclado na tela: a navegação sai e a altura acompanha a área visível
+  // (o iOS não encolhe a página com o teclado).
+  useEffect(() => {
+    if (!app) return;
+    const root = document.documentElement;
+    const coarse = window.matchMedia('(pointer: coarse)');
+    const vv = window.visualViewport;
+    const onFocus = () => setKeyboard(coarse.matches && isTextField(document.activeElement));
+    const onViewport = () => {
+      if (!vv) return;
+      root.style.setProperty('--app-h', `${Math.round(vv.height)}px`);
+      root.style.setProperty('--app-top', `${Math.round(vv.offsetTop)}px`);
+    };
+    const onBlur = () => setTimeout(onFocus, 0);
+    onViewport();
+    document.addEventListener('focusin', onFocus);
+    document.addEventListener('focusout', onBlur);
+    vv?.addEventListener('resize', onViewport);
+    vv?.addEventListener('scroll', onViewport);
+    return () => {
+      document.removeEventListener('focusin', onFocus);
+      document.removeEventListener('focusout', onBlur);
+      vv?.removeEventListener('resize', onViewport);
+      vv?.removeEventListener('scroll', onViewport);
+      root.style.removeProperty('--app-h');
+      root.style.removeProperty('--app-top');
+    };
+  }, [app]);
+  const pipCorner: PipCorner = pip.corners[ws] ?? (ws === 'chat' ? 'tr' : 'br');
+  const savePip = (next: typeof pip) => {
+    setPip(next);
+    writeLocal('merce-pip', JSON.stringify(next));
+  };
+  // A janela da cena se arrasta para qualquer canto; um toque abre a cena.
+  const viewportEl = useRef<HTMLElement>(null);
+  const pipDrag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const onPipDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    pipDrag.current = { x: e.clientX, y: e.clientY, moved: false };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
+  };
+  const onPipMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const d = pipDrag.current;
+    const el = viewportEl.current;
+    if (!d || !el) return;
+    const dx = e.clientX - d.x, dy = e.clientY - d.y;
+    if (!d.moved && Math.hypot(dx, dy) < 8) return;
+    d.moved = true;
+    el.style.transition = 'none';
+    el.style.translate = `${dx}px ${dy}px`;
+  };
+  const onPipUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const d = pipDrag.current;
+    const el = viewportEl.current;
+    pipDrag.current = null;
+    if (!d || !el) return;
+    if (!d.moved) {
+      look(ws);
+      return;
+    }
+    const host = el.parentElement!.getBoundingClientRect();
+    const right = e.clientX > host.left + host.width / 2;
+    const bottom = e.clientY > host.top + host.height / 2;
+    el.style.transition = '';
+    el.style.translate = '';
+    savePip({ ...pip, corners: { ...pip.corners, [ws]: `${bottom ? 'b' : 't'}${right ? 'r' : 'l'}` as PipCorner } });
+  };
+  const timeList = useRef<HTMLOListElement>(null);
+  const sheetDrag = useRef<{ y: number; el: HTMLElement } | null>(null);
+  useEffect(() => {
+    if (!timeTravel) return;
+    timeList.current?.querySelector('.on')?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  }, [timeTravel, historyView]);
+  const closeTimeTravel = () => {
+    setTimeTravel(false);
+    setHistoryPreview(null);
+  };
+  const askAboutSelection = () => {
+    goTo('chat');
+    setTimeout(() => composer.current?.focus(), 60);
+  };
+  const pipOn = app && ws !== 'stage';
+  // Conversa ainda sem pedido: a cena é a estante padrão e a janela só taparia
+  // os cartões de começo; ela fica recolhida na borda até a conversa andar.
+  const pipTucked = pip.tucked || (ws === 'chat' && messageCount <= 1);
+  /** Cena em tela cheia no app: estado no topo, doca e cartões embaixo. */
+  const stageOverlay = () => {
+    if (!p) return null;
+    const previewing = historyPreview !== null && historyPreview !== p.cursor;
+    const oldVersion = !previewing && p.cursor < p.revisions.length - 1;
+    const motionId = (targetPart as ModularPart | undefined)?.motion?.id;
+    const reviewing = !!(reviewData && review && !pending);
+    const showDock = !timeTravel && !placing && !placingWall && !reviewing;
+    const selTitle = selected.length === 1 ? selectedNames[0] : `${selected.length} itens selecionados`;
+    const selSub =
+      selected.length === 1
+        ? targetPart
+          ? `${targetPart.c} × ${targetPart.l} × ${targetPart.thickness} mm · ${targetPart.material}`
+          : targetCell
+            ? 'Compartimento'
+            : p.params.modules.some((m) => m.id === selected[0])
+              ? 'Módulo'
+              : ''
+        : selectedNames.slice(0, 3).join(', ') + (selected.length > 3 ? '…' : '');
+    const tools: { id: string; label: string; icon: React.ReactNode; on?: boolean; disabled?: boolean; run: () => void }[] = [
+      { id: 'dims', label: 'Cotas', icon: <Ruler size={20} />, on: showDims, run: () => toggleDims() },
+      { id: 'room', label: p.room ? 'Ambiente' : 'Parede', icon: <DoorOpen size={20} />, on: showRoom, run: () => toggleRoom() },
+      { id: 'explode', label: 'Explodir', icon: <Layers size={20} />, on: exploded, run: () => setExploded((v) => !v) },
+      { id: 'fronts', label: anyOpen ? 'Fechar frentes' : 'Abrir frentes', icon: <Box size={20} />, on: anyOpen, disabled: !hasFronts || historyPreview !== null, run: toggleAllFronts },
+      { id: 'spin', label: 'Girar', icon: <Orbit size={20} />, on: spin && !reducedMotion, disabled: reducedMotion, run: () => setSpin((v) => !v) },
+      { id: 'photo', label: 'Foto', icon: <Camera size={20} />, run: () => setSnapshotRequest((v) => v + 1) },
+      { id: 'in', label: 'Aproximar', icon: <ZoomIn size={20} />, run: () => setZoomRequest({ id: Date.now(), direction: 'in' }) },
+      { id: 'out', label: 'Afastar', icon: <ZoomOut size={20} />, run: () => setZoomRequest({ id: Date.now(), direction: 'out' }) },
+    ];
+    return (
+      <>
+        <div className="app-status">
+          {returnTo && (
+            <button type="button" className="app-chip return" onClick={goBack}>
+              <ChevronLeft size={16} />
+              {WS_NAV.find((v) => v.id === returnTo)?.label}
+            </button>
+          )}
+          <button
+            type="button"
+            className={'app-chip version' + (previewing ? ' preview' : oldVersion ? ' warn' : '')}
+            aria-label={`Versão ${historyView + 1} de ${historyCount}. Abrir as versões`}
+            onClick={() => (timeTravel ? closeTimeTravel() : setTimeTravel(true))}
+          >
+            <History size={14} />v{historyView + 1}
+            {previewing ? ' · prévia' : oldVersion ? ` de ${historyCount}` : ''}
+          </button>
+          {roomFit && (
+            <button type="button" className={'app-chip fit ' + (roomFit.report.fits ? 'ok' : 'bad')} onClick={() => chooseTab('room')} title={roomFit.summary}>
+              <span className="fit-dot" />
+              {roomFit.report.fits ? 'Cabe' : 'Não cabe'}
+            </button>
+          )}
+          {pending && (
+            <button type="button" className="app-chip working" onClick={() => goTo('chat')}>
+              <ActivityGlyph activity={activity} size="sm" />
+              <span key={activity.key}>{activity.label}</span>
+            </button>
+          )}
+        </div>
+        {timeTravel && (
+          <section className="time-strip" aria-label="Versões do projeto">
+            <header>
+              <span>
+                <strong>Versões</strong>
+                <small>
+                  {previewing ? `Prévia da versão ${historyView + 1}` : `Versão ${p.cursor + 1} de ${historyCount}`}
+                  {p.origin ? ` · alternativa da v${p.origin.revision}` : ''}
+                </small>
+              </span>
+              <button type="button" className="app-icon" aria-label="Fechar as versões" onClick={closeTimeTravel}>
+                <X size={18} />
+              </button>
+            </header>
+            <ol ref={timeList} className="time-list">
+              {p.revisions.map((r, i) => (
+                <li key={r.id ?? i}>
+                  <button
+                    type="button"
+                    disabled={busyLook}
+                    className={(i === historyView ? 'on' : '') + (i === p.cursor ? ' current' : '')}
+                    aria-pressed={i === historyView}
+                    onClick={() => setHistoryPreview(i === p.cursor ? null : i)}
+                  >
+                    <span className="time-num">v{i + 1}</span>
+                    <strong>{r.label}</strong>
+                    <small>
+                      {new Date(r.at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      {i === p.cursor ? ' · atual' : ''}
+                    </small>
+                  </button>
+                </li>
+              ))}
+            </ol>
+            <div className="time-actions">
+              <button type="button" disabled={busyLook} onClick={() => void forkFrom(-1).then(closeTimeTravel)}>
+                <GitBranch size={16} /> Alternativa daqui
+              </button>
+              <button
+                type="button"
+                className="primary"
+                disabled={busyLook || !previewing}
+                onClick={() => {
+                  const target = historyPreview;
+                  closeTimeTravel();
+                  if (target !== null) seekVersion(target);
+                }}
+              >
+                <RotateCcw size={16} /> {previewing ? `Voltar para a v${historyView + 1}` : 'Escolha uma versão'}
+              </button>
+            </div>
+          </section>
+        )}
+        {showDock && (
+          <div className="app-dock">
+            {selected.length > 0 && (
+              <section className="sel-card" aria-label="Seleção">
+                <header>
+                  <span className="sel-icon" aria-hidden="true">
+                    <Box size={18} />
+                  </span>
+                  <span className="sel-text">
+                    <strong>{selTitle}</strong>
+                    {selSub && <small>{selSub}</small>}
+                  </span>
+                  <button type="button" className="app-icon" aria-label="Limpar seleção" onClick={() => setSelected([])}>
+                    <X size={18} />
+                  </button>
+                </header>
+                <div className="sel-actions">
+                  <button type="button" onClick={() => chooseTab('project')}>
+                    <Pencil size={18} />
+                    Editar
+                  </button>
+                  <button type="button" className={moveOpen ? 'on' : ''} aria-pressed={moveOpen} disabled={busyLook || historyPreview !== null} onClick={() => setMoveOpen((v) => !v)}>
+                    <Move size={18} />
+                    Mover
+                  </button>
+                  {motionId && (
+                    <button type="button" disabled={historyPreview !== null} onClick={() => toggleOpening(motionId)}>
+                      <DoorOpen size={18} />
+                      {opened[motionId] ? 'Fechar' : 'Abrir'}
+                    </button>
+                  )}
+                  <button type="button" onClick={askAboutSelection}>
+                    <Sparkles size={18} />
+                    Pedir à IA
+                  </button>
+                </div>
+              </section>
+            )}
+            {viewNotice && <output className="app-notice">{viewNotice}</output>}
+            <div className="dock-row">
+              <fieldset className="dock-views">
+                <legend className="sr-only">Vista</legend>
+                {VIEWS.map((v) => (
+                  <button key={v.id} type="button" aria-pressed={view === v.id} aria-label={v.label} className={view === v.id ? 'active' : ''} onClick={() => setView(v.id)}>
+                    {v.icon}
+                  </button>
+                ))}
+              </fieldset>
+              <button type="button" className="dock-btn" aria-label="Enquadrar o móvel" onClick={() => setFrameRequest((v) => v + 1)}>
+                <Scan size={20} />
+              </button>
+              <button type="button" className={'dock-btn' + (toolsOpen ? ' on' : '')} aria-expanded={toolsOpen} aria-label="Ferramentas da cena" onClick={() => setToolsOpen((v) => !v)}>
+                <SlidersHorizontal size={20} />
+              </button>
+            </div>
+          </div>
+        )}
+        {toolsOpen && showDock && (
+          <>
+            <button type="button" className="tray-scrim" aria-label="Fechar as ferramentas" onClick={() => setToolsOpen(false)} />
+            <section className="tools-tray" aria-label="Ferramentas da cena">
+              {tools.map((t) => (
+                <button key={t.id} type="button" className={t.on ? 'on' : ''} aria-pressed={t.on === undefined ? undefined : t.on} disabled={t.disabled} onClick={t.run}>
+                  {t.icon}
+                  <span>{t.label}</span>
+                </button>
+              ))}
+            </section>
+          </>
+        )}
+      </>
+    );
+  };
+  const unreadChat = Math.max(0, messageCount - chatSeen);
+  const appNav = () => (
+    <nav className="app-nav" aria-label="Espaços do estúdio">
+      {WS_NAV.map((n) => (
+        <button key={n.id} type="button" aria-current={ws === n.id ? 'page' : undefined} className={ws === n.id ? 'active' : ''} onClick={() => goTo(n.id)}>
+          <span className="nav-icon">
+            {n.icon}
+            {n.id === 'chat' && pending && ws !== 'chat' && <i className="nav-live" aria-label="A IA está trabalhando" />}
+            {n.id === 'chat' && !pending && unreadChat > 0 && ws !== 'chat' && (
+              <i className="nav-badge" aria-label={`${unreadChat} novas`}>
+                {unreadChat > 9 ? '9+' : unreadChat}
+              </i>
+            )}
+          </span>
+          <span>{n.label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+  /** Arrastar a alça da folha para baixo fecha; pouco arrasto volta ao lugar. */
+  const sheetGrab = {
+    onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
+      const el = e.currentTarget.closest('.app-sheet') as HTMLElement | null;
+      if (!el || (e.target as HTMLElement).closest('button')) return;
+      sheetDrag.current = { y: e.clientY, el };
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {}
+    },
+    onPointerMove: (e: React.PointerEvent<HTMLElement>) => {
+      const d = sheetDrag.current;
+      if (!d) return;
+      d.el.style.transition = 'none';
+      d.el.style.transform = `translateY(${Math.max(0, e.clientY - d.y)}px)`;
+    },
+    onPointerUp: (e: React.PointerEvent<HTMLElement>) => {
+      const d = sheetDrag.current;
+      sheetDrag.current = null;
+      if (!d) return;
+      d.el.style.transition = '';
+      d.el.style.transform = '';
+      if (e.clientY - d.y > 110) setProjectSheet(false);
+    },
+  };
+  const themeChoices: [ThemeChoice, string, React.ReactNode][] = [
+    ['system', 'Sistema', <Monitor key="m" size={16} />],
+    ['light', 'Claro', <Sun key="s" size={16} />],
+    ['dark', 'Escuro', <Moon key="d" size={16} />],
+  ];
+  const projectSheetView = () =>
+    p && (
+      <div className="sheet-backdrop" role="presentation" onClick={(e) => e.target === e.currentTarget && setProjectSheet(false)}>
+        <dialog open className="app-sheet project-sheet" aria-modal="true" aria-labelledby="project-sheet-title">
+          <header className="sheet-head" {...sheetGrab}>
+            <span className="sheet-grab" aria-hidden="true" />
+            <h2 id="project-sheet-title">Projeto</h2>
+            <button type="button" className="app-icon" aria-label="Fechar" onClick={() => setProjectSheet(false)}>
+              <X size={20} />
+            </button>
+          </header>
+          <div className="sheet-body">
+            <div className="proj-card">
+              <input
+                key={p.id + p.name}
+                className="proj-name"
+                defaultValue={p.name}
+                maxLength={80}
+                aria-label="Nome do projeto"
+                enterKeyHint="done"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') e.currentTarget.blur();
+                }}
+                onBlur={(e) => {
+                  const name = e.target.value.trim();
+                  if (name && name !== p.name) void action('rename', { name });
+                  else e.target.value = p.name;
+                }}
+              />
+              <p className="proj-meta">
+                {visualSize ? `${metres(visualSize[0])} × ${metres(visualSize[1])} × ${metres(visualSize[2])} m · ` : ''}
+                {p.params.modules.length} {p.params.modules.length === 1 ? 'módulo' : 'módulos'} · {p.parts.length} peças
+                {quote ? ` · ${money(quote.total)}` : ''}
+              </p>
+              <p className="proj-meta">
+                <Check size={13} /> Salvo neste computador · {p.revisions.length} {p.revisions.length === 1 ? 'versão' : 'versões'}
+                {p.origin ? ` · alternativa da v${p.origin.revision}` : ''}
+              </p>
+            </div>
+            <div className="proj-actions">
+              <button
+                type="button"
+                disabled={busyLook}
+                onClick={() => {
+                  setProjectSheet(false);
+                  openGallery('new');
+                }}
+              >
+                <Plus size={20} />
+                <span>Novo projeto</span>
+              </button>
+              <button
+                type="button"
+                disabled={busyLook}
+                onClick={() => {
+                  setProjectSheet(false);
+                  openGallery('add');
+                }}
+              >
+                <LayoutTemplate size={20} />
+                <span>Adicionar móvel</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setProjectSheet(false);
+                  goTo('stage');
+                  setTimeTravel(true);
+                }}
+              >
+                <History size={20} />
+                <span>Versões</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setProjectSheet(false);
+                  setPaletteOpen(true);
+                }}
+              >
+                <Search size={20} />
+                <span>Buscar ações</span>
+              </button>
+            </div>
+            <section className="sheet-section">
+              <h3>Aparência</h3>
+              <fieldset className="seg3" aria-label="Tema">
+                {themeChoices.map(([id, label, icon]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-pressed={themeChoice === id}
+                    className={themeChoice === id ? 'on' : ''}
+                    onClick={() => {
+                      setThemeChoice(id);
+                      writeLocal('merce-theme', id);
+                    }}
+                  >
+                    {icon}
+                    {label}
+                  </button>
+                ))}
+              </fieldset>
+            </section>
+            <section className="sheet-section">
+              <h3>Exportar</h3>
+              <div className="export-list">
+                {exports.map((x) => (
+                  <button
+                    key={x.id}
+                    type="button"
+                    disabled={busyLook}
+                    onClick={() => {
+                      setProjectSheet(false);
+                      x.run();
+                    }}
+                  >
+                    <span className="menu-icon">{x.icon}</span>
+                    <span>
+                      {x.label}
+                      <small>{x.hint}</small>
+                    </span>
+                    <ChevronRight size={16} />
+                  </button>
+                ))}
+              </div>
+              <p className="hint">Cortecloud experimental. Nada inclui furação, instruções de montagem ou certificação de estabilidade.</p>
+            </section>
+            <section className="sheet-section">
+              <h3>Projetos</h3>
+              <div className="sheet-projects">
+                <ProjectList
+                  projects={projects}
+                  current={p.id}
+                  onDelete={removeProject}
+                  onSelect={(id) => {
+                    setProjectSheet(false);
+                    if (id !== p.id) void openProject(id);
+                  }}
+                />
+              </div>
+            </section>
+          </div>
+        </dialog>
+      </div>
+    );
+  /**
+   * Conteúdo de uma aba do inspetor. Chamado como função (não componente):
+   * no app várias abas ficam montadas ao mesmo tempo, cada uma com a rolagem
+   * e os campos dela.
+   */
+  const tabBody = (t: Tab) =>
+    !p ? null : (
+      <>
+              {t === 'project' && (
+                <ModularEditor
+                  design={visualParams!}
+                  selected={selected}
+                  onSelect={onEditorSelect}
+                  onOp={onEditorOp}
+                  onOps={onEditorOps}
+                  onLibrary={onEditorLibrary}
+                  busy={busyLook || historyPreview !== null || reviewLocked}
+                  onOpen={onEditorOpen}
+                  opened={opened}
+                />
+              )}
+              {t === 'room' && (
+                <RoomPanel
+                  // A parede mudou fora do formulário (Ctrl+Z, IA): ele
+                  // recomeça do salvo. Obstáculos não: a lista lê do projeto.
+                  key={`${p.id}:${JSON.stringify({ ...roomForPanel, obstacles: undefined, walls: undefined })}`}
+                  room={roomForPanel}
+                  report={roomFit?.report ?? null}
+                  summary={roomFit?.summary ?? ''}
+                  busy={busyLook || historyPreview !== null || reviewLocked}
+                  onSave={saveRoom}
+                  showInScene={showRoom && !!p.room}
+                  onToggleScene={(v) => toggleRoom(v)}
+                  selectedObstacle={selectedObstacle}
+                  onSelectObstacle={onSelectObstacle}
+                  placingKind={placing?.obstacle.kind ?? null}
+                  onStartPlace={startPlace}
+                  onCancelPlace={onCancelPlace}
+                  onChangeObstacle={changeObstacle}
+                  onRemoveObstacle={onRemoveObstacle}
+                  onPreview={setRoomPreview}
+                  selectedWall={selectedWall}
+                  onSelectWall={onSelectWall}
+                  placingWall={!!placingWall}
+                  onStartPlaceWall={startPlaceWall}
+                  onChangeWall={changeWall}
+                  onRemoveWall={onRemoveWall}
+                />
+              )}
+              {t === 'quote' && quote && (
+                <QuotePanel
+                  name={p.name}
+                  quote={quote}
+                  prices={prices}
+                  onPrices={updatePrices}
+                  previous={previousQuote}
+                  onShowParts={(ids) => {
+                    setSelected(ids);
+                    look('numbers');
+                  }}
+                />
+              )}
+              {t === 'cut' && quote && (
+                <CutPlanPanel
+                  plan={quote.plan}
+                  selected={displaySelected}
+                  onSelect={(id, extend) => toggleSelected(id, extend)}
+                  onDownload={() => download(`${slug(p.name)}-corte.csv`, cutPlanCSV(quote.plan), 'text/csv;charset=utf-8')}
+                  onFocus={setCutFocus}
+                />
+              )}
+              {t === 'parts' && (
+                <>
+                  {p.params.modules.length === 1 && p.params.modules[0].legacyIds && shelfPanel()}
+                  <PartsPanel
+                    parts={p.parts as ModularPart[]}
+                    plan={partsPlan ?? cutPlan(p.parts)}
+                    selected={displaySelected}
+                    onToggle={(id, extend) => toggleSelected(id, extend)}
+                    onSelectMany={(ids, extend) => setSelected((s) => (extend ? [...new Set([...s, ...ids])] : ids))}
+                    onClear={() => setSelected([])}
+                    edgeMeters={quote?.counts.edgeMeters ?? 0}
+                  />
+                </>
+              )}
+              {t === 'history' && (
+                <>
+                  <div className="section-label">
+                    <span>{p.revisions.length} versões salvas</span>
+                  </div>
+                  <ol className="history-list">
+                    {[...p.revisions.entries()].reverse().map(([i, r]) => (
+                      <li key={i}>
+                        <button
+                          disabled={busyLook}
+                          onClick={() => seekVersion(i)}
+                          className={
+                            'history-row ' + (i === p.cursor ? 'current' : '')
+                          }
+                        >
+                          <span className="history-num">{i + 1}</span>
+                          <div>
+                            <strong>{r.label}</strong>
+                            <small>
+                              {new Date(r.at).toLocaleString('pt-BR')}
+                              {/* Movimentos seguidos ficam dentro da versão: Ctrl+Z volta um a um. */}
+                              {r.placement && r.placement.back.length + r.placement.ahead.length > 0
+                                ? ` · ${r.placement.back.length + r.placement.ahead.length + 1} movimentos`
+                                : ''}
+                            </small>
+                            {i === p.cursor && <em>Versão atual</em>}
+                            {(historyPreview ?? p.cursor) === i && historyPreview !== null && historyPreview !== p.cursor && <em>Prévia exibida</em>}
+                          </div>
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                  {p.origin && (
+                    <p className="hint">
+                      Alternativa criada da versão {p.origin.revision}. Original preservado.
+                    </p>
+                  )}
+                  <div className="fork-box">
+                    <div className="section-label">Criar alternativa</div>
+                    <p className="hint">
+                      Usa a versão {(historyPreview ?? p?.cursor ?? 0) + 1} atualmente exibida{(historyPreview !== null && historyPreview !== p?.cursor) ? ' (prévia)' : ''}; o original e as versões futuras são preservados.
+                    </p>
+                    <input
+                      aria-label="Nome da alternativa"
+                      placeholder={`${p?.name} · alternativa`}
+                      value={forkName}
+                      maxLength={80}
+                      disabled={busyLook}
+                      onChange={(e) => setForkName(e.target.value)}
+                    />
+                    <Button variant="outline" disabled={busyLook || !p} onClick={() => void forkFrom(-1)}>
+                      Criar alternativa desta versão
+                    </Button>
+                  </div>
+                  <p className="hint">
+                    Arraste a linha do tempo ou clique numa versão para voltar. Uma nova edição
+                    substitui o caminho desfeito.
+                  </p>
+                </>
+              )}
+      </>
+    );
   return (
     <main
       className={
-        'studio' + (chatOpen ? '' : ' no-chat') + (inspectorOpen ? '' : ' no-inspector')
+        app
+          ? 'studio app' + (keyboard ? ' kb' : '') + (timeTravel ? ' time-travel' : '')
+          : 'studio' + (chatOpen ? '' : ' no-chat') + (inspectorOpen ? '' : ' no-inspector')
       }
+      data-ws={app ? ws : undefined}
     >
       <header className="topbar">
+        {app ? (
+          <>
+            <button
+              type="button"
+              className="app-title"
+              disabled={!p}
+              aria-haspopup="dialog"
+              aria-label={p ? `Projeto ${p.name}: trocar, exportar e mais` : 'Carregando o projeto'}
+              onClick={() => setProjectSheet(true)}
+            >
+              <span className="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <rect x="4" y="3" width="16" height="18" rx="1.5" />
+                  <path d="M4 9.5h16M12 9.5V21M4 15h8" />
+                </svg>
+              </span>
+              <span className="app-title-text">
+                <strong>{p?.name ?? 'merce.'}</strong>
+                <small>
+                  {p && visualSize
+                    ? `${metres(visualSize[0])} × ${metres(visualSize[1])} × ${metres(visualSize[2])} m${quote ? ` · ${money(quote.total)}` : ''}`
+                    : 'Montando o estúdio…'}
+                </small>
+              </span>
+              <ChevronDown size={16} className="app-title-chevron" />
+            </button>
+            <div className="app-bar-actions">
+              <button
+                type="button"
+                className="app-icon"
+                aria-label="Desfazer"
+                disabled={busyLook || !p || !canUndo(p)}
+                onClick={() => void action('undo')}
+              >
+                <Undo2 size={20} />
+              </button>
+              <button
+                type="button"
+                className="app-icon"
+                aria-label="Refazer"
+                disabled={busyLook || !p || !canRedo(p)}
+                onClick={() => void action('redo')}
+              >
+                <Redo2 size={20} />
+              </button>
+            </div>
+          </>
+        ) : (<>
         <Link className="brand" href="/" aria-label="Merce, início">
           <span className="brand-mark" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -2360,9 +3176,22 @@ export default function Home() {
             )}
           </div>
         </div>
+        </>)}
       </header>
-      <div className="workbench">
-        {chatOpen && (
+      <div
+        className="workbench"
+        onScrollCapture={
+          app
+            ? (e) => {
+                if (!pipOn || pip.tucked || !(e.target as HTMLElement).closest?.('.chat-messages, .inspector-content')) return;
+                setPipAway(true);
+                window.clearTimeout(pipAwayTimer.current);
+                pipAwayTimer.current = window.setTimeout(() => setPipAway(false), 900);
+              }
+            : undefined
+        }
+      >
+        {(chatOpen || app) && (
         <aside className="chat-panel" aria-label="Conversa com a IA">
           <div className="panel-head">
             <span className="assistant-id">
@@ -2530,13 +3359,14 @@ export default function Home() {
                         active={review?.id === m.id}
                         playing={review?.id === m.id && review.playing}
                         playingOp={review?.id === m.id && review.playing && reviewFrame ? reviewFrame.op : null}
-                        onReplay={m.result?.appliedOperations?.length ? () => startReview(m.id) : undefined}
+                        onReplay={m.result?.appliedOperations?.length ? () => { startReview(m.id); look('chat'); } : undefined}
                         onStop={() => setReview((r) => (r ? { ...r, playing: false, frame: Number.MAX_SAFE_INTEGER, pinned: true } : r))}
                         onFocus={(targets) => focusLine(m.id, targets)}
                         onPick={(targets) => {
                           setHoverFocus(null);
                           setReview({ id: m.id, frame: Number.MAX_SAFE_INTEGER, playing: false, pinned: true });
                           if (!reviewLocked) setSelected(targets);
+                          look('chat');
                         }}
                       />
                       {m.report.prose && <p className="message-prose">{m.report.prose}</p>}
@@ -3055,8 +3885,12 @@ export default function Home() {
           </div>
         </aside>
         )}
-        <section className="viewport" aria-label="Modelo 3D">
-          <div className="stage-head">
+        <section
+          ref={viewportEl}
+          className={'viewport' + (pipOn ? ` pip pip-${pipCorner}${pipTucked ? ' tucked' : pipAway ? ' away' : ''}` : '')}
+          aria-label="Modelo 3D"
+        >
+          {!app && <div className="stage-head">
             {!chatOpen && (
               <button type="button" className="icon-button floating-toggle" aria-label="Abrir a conversa" title="Abrir a conversa ( [ )" onClick={() => toggleChat(true)}>
                 <PanelLeft size={16} />
@@ -3148,15 +3982,15 @@ export default function Home() {
             >
               {inspectorOpen ? <PanelRightClose size={16} /> : <PanelRight size={16} />}
             </button>
-          </div>
-          {p && historyPreview === null && p.cursor < p.revisions.length - 1 && (
+          </div>}
+          {!app && p && historyPreview === null && p.cursor < p.revisions.length - 1 && (
             <p className="stage-warning">
               Editando a versão {p.cursor + 1} de {p.revisions.length}: uma nova edição descarta{' '}
               {p.revisions.length - p.cursor - 1 === 1 ? 'a versão seguinte' : `as ${p.revisions.length - p.cursor - 1} versões seguintes`}.
             </p>
           )}
-          {roomFit && !roomFit.report.fits && <p className="stage-warning bad">{roomFit.summary}</p>}
-          {reviewData && review && !pending && (() => {
+          {!app && roomFit && !roomFit.report.fits && <p className="stage-warning bad">{roomFit.summary}</p>}
+          {reviewData && review && !pending && !pipOn && (() => {
             const lines = reviewData.message.report?.highlights ?? [];
             const total = reviewData.frames.length;
             const last = total - 1;
@@ -3206,7 +4040,7 @@ export default function Home() {
               </output>
             );
           })()}
-          {pending && (
+          {pending && !app && (
             <output className="stage-working">
               <ActivityGlyph activity={activity} size="sm" />
               <span key={activity.key}>{activity.label}</span>
@@ -3274,6 +4108,8 @@ export default function Home() {
               onPlaceWall={onPlaceWall}
               onRemoveWall={busy ? undefined : onRemoveWall}
               onEditWall={onEditWall}
+              touch={app}
+              showMovePad={!app || (moveOpen && ws === 'stage' && selected.length > 0 && !timeTravel)}
             />
           )}
           {stageToast && (
@@ -3294,7 +4130,7 @@ export default function Home() {
               </button>
             </output>
           )}
-          <div className="stage-tools" role="toolbar" aria-label="Ferramentas da cena" aria-orientation="vertical">
+          {!app && <div className="stage-tools" role="toolbar" aria-label="Ferramentas da cena" aria-orientation="vertical">
             <button type="button" title="Aproximar (+)" aria-label="Aproximar" onClick={() => setZoomRequest({ id: Date.now(), direction: 'in' })}><ZoomIn size={17} /></button>
             <button type="button" title="Afastar (−)" aria-label="Afastar" onClick={() => setZoomRequest({ id: Date.now(), direction: 'out' })}><ZoomOut size={17} /></button>
             <button type="button" title="Enquadrar (F)" aria-label="Enquadrar o móvel" onClick={() => setFrameRequest((v) => v + 1)}><Scan size={17} /></button>
@@ -3341,8 +4177,8 @@ export default function Home() {
             </button>
             <span className="tool-sep" />
             <button type="button" title="Foto da vista (PNG)" aria-label="Foto da vista" onClick={() => setSnapshotRequest((v) => v + 1)}><Camera size={17} /></button>
-          </div>
-          <div className="scene-bottom">
+          </div>}
+          {!app && <div className="scene-bottom">
             <fieldset className="view-switch">
               <legend className="sr-only">Vista</legend>
               {VIEWS.map((v) => (
@@ -3493,10 +4329,56 @@ export default function Home() {
                 <Redo2 />
               </Button>
             </div>
-          </div>
+          </div>}
+          {app && p && !pipOn && stageOverlay()}
+          {pipOn && (
+            <>
+              <button
+                type="button"
+                className="pip-hit"
+                aria-label={pipTucked ? 'Mostrar a janela da cena' : 'Abrir a cena em tela cheia'}
+                onPointerDown={pipTucked ? undefined : onPipDown}
+                onPointerMove={pipTucked ? undefined : onPipMove}
+                onPointerUp={pipTucked ? undefined : onPipUp}
+                onPointerCancel={() => {
+                  pipDrag.current = null;
+                  if (viewportEl.current) {
+                    viewportEl.current.style.transition = '';
+                    viewportEl.current.style.translate = '';
+                  }
+                }}
+                onClick={pipTucked ? () => (pip.tucked ? savePip({ ...pip, tucked: false }) : look(ws)) : undefined}
+              >
+                {pipTucked && <Box size={18} />}
+              </button>
+              {pending && !pipTucked && (
+                <span className="pip-working" aria-hidden="true">
+                  <ActivityGlyph activity={activity} size="sm" />
+                </span>
+              )}
+              {!pipTucked && (
+                <button type="button" className="pip-tuck" aria-label="Recolher a janela da cena" onClick={() => savePip({ ...pip, tucked: true })}>
+                  <Minus size={14} />
+                </button>
+              )}
+            </>
+          )}
         </section>
-        {inspectorOpen && (
+        {(inspectorOpen || app) && (
         <aside className="inspector" aria-label="Painel do projeto">
+          {app ? (
+            <div className="ws-seg" role="tablist" aria-label={ws === 'numbers' ? 'Números do projeto' : 'Montar'}>
+              {(ws === 'numbers' ? NUMBER_TABS : BUILD_TABS).map((id) => {
+                const t = TABS.find((v) => v.id === id)!;
+                return (
+                  <button key={id} type="button" role="tab" aria-selected={tab === id} className={tab === id ? 'active' : ''} onClick={() => chooseTab(id)}>
+                    {t.icon}
+                    <span>{t.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
           <div className="inspector-tabs" role="tablist">
             {TABS.map((t) => (
               <button
@@ -3511,6 +4393,7 @@ export default function Home() {
               </button>
             ))}
           </div>
+          )}
           {!p && !error && (
             <div className="inspector-skeleton" aria-hidden="true">
               <i className="sk sk-label" />
@@ -3527,146 +4410,25 @@ export default function Home() {
             </div>
           )}
           {p && (
-            <div className="inspector-content" role="tabpanel">
-              {tab === 'project' && (
-                <ModularEditor
-                  design={visualParams!}
-                  selected={selected}
-                  onSelect={onEditorSelect}
-                  onOp={onEditorOp}
-                  onOps={onEditorOps}
-                  onLibrary={onEditorLibrary}
-                  busy={busyLook || historyPreview !== null || reviewLocked}
-                  onOpen={onEditorOpen}
-                  opened={opened}
-                />
-              )}
-              {tab === 'room' && (
-                <RoomPanel
-                  // A parede mudou fora do formulário (Ctrl+Z, IA): ele
-                  // recomeça do salvo. Obstáculos não: a lista lê do projeto.
-                  key={`${p.id}:${JSON.stringify({ ...roomForPanel, obstacles: undefined, walls: undefined })}`}
-                  room={roomForPanel}
-                  report={roomFit?.report ?? null}
-                  summary={roomFit?.summary ?? ''}
-                  busy={busyLook || historyPreview !== null || reviewLocked}
-                  onSave={saveRoom}
-                  showInScene={showRoom && !!p.room}
-                  onToggleScene={(v) => toggleRoom(v)}
-                  selectedObstacle={selectedObstacle}
-                  onSelectObstacle={onSelectObstacle}
-                  placingKind={placing?.obstacle.kind ?? null}
-                  onStartPlace={startPlace}
-                  onCancelPlace={onCancelPlace}
-                  onChangeObstacle={changeObstacle}
-                  onRemoveObstacle={onRemoveObstacle}
-                  onPreview={setRoomPreview}
-                  selectedWall={selectedWall}
-                  onSelectWall={onSelectWall}
-                  placingWall={!!placingWall}
-                  onStartPlaceWall={startPlaceWall}
-                  onChangeWall={changeWall}
-                  onRemoveWall={onRemoveWall}
-                />
-              )}
-              {tab === 'quote' && quote && (
-                <QuotePanel
-                  name={p.name}
-                  quote={quote}
-                  prices={prices}
-                  onPrices={updatePrices}
-                  previous={previousQuote}
-                  onShowParts={(ids) => setSelected(ids)}
-                />
-              )}
-              {tab === 'cut' && quote && (
-                <CutPlanPanel
-                  plan={quote.plan}
-                  selected={displaySelected}
-                  onSelect={(id, extend) => toggleSelected(id, extend)}
-                  onDownload={() => download(`${slug(p.name)}-corte.csv`, cutPlanCSV(quote.plan), 'text/csv;charset=utf-8')}
-                  onFocus={setCutFocus}
-                />
-              )}
-              {tab === 'parts' && (
-                <>
-                  {p.params.modules.length === 1 && p.params.modules[0].legacyIds && shelfPanel()}
-                  <PartsPanel
-                    parts={p.parts as ModularPart[]}
-                    plan={partsPlan ?? cutPlan(p.parts)}
-                    selected={displaySelected}
-                    onToggle={(id, extend) => toggleSelected(id, extend)}
-                    onSelectMany={(ids, extend) => setSelected((s) => (extend ? [...new Set([...s, ...ids])] : ids))}
-                    onClear={() => setSelected([])}
-                    edgeMeters={quote?.counts.edgeMeters ?? 0}
-                  />
-                </>
-              )}
-              {tab === 'history' && (
-                <>
-                  <div className="section-label">
-                    <span>{p.revisions.length} versões salvas</span>
+            app ? (
+              <div className="inspector-stack">
+                {visitedTabs.map((t) => (
+                  <div key={t} className={'inspector-content' + (t === tab ? '' : ' tab-off')} role="tabpanel" aria-hidden={t !== tab}>
+                    {tabBody(t)}
                   </div>
-                  <ol className="history-list">
-                    {[...p.revisions.entries()].reverse().map(([i, r]) => (
-                      <li key={i}>
-                        <button
-                          disabled={busyLook}
-                          onClick={() => seekVersion(i)}
-                          className={
-                            'history-row ' + (i === p.cursor ? 'current' : '')
-                          }
-                        >
-                          <span className="history-num">{i + 1}</span>
-                          <div>
-                            <strong>{r.label}</strong>
-                            <small>
-                              {new Date(r.at).toLocaleString('pt-BR')}
-                              {/* Movimentos seguidos ficam dentro da versão: Ctrl+Z volta um a um. */}
-                              {r.placement && r.placement.back.length + r.placement.ahead.length > 0
-                                ? ` · ${r.placement.back.length + r.placement.ahead.length + 1} movimentos`
-                                : ''}
-                            </small>
-                            {i === p.cursor && <em>Versão atual</em>}
-                            {(historyPreview ?? p.cursor) === i && historyPreview !== null && historyPreview !== p.cursor && <em>Prévia exibida</em>}
-                          </div>
-                        </button>
-                      </li>
-                    ))}
-                  </ol>
-                  {p.origin && (
-                    <p className="hint">
-                      Alternativa criada da versão {p.origin.revision}. Original preservado.
-                    </p>
-                  )}
-                  <div className="fork-box">
-                    <div className="section-label">Criar alternativa</div>
-                    <p className="hint">
-                      Usa a versão {(historyPreview ?? p?.cursor ?? 0) + 1} atualmente exibida{(historyPreview !== null && historyPreview !== p?.cursor) ? ' (prévia)' : ''}; o original e as versões futuras são preservados.
-                    </p>
-                    <input
-                      aria-label="Nome da alternativa"
-                      placeholder={`${p?.name} · alternativa`}
-                      value={forkName}
-                      maxLength={80}
-                      disabled={busyLook}
-                      onChange={(e) => setForkName(e.target.value)}
-                    />
-                    <Button variant="outline" disabled={busyLook || !p} onClick={() => void forkFrom(-1)}>
-                      Criar alternativa desta versão
-                    </Button>
-                  </div>
-                  <p className="hint">
-                    Arraste a linha do tempo ou clique numa versão para voltar. Uma nova edição
-                    substitui o caminho desfeito.
-                  </p>
-                </>
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="inspector-content" role="tabpanel">
+                {tabBody(tab)}
+              </div>
+            )
           )}
         </aside>
         )}
       </div>
+      {app && appNav()}
+      {app && projectSheet && projectSheetView()}
       <CommandPalette
         key={paletteOpen ? 'open' : 'closed'}
         open={paletteOpen}

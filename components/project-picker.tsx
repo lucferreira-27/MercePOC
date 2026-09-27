@@ -45,6 +45,108 @@ function summarize(v: ProjectSummary) {
   return parts.join(' · ');
 }
 
+/**
+ * Busca e lista de projetos, com exclusão por linha. Mora no menu do seletor
+ * no desktop e na folha Projeto do app no celular.
+ */
+export function ProjectList({
+  projects,
+  current,
+  onSelect,
+  onDelete,
+  autoFocus = false,
+}: {
+  projects: ProjectSummary[];
+  current?: string;
+  onSelect: (id: string) => void;
+  onDelete: (id: string) => Promise<void>;
+  autoFocus?: boolean;
+}) {
+  const [query, setQuery] = useState('');
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const search = useRef<HTMLInputElement>(null);
+  const found = useMemo(() => {
+    const needle = fold(query.trim());
+    if (!needle) return projects;
+    return projects.filter((v) => fold(v.name).includes(needle));
+  }, [projects, query]);
+  useEffect(() => {
+    if (autoFocus) search.current?.focus();
+  }, [autoFocus]);
+  return (
+    <>
+      <label className="project-search">
+        <Search size={13} />
+        <input
+          ref={search}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar projeto…"
+          aria-label="Buscar projeto"
+          maxLength={80}
+        />
+        <small>
+          {found.length} de {projects.length}
+        </small>
+      </label>
+      <div className="project-list" role="listbox" aria-label="Projetos">
+        {found.map((v) => (
+          <div key={v.id} className={'project-row' + (v.id === current ? ' current' : '')}>
+            {confirming === v.id ? (
+              <div className="project-confirm">
+                <span>Excluir “{v.name}”?</span>
+                <button
+                  type="button"
+                  className="danger"
+                  disabled={deleting}
+                  onClick={async () => {
+                    setDeleting(true);
+                    try {
+                      await onDelete(v.id);
+                      setConfirming(null);
+                    } finally {
+                      setDeleting(false);
+                    }
+                  }}
+                >
+                  Excluir
+                </button>
+                <button type="button" disabled={deleting} onClick={() => setConfirming(null)}>
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={v.id === current}
+                  className="project-name"
+                  onClick={() => onSelect(v.id)}
+                >
+                  <strong>{v.name}</strong>
+                  <small>{summarize(v)}</small>
+                </button>
+                <button
+                  type="button"
+                  className="project-delete"
+                  aria-label={`Excluir ${v.name}`}
+                  title="Excluir projeto"
+                  onClick={() => setConfirming(v.id)}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </>
+            )}
+          </div>
+        ))}
+        {!found.length && <p className="project-empty">Nenhum projeto com esse nome.</p>}
+      </div>
+    </>
+  );
+}
+
 export function ProjectPicker({
   projects,
   current,
@@ -59,22 +161,10 @@ export function ProjectPicker({
   onDelete: (id: string) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState('');
-  const [confirming, setConfirming] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
-  const search = useRef<HTMLInputElement>(null);
   const active = projects.find((v) => v.id === current);
-
-  const found = useMemo(() => {
-    const needle = fold(query.trim());
-    if (!needle) return projects;
-    return projects.filter((v) => fold(v.name).includes(needle));
-  }, [projects, query]);
-
   useEffect(() => {
     if (!open) return;
-    search.current?.focus();
     const onDown = (e: MouseEvent) => {
       if (!wrap.current?.contains(e.target as Node)) setOpen(false);
     };
@@ -88,14 +178,6 @@ export function ProjectPicker({
       document.removeEventListener('keydown', onKey);
     };
   }, [open]);
-
-  useEffect(() => {
-    if (!open) {
-      setQuery('');
-      setConfirming(null);
-    }
-  }, [open]);
-
   return (
     <div className="project-picker" ref={wrap}>
       <button
@@ -113,85 +195,16 @@ export function ProjectPicker({
       </button>
       {open && (
         <div className="project-menu">
-          <label className="project-search">
-            <Search size={13} />
-            <input
-              ref={search}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar projeto…"
-              aria-label="Buscar projeto"
-              maxLength={80}
-            />
-            <small>
-              {found.length} de {projects.length}
-            </small>
-          </label>
-          <div className="project-list" role="listbox" aria-label="Projetos">
-            {found.map((v) => (
-              <div
-                key={v.id}
-                className={'project-row' + (v.id === current ? ' current' : '')}
-              >
-                {confirming === v.id ? (
-                  <div className="project-confirm">
-                    <span>Excluir “{v.name}”?</span>
-                    <button
-                      type="button"
-                      className="danger"
-                      disabled={deleting}
-                      onClick={async () => {
-                        setDeleting(true);
-                        try {
-                          await onDelete(v.id);
-                          setConfirming(null);
-                        } finally {
-                          setDeleting(false);
-                        }
-                      }}
-                    >
-                      Excluir
-                    </button>
-                    <button
-                      type="button"
-                      disabled={deleting}
-                      onClick={() => setConfirming(null)}
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={v.id === current}
-                      className="project-name"
-                      onClick={() => {
-                        setOpen(false);
-                        if (v.id !== current) onSelect(v.id);
-                      }}
-                    >
-                      <strong>{v.name}</strong>
-                      <small>{summarize(v)}</small>
-                    </button>
-                    <button
-                      type="button"
-                      className="project-delete"
-                      aria-label={`Excluir ${v.name}`}
-                      title="Excluir projeto"
-                      onClick={() => setConfirming(v.id)}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </>
-                )}
-              </div>
-            ))}
-            {!found.length && (
-              <p className="project-empty">Nenhum projeto com esse nome.</p>
-            )}
-          </div>
+          <ProjectList
+            projects={projects}
+            current={current}
+            autoFocus
+            onDelete={onDelete}
+            onSelect={(id) => {
+              setOpen(false);
+              if (id !== current) onSelect(id);
+            }}
+          />
         </div>
       )}
     </div>
