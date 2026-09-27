@@ -3824,6 +3824,167 @@ svg.tp-time {
   color: #fff;
 }
 
+/* Paredes: a do fundo escolhida no painel, a lista das outras e o botão de pôr. */
+.wall-card.chosen:not(.editing) .wall-summary {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+.wall-card-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.link-button.active {
+  background: var(--accent-soft);
+}
+button.wall-summary {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 12px;
+  transition: border-color 0.12s, background 0.12s;
+}
+button.wall-summary:hover:not(:disabled) {
+  border-color: var(--accent-line);
+}
+.wall-hint {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+}
+.add-wall {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 8px;
+  width: 100%;
+  padding: 8px 11px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink-2);
+  text-align: left;
+  font-size: 12.5px;
+  font-weight: 600;
+  transition: border-color 0.12s, background 0.12s;
+}
+.add-wall svg {
+  grid-row: span 2;
+  color: var(--accent);
+}
+.add-wall small {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.add-wall:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.add-wall.active {
+  border-style: solid;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.add-wall:disabled {
+  opacity: 0.45;
+}
+.wall-section .obstacle-list {
+  margin-top: 8px;
+}
+.wall-editor .ob-edit-head {
+  grid-template-columns: 1fr 1fr;
+}
+
+/* Na cena: alças da parede escolhida e as cotas ao vivo do arrasto. A posição
+   vem do quadro 3D; até lá ficam invisíveis. */
+.wall-handles {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* Ponta fora da vista: a alça espera na borda, tracejada. */
+.wall-handle.clamped {
+  border-style: dashed;
+}
+.wall-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  pointer-events: auto;
+  touch-action: none;
+  transition: opacity 0.12s, background 0.12s, width 0.12s, height 0.12s;
+  will-change: transform;
+}
+/* Área de toque maior que o desenho: a alça é pequena, o dedo não. */
+.wall-handle::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+}
+.wall-handle:hover,
+.wall-handle:active {
+  background: var(--accent);
+  width: 18px;
+  height: 18px;
+}
+.wall-handle.move {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background:
+    linear-gradient(var(--accent), var(--accent)) center / 10px 2px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) center / 2px 10px no-repeat,
+    var(--surface);
+}
+.wall-handle.move:hover,
+.wall-handle.move:active {
+  width: 22px;
+  height: 22px;
+  background:
+    linear-gradient(var(--accent-ink), var(--accent-ink)) center / 10px 2px no-repeat,
+    linear-gradient(var(--accent-ink), var(--accent-ink)) center / 2px 10px no-repeat,
+    var(--accent);
+}
+/* Nome longo não estica a barra da parede na cena. */
+.wall-bar .ob-bar-name strong {
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wall-live-dims {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  overflow: hidden;
+}
+.dim-label.live {
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-color: var(--accent);
+  font-size: 12.5px;
+  padding: 3px 9px;
+}
+@media (hover: none) {
+  .wall-handle {
+    width: 22px;
+    height: 22px;
+  }
+}
+
 /* Orçamento */
 .quote-hero {
   border-radius: 14px;

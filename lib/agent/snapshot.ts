@@ -72,6 +72,21 @@ export function designSnapshot(design: Design, room: Room | undefined) {
               largura: o.widthMm,
               altura: o.heightMm,
             })),
+            // Paredes além da do fundo, em planta: x do canto, z da face do fundo.
+            ...(room.walls?.length
+              ? {
+                  paredes: room.walls.map((w) => ({
+                    id: w.id,
+                    ...(w.label ? { nome: w.label } : {}),
+                    direcao: w.rotation === 90 ? 'sai do fundo' : 'ao longo do fundo',
+                    x: w.xMm,
+                    z: w.zMm,
+                    comprimento: w.widthMm,
+                    altura: Math.min(w.heightMm, room.heightMm),
+                    espessura: w.thicknessMm,
+                  })),
+                }
+              : {}),
             encaixe: fitSummary(design, room),
           },
         }

@@ -22,6 +22,7 @@ import {
   ArrowUp,
   Box,
   Boxes,
+  BrickWall,
   Camera,
   Copy,
   Eraser,
@@ -105,7 +106,7 @@ import type { OptionCard } from '@/lib/agent/types';
 import { cutPlan } from '@/lib/cutplan';
 import { entityIds, canonical, selectedPartIds } from '@/lib/studio';
 import { drawingParts, openingLimit, openingPose, type ModularPart } from '@/lib/composition';
-import { emptyRoom, roomChangeLabel, fitReport, fitSummary, freeSpot, obstacleWord, OBSTACLE_LABEL, presetObstacle, roomOffset, wallAt, type Obstacle, type ObstacleKind, type Room } from '@/lib/room';
+import { emptyRoom, fitWallsToCeiling, roomChangeLabel, fitReport, fitSummary, freeSpot, MAIN_WALL, obstacleWord, OBSTACLE_LABEL, presetObstacle, presetWall, resizeMainWall, roomOffset, wallAt, wallWord, ROOM_LIMITS, type MainWallEdge, type Obstacle, type ObstacleKind, type Room, type Wall } from '@/lib/room';
 import { moduleBoxes } from '@/lib/move';
 import { DEFAULT_PRICES, mergePrices, money, quote as buildQuote, type Prices } from '@/lib/quote';
 import { friendlyError } from '@/lib/errors';
@@ -328,6 +329,10 @@ export default function Home() {
     [selectedObstacle, setSelectedObstacle] = useState<string | null>(null),
     // Obstáculo novo esperando o clique na parede, e a parede onde ele entra.
     [placing, setPlacing] = useState<{ obstacle: Obstacle; base: Room } | null>(null),
+    // Parede escolhida (na cena ou no painel); a do fundo é MAIN_WALL.
+    [selectedWall, setSelectedWall] = useState<string | null>(null),
+    // Parede nova esperando o clique no piso, e o ambiente onde ela entra.
+    [placingWall, setPlacingWall] = useState<{ wall: Wall; base: Room } | null>(null),
     // Ambiente com o campo que a pessoa está digitando, antes de gravar.
     [roomPreview, setRoomPreview] = useState<Room | null>(null),
     // Aviso curto na cena com "Desfazer": tirar um obstáculo é um clique só.
@@ -1148,8 +1153,13 @@ export default function Home() {
       } else if ((key === 'delete' || key === 'backspace') && selectedObstacle && !placing) {
         e.preventDefault();
         removeObstacle(selectedObstacle);
+      } else if ((key === 'delete' || key === 'backspace') && selectedWall && selectedWall !== MAIN_WALL && !placingWall) {
+        e.preventDefault();
+        removeWall(selectedWall);
       } else if (key === 'escape' && placing) setPlacing(null);
+      else if (key === 'escape' && placingWall) setPlacingWall(null);
       else if (key === 'escape' && selectedObstacle) setSelectedObstacle(null);
+      else if (key === 'escape' && selectedWall) setSelectedWall(null);
       else if (key === 'escape' && selected.length) setSelected([]);
     };
   });
@@ -1302,6 +1312,9 @@ export default function Home() {
       const bounds = designOf(p.params).bounds;
       room = { ...room, anchor: { x: bounds.min[0] - (room.offsetMm ?? 0), z: p.room.anchor.z } };
     }
+    // Pé-direito novo: as paredes na altura do teto acompanham.
+    if (p?.room && room.walls?.length && room.heightMm !== p.room.heightMm)
+      room = { ...room, walls: fitWallsToCeiling(room.walls, p.room.heightMm, room.heightMm) };
     await roomAction(room, (next) => {
       setShowRoom(true);
       after?.(next);
@@ -1342,6 +1355,8 @@ export default function Home() {
     }
     setError('');
     setSelectedObstacle(null);
+    setSelectedWall(null);
+    setPlacingWall(null);
     setRoomPreview(null);
     setShowRoom(true);
     setPlacing({ obstacle: { ...o, xMm: x }, base });
@@ -1373,6 +1388,69 @@ export default function Home() {
   async function changeObstacle(o: Obstacle) {
     if (!p?.room) return;
     await saveObstacles((p.room.obstacles ?? []).map((v) => (v.id === o.id ? o : v)));
+  }
+  /**
+   * Paredes novas do ambiente salvo, sem mexer no resto: o arrasto, as alças,
+   * o giro e o painel gravam por aqui. Ajustes seguidos da mesma parede
+   * juntam numa versão, e Ctrl+Z volta um a um.
+   */
+  function saveWalls(walls: Wall[], after?: (next: State) => void) {
+    if (!p?.room) return;
+    return roomAction({ ...p.room, walls }, after);
+  }
+  /**
+   * Começa a pôr uma parede: nasce fechando o canto direito, com o
+   * pé-direito, e a prévia segue o cursor pelo piso até o clique.
+   */
+  function startPlaceWall(base: Room) {
+    if (!p) return;
+    if ((base.walls?.length ?? 0) >= ROOM_LIMITS.walls) {
+      setError(`O ambiente já tem ${ROOM_LIMITS.walls} paredes. Tire uma para pôr outra.`);
+      return;
+    }
+    setError('');
+    setSelectedObstacle(null);
+    setSelectedWall(null);
+    setSelected([]);
+    setRoomPreview(null);
+    setPlacing(null);
+    setShowRoom(true);
+    setPlacingWall({ wall: presetWall(base), base });
+  }
+  function placeWall(w: Wall) {
+    const pl = placingWall;
+    if (!pl || busy) return;
+    const room = { ...pl.base, walls: [...(pl.base.walls ?? []), w] };
+    // Não gravou: a prévia continua para tentar de novo; o aviso diz o motivo.
+    const done = () => {
+      setPlacingWall(null);
+      setSelectedWall(w.id);
+    };
+    if (p?.room) void saveWalls(room.walls, done);
+    else void saveRoom(room, done);
+  }
+  function removeWall(id: string) {
+    if (!p?.room || busy) return;
+    const gone = p.room.walls?.find((w) => w.id === id);
+    setSelectedWall(null);
+    void saveWalls(
+      (p.room.walls ?? []).filter((w) => w.id !== id),
+      (next) => {
+        const word = gone ? wallWord(gone) : 'a parede';
+        setStageToast({ text: `${word[0].toUpperCase()}${word.slice(1)} saiu do ambiente.`, version: next.version });
+      },
+    );
+  }
+  async function changeWall(w: Wall) {
+    if (!p?.room) return;
+    await saveWalls((p.room.walls ?? []).map((v) => (v.id === w.id ? w : v)));
+  }
+  /** Alça da parede do fundo solta na cena: a mesma conta da prévia, sobre o ambiente salvo. */
+  function resizeRoomWall(edge: MainWallEdge, at: number) {
+    if (!p?.room || busy) return;
+    const next = resizeMainWall(p.room, designOf(p.params).bounds, edge, at);
+    if (next === p.room) return;
+    return roomAction(next);
   }
   /** Opção do assistente vira a versão nova do projeto aberto. */
   function applyOption(o: OptionCard) {
@@ -2069,6 +2147,19 @@ export default function Home() {
         startPlace(kind, roomForPanel ?? emptyRoom());
       },
     })),
+    {
+      id: 'wall-add',
+      group: 'Ambiente',
+      label: 'Pôr uma parede no ambiente',
+      hint: 'clique no piso, no 3D',
+      icon: <BrickWall size={15} />,
+      disabled: !p || busy || historyPreview !== null,
+      run: () => {
+        if (!p) return;
+        chooseTab('room');
+        startPlaceWall(roomForPanel ?? emptyRoom());
+      },
+    },
     { id: 'chat-clear', group: 'Painéis', label: 'Limpar a conversa…', hint: 'o projeto fica', icon: <Eraser size={15} />, disabled: !p?.messages.some((m) => m.role === 'user') || busy, run: () => { if (!chatOpen) toggleChat(true); setClearAsk(true); } },
     ...(p?.chatCleared ? [{ id: 'chat-restore', group: 'Painéis', label: 'Restaurar a conversa limpa', hint: `${p.chatCleared.count} mensagens`, icon: <RotateCcw size={15} />, disabled: busy, run: () => void restoreConversation() }] : []),
     { id: 'rename', group: 'Projeto', label: 'Renomear projeto', icon: <Pencil size={15} />, run: () => setRenaming(true) },
@@ -2100,8 +2191,35 @@ export default function Home() {
     setSelectedObstacle(id);
     setRoomPreview(null);
     // Um obstáculo escolhido e o móvel ao mesmo tempo: Delete não saberia qual.
-    if (id) setSelected([]);
+    if (id) {
+      setSelected([]);
+      setSelectedWall(null);
+    }
   });
+  const onSelectWall = useEvent((id: string | null) => {
+    setSelectedWall(id);
+    setRoomPreview(null);
+    if (id) {
+      setSelected([]);
+      setSelectedObstacle(null);
+    }
+  });
+  const onChangeWall = useEvent((w: Wall) => {
+    if (!p?.room || busy) return;
+    return changeWall(w);
+  });
+  const onResizeMainWall = useEvent(resizeRoomWall);
+  const onPlaceWall = useEvent(placeWall);
+  const onRemoveWall = useEvent(removeWall);
+  const onEditWall = useEvent((id: string) => {
+    setSelectedWall(id);
+    chooseTab('room');
+  });
+  // Móvel escolhido: a parede solta a escolha (Delete e as alças são de um só).
+  const anySelected = selected.length > 0;
+  useEffect(() => {
+    if (anySelected) setSelectedWall(null);
+  }, [anySelected]);
   const onPlaceObstacle = useEvent(placeObstacle);
   // O aviso some sozinho, ou quando o projeto muda por outro caminho.
   useEffect(() => {
@@ -2116,9 +2234,13 @@ export default function Home() {
   // Outro projeto ou uma versão antiga à vista: a prévia do obstáculo novo sai.
   useEffect(() => {
     setPlacing(null);
+    setPlacingWall(null);
     setRoomPreview(null);
   }, [p?.id, historyPreview]);
-  const onCancelPlace = useEvent(() => setPlacing(null));
+  const onCancelPlace = useEvent(() => {
+    setPlacing(null);
+    setPlacingWall(null);
+  });
   const onRemoveObstacle = useEvent(removeObstacle);
   const onEditObstacle = useEvent((id: string) => {
     setSelectedObstacle(id);
@@ -3115,8 +3237,8 @@ export default function Home() {
               frameRequest={frameRequest}
               steady={!!reviewData}
               zoomRequest={zoomRequest}
-              room={placing?.base ?? roomPreview ?? visualRoom}
-              showRoom={showRoom || !!placing}
+              room={placing?.base ?? placingWall?.base ?? roomPreview ?? visualRoom}
+              showRoom={showRoom || !!placing || !!placingWall}
               showDims={showDims}
               theme={theme}
               snapshotRequest={snapshotRequest}
@@ -3136,6 +3258,18 @@ export default function Home() {
               onCancelPlace={onCancelPlace}
               onRemoveObstacle={busy ? undefined : onRemoveObstacle}
               onEditObstacle={onEditObstacle}
+              selectedWall={
+                historyPreview === null && (selectedWall === MAIN_WALL ? !!p.room : !!p.room?.walls?.some((w) => w.id === selectedWall))
+                  ? selectedWall
+                  : null
+              }
+              onSelectWall={p.room && historyPreview === null ? onSelectWall : undefined}
+              onChangeWall={p.room && showRoom && historyPreview === null ? onChangeWall : undefined}
+              onResizeMainWall={p.room && showRoom && historyPreview === null ? onResizeMainWall : undefined}
+              placingWall={placingWall?.wall ?? null}
+              onPlaceWall={onPlaceWall}
+              onRemoveWall={busy ? undefined : onRemoveWall}
+              onEditWall={onEditWall}
             />
           )}
           {stageToast && (
@@ -3407,7 +3541,7 @@ export default function Home() {
                 <RoomPanel
                   // A parede mudou fora do formulário (Ctrl+Z, IA): ele
                   // recomeça do salvo. Obstáculos não: a lista lê do projeto.
-                  key={`${p.id}:${JSON.stringify({ ...roomForPanel, obstacles: undefined })}`}
+                  key={`${p.id}:${JSON.stringify({ ...roomForPanel, obstacles: undefined, walls: undefined })}`}
                   room={roomForPanel}
                   report={roomFit?.report ?? null}
                   summary={roomFit?.summary ?? ''}
@@ -3423,6 +3557,12 @@ export default function Home() {
                   onChangeObstacle={changeObstacle}
                   onRemoveObstacle={onRemoveObstacle}
                   onPreview={setRoomPreview}
+                  selectedWall={selectedWall}
+                  onSelectWall={onSelectWall}
+                  placingWall={!!placingWall}
+                  onStartPlaceWall={startPlaceWall}
+                  onChangeWall={changeWall}
+                  onRemoveWall={onRemoveWall}
                 />
               )}
               {tab === 'quote' && quote && (
