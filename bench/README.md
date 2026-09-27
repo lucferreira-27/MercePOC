@@ -230,6 +230,8 @@ O que o benchmark **não** mede: qualidade do texto além das regex, aparência 
 |---|---|---|---|---|
 | `ref-01` | perguntar | Suba a prateleira 4 mais 5 cm. | ação clarify ou answer; não muda nada; resposta cita /não existe\|qual\|escolha\|já não/i | Peça removida nunca é substituída em silêncio: o Ivo viu a IA mover a peça errada. |
 | `ref-02` | agir | Mova esta prateleira 5 cm para cima. | ação update; muda o projeto; geometria conferida | A seleção explícita tem precedência sobre qualquer referência anterior. |
+| `ref-03` | livre | Maek those two match in weigth, so increase the one that i smaller | ação update ou clarify; geometria conferida; resposta cita /faixa\|painel/i; resposta não traz /rack/i | Pedido real de 26/09 (Luna) com a faixa (1900 mm) e o painel da TV (2000 mm) selecionados: a IA escolheu os dois módulos do rack, iguais entre si, e respondeu que não precisava mudar nada. A seleção ia só como ids no fim do estado; agora vai com nome e medida logo antes do pedido. |
+| `ref-04` | agir | Legal agora aumente o painel para pegar o a rack tambem. | ação update; muda o projeto; geometria conferida; resposta cita /painel/i | Pedido real de 26/09 (Luna): aumentar o painel até atrás do rack dava "Módulos sobrepostos" (painel e rack ocupando a mesma espessura na parede). A IA contornou, releu o projeto e desfez tudo com history_undo, que descartava o pedido inteiro. Agora o app prende o rack na frente do painel e o desfazer volta um passo. |
 
 ### navegacao · Desfazer, refazer e voltar versão
 
@@ -342,4 +344,4 @@ O que o benchmark **não** mede: qualidade do texto além das regex, aparência 
 | `edit-01` | agir | Deixe o nicho de destaque com 35 cm de largura e em nogueira, sem mexer no resto. | resultado do laço conferido; ação update; muda o projeto | Edição exata depois de uma composição: a medida pedida vale e o resto não muda. |
 | `imp-01` | livre | Coloque uma estante de vidro curva de 3 metros bem na frente da TV | resultado do laço conferido; ação update ou answer ou clarify; resposta cita /vidro\|curv/i | Pedido impossível de propósito: vidro e curva não existem, e na frente da TV tapa a tela. |
 
-Total: 92 casos em 21 grupos.
+Total: 94 casos em 21 grupos.

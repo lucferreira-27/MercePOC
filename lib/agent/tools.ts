@@ -240,8 +240,7 @@ const rowBuild = tool({
       ctx.attempted.push({ ops: plan.ops, error: r.error });
       return fail(`Recusado pela validação, nada mudou: ${r.error}`, 'Fileira recusada; ajustando');
     }
-    if (room !== ctx.room) ctx.room = room;
-    ctx.setDesign(r.design, plan.ops);
+    ctx.setDesign(r.design, plan.ops, room);
     const parts = plan.segments.map((v) => `${v.from}–${v.to} mm: ${v.ids.join(', ')} (compartimentos ${v.ids.map((id) => `${id}:root`).join(', ')})`);
     const count = plan.segments.reduce((n, v) => n + v.ids.length, 0);
     // A IA repetia a largura pedida na resposta ("bancada de 2 m") quando só
@@ -567,14 +566,23 @@ const historyGoto = tool({
 });
 const historyUndo = tool({
   name: 'history_undo',
-  description: 'Desfaz a última versão (como Ctrl+Z). Se este pedido já mudou algo, descarta essas mudanças em vez disso.',
-  args: z.object({}).strict(),
-  run: (ctx) => {
+  description:
+    'Desfaz a última versão (como Ctrl+Z). Se este pedido já mudou algo, desfaz só a última mudança deste pedido (a chamada anterior que mudou o desenho); com tudo: true, descarta todas as mudanças deste pedido.',
+  args: z.object({ tudo: z.boolean().optional() }).strict(),
+  run: (ctx, a) => {
     if (ctx.designChanged || ctx.roomChanged) {
-      // O rascunho sai inteiro: as operações dele ficam como desfeitas, fora
-      // do registro do que o pedido gravou.
+      // Um passo por vez: descartar o pedido inteiro jogava fora mudanças
+      // boas quando a IA só queria refazer a última. As operações que saem
+      // ficam como desfeitas, fora do registro do que o pedido gravou.
+      if (!a.tudo && ctx.stepBack()) {
+        const left = ctx.designChanged || ctx.roomChanged;
+        return ok(
+          `Desfiz a última mudança deste pedido. ${left ? `Ficam ${ctx.undoable} mudança(s) anteriores deste pedido; medidas agora ${mm(ctx.design)}.` : 'O rascunho voltou ao começo do pedido.'}`,
+          'Desfiz a última mudança',
+        );
+      }
       ctx.discard();
-      return ok('Descartei as mudanças deste pedido.', 'Descartei as mudanças');
+      return ok('Descartei todas as mudanças deste pedido.', 'Descartei as mudanças');
     }
     const r = undo(ctx.project);
     if (!r) return fail('Já está na primeira versão.');

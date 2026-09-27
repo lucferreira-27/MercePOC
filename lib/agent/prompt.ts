@@ -2,7 +2,7 @@ import { assetCatalogForPrompt } from '../assets';
 import { FINISHES } from '../gateway';
 import type { Message } from '../store';
 import type { AgentContext } from './context';
-import { contextSnapshot, quoteLine } from './snapshot';
+import { contextSnapshot, quoteLine, selectionLine } from './snapshot';
 
 /**
  * Regras fixas do assistente em laço. Ficam iguais entre pedidos e projetos
@@ -44,6 +44,7 @@ Contrato do desenho (design_apply), para ajuste exato que place e modify não fa
 - Em connect, side é o lado do PRÓPRIO módulo pai no referencial dele (right = +X local), não a direção na tela; um pai girado 90° ou 270° tem a direita em outro eixo do mundo. Só módulo sem conexão aceita module.edit position.
 - Cópia ("duplique", "cópias iguais"): module.duplicate e connect com shared:false; cópia é independente, com painéis próprios, a não ser que a pessoa peça painel compartilhado.
 - Montagem à mão (quando place não serve), um módulo por vez: module.add -> module.edit (nome e medidas) -> connect, e só então o próximo; dois módulos no mesmo lugar são recusados. Corpos vizinhos de mesma altura, profundidade, orientação e acabamento usam shared:true (um painel só entre eles, offset 0).
+- Painel de parede atrás de móvel da mesma parede (painel da TV que passa a pegar o rack, cabeceira atrás do criado): só aumente ou mova o painel até cobrir o fundo inteiro do móvel (e dos módulos ligados a ele nessa parede). O app prende a caixa ou prateleira na frente do painel, avançando a espessura dele, e o resultado diz quem ficou preso; painel que cobre só parte do fundo é recusado. Não mexa na profundidade do painel nem empurre o painel para trás da parede.
 - Ao criar ou ajustar módulo com medidas ditadas, aplique TODAS (largura, altura e profundidade).
 - Biblioteca (asset.add): sem foto, móvel conhecido pedido pelo nome (rack de TV, painel, cômoda, guarda-roupa, cozinha, aparador...) começa pelo ativo mais parecido, com as medidas e acabamentos pedidos; monte do zero só quando nada servir. placement "replace" troca o projeto pelo ativo; "right" ou "left" encosta ao lado do que existe. materialId é o corpo, frontMaterialId as frentes, feet a altura dos pés (0 tira). O resultado traz os ids novos: ajustes finos vão em outro design_apply no mesmo pedido. Catálogo:
 ${assetCatalogForPrompt()}
@@ -103,10 +104,12 @@ function recentTurns(messages: Message[]) {
 export function turnMessage(ctx: AgentContext, photo: boolean, request: string) {
   const p = ctx.project;
   const old = p.cursor < p.revisions.length - 1;
+  // A seleção fica colada no pedido: lá no fim do estado ela passava batido.
+  const selection = selectionLine(ctx.design, ctx.selected);
   return `Estado deste pedido (JSON): ${JSON.stringify(contextSnapshot(ctx))}
 ${quoteLine(ctx.design, ctx.prices)}${old ? `\nA pessoa está editando a versão ${p.cursor + 1} de ${p.revisions.length}: gravar descarta as versões seguintes.` : ''}
 Conversa recente: ${JSON.stringify(recentTurns(p.messages))}
 ${photo ? PHOTO_AGENT_RULES : ''}
-
+${selection ? `\n${selection}` : ''}
 Pedido: ${request}`;
 }

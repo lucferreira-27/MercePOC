@@ -1,0 +1,206 @@
+{
+  "about": "Parede da sala montada da foto real-sala-painel (painel da TV, faixa superior, duas prateleiras de parede, rack suspenso de dois módulos e a porta), antes de \"Maek those two match in weigth\" com a faixa e o painel selecionados.",
+  "source": {
+    "projectId": "f2dc70a3-f345-4886-97ba-1512287c5bd0",
+    "project": "Minha estante 74",
+    "revisionId": "17888d39-4feb-4668-9a91-b7d63388cba0",
+    "revisionNumber": 2,
+    "label": "Monta essa parede da minha sala: o painel da TV com o rack e a porta do lado."
+  },
+  "design": {
+    "schemaVersion": 3,
+    "profile": {
+      "version": 1,
+      "panel": 18,
+      "back": 6,
+      "front": 18,
+      "reveal": 2,
+      "drawer": 15,
+      "drawerBottom": 6,
+      "slideSpace": 13,
+      "rearSpace": 20
+    },
+    "modules": [
+      {
+        "id": "painel-tv",
+        "name": "Painel da TV",
+        "width": 2000,
+        "height": 1050,
+        "depth": 18,
+        "materialId": "freijo",
+        "back": false,
+        "position": [
+          1665,
+          750,
+          -166
+        ],
+        "rotation": 0,
+        "root": {
+          "id": "painel-tv:root"
+        },
+        "legacyIds": false,
+        "kind": "panel"
+      },
+      {
+        "id": "rack-tv",
+        "name": "Rack suspenso com duas portas 1",
+        "width": 1009,
+        "height": 350,
+        "depth": 450,
+        "materialId": "white",
+        "back": true,
+        "position": [
+          1169.5,
+          375,
+          50
+        ],
+        "rotation": 0,
+        "root": {
+          "id": "rack-tv:root",
+          "front": {
+            "id": "front-4e6a9d4c-c88",
+            "type": "single",
+            "hinge": "left",
+            "materialId": "white",
+            "heights": [
+              1
+            ]
+          }
+        },
+        "legacyIds": false,
+        "wall": true
+      },
+      {
+        "id": "rack-tv-2",
+        "name": "Rack suspenso com duas portas 2",
+        "width": 1009,
+        "height": 350,
+        "depth": 450,
+        "materialId": "white",
+        "back": true,
+        "position": [
+          2160.5,
+          375,
+          50
+        ],
+        "rotation": 0,
+        "root": {
+          "id": "rack-tv-2:root",
+          "front": {
+            "id": "front-716ab6a9-2bf",
+            "type": "single",
+            "hinge": "left",
+            "materialId": "white",
+            "heights": [
+              1
+            ]
+          }
+        },
+        "legacyIds": false,
+        "wall": true
+      },
+      {
+        "id": "prateleira-rack",
+        "name": "Prateleira sobre o rack",
+        "width": 2000,
+        "height": 25,
+        "depth": 400,
+        "materialId": "freijo",
+        "back": false,
+        "position": [
+          1665,
+          725,
+          25
+        ],
+        "rotation": 0,
+        "root": {
+          "id": "prateleira-rack:root"
+        },
+        "legacyIds": false,
+        "kind": "ledge"
+      },
+      {
+        "id": "prateleira-topo",
+        "name": "Prateleira superior",
+        "width": 2100,
+        "height": 25,
+        "depth": 250,
+        "materialId": "freijo",
+        "back": false,
+        "position": [
+          1665,
+          1800,
+          -50
+        ],
+        "rotation": 0,
+        "root": {
+          "id": "prateleira-topo:root"
+        },
+        "legacyIds": false,
+        "kind": "ledge"
+      },
+      {
+        "id": "faixa-topo",
+        "name": "Faixa superior do painel",
+        "width": 1900,
+        "height": 200,
+        "depth": 18,
+        "materialId": "freijo",
+        "back": false,
+        "position": [
+          1665,
+          1825,
+          -166
+        ],
+        "rotation": 0,
+        "root": {
+          "id": "faixa-topo:root"
+        },
+        "legacyIds": false,
+        "kind": "panel"
+      }
+    ],
+    "connections": [
+      {
+        "id": "connection-d3a765e7-14c",
+        "parent": "rack-tv",
+        "child": "rack-tv-2",
+        "side": "right",
+        "shared": true,
+        "align": "back",
+        "offset": 0
+      }
+    ]
+  },
+  "room": {
+    "schemaVersion": 1,
+    "widthMm": 3600,
+    "heightMm": 2600,
+    "depthMm": 4000,
+    "baseboardMm": 100,
+    "obstacles": [
+      {
+        "id": "door-1",
+        "kind": "door",
+        "label": "Porta à esquerda",
+        "xMm": 50,
+        "yMm": 0,
+        "widthMm": 800,
+        "heightMm": 2100
+      },
+      {
+        "id": "tv-1",
+        "kind": "tv",
+        "label": "TV",
+        "xMm": 1450,
+        "yMm": 850,
+        "widthMm": 1230,
+        "heightMm": 710
+      }
+    ],
+    "anchor": {
+      "x": -400,
+      "z": -175
+    }
+  }
+}

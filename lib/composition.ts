@@ -55,6 +55,13 @@ export type Module = {
   feet?: number;
   /** Suspenso de propósito, preso na parede (aéreo, rack suspenso). */
   wall?: boolean;
+  /**
+   * Preso na frente de um painel de parede (mountOnPanels): o grupo avançou
+   * `by` mm, a espessura do painel. Só na raiz do grupo e só o app escreve.
+   * Guardado para desfazer: painel que encolhe, sai ou muda de espessura
+   * devolve o móvel à parede ou reajusta.
+   */
+  mountedOn?: { panel: string; by: number };
 };
 export type Connection = {
   id: string;
@@ -231,6 +238,7 @@ export const compositionSchema = z
             kind: z.enum(['panel', 'ledge']).optional(),
             feet: z.number().min(0).max(PANEL_LIMITS.feet[1]).optional(),
             wall: z.boolean().optional(),
+            mountedOn: z.object({ panel: mid, by: z.number().int().min(1).max(PANEL_LIMITS.thickness[1]) }).strict().optional(),
           })
           .strict()
           .superRefine((m, ctx) => {
@@ -1192,6 +1200,127 @@ function resizeCells(node: Cell, oldSize: number[], newSize: number[]) {
     resizeCells(child, prev, next);
   });
 }
+/** Eixo da frente (z local) e lateral (x local) de uma rotação, no plano xz do mundo. */
+function axes(rotation: number) {
+  const a = (rotation * Math.PI) / 180;
+  return {
+    front: (p: Vec) => p[0] * Math.sin(a) + p[2] * Math.cos(a),
+    side: (p: Vec) => p[0] * Math.cos(a) - p[2] * Math.sin(a),
+    // Rotação em múltiplos de 90°: andar para a frente é um eixo só.
+    step: [Math.round(Math.sin(a)), Math.round(Math.cos(a))] as const,
+  };
+}
+function forward(m: Module, by: number) {
+  const { step } = axes(m.rotation);
+  m.position = [m.position[0] + by * step[0], m.position[1], m.position[2] + by * step[1]];
+}
+/** Solta todo grupo preso num painel: volta para a linha da parede. Devolve quanto cada raiz tinha avançado. */
+export function unmountPanels(d: Composition) {
+  const was = new Map<string, { panel: string; by: number }>();
+  for (const m of d.modules)
+    if (m.mountedOn) {
+      was.set(m.id, m.mountedOn);
+      forward(m, -m.mountedOn.by);
+      delete m.mountedOn;
+    }
+  if (was.size) settle(d, false);
+  return was;
+}
+export type Mounting = {
+  /** Módulos que encostam num painel sem que ele cubra o fundo inteiro do grupo: segue a sobreposição. */
+  partial: { module: string; panel: string }[];
+  /** Raízes presas agora, com o painel e quanto avançaram. */
+  mounted: { module: string; panel: string; by: number }[];
+};
+/**
+ * Painel de parede atrás de um móvel na mesma parede: o móvel fica preso na
+ * frente do painel, avançando a espessura dele, em vez de "Módulos
+ * sobrepostos". Sem isto, aumentar o painel da TV até atrás do rack era
+ * recusado e a IA contornava mexendo no painel.
+ *
+ * Só quando o painel cobre o fundo inteiro de todos os módulos do grupo
+ * conectado que estão nessa linha de parede (mesma orientação, fundo dentro
+ * da espessura do painel). Painel que pega só a borda de um armário, ou só o
+ * de cima de uma pilha, continua sendo sobreposição: empurrar tiraria da
+ * linha quem não está coberto. Deve rodar depois de `unmountPanels`, para o
+ * vínculo ser recalculado do zero (painel que encolheu ou saiu solta).
+ */
+export function mountOnPanels(d: Composition): Mounting {
+  const parentOf = new Map(d.connections.map((c) => [c.child, c.parent]));
+  const rootOf = (id: string) => {
+    while (parentOf.has(id)) id = parentOf.get(id)!;
+    return id;
+  };
+  const groups = new Map<string, Module[]>();
+  for (const m of d.modules) groups.set(rootOf(m.id), [...(groups.get(rootOf(m.id)) ?? []), m]);
+  const partial: Mounting['partial'] = [];
+  const push = new Map<string, { panel: string; by: number }>();
+  for (const p of d.modules.filter((m) => m.kind === 'panel')) {
+    const { front, side } = axes(p.rotation);
+    const back = front(p.position) - p.depth / 2,
+      face = back + p.depth,
+      left = side(p.position) - p.width / 2,
+      right = left + p.width,
+      bottom = p.position[1],
+      top = bottom + p.height;
+    const span = (m: Module) => {
+      const low = m.position[1] + (m.feet ?? 0);
+      return { back: front(m.position) - m.depth / 2, left: side(m.position) - m.width / 2, right: side(m.position) + m.width / 2, low, high: low + m.height };
+    };
+    for (const [root, members] of groups) {
+      if (root === p.id || moduleBy(d, root).rotation !== p.rotation) continue;
+      // Linha da parede do painel: fundo dentro da espessura dele.
+      const line = members.filter((m) => {
+        if (m.kind === 'panel' || m.rotation !== p.rotation) return false;
+        const b = span(m).back;
+        return b >= back - 1 && b <= face - 1;
+      });
+      const touching = line.filter((m) => {
+        const s = span(m);
+        return Math.min(s.right, right) - Math.max(s.left, left) > 1 && Math.min(s.high, top) - Math.max(s.low, bottom) > 1;
+      });
+      if (!touching.length) continue;
+      const covered = line.every((m) => {
+        const s = span(m);
+        return s.left >= left - 1 && s.right <= right + 1 && s.low >= bottom - 1 && s.high <= top + 1;
+      });
+      if (!covered) {
+        partial.push(...touching.map((m) => ({ module: m.id, panel: p.id })));
+        continue;
+      }
+      const by = Math.ceil(face - Math.min(...line.map((m) => span(m).back)) - 1e-6);
+      if (by > (push.get(root)?.by ?? 0)) push.set(root, { panel: p.id, by });
+    }
+  }
+  for (const [id, mount] of push) {
+    const m = moduleBy(d, id);
+    forward(m, mount.by);
+    m.mountedOn = mount;
+  }
+  if (push.size) settle(d, false);
+  return { partial, mounted: [...push].map(([module, v]) => ({ module, ...v })) };
+}
+/**
+ * Erro de validação depois de prender em painel, em frase que diz o motivo:
+ * painel que cobre só parte do fundo, ou o avanço que bateu em outro móvel.
+ */
+function mountingError(d: Composition, mounting: Mounting, before: Map<string, { panel: string; by: number }>, e: unknown) {
+  const message = (e as Error).message;
+  if (!message.startsWith('Módulos sobrepostos')) return e;
+  const name = (id: string) => d.modules.find((m) => m.id === id)?.name ?? id;
+  const part = mounting.partial.find((v) => message.includes(name(v.module)) && message.includes(name(v.panel)));
+  if (part)
+    return new Error(
+      `${name(part.panel)} cobre só parte do fundo de ${name(part.module)} (ou dos módulos ligados a ele na parede). Para prender o móvel na frente do painel, o painel precisa cobrir o fundo inteiro; senão, afaste ou encolha o painel.`,
+    );
+  const fresh = mounting.mounted.filter((v) => before.get(v.module)?.by !== v.by);
+  const hit = fresh.find((v) => message.includes(name(v.module)));
+  if (hit)
+    return new Error(
+      `Ao prender ${name(hit.module)} na frente de ${name(hit.panel)} (avança ${hit.by} mm), ele bateu em outro móvel. ${message}`,
+    );
+  return e;
+}
 export function applyModularOp(
   input: Composition,
   raw: ModularOp,
@@ -1207,6 +1336,9 @@ export function applyModularOp(
       connections: input.connections,
     });
   settle(d, validate);
+  // A operação trabalha na linha da parede; quem fica preso em painel é
+  // recalculado no fim (painel que encolheu ou saiu devolve o móvel à parede).
+  const was = unmountPanels(d);
   if (op.kind === 'module.add' || op.kind === 'module.duplicate') {
     let m: Module;
     if (op.kind === 'module.add') {
@@ -1224,7 +1356,7 @@ export function applyModularOp(
       });
     }
     const right = Math.max(
-      ...generateComposition(d).parts.map((p) => bounds(p).max[0]),
+      ...generateComposition(d, false).parts.map((p) => bounds(p).max[0]),
     );
     m.name = uniqueName(d, m.name);
     m.position = [
@@ -1238,6 +1370,14 @@ export function applyModularOp(
     const { kind: _, id: __, ...patch } = op;
     if (d.connections.some((c) => c.child === m.id) && op.position)
       throw new Error('Separe o módulo antes de mover sua posição.');
+    // Posição lida do estado de um móvel preso em painel vem já avançada: na
+    // mesma profundidade é um arrasto de lado ou de altura, e ele segue preso.
+    const mount = was.get(m.id);
+    if (mount && patch.position) {
+      const { front, step } = axes(m.rotation);
+      if (Math.abs(front(patch.position) - (front(m.position) + mount.by)) <= 1)
+        patch.position = [patch.position[0] - mount.by * step[0], patch.position[1], patch.position[2] - mount.by * step[1]];
+    }
     // Pés numa fileira de painéis compartilhados valem para a fileira toda:
     // metade com pés e metade sem é uma lateral que não fecha.
     if (op.feet !== undefined) {
@@ -1425,7 +1565,14 @@ export function applyModularOp(
     }
   }
   settle(d, validate);
-  if (validate) generateComposition(d);
+  const mounting = mountOnPanels(d);
+  settle(d, validate);
+  if (validate)
+    try {
+      generateComposition(d);
+    } catch (e) {
+      throw mountingError(d, mounting, was, e);
+    }
   // Erro de schema vira frase para a pessoa, não o JSON do validador.
   const checked = compositionSchema.safeParse(d);
   if (!checked.success) throw new Error(validationMessage(checked.error));

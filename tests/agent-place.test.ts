@@ -185,6 +185,18 @@ void test('prateleira de parede: tábua horizontal presa na parede, com limites 
   const board = generateDesign(ok.design).parts.find((p) => p.id === 'pp:ledge')!;
   assert.equal(board.kind, 'shelf');
   assert.deepEqual([board.c, board.l, board.thickness], [900, 280, 30], 'corta como tábua: comprimento × fundo × espessura');
+  // O chat lê as prateleiras antes de cada turno: a de parede não tem vão e
+  // derrubava todo pedido do projeto.
+  const { shelfInfos } = await import('../lib/studio');
+  const withNiche = executeRequest(ok.design, [
+    { kind: 'module.add', id: 'n', preset: 'niche' },
+    { kind: 'cell.split', id: 'n:root', axis: 'y' },
+  ]);
+  assert.ok(withNiche.ok, !withNiche.ok ? withNiche.error : '');
+  if (!withNiche.ok) return;
+  const infos = shelfInfos(withNiche.design);
+  assert.ok(!infos.some((s) => s.id === 'pp:ledge'), 'prateleira de parede fica fora');
+  assert.equal(infos.length, 1, 'a prateleira do nicho continua listada');
   const thick = executeRequest(ok.design, [{ kind: 'module.edit', id: 'pp', height: 80 }]);
   assert.ok(!thick.ok && /15 a 60 mm de espessura/.test(thick.error));
   const split = executeRequest(ok.design, [{ kind: 'cell.split', id: 'pp:root', axis: 'y' }]);
