@@ -69,10 +69,13 @@ export function buildDims(parts: readonly Part[], bounds: SceneBounds, room: Roo
   const tallest = spans.reduce<(typeof spans)[number] | null>((a, b) => (!a || b.top > a.top ? b : a), null);
   const heightZ = tallest ? tallest.front : z1;
   dim(new THREE.Vector3(x0 - 140, y0, heightZ), new THREE.Vector3(x0 - 140, y1, heightZ), new THREE.Vector3(-1, 0, 0), cmLabel(y1 - y0), 'main');
-  // Profundidade no lado esquerdo, junto da altura: à direita ela disputava
-  // lugar com o espaço livre até a parede. Na base do móvel, não no chão: num
-  // rack suspenso ela ficava solta embaixo dele, coberta pelo livre à esquerda.
-  dim(new THREE.Vector3(x0 - 140, y0, z0), new THREE.Vector3(x0 - 140, y0, z1), new THREE.Vector3(-1, 0, 0), cmLabel(z1 - z0), 'main');
+  // Profundidade no lado direito: as vistas perspectiva e lateral olham da
+  // direita, e do lado esquerdo a linha ficava escondida atrás do móvel, só
+  // com o rótulo solto. Móvel suspenso: na aresta de baixo, junto do vão até o
+  // chão. Móvel no piso: na aresta de cima, porque rente ao chão o rótulo caía
+  // sobre o livre até a parede da direita.
+  const depthY = y0 > 5 ? y0 : y1;
+  dim(new THREE.Vector3(x1 + 140, depthY, z0), new THREE.Vector3(x1 + 140, depthY, z1), new THREE.Vector3(1, 0, 0), cmLabel(z1 - z0), 'main');
   if (spans.length > 1) {
     const seen = new Set<string>();
     for (const s of spans) {
@@ -103,9 +106,9 @@ export function buildDims(parts: readonly Part[], bounds: SceneBounds, room: Roo
   }
   // Vão até o chão de um móvel suspenso (rack flutuante, aéreo): sem ela a
   // altura geral começava no ar e as cotas verticais não fechavam o pé-direito.
-  // Fica à direita: à esquerda, rente ao chão, o rótulo caía sobre a profundidade.
+  // Na mesma coluna do livre até o teto, fechando a corrente chão, móvel, teto.
   if (y0 > 5)
-    dim(new THREE.Vector3(x1 + 140, 0, heightZ), new THREE.Vector3(x1 + 140, y0, heightZ), new THREE.Vector3(1, 0, 0), `livre ${cmLabel(y0)}`, 'free');
+    dim(new THREE.Vector3(x0 - 360, 0, heightZ), new THREE.Vector3(x0 - 360, y0, heightZ), new THREE.Vector3(-1, 0, 0), `livre ${cmLabel(y0)}`, 'free');
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
   const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.85, depthTest: false });
