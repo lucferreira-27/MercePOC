@@ -825,6 +825,16 @@ function FurnitureView({
       latest.current.onSelectObstacle?.(null);
       callback.current(first?.object.userData.id ?? null, e.shiftKey);
     };
+    // Um texto selecionado na página (o chat, as cotas) virava arrasto de
+    // texto do navegador por cima da cena: apertar na cena solta a seleção.
+    const releaseText = (e: PointerEvent) => {
+      if ((e.target as HTMLElement).closest('input, textarea, [contenteditable="true"]')) return;
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed) sel.removeAllRanges();
+    };
+    const noDrag = (e: DragEvent) => e.preventDefault();
+    el.addEventListener('pointerdown', releaseText, { capture: true });
+    el.addEventListener('dragstart', noDrag);
     renderer.domElement.addEventListener('pointerdown', start, { capture: true });
     renderer.domElement.addEventListener('pointerup', pick);
     renderer.domElement.addEventListener('pointercancel', dragEnd);
@@ -948,6 +958,8 @@ function FurnitureView({
     return () => {
       window.clearTimeout(tipTimer);
       cancelAnimationFrame(frame);
+      el.removeEventListener('pointerdown', releaseText, { capture: true });
+      el.removeEventListener('dragstart', noDrag);
       resize.disconnect();
       controls.dispose();
       motion.dispose();

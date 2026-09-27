@@ -423,6 +423,21 @@ export function restoreChat(p: Project) {
   p.messages = [...saved.messages, ...p.messages.filter((m) => m.id !== saved.noteId)];
   delete p.clearedChat;
 }
+/**
+ * Editar um pedido já enviado: a conversa volta para antes dele e o projeto
+ * para a versão em que ele foi feito. As versões seguintes só saem quando o
+ * pedido editado criar uma nova (revise), como em qualquer edição do passado.
+ */
+export function rewindChat(p: Project, messageId: string) {
+  const i = p.messages.findIndex((m) => m.id === messageId);
+  const m = p.messages[i];
+  if (!m || m.role !== 'user') throw new Error('Não encontrei a mensagem para editar. Recarregue.');
+  const baseId = m.context?.baseRevisionId ?? m.revisionId;
+  const cursor = p.revisions.findIndex((r) => r.id === baseId);
+  if (cursor < 0) throw new Error('A versão desta mensagem foi descartada; envie como um pedido novo.');
+  p.messages = p.messages.slice(0, i);
+  moveCursor(p, cursor);
+}
 /** Devolve quantas revisões futuras foram descartadas (0 quando nada se perde). */
 export function revise(p: Project, params: Design, label: string) {
   generateDesign(params);

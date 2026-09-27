@@ -317,6 +317,10 @@ export default function Home() {
     [thumbs, setThumbs] = useState<Record<string, string>>({}),
     [pendingImage, setPendingImage] = useState<ImageRef | null>(null),
     [failedTurn, setFailedTurn] = useState<{ text: string; image: ImageRef | null; error: string; requestId: string } | null>(null),
+    // Pedido já enviado aberto para editar, e o que some da conversa enquanto
+    // a versão editada roda (a mensagem e tudo depois dela).
+    [editing, setEditing] = useState<{ id: string; text: string } | null>(null),
+    [editCut, setEditCut] = useState<string | null>(null),
     [forkName, setForkName] = useState(''),
     [uploading, setUploading] = useState(false),
     [historyPreview, setHistoryPreview] = useState<number | null>(null),
@@ -411,6 +415,18 @@ export default function Home() {
   // A ação pendente do cartão de confirmação vive num ref: o cartão é render do
   // estado atual e o callback precisa enxergar o mesmo fechamento que o criou.
   const confirmAction = useRef<(() => void) | null>(null);
+  // De onde a alternativa sai, e o que fazer depois dela (editar uma mensagem
+  // antiga parte da versão da mensagem, não da que está na tela).
+  const confirmFork = useRef<{ cursor: number; after?: () => void } | null>(null);
+  const editBox = useRef<HTMLTextAreaElement>(null);
+  const editingId = editing?.id;
+  // Abriu o editor: foco no campo, cursor no fim do texto.
+  useEffect(() => {
+    const el = editBox.current;
+    if (!editingId || !el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, [editingId]);
   // Buffer local do raciocínio exibido: o contrato do evento traz só o pedaço
   // novo, o painel acumula (mantendo o fim).
   const [reasoningView, setReasoningView] = useState('');
@@ -501,6 +517,15 @@ export default function Home() {
   const toggleRoom = remembered('merce-room', setShowRoom);
   const toggleChat = remembered('merce-chat', setChatOpen);
   const toggleInspector = remembered('merce-inspector', setInspectorOpen);
+  /** Copia o texto de uma mensagem; sem permissão da área de transferência, não faz nada. */
+  const copyMessage = (id: string | undefined, value: string) =>
+    void navigator.clipboard
+      ?.writeText(value)
+      .then(() => {
+        setCopied(id ?? '');
+        setTimeout(() => setCopied(''), 1500);
+      })
+      .catch(() => {});
   const chooseTab = (next: Tab) => {
     setTab(next);
     writeLocal('merce-tab', next);
@@ -577,22 +602,59 @@ export default function Home() {
    * acontecia em silêncio: agora a pessoa escolhe entre descartar e criar uma
    * alternativa que preserva o caminho atual.
    */
-  const guardTruncation = (run: () => void | Promise<void>, what: string) => {
-    if (!p || p.cursor >= p.revisions.length - 1) {
+  const guardTruncation = (
+    run: () => void | Promise<void>,
+    what: string,
+    base = p?.cursor ?? 0,
+    afterFork?: () => void,
+  ) => {
+    if (!p || base >= p.revisions.length - 1) {
       return run();
     }
     confirmAction.current = () => void run();
+    confirmFork.current = { cursor: base, after: afterFork };
     setConfirm({
-      from: p.cursor + 1,
-      next: p.cursor + 2,
+      from: base + 1,
+      next: base + 2,
       what,
-      lost: p.revisions.slice(p.cursor + 1).map((r) => ({ number: r.number, label: r.label })),
+      lost: p.revisions.slice(base + 1).map((r) => ({ number: r.number, label: r.label })),
     });
     return undefined;
   };
   const closeConfirm = () => {
     confirmAction.current = null;
+    confirmFork.current = null;
     setConfirm(null);
+  };
+  /** Versão em que o pedido foi feito; -1 quando ela já foi descartada. */
+  const baseCursorOf = (m: Message) => {
+    const baseId = m.context?.baseRevisionId ?? m.revisionId;
+    return p ? p.revisions.findIndex((r) => r.id === baseId) : -1;
+  };
+  /**
+   * Reenvia um pedido editado: a conversa volta para antes dele e o projeto
+   * para a versão em que foi feito. Se houver versões depois dela, a mesma
+   * janela de sempre pergunta: descartar ou abrir uma alternativa.
+   */
+  const submitEdit = (m: Message) => {
+    const value = editing?.text.trim();
+    if (!p || busy || !value) return;
+    const base = baseCursorOf(m);
+    if (base < 0) return;
+    const short = value.length > 60 ? `${value.slice(0, 60)}…` : value;
+    void guardTruncation(
+      () => {
+        setEditing(null);
+        void send(value, undefined, undefined, true, { id: m.id, image: m.image ?? null });
+      },
+      `Editar o pedido para "${short}"`,
+      base,
+      () => {
+        // Na alternativa o pedido editado espera no campo, pronto para enviar.
+        setEditing(null);
+        setText(value);
+      },
+    );
   };
   async function openProject(id: string) {
     setBusy(true);
@@ -1525,9 +1587,11 @@ export default function Home() {
     replyTo?: { clarificationId: string; optionId?: string },
     retry?: { text: string; image: ImageRef | null; requestId: string },
     confirmed = false,
+    /** Pedido já enviado que este substitui (a foto dele vai junto). */
+    edit?: { id: string; image: ImageRef | null },
   ) {
     if (!p || busy) return;
-    const sentImage = retry?.image ?? attachment;
+    const sentImage = edit ? edit.image : (retry?.image ?? attachment);
     const sentText = (retry?.text ?? value).trim();
     if (!sentText && !sentImage && !replyTo) return;
     const message = sentText || 'Use esta imagem como referência para a estante.';
@@ -1549,7 +1613,9 @@ export default function Home() {
     let serverRecorded = false;
     draftDuringWait.current = draft.current;
     setPendingImage(sentImage);
-    setAttachment(null);
+    // A foto anexada no campo é de outro pedido: editar não a consome.
+    if (!edit) setAttachment(null);
+    setEditCut(edit?.id ?? null);
     setBusy(true);
     setError('');
     setNotice('');
@@ -1601,6 +1667,7 @@ export default function Home() {
           imageId: sentImage?.id,
           selected,
           requestId,
+          ...(edit ? { editOf: edit.id } : {}),
           model,
           prices,
           agent: agentOn,
@@ -1733,7 +1800,12 @@ export default function Home() {
       // Sem registro no servidor (falha antes de salvar): cartão local e o
       // texto volta ao campo. Com registro, o histórico já tem o cartão
       // repetível e duplicá-lo confundiria.
-      if (!serverRecorded) {
+      if (!serverRecorded && edit) {
+        // Nada foi gravado: a conversa volta como estava e o editor reabre
+        // com o texto, para tentar de novo sem perder o que foi escrito.
+        setEditing({ id: edit.id, text: message });
+        setError(friendlyError(e));
+      } else if (!serverRecorded) {
         setFailedTurn({ text: message, image: sentImage, error: friendlyError(e), requestId });
         if (draftDuringWait.current) {
           setText(draftDuringWait.current);
@@ -1758,6 +1830,7 @@ export default function Home() {
       setReasoningView('');
       setAgentRunning(null);
       setAgentDraft(null);
+      setEditCut(null);
       setBusy(false);
       draftDuringWait.current = '';
     }
@@ -2008,6 +2081,9 @@ export default function Home() {
   // Só a falha mais recente oferece repetir: cada erro antigo com o próprio
   // "Tentar novamente" enchia a conversa de botões que ninguém ia usar.
   const lastUserIndex = p ? p.messages.findLastIndex((m) => m.role === 'user') : -1;
+  // Enquanto o pedido editado roda, ele e o que veio depois já saíram da conversa.
+  const cutAt = editCut && p ? p.messages.findIndex((m) => m.id === editCut) : -1;
+  const shownMessages = !p ? [] : cutAt >= 0 ? p.messages.slice(0, cutAt) : p.messages;
   // Identidade fixa para os filhos memorizados (cena 3D e editor): sem isso
   // qualquer render da página, como um pulso da IA, redesenhava os dois.
   const selectInScene = useEvent((id: string | null, extend?: boolean) =>
@@ -2260,9 +2336,56 @@ export default function Home() {
                 </div>
               </div>
             )}
-            {p?.messages.map((m, i) => {
+            {p && shownMessages.map((m, i) => {
               const rev = revisionState(m);
               const clar = m.clarification;
+              if (m.role === 'user' && editing?.id === m.id) {
+                const base = p.revisions[baseCursorOf(m)];
+                return (
+                  <form
+                    className="message user editing"
+                    key={m.id}
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      submitEdit(m);
+                    }}
+                  >
+                    <div className="msg-edit">
+                      {m.image && <img className="msg-edit-image" src={m.image.url} alt={m.image.name} />}
+                      <textarea
+                        ref={editBox}
+                        value={editing.text}
+                        aria-label="Editar o pedido"
+                        maxLength={4000}
+                        onChange={(e) => setEditing({ id: m.id, text: e.target.value })}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') {
+                            e.preventDefault();
+                            setEditing(null);
+                          } else if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                            e.preventDefault();
+                            submitEdit(m);
+                          }
+                        }}
+                      />
+                      <div className="msg-edit-foot">
+                        <small>
+                          <History size={12} />
+                          {base ? `Volta para a versão ${base.number} e refaz o pedido` : 'Refaz o pedido'}
+                        </small>
+                        <span className="msg-edit-buttons">
+                          <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(null)}>
+                            Cancelar
+                          </Button>
+                          <Button type="submit" size="sm" className="msg-edit-send" disabled={busyLook || !editing.text.trim()}>
+                            Enviar
+                          </Button>
+                        </span>
+                      </div>
+                    </div>
+                  </form>
+                );
+              }
               return (
               <div className={'message ' + m.role} key={m.id ?? i}>
                 {m.role === 'assistant' && (
@@ -2461,12 +2584,7 @@ export default function Home() {
                             type="button"
                             title="Copiar o texto da resposta"
                             aria-label="Copiar o texto da resposta"
-                            onClick={() => {
-                              void navigator.clipboard?.writeText(m.report?.prose || m.content).then(() => {
-                                setCopied(m.id);
-                                setTimeout(() => setCopied(''), 1500);
-                              });
-                            }}
+                            onClick={() => copyMessage(m.id, m.report?.prose || m.content)}
                           >
                             {copied === m.id ? <Check size={13} /> : <Copy size={13} />}
                           </button>
@@ -2489,6 +2607,36 @@ export default function Home() {
                     </div>
                   )}
                 </div>
+                {m.role === 'user' && m.content && (
+                  <div className="msg-user-actions">
+                    {baseCursorOf(m) >= 0 && !m.clarificationId && (
+                      <button
+                        type="button"
+                        title="Editar e reenviar: o projeto volta para antes deste pedido"
+                        aria-label="Editar a mensagem"
+                        disabled={busyLook}
+                        onClick={() => setEditing({ id: m.id, text: m.content })}
+                      >
+                        <Pencil size={13} />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className={copied === m.id ? 'done' : undefined}
+                      title="Copiar a mensagem"
+                      aria-label={copied === m.id ? 'Mensagem copiada' : 'Copiar a mensagem'}
+                      onClick={() => copyMessage(m.id, m.content)}
+                    >
+                      {copied === m.id ? (
+                        <>
+                          <Check size={13} /> Copiado
+                        </>
+                      ) : (
+                        <Copy size={13} />
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
               );
             })}
@@ -3388,9 +3536,9 @@ export default function Home() {
           busy={busyLook}
           onCancel={closeConfirm}
           onFork={() => {
-            const cursor = p?.cursor ?? 0;
+            const target = confirmFork.current ?? { cursor: p?.cursor ?? 0 };
             closeConfirm();
-            void forkFrom(cursor);
+            void forkFrom(target.cursor).then(() => target.after?.());
           }}
           onDiscard={() => {
             const run = confirmAction.current;

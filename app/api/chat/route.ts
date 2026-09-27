@@ -1,5 +1,5 @@
 import { applyObstacleEdits } from '@/lib/room';
-import { applyRequest, get, moveCursor, save, settleRoom, view, revise, type Clarification, type Message } from '@/lib/store';
+import { applyRequest, get, moveCursor, rewindChat, save, settleRoom, view, revise, type Clarification, type Message } from '@/lib/store';
 import { sameOrigin } from '@/lib/utils';
 import { interpretStream, reviewAndCorrect, withFallback, type CheckedReview } from '@/lib/gateway';
 import { materials } from '@/lib/furniture';
@@ -110,6 +110,8 @@ export async function POST(req: Request) {
         requestId: z.string().trim().min(8).max(64).optional(),
         clarificationId: z.string().trim().min(1).max(64).optional(),
         optionId: z.string().trim().min(1).max(64).optional(),
+        /** Pedido já enviado que esta mensagem substitui: a conversa e o projeto voltam para antes dele. */
+        editOf: z.string().trim().min(1).max(64).optional(),
         fast: z.boolean().optional(),
         /** Modelo escolhido no compositor; `fast` segue valendo para scripts antigos. */
         model: z.enum(MODEL_KEYS).optional(),
@@ -159,6 +161,7 @@ export async function POST(req: Request) {
     if (replay) return Response.json(view(p));
     if (p.version !== b.version)
       throw new Error('O projeto mudou. Recarregue e tente novamente.');
+    if (b.editOf) rewindChat(p, b.editOf);
     id = b.id;
     busy.add(id);
     // A mensagem do usuário é gravada antes de chamar a IA: recarregar no meio
