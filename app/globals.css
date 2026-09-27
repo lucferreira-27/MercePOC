@@ -840,7 +840,9 @@ kbd {
   overflow-wrap: anywhere;
 }
 .message.user {
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
 }
 .message.user .message-body {
   flex: 0 1 auto;
@@ -1648,9 +1650,124 @@ kbd {
   color: var(--faint);
 }
 @media (hover: none) {
-  .msg-actions {
+  .msg-actions,
+  .msg-user-actions {
     opacity: 1;
   }
+}
+/* Ações da própria mensagem: faixa embaixo do balão, alinhada à direita, que
+   aparece com o mouse. O espaço fica reservado para a conversa não pular. */
+.msg-user-actions {
+  display: flex;
+  justify-content: flex-end;
+  height: 24px;
+  margin-top: 3px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.message.user:hover .msg-user-actions,
+.msg-user-actions:focus-within,
+.msg-user-actions:has(.done) {
+  opacity: 1;
+}
+.msg-user-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 26px;
+  height: 24px;
+  padding: 0 6px;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: none;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 650;
+}
+.msg-user-actions button:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+.msg-user-actions button.done {
+  color: var(--accent);
+}
+/* Editar um pedido enviado: o balão vira um campo na largura da conversa,
+   com a versão para onde o projeto volta e os botões embaixo. */
+.msg-edit {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+  padding: 10px 10px 8px 12px;
+  border: 1px solid var(--accent-line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.msg-edit:focus-within {
+  border-color: var(--accent);
+}
+.msg-edit-image {
+  max-width: 120px;
+  max-height: 90px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.msg-edit textarea {
+  width: 100%;
+  min-height: 44px;
+  max-height: 220px;
+  field-sizing: content;
+  resize: none;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  box-shadow: none;
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.6;
+}
+/* O anel de foco é do cartão inteiro, não do campo dentro dele. */
+.msg-edit textarea:focus,
+.msg-edit textarea:focus-visible {
+  box-shadow: none;
+  outline: none;
+}
+.msg-edit-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+/* Coluna estreita: a dica fica numa linha e os botões descem, à direita. */
+.msg-edit-foot small {
+  flex: 1 1 170px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+.msg-edit-buttons {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.msg-edit-foot .msg-edit-send {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.msg-edit-foot small svg {
+  flex: none;
+}
+/* O realce padrão é a cor de destaque: some no balão que já é dessa cor. */
+.message.user .message-body::selection,
+.message.user .message-body *::selection {
+  background: color-mix(in srgb, var(--accent-ink) 38%, transparent);
+  color: var(--accent-ink);
 }
 
 /* Progresso ao vivo do turno: o que está rodando agora (ícone da ferramenta
@@ -2321,6 +2438,10 @@ svg.tp-time {
   position: absolute;
   inset: 0;
   --stage-top: inherit;
+  /* Cotas e etiquetas não entram numa seleção de texto: arrastar na cena é
+     sempre mover a vista ou o móvel. */
+  user-select: none;
+  -webkit-user-select: none;
   /* Entra por cima do carregamento, sem corte seco. */
   animation: scene-in 0.35s ease-out;
 }
