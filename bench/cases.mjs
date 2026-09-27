@@ -647,6 +647,39 @@ export const cases = [
     },
     learned: 'A seleção explícita tem precedência sobre qualquer referência anterior.',
   },
+  {
+    id: 'ref-03',
+    group: 'referencia',
+    askAct: 'livre',
+    agentOnly: true,
+    // O pedido gravado, em inglês e com os erros de digitação da pessoa.
+    prompt: 'Maek those two match in weigth, so increase the one that i smaller',
+    setup: {
+      scene: 'bench/scenes/painel-faixa.json',
+      history: [
+        { role: 'user', content: 'Monta essa parede da minha sala: o painel da TV com o rack e a porta do lado.', image: 'bench/images/real-sala-painel.jpg' },
+        {
+          role: 'assistant',
+          content:
+            'Montei na parede da sala a porta à esquerda, o painel amadeirado com TV, a prateleira superior e o rack branco suspenso com duas portas, estimando as proporções pela porta padrão de 80 × 210 cm. As medidas são aproximadas (erro esperado de ±10–20%); uma medida real da parede e da porta ajudaria a fechar o dimensionamento. A foto inclui objetos decorativos e um acabamento de parede que não fazem parte do móvel.',
+        },
+      ],
+      selected: ['faixa-topo:panel', 'painel-tv:panel'],
+    },
+    expect: {
+      action: ['update', 'clarify'],
+      design: (design, helpers) => {
+        const width = (d, id) => d.modules.find((m) => m.id === id)?.width;
+        if (width(design, 'painel-tv') !== 2000) return 'mexeu no painel da TV, que já era o maior';
+        if (Math.abs(width(design, 'faixa-topo') - 2000) > 1) return `faixa com ${width(design, 'faixa-topo')} mm, não 2000`;
+        const other = helpers.before.modules.find((m) => !['faixa-topo', 'painel-tv'].includes(m.id) && JSON.stringify(m) !== JSON.stringify(design.modules.find((v) => v.id === m.id)));
+        return other ? `mexeu em ${other.name}, fora da seleção` : true;
+      },
+      content: { mustMatch: [/faixa|painel/i], mustNotMatch: [/rack/i] },
+    },
+    learned:
+      'Pedido real de 26/09 (Luna) com a faixa (1900 mm) e o painel da TV (2000 mm) selecionados: a IA escolheu os dois módulos do rack, iguais entre si, e respondeu que não precisava mudar nada. A seleção ia só como ids no fim do estado; agora vai com nome e medida logo antes do pedido.',
+  },
 
   // ----------------------------------------------------------------- navegacao
   {

@@ -2,7 +2,7 @@ import { assetCatalogForPrompt } from '../assets';
 import { FINISHES } from '../gateway';
 import type { Message } from '../store';
 import type { AgentContext } from './context';
-import { contextSnapshot, quoteLine } from './snapshot';
+import { contextSnapshot, quoteLine, selectionLine } from './snapshot';
 
 /**
  * Regras fixas do assistente em laço. Ficam iguais entre pedidos e projetos
@@ -103,10 +103,12 @@ function recentTurns(messages: Message[]) {
 export function turnMessage(ctx: AgentContext, photo: boolean, request: string) {
   const p = ctx.project;
   const old = p.cursor < p.revisions.length - 1;
+  // A seleção fica colada no pedido: lá no fim do estado ela passava batido.
+  const selection = selectionLine(ctx.design, ctx.selected);
   return `Estado deste pedido (JSON): ${JSON.stringify(contextSnapshot(ctx))}
 ${quoteLine(ctx.design, ctx.prices)}${old ? `\nA pessoa está editando a versão ${p.cursor + 1} de ${p.revisions.length}: gravar descarta as versões seguintes.` : ''}
 Conversa recente: ${JSON.stringify(recentTurns(p.messages))}
 ${photo ? PHOTO_AGENT_RULES : ''}
-
+${selection ? `\n${selection}` : ''}
 Pedido: ${request}`;
 }

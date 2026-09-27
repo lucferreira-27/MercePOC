@@ -94,10 +94,15 @@ export function designOf(d: Design) {
 export function shelfInfos(d: Design) {
   if (d.modules.length === 1 && d.modules[0].legacyIds)
     return old.shelfInfos(legacyProjection(d));
+  // Só prateleira de compartimento (divisão horizontal): a prateleira de parede
+  // também gera peça 'shelf', mas não tem vão acima nem abaixo para medir.
+  const cells = layout(d).cells;
   return generateDesign(d)
-    .parts.filter((p) => p.kind === 'shelf')
-    .map((p, i) => {
-      const info = layout(d).cells.find((c) => c.node.split?.id === p.id)!;
+    .parts.flatMap((p) => {
+      const info = p.kind === 'shelf' ? cells.find((c) => c.node.split?.id === p.id) : undefined;
+      return info ? [{ p, info }] : [];
+    })
+    .map(({ p, info }, i) => {
       const below = (info.size[1] - 18) * info.node.split!.ratio;
       return {
         id: p.id,
