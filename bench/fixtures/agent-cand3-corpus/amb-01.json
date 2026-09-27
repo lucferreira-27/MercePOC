@@ -1,0 +1,153 @@
+{
+ "id": "amb-01",
+ "at": "2026-09-26T22:18:10.040Z",
+ "model": "luna",
+ "replies": [],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 0.99,
+      "probabilities": {
+       "options": 0,
+       "studio": 0,
+       "edit": 1,
+       "view": 0,
+       "build": 0,
+       "ask": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.93
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.77
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.21
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.33
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.33
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 1311,
+     "output_tokens": 638
+    }
+   }
+  }
+ ]
+}

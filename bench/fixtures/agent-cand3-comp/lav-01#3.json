@@ -1,0 +1,344 @@
+{
+ "id": "lav-01",
+ "at": "2026-09-26T22:30:38.048Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_gI0f55qT7eVgoYp4mwfB8HbN",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Conferir a composição e os espaços livres da parede\",\"Adicionar dois armários baixos laterais em equilíbrio\",\"Ativar o ambiente e revisar a cena em perspectiva\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_XwyfG2mHOq5K0DDQil6jhXny",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_6LIxHsbJvGIzfNpaTQozDQ7X",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"aparador-esq\",\"nome\":\"Armário baixo esquerdo\",\"tipo\":\"armario\",\"largura\":800,\"altura\":900,\"profundidade\":450,\"pes\":100,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":800,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta_dupla\",\"material_frente\":\"white\"},\"onde\":{\"de\":\"l1\",\"lado\":\"esquerda\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}},{\"ref\":\"aparador-dir\",\"nome\":\"Armário baixo direito\",\"tipo\":\"armario\",\"largura\":800,\"altura\":900,\"profundidade\":450,\"pes\":100,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":800,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta_dupla\",\"material_frente\":\"white\"},\"onde\":{\"de\":\"l2\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}}],\"substituir\":false,\"rotulo\":\"Armários baixos laterais na parede\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_XZrlYCWpwvSeqoQtyLObsHfw",
+      "type": "function",
+      "function": {
+       "name": "view_toggle",
+       "arguments": "{\"o_que\":\"room\",\"ligado\":true}"
+      }
+     },
+     {
+      "id": "call_H4VSofmyt9tURRxQdWo5NwKB",
+      "type": "function",
+      "function": {
+       "name": "view_camera",
+       "arguments": "{\"vista\":\"perspective\"}"
+      }
+     },
+     {
+      "id": "call_pSJzw6fL9guR6A3EhCbgOAdn",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_CACumFMOwn2q3Zz36bXCWP0A",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "15|Pedido: Adicone mais moveis e deixe o ceneario mais realista",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_elICQayzrsZ81X9tHHiUJCy9",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Adicionei dois armários baixos laterais, cada um com 80 cm de largura, e mostrei a composição em perspectiva com a parede do ambiente. O conjunto ocupa 2,80 m dos 3,20 m disponíveis e mantém os móveis existentes.\",\"sugestoes\":[\"Escolha acabamentos para os armários novos\",\"Abra as portas para conferir o interior\",\"Veja o orçamento atualizado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.74,
+      "probabilities": {
+       "edit": 0.21,
+       "ask": 0,
+       "build": 0.79,
+       "studio": 0,
+       "options": 0,
+       "view": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.94
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.67
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.22
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.18
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.39
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1319,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 422,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.93
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.92
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 532,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

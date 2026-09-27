@@ -28,6 +28,7 @@
  */
 import { createHash } from 'node:crypto';
 import { compositionCases, compositionGroup } from './composition-cases.mjs';
+import { photoCases } from './photo-real.mjs';
 
 export const groups = {
   ambiguidade: 'Medida ou alvo ambíguo: pergunta quando não há padrão razoável, faz quando há',
@@ -44,6 +45,7 @@ export const groups = {
   tipos: 'Tipos de móvel que o produto declara não suportar',
   sugestoes: 'Próximos passos propostos pela IA para o chip de sugestão',
   foto: 'Foto de referência: estimar a escala e montar o layout, sem recusar',
+  'foto-real': 'Fotos reais de móveis e ambientes, comparadas com o gabarito montado à mão',
   biblioteca: 'Móvel conhecido pedido pelo nome: partir do ativo certo da biblioteca',
   estudio: 'Assistente em laço: câmera, frentes, arquivos, ambiente, preços, versões e nome do projeto',
   autoconferencia: 'Assistente em laço: confere o próprio trabalho (encaixe, pedido cumprido) antes de responder',
@@ -645,6 +647,91 @@ export const cases = [
     },
     learned: 'A seleção explícita tem precedência sobre qualquer referência anterior.',
   },
+  {
+    id: 'ref-03',
+    group: 'referencia',
+    askAct: 'livre',
+    agentOnly: true,
+    // O pedido gravado, em inglês e com os erros de digitação da pessoa.
+    prompt: 'Maek those two match in weigth, so increase the one that i smaller',
+    setup: {
+      scene: 'bench/scenes/painel-faixa.json',
+      history: [
+        { role: 'user', content: 'Monta essa parede da minha sala: o painel da TV com o rack e a porta do lado.', image: 'bench/images/real-sala-painel.jpg' },
+        {
+          role: 'assistant',
+          content:
+            'Montei na parede da sala a porta à esquerda, o painel amadeirado com TV, a prateleira superior e o rack branco suspenso com duas portas, estimando as proporções pela porta padrão de 80 × 210 cm. As medidas são aproximadas (erro esperado de ±10–20%); uma medida real da parede e da porta ajudaria a fechar o dimensionamento. A foto inclui objetos decorativos e um acabamento de parede que não fazem parte do móvel.',
+        },
+      ],
+      selected: ['faixa-topo:panel', 'painel-tv:panel'],
+    },
+    expect: {
+      action: ['update', 'clarify'],
+      design: (design, helpers) => {
+        const width = (d, id) => d.modules.find((m) => m.id === id)?.width;
+        if (width(design, 'painel-tv') !== 2000) return 'mexeu no painel da TV, que já era o maior';
+        if (Math.abs(width(design, 'faixa-topo') - 2000) > 1) return `faixa com ${width(design, 'faixa-topo')} mm, não 2000`;
+        const other = helpers.before.modules.find((m) => !['faixa-topo', 'painel-tv'].includes(m.id) && JSON.stringify(m) !== JSON.stringify(design.modules.find((v) => v.id === m.id)));
+        return other ? `mexeu em ${other.name}, fora da seleção` : true;
+      },
+      content: { mustMatch: [/faixa|painel/i], mustNotMatch: [/rack/i] },
+    },
+    learned:
+      'Pedido real de 26/09 (Luna) com a faixa (1900 mm) e o painel da TV (2000 mm) selecionados: a IA escolheu os dois módulos do rack, iguais entre si, e respondeu que não precisava mudar nada. A seleção ia só como ids no fim do estado; agora vai com nome e medida logo antes do pedido.',
+  },
+  {
+    id: 'ref-04',
+    group: 'referencia',
+    askAct: 'agir',
+    agentOnly: true,
+    prompt: 'Legal agora aumente o painel para pegar o a rack tambem.',
+    setup: {
+      scene: 'bench/scenes/painel-ate-rack.json',
+      history: [
+        { role: 'user', content: 'aumenta a distancia entre a rack e a prateleria, na minha tem um espaco legal entre eles' },
+        {
+          role: 'assistant',
+          content:
+            'Aumentei para 20 cm o vão entre o rack e a prateleira, descendo o conjunto do rack; conferi o resultado no desenho. O móvel continua cabendo na parede.',
+        },
+      ],
+      selected: [
+        'rack-tv-2:right', 'rack-tv-2:base', 'rack-tv-2:top', 'rack-tv-2:back', 'front-716ab6a9-2bf:door-0', 'painel-tv:panel',
+        'rack-tv:left', 'rack-tv:right', 'rack-tv:base', 'rack-tv:top', 'rack-tv:back', 'front-4e6a9d4c-c88:door-0',
+      ],
+    },
+    expect: {
+      action: 'update',
+      applied: true,
+      design: (design, helpers) => {
+        const at = (d, id) => d.modules.find((m) => m.id === id);
+        const panel = at(design, 'painel-tv'),
+          was = at(helpers.before, 'painel-tv');
+        if (!panel) return 'o painel da TV sumiu';
+        // Pegar o rack: o painel desce até perto do fundo do rack (175 mm do piso).
+        if (panel.position[1] > 175 + 60) return `painel começa a ${panel.position[1]} mm, não chega ao rack (175 mm)`;
+        if (panel.position[1] + panel.height < 1800 - 1) return 'o painel perdeu o topo (1800 mm)';
+        // Continua na parede, com a mesma espessura: não foi empurrado para trás nem engrossado.
+        if (Math.abs(panel.position[2] - was.position[2]) > 1) return `painel saiu da parede (z ${was.position[2]} → ${panel.position[2]})`;
+        if (panel.depth !== was.depth) return `espessura do painel ${was.depth} → ${panel.depth} mm`;
+        for (const id of ['rack-tv', 'rack-tv-2']) {
+          const rack = at(design, id),
+            before = at(helpers.before, id);
+          if (!rack) return `${id} sumiu`;
+          if (rack.width !== before.width || rack.height !== before.height || rack.depth !== before.depth) return `mudou as medidas de ${rack.name}`;
+          // O rack fica preso na frente do painel: o fundo dele encosta na frente do painel.
+          const back = rack.position[2] - rack.depth / 2,
+            face = panel.position[2] + panel.depth / 2;
+          if (Math.abs(back - face) > 1) return `${rack.name} com o fundo em ${back}, a frente do painel está em ${face}`;
+        }
+        return true;
+      },
+      content: { mustMatch: [/painel/i] },
+    },
+    learned:
+      'Pedido real de 26/09 (Luna): aumentar o painel até atrás do rack dava "Módulos sobrepostos" (painel e rack ocupando a mesma espessura na parede). A IA contornou, releu o projeto e desfez tudo com history_undo, que descartava o pedido inteiro. Agora o app prende o rack na frente do painel e o desfazer volta um passo.',
+  },
 
   // ----------------------------------------------------------------- navegacao
   {
@@ -814,6 +901,49 @@ export const cases = [
     },
     learned:
       'Duas medidas na mesma frase (layout da foto + parede real): a parede manda na escala e a foto nas proporções.',
+  },
+  {
+    id: 'foto-03',
+    group: 'foto',
+    askAct: 'agir',
+    agentOnly: true,
+    prompt: 'Esses aqui estao errados. nao estao na imagem ref',
+    setup: {
+      // O turno da foto como ficou gravado: o guarda-roupa da biblioteca, com
+      // gaveteiro no meio, e a conferência dizendo o que estava errado.
+      ops: [{ kind: 'asset.add', asset: 'guarda-roupa', id: 'roupeiro-ref', width: 2200, height: 2200, depth: 600, materialId: 'freijo', frontMaterialId: 'freijo', placement: 'replace' }],
+      history: [
+        { role: 'user', content: 'Use esta imagem como referência para a estante.', image: 'bench/images/guarda-roupa-quatro-portas.webp' },
+        {
+          role: 'assistant',
+          content: 'Módulo "Cabideiro" adicionado. Módulo "Gaveteiro" adicionado. Módulo "Coluna de portas" adicionado. Módulo "Estante" removido.\n\nUsei a porta ao lado (~800 × 2100 mm) como régua; a estimativa tem erro esperado de ±10–20%.',
+          review: { fidelity: 'parcial', verdict: 'O desenho se aproxima da proporção geral e tem a faixa superior sobre portas altas, mas mostra cinco colunas e um bloco de gavetas no centro; a referência tem quatro colunas de portas contínuas embaixo.', corrections: 0 },
+        },
+      ],
+      // As frentes de gaveta selecionadas (os ids das frentes mudam a cada montagem).
+      selected: (design) => {
+        const fronts = [];
+        const walk = (node) => {
+          if (node.front?.type === 'drawers') node.front.heights.forEach((_, i) => fronts.push(`${node.front.id}:drawer-${i}:front`));
+          for (const child of node.split?.children ?? []) walk(child);
+        };
+        for (const m of design.modules) if (m.root) walk(m.root);
+        return fronts;
+      },
+    },
+    expect: {
+      action: ['update'],
+      applied: true,
+      design: (design, helpers) => {
+        if (helpers.cells.some((c) => c.node.front?.type === 'drawers')) return 'ainda tem gavetas, e a foto não tem';
+        const aberto = helpers.cells.find((c) => !c.node.split && !c.node.front && c.size[1] >= 200);
+        if (aberto) return `deixou um vão aberto de ${Math.round(aberto.size[1])} mm: a foto é toda de portas`;
+        return true;
+      },
+      content: { mustNotMatch: [/(imagem|foto|referência)[^.]{0,40}(não está disponível|indisponível|não (consigo|posso) ver)/i] },
+    },
+    learned:
+      'Pedido real depois de um turno com foto: a foto não voltava no pedido seguinte, a IA tirou as gavetas selecionadas e deixou o vão aberto, dizendo que a imagem não estava disponível. A conferência já tinha dito "quatro colunas de portas contínuas".',
   },
 ];
 
@@ -1056,6 +1186,7 @@ cases.push(
   },
 );
 cases.push(...compositionCases);
+cases.push(...photoCases);
 
 /** Rótulos de askAct e o que a ação de cada um não pode ser. */
 export const ASK_ACT = ['agir', 'perguntar', 'responder', 'livre'];

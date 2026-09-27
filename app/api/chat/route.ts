@@ -1,7 +1,7 @@
 import { applyObstacleEdits } from '@/lib/room';
-import { applyRequest, get, moveCursor, save, settleRoom, view, revise, type Clarification, type Message } from '@/lib/store';
+import { applyRequest, get, moveCursor, rewindChat, save, settleRoom, view, revise, type Clarification, type Message } from '@/lib/store';
 import { sameOrigin } from '@/lib/utils';
-import { interpretStream, reviewResult, withFallback } from '@/lib/gateway';
+import { interpretStream, reviewAndCorrect, withFallback, type CheckedReview } from '@/lib/gateway';
 import { materials } from '@/lib/furniture';
 import {
   describeDesignChanges,
@@ -25,6 +25,7 @@ import { getImage, imageDataUrl, saveImage, type ImageRef } from '@/lib/images';
 import { planDataUrl, planPng } from '@/lib/plan-render';
 import { mergePrices, money, quote } from '@/lib/quote';
 import { runAgentTurn, type TurnDiagnostics } from '@/lib/agent/turn';
+import { openTrace } from '@/lib/trace';
 import { UI_TABS, VIEW_MODES, type AgentEvent } from '@/lib/agent/types';
 import {
   addUsage,
@@ -109,6 +110,8 @@ export async function POST(req: Request) {
         requestId: z.string().trim().min(8).max(64).optional(),
         clarificationId: z.string().trim().min(1).max(64).optional(),
         optionId: z.string().trim().min(1).max(64).optional(),
+        /** Pedido já enviado que esta mensagem substitui: a conversa e o projeto voltam para antes dele. */
+        editOf: z.string().trim().min(1).max(64).optional(),
         fast: z.boolean().optional(),
         /** Modelo escolhido no compositor; `fast` segue valendo para scripts antigos. */
         model: z.enum(MODEL_KEYS).optional(),
@@ -158,6 +161,7 @@ export async function POST(req: Request) {
     if (replay) return Response.json(view(p));
     if (p.version !== b.version)
       throw new Error('O projeto mudou. Recarregue e tente novamente.');
+    if (b.editOf) rewindChat(p, b.editOf);
     id = b.id;
     busy.add(id);
     // A mensagem do usuário é gravada antes de chamar a IA: recarregar no meio
@@ -226,6 +230,24 @@ export async function POST(req: Request) {
     // pendência de novo: a mensagem atual já nomeia o alvo escolhido.
     const answeringClarification = Boolean(b.clarificationId && b.optionId);
     const agentMode = b.agent ?? process.env.MERCE_AGENT !== '0';
+    const trace = openTrace(requestId, {
+      projectId: p.id,
+      projectName: p.name,
+      version: b.version,
+      revision: baseRev.number,
+      model: modelChoice,
+      agent: agentMode,
+      message: b.message,
+      imageId: b.imageId ?? null,
+      selected: explicit,
+      ui: b.ui ?? null,
+      clarificationId: b.clarificationId ?? null,
+      optionId: b.optionId ?? null,
+      stream: !!req.headers.get('accept')?.includes('text/event-stream'),
+    });
+    // Quem fechou a conexão, e quando: sem isto "Interrompido" não dizia se
+    // foi a pessoa, a aba recarregada ou o servidor.
+    req.signal.addEventListener('abort', () => trace.write('client.disconnect', { reason: String(req.signal.reason ?? '') }), { once: true });
     const run = async (
       progress: (event: Progress) => void,
       signal: AbortSignal,
@@ -330,10 +352,11 @@ export async function POST(req: Request) {
       // (ou uma resposta que nunca chega) não pode apagar o pedido.
       version = save(p, version).version;
       persistedUser = true;
-      // Foto fica no caminho antigo: com duas imagens em cada etapa, o modelo
-      // barato pensa ~40 s por chamada e o laço estoura o tempo antes do
-      // layout inteiro; o caminho antigo monta de uma vez e revisa (bench foto).
-      if (agentMode && !image) {
+      // Foto também vai pelo laço: com o inventário da foto e o place montando
+      // cada corpo de uma vez, ele copia melhor que o caminho antigo nas fotos
+      // reais (bench/photo-real.mjs: 60% no antigo, 70%+ no laço) e monta o
+      // ambiente (parede, janela, porta, TV), que o antigo não mede.
+      if (agentMode) {
         // Assistente em laço: a IA usa as ferramentas do estúdio até terminar
         // e o pedido inteiro vira uma versão. A fala pública dela aparece como
         // a proposta da etapa, como no caminho antigo.
@@ -353,6 +376,7 @@ export async function POST(req: Request) {
           signal,
           progress,
           emit,
+          trace,
           onUsage: recordUsage,
           onText: (content) => {
             said = content.slice(0, 1200);
@@ -368,9 +392,7 @@ export async function POST(req: Request) {
       // O desenho do resultado e o veredito da conferência entram na resposta
       // como imagem e como leitura, não como se fossem o texto da IA.
       let resultImage: ImageRef | undefined;
-      let resultReview:
-        | { fidelity: 'parecido' | 'parcial' | 'diferente'; verdict: string; corrections: number }
-        | undefined;
+      let resultReview: CheckedReview | undefined;
       // Turno com foto: a IA recebe também o desenho do projeto atual, para
       // planejar sabendo como a peça está hoje, e não só em milímetros.
       const currentView = image
@@ -546,32 +568,25 @@ export async function POST(req: Request) {
           detail: 'Comparando o resultado com a foto de referência.',
         });
         try {
-          const review = await reviewResult({
-            photo: await imageDataUrl(image.id, jpeg ? 'jpeg' : 'webp'),
-            result: await planDataUrl(drawingParts(canonical(preview.design))),
-            design: preview.design,
-            applied: ops,
-            request: b.message,
-            model,
-            room: p.room,
-            signal,
-            onUsage: (u) => recordUsage(u, model),
-          });
-          let corrections = 0;
-          if (review?.ops.length) {
-            const fixed = executeRequest(preview.design, review.ops);
-            if (fixed.ok && JSON.stringify(fixed.design) !== JSON.stringify(preview.design)) {
-              preview = fixed;
-              ops = [...ops, ...review.ops];
-              corrections = review.ops.length;
-            }
+          const checked = await reviewAndCorrect(
+            {
+              photo: await imageDataUrl(image.id, jpeg ? 'jpeg' : 'webp'),
+              result: await planDataUrl(drawingParts(canonical(preview.design))),
+              design: preview.design,
+              applied: ops,
+              request: b.message,
+              model,
+              room: p.room,
+              signal,
+              onUsage: (u) => recordUsage(u, model),
+            },
+            executeRequest,
+          );
+          if (checked?.ops.length) {
+            preview = { ...preview, design: checked.design };
+            ops = [...ops, ...checked.ops];
           }
-          if (review)
-            resultReview = {
-              fidelity: review.fidelity,
-              verdict: review.verdict,
-              corrections,
-            };
+          if (checked) resultReview = checked.review;
           signal.throwIfAborted();
         } catch (e) {
           // A conferência é um extra: sem ela o turno segue com o resultado que
@@ -742,6 +757,15 @@ export async function POST(req: Request) {
           : aborted
             ? 'A resposta foi interrompida antes de terminar. O pedido ficou salvo e pode ser repetido.'
             : (e instanceof Error ? e.message : '') || 'Não foi possível concluir.';
+      trace.write('turn.error', {
+        error: e instanceof Error ? e.message : String(e),
+        name: e instanceof Error ? e.name : null,
+        stack: e instanceof Error ? e.stack : null,
+        shown: message,
+        clientGone: req.signal.aborted,
+        persistedUser,
+        usage: turnUsage,
+      });
       if (!persistedUser) return undefined;
       if (p.messages.some((m) => m.context?.requestId === requestId && m.result))
         return undefined;
@@ -791,7 +815,9 @@ export async function POST(req: Request) {
     };
     if (!req.headers.get('accept')?.includes('text/event-stream')) {
       try {
-        return Response.json(await run(() => {}, req.signal));
+        const result = await run((event) => trace.write('progress', event), req.signal);
+        trace.write('turn.end', { usage: turnUsage });
+        return Response.json(result);
       } catch (e) {
         persistFailure(e);
         throw e;
@@ -814,7 +840,8 @@ export async function POST(req: Request) {
                   `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`,
                 ),
               );
-            } catch {
+            } catch (e) {
+              trace.write('stream.write-failed', { event, error: (e as Error).message });
               ended = true;
               cancellation.abort();
             }
@@ -827,7 +854,10 @@ export async function POST(req: Request) {
         );
         try {
           const result = await run(
-            (event) => send('progress', event),
+            (event) => {
+              trace.write('progress', event);
+              send('progress', event);
+            },
             AbortSignal.any([req.signal, cancellation.signal]),
             (preview) => {
               // A proposta pública da IA aparece na hora para quem espera, mesmo
@@ -856,6 +886,7 @@ export async function POST(req: Request) {
             // Etapas, efeitos e o rascunho ao vivo do assistente em laço.
             (event) => send('agent', event),
           );
+          trace.write('turn.end', { usage: turnUsage });
           send('done', result);
         } catch (e) {
           // O estado volta junto do erro: o cliente precisa saber a versão nova
@@ -881,7 +912,8 @@ export async function POST(req: Request) {
           }
         }
       },
-      cancel() {
+      cancel(reason) {
+        trace.write('stream.cancel', { reason: String(reason ?? '') });
         ended = true;
         cancellation.abort();
       },

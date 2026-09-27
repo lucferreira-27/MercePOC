@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { drawingParts } from '../composition';
-import { reviewResult, type ModelChoice } from '../gateway';
+import { reviewAndCorrect, type CheckedReview, type ModelChoice } from '../gateway';
 import { imageDataUrl, saveImage, type ImageRef } from '../images';
 import type { ModelKey, ProviderUsage } from '../models';
 import { planDataUrl, planPng } from '../plan-render';
@@ -11,13 +11,14 @@ import { canonical, describeDesignChanges, describeHighlights, entityIds, execut
 import { AgentContext } from './context';
 import { runLoop } from './loop';
 import type { callModel } from './model';
-import { AGENT_SYSTEM, turnMessage } from './prompt';
+import { AGENT_SYSTEM, recentMessages, turnMessage } from './prompt';
 import { DIRECT, routeRequest, type Route } from './router';
 import { checkWork, OPTION_TOOLS, TOOLS, wantQuestions } from './tools';
 import { designFacts, factChanges, factClaims, factsLine } from './facts';
 import { PROVIDER_ERROR } from '../gateway';
 import { askJev } from './jev';
 import type { AgentEvent, UiState } from './types';
+import { NO_TRACE, type Trace } from '../trace';
 
 export type AgentTurnInput = {
   project: Project;
@@ -45,6 +46,8 @@ export type AgentTurnInput = {
   call?: typeof callModel;
   /** Troca o roteador (testes); ausente, usa o Jev quando há chave. */
   route?: (request: string) => Promise<Route>;
+  /** Registro completo do pedido (lib/trace.ts); ausente, nada é gravado. */
+  trace?: Trace;
 };
 
 /**
@@ -57,6 +60,8 @@ export async function runAgentTurn(input: AgentTurnInput) {
   // Como o projeto estava: uma falha no meio do pedido não pode deixar
   // gravação parcial no objeto que a rota salva junto com o erro.
   const initial = structuredClone({ revisions: input.project.revisions, cursor: input.project.cursor, room: input.project.room, name: input.project.name });
+  const trace = input.trace ?? NO_TRACE;
+  trace.write('turn.state', { revision: input.project.revisions[input.project.cursor].number, design: ctx.design, room: ctx.room ?? null });
   try {
     return await turnBody(ctx, input);
   } catch (e) {
@@ -78,6 +83,13 @@ export async function runAgentTurn(input: AgentTurnInput) {
       committed: persisted ? 'persisted-before-failure' : 'none',
       durationMs: Date.now() - input.started,
     };
+    trace.write('turn.failed', {
+      error: error.message,
+      name: error.name,
+      stack: error.stack,
+      diagnostics: (error as Error & { diagnostics?: TurnDiagnostics }).diagnostics,
+      draft: { design: ctx.design, room: ctx.room ?? null },
+    });
     throw error;
   }
 }
@@ -97,19 +109,43 @@ export type TurnDiagnostics = {
   durationMs: number;
 };
 
+/**
+ * A foto de referência mais nova da conversa recente (a mesma janela que a IA
+ * lê como texto), com o pedido que a trouxe. Arquivo que sumiu não trava o
+ * pedido: ele segue sem foto, como antes.
+ */
+async function earlierPhoto(messages: Message[]) {
+  const m = recentMessages(messages).findLast((v) => v.role === 'user' && v.image);
+  if (!m?.image) return undefined;
+  try {
+    return { url: await imageDataUrl(m.image.id), request: m.content.replace(/\s+/g, ' ').slice(0, 120) };
+  } catch {
+    return undefined;
+  }
+}
+
 async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
   const photo = input.image;
   input.progress({ stage: 'connecting', label: 'Consultando a IA', detail: 'Enviando o pedido e o projeto.' });
   const text = turnMessage(ctx, !!photo, input.request);
+  // Pedido sem foto logo depois de um com foto ("esses não estão na ref"):
+  // a foto volta, senão a IA responde sem ver o que a pessoa compara.
+  const earlier = photo ? undefined : await earlierPhoto(input.project.messages);
+  // Projeto de partida (a estante que ninguém pediu e que a foto vai trocar):
+  // o desenho dele não ajuda e voltaria em toda etapa do laço. Fica só a foto.
   const images = photo
     ? [
         { type: 'image_url' as const, image_url: { url: await imageDataUrl(photo.id) } },
-        { type: 'image_url' as const, image_url: { url: await planDataUrl(drawingParts(canonical(ctx.design))) } },
+        ...(ctx.starting ? [] : [{ type: 'image_url' as const, image_url: { url: await planDataUrl(drawingParts(canonical(ctx.design))) } }]),
       ]
-    : [];
+    : earlier
+      ? [{ type: 'image_url' as const, image_url: { url: earlier.url } }]
+      : [];
   const note = photo
-    ? `\nImagem 1: foto de referência deste pedido${photo.name ? ` (${photo.name})` : ''}. Imagem 2: desenho do projeto ATUAL, antes deste pedido (esquerda frontal, direita isométrica).`
-    : '';
+    ? `\nImagem 1: foto de referência deste pedido${photo.name ? ` (${photo.name})` : ''}.${ctx.starting ? '' : ' Imagem 2: desenho do projeto ATUAL, antes deste pedido (esquerda frontal, direita isométrica).'}`
+    : earlier
+      ? `\nImagem 1: foto de referência que a pessoa mandou num pedido anterior da conversa recente ("${earlier.request}"), reenviada para você entender o que ela cita da foto ("a ref", "não está na imagem", "igual à foto"). Ela não vem de novo neste pedido. Para comparar com o móvel de agora, chame render_look. Faça o que este pedido pede; refaça o layout inteiro só se ele pedir.`
+      : '';
   // Roteador: pedido só de tela, desfazer ou arquivo sai sem LLM; medida sem
   // eixo vira a pergunta do eixo. Foto sempre vai para o laço.
   const t0 = Date.now();
@@ -117,6 +153,8 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
     ? { kind: 'agent', intent: 'build', budget: 16 }
     : await (input.route ?? ((r) => routeRequest(r, input.signal)))(input.request);
   const seconds = ((Date.now() - t0) / 1000).toFixed(1).replace('.', ',');
+  const trace = input.trace ?? NO_TRACE;
+  trace.write('turn.route', { route, took: Date.now() - t0, photo: !!photo, earlierPhoto: earlier?.request ?? null, userText: text + note });
   if (route.kind === 'direct') {
     ctx.steps.push({ tool: 'router', label: `Pedido direto, sem IA (${seconds} s)`, ok: true });
     ctx.direct = true;
@@ -125,6 +163,7 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
       const t = TOOLS.find((v) => v.name === a.tool)!;
       const r = await t.run(ctx, t.args.parse(a.args));
       const step = { tool: t.name, label: r.label ?? t.name, ok: r.ok, ...(r.ok ? {} : { detail: r.text }) };
+      trace.write('tool.result', { loop: 'direto', tool: t.name, arguments: a.args, ok: r.ok, label: step.label, result: r.text });
       ctx.steps.push(step);
       ctx.emit({ type: 'step', step, index: ctx.steps.length - 1 });
     }
@@ -161,6 +200,8 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
       signal: input.signal,
       onUsage: input.onUsage,
       call: input.call,
+      trace: input.trace,
+      tag: 'opção',
     });
   let working = false;
   /**
@@ -202,38 +243,43 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
     },
     call: input.call,
     onExhausted: settle,
+    trace: input.trace,
   });
+  trace.write('turn.loop', { ...loop, completion, rolledBack });
   if (loop.exhausted && !ctx.ask) settle();
 
-  // Foto: o desenho montado volta para a IA comparar com a referência, como
-  // no caminho antigo. As correções passam pela mesma validação.
-  let review: { fidelity: 'parecido' | 'parcial' | 'diferente'; verdict: string; corrections: number } | undefined;
+  // Foto: o laço já compara o desenho com a foto (render_look) antes do
+  // finish. A conferência de fora, feita para o caminho antigo, corrigia sem
+  // esse contexto: nas fotos reais (bench/photo-real.mjs) piorou 4 de 24
+  // resultados, melhorou 1, e custava mais uma chamada com duas imagens.
+  // MERCE_PHOTO_REVIEW mede as alternativas: fix (corrige), verdict (só o
+  // veredito), off (padrão).
+  let review: CheckedReview | undefined;
   let resultImage: ImageRef | undefined;
+  const reviewMode = process.env.MERCE_PHOTO_REVIEW ?? 'off';
   if (photo && ctx.designChanged && !ctx.ask) {
-    input.progress({ stage: 'reviewing', label: 'Conferindo o desenho', detail: 'Comparando o resultado com a foto de referência.' });
-    try {
-      const r = await reviewResult({
-        photo: await imageDataUrl(photo.id),
-        result: await planDataUrl(drawingParts(canonical(ctx.design))),
-        design: ctx.design,
-        applied: ctx.allOps,
-        request: input.request,
-        model: input.model,
-        room: ctx.room,
-        signal: input.signal,
-        onUsage: input.onUsage,
-      });
-      let corrections = 0;
-      if (r?.ops.length) {
-        const fixed = executeRequest(ctx.design, r.ops);
-        if (fixed.ok && JSON.stringify(fixed.design) !== JSON.stringify(ctx.design)) {
-          ctx.setDesign(fixed.design, r.ops);
-          corrections = r.ops.length;
-        }
+    if (reviewMode !== 'off') {
+      input.progress({ stage: 'reviewing', label: 'Conferindo o desenho', detail: 'Comparando o resultado com a foto de referência.' });
+      try {
+        const r = await reviewAndCorrect(
+          {
+            photo: await imageDataUrl(photo.id),
+            result: await planDataUrl(drawingParts(canonical(ctx.design))),
+            design: ctx.design,
+            applied: ctx.allOps,
+            request: input.request,
+            model: input.model,
+            room: ctx.room,
+            signal: input.signal,
+            onUsage: input.onUsage,
+          },
+          executeRequest,
+        );
+        if (r?.ops.length && reviewMode === 'fix') ctx.setDesign(r.design, r.ops);
+        if (r) review = r.review;
+      } catch (e) {
+        if (input.signal.aborted) throw e;
       }
-      if (r) review = { fidelity: r.fidelity, verdict: r.verdict, corrections };
-    } catch (e) {
-      if (input.signal.aborted) throw e;
     }
     resultImage = await saveImage(await planPng(drawingParts(canonical(ctx.design))), 'resultado.png');
   }
@@ -356,6 +402,18 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
   p.messages.push(assistant);
   input.progress({ stage: 'saving', label: 'Salvando o resultado', detail: 'Registrando a versão e preparando o modelo 3D.' });
   const state = save(p, ctx.version);
+  trace.write('turn.done', {
+    outcome,
+    completion,
+    message,
+    changes,
+    checks: finalIssues,
+    discarded,
+    revision: p.revisions[p.cursor].number,
+    projectId: p.id,
+    steps: ctx.steps,
+    design: after,
+  });
   const alive = new Set(entityIds(after));
   return {
     projectId: p.id,

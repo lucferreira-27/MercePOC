@@ -11,7 +11,8 @@ export type ChatMessage =
 export type ToolCall = { id: string; type: 'function'; function: { name: string; arguments: string } };
 export type ToolSpec = { type: 'function'; function: { name: string; description: string; parameters: unknown } };
 
-export type ModelReply = { content: string; calls: ToolCall[]; finish: string | null };
+/** `reasoning`: o raciocínio privado, para o registro do pedido (lib/trace.ts), nunca para a tela. */
+export type ModelReply = { content: string; calls: ToolCall[]; finish: string | null; reasoning?: string };
 
 /**
  * Uma chamada ao modelo com ferramentas nativas, em fluxo.
@@ -79,7 +80,8 @@ export async function callModel(options: {
     let content = '',
       finish: string | null = null,
       bytes = 0,
-      reasoning = 0;
+      reasoning = 0,
+      thinking = '';
     const calls = new Map<number, ToolCall>();
     await readEvents(response, ({ data }) => {
       started = true;
@@ -106,7 +108,10 @@ export async function callModel(options: {
       const delta = choice?.delta;
       if (!delta) return;
       const thought = delta.reasoning_content ?? delta.reasoning;
-      if (thought) reasoning += thought.length;
+      if (thought) {
+        reasoning += thought.length;
+        thinking += thought;
+      }
       if (delta.content) {
         content += delta.content;
         options.onText?.(content);
@@ -125,7 +130,7 @@ export async function callModel(options: {
     const list = [...calls.entries()]
       .sort((a, b) => a[0] - b[0])
       .map(([i, c]) => ({ ...c, id: c.id || `call-${i}` }));
-    return { content: content.trim(), calls: list, finish };
+    return { content: content.trim(), calls: list, finish, ...(thinking ? { reasoning: thinking } : {}) };
   } finally {
     clearTimeout(timer);
     clearTimeout(cap);

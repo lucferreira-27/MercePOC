@@ -11,6 +11,7 @@ import {
   emptyRoom,
   fitReport,
   fitSummary,
+  fitWallsToCeiling,
   obstacleClash,
   obstacleEditsSchema,
   roomSchema,
@@ -240,8 +241,7 @@ const rowBuild = tool({
       ctx.attempted.push({ ops: plan.ops, error: r.error });
       return fail(`Recusado pela validação, nada mudou: ${r.error}`, 'Fileira recusada; ajustando');
     }
-    if (room !== ctx.room) ctx.room = room;
-    ctx.setDesign(r.design, plan.ops);
+    ctx.setDesign(r.design, plan.ops, room);
     const parts = plan.segments.map((v) => `${v.from}–${v.to} mm: ${v.ids.join(', ')} (compartimentos ${v.ids.map((id) => `${id}:root`).join(', ')})`);
     const count = plan.segments.reduce((n, v) => n + v.ids.length, 0);
     // A IA repetia a largura pedida na resposta ("bancada de 2 m") quando só
@@ -289,12 +289,18 @@ const placeTool = tool({
   name: 'place',
   description:
     'Põe peças novas pela relação, sem calcular posição: ao lado, acima ou abaixo de um módulo, de um obstáculo (TV, janela, porta) ou de outra peça do lote, ou num x/y da parede. O app acha a superfície (painel de parede ou parede), a profundidade, o interior e confere encaixe, TV e obstáculos antes de montar. Medida dita é exata (se não cabe, volta o conflito com o espaço livre); medida ausente vem do tipo e da referência e encolhe até o espaço. tipo vao reserva espaço livre no piso (máquina de lavar, geladeira) que nenhuma peça ocupa.',
-  args: z.object({ pecas: z.array(pieceSchema).min(1).max(8), rotulo: z.string().max(90).optional() }).strict(),
+  args: z
+    .object({
+      pecas: z.array(pieceSchema).min(1).max(8),
+      substituir: z.boolean().default(false).describe('Troca o móvel inteiro por estas peças (projeto_inicial ou pedido de troca)'),
+      rotulo: z.string().max(90).optional(),
+    })
+    .strict(),
   running: (a) => a.rotulo ?? (a.pecas.length === 1 ? `Pondo ${a.pecas[0].nome.toLowerCase()}` : `Pondo ${a.pecas.length} peças`),
   run: (ctx, a) => {
     if (a.pecas.some((p) => p.tipo === 'vao') && !ctx.room)
       return fail('Vão reservado mede na parede: meça o ambiente antes (room_set).', 'Falta o ambiente');
-    const plan = planPieces(ctx.design, ctx.room, a.pecas);
+    const plan = planPieces(ctx.design, ctx.room, a.pecas, a.substituir);
     if ('error' in plan) {
       ctx.attempted.push({ ops: [], error: plan.error ?? '' });
       return fail(`Nada foi montado: ${plan.error}`, 'Peça não coube; ajustando');
@@ -330,6 +336,13 @@ const modifyTool = tool({
   args: modifySchema,
   running: (a) => a.rotulo ?? 'Ajustando os módulos',
   run: (ctx, a) => {
+    // Tirar tudo para montar outro móvel: a IA ficava presa em "mantenha ao
+    // menos um módulo" e o pedido acabava sem nada montado.
+    if (a.remover?.length && ctx.design.modules.every((m) => a.remover!.includes(m.id)))
+      return fail(
+        'Nada mudou: o projeto não fica sem módulo. Para trocar o móvel inteiro, monte o novo com place (ou row_build) e substituir:true, que tira o atual no mesmo lote.',
+        'Troca do móvel; ajustando',
+      );
     const plan = planModify(ctx.design, ctx.room, a);
     // Tudo já estava como pedido: sem efeito, como no design_apply.
     if (!('error' in plan) && !plan.ops.length) return ok(`Sem efeito: ${plan.lines.join(' ')}`, 'Nada a mudar');
@@ -363,6 +376,8 @@ const roomSet = tool({
       ...(a.altura !== undefined ? { heightMm: a.altura } : {}),
       ...(a.profundidade !== undefined ? { depthMm: a.profundidade } : {}),
       ...(a.rodape !== undefined ? { baseboardMm: a.rodape } : {}),
+      // Paredes na altura do teto acompanham o pé-direito novo.
+      ...(a.altura !== undefined && base.walls?.length ? { walls: fitWallsToCeiling(base.walls, base.heightMm, a.altura) } : {}),
     };
     const parsed = roomSchema.safeParse(next);
     if (!parsed.success) return fail(`Medida fora do limite do ambiente: ${parsed.error.issues.map((i) => `${i.path.join('.')} ${i.message}`).join('; ')}`);
@@ -380,13 +395,17 @@ const roomObstacles = tool({
   run: (ctx, a) => {
     const had = new Set((ctx.room?.obstacles ?? []).map((o) => o.id));
     // Janela e porta não vão para trás do móvel: o app acha o lugar livre.
-    const edited = applyObstacleEdits(ctx.room, a, ctx.design.width, ctx.room ? furnitureOnWall(canonical(ctx.design), ctx.room) : []);
+    // A estante de partida, ainda sem nada montado no pedido, vai sair: com
+    // ela contando, a porta da foto era empurrada ou recusada e a IA gastava o
+    // pedido redesenhando a parede.
+    const replaced = ctx.starting && !ctx.designChanged;
+    const edited = applyObstacleEdits(ctx.room, a, ctx.design.width, ctx.room && !replaced ? furnitureOnWall(canonical(ctx.design), ctx.room) : []);
     const clash = obstacleClash(edited.room.obstacles ?? []);
     if (clash) return fail(clash);
     ctx.setRoom(edited.room);
     const fresh = (edited.room.obstacles ?? []).filter((o) => !had.has(o.id)).map((o) => `${o.id} (${o.kind})`);
     return ok(
-      `${fresh.length ? `Novos: ${fresh.join(', ')}. ` : ''}${edited.moved.length ? `Ajustei para um lugar livre: ${edited.moved.join('; ')}. ` : ''}${edited.skipped.length ? `Não coube: ${edited.skipped.join(', ')}. ` : ''}${fitSummary(ctx.design, edited.room)}.${edited.skipped.length ? ' Para o que não coube: use uma medida que caiba num trecho livre, ou siga sem ele.' : ''} A parede está marcada: siga para os móveis.`,
+      `${fresh.length ? `Novos: ${fresh.join(', ')}. ` : ''}${edited.moved.length ? `Ajustei para um lugar livre: ${edited.moved.join('; ')}. ` : ''}${edited.skipped.length ? `Não coube: ${edited.skipped.join(', ')}. ` : ''}${replaced ? 'A estante de partida sai quando você montar o móvel novo (place ou row_build com substituir:true)' : fitSummary(ctx.design, edited.room)}.${edited.skipped.length ? ' Para o que não coube: use uma medida que caiba num trecho livre, ou siga sem ele.' : ''} A parede está marcada: siga para os móveis.`,
       edited.skipped.length ? 'Parte dos obstáculos não coube na parede' : 'Marquei a parede',
     );
   },
@@ -550,14 +569,23 @@ const historyGoto = tool({
 });
 const historyUndo = tool({
   name: 'history_undo',
-  description: 'Desfaz a última versão (como Ctrl+Z). Se este pedido já mudou algo, descarta essas mudanças em vez disso.',
-  args: z.object({}).strict(),
-  run: (ctx) => {
+  description:
+    'Desfaz a última versão (como Ctrl+Z). Se este pedido já mudou algo, desfaz só a última mudança deste pedido (a chamada anterior que mudou o desenho); com tudo: true, descarta todas as mudanças deste pedido.',
+  args: z.object({ tudo: z.boolean().optional() }).strict(),
+  run: (ctx, a) => {
     if (ctx.designChanged || ctx.roomChanged) {
-      // O rascunho sai inteiro: as operações dele ficam como desfeitas, fora
-      // do registro do que o pedido gravou.
+      // Um passo por vez: descartar o pedido inteiro jogava fora mudanças
+      // boas quando a IA só queria refazer a última. As operações que saem
+      // ficam como desfeitas, fora do registro do que o pedido gravou.
+      if (!a.tudo && ctx.stepBack()) {
+        const left = ctx.designChanged || ctx.roomChanged;
+        return ok(
+          `Desfiz a última mudança deste pedido. ${left ? `Ficam ${ctx.undoable} mudança(s) anteriores deste pedido; medidas agora ${mm(ctx.design)}.` : 'O rascunho voltou ao começo do pedido.'}`,
+          'Desfiz a última mudança',
+        );
+      }
       ctx.discard();
-      return ok('Descartei as mudanças deste pedido.', 'Descartei as mudanças');
+      return ok('Descartei todas as mudanças deste pedido.', 'Descartei as mudanças');
     }
     const r = undo(ctx.project);
     if (!r) return fail('Já está na primeira versão.');
@@ -734,7 +762,9 @@ const finishTool = tool({
     // Módulo que existia e saiu precisa estar na resposta: sumir calado era
     // o jeito de "caber" (o painel da TV trocado por uma estante).
     // Conta como dito quando a resposta fala em tirar/trocar ou cita o módulo pelo nome.
-    const gone = ctx.navigated || ctx.origin ? [] : ctx.turnStart.design.modules.filter((m) => !ctx.design.modules.some((v) => v.id === m.id));
+    // O projeto de partida (a estante que ninguém pediu) sai sem precisar de
+    // aviso: exigir a frase custava uma volta inteira em todo móvel novo.
+    const gone = ctx.navigated || ctx.origin || ctx.starting ? [] : ctx.turnStart.design.modules.filter((m) => !ctx.design.modules.some((v) => v.id === m.id));
     const told = (m: { name: string }) => a.mensagem.toLowerCase().includes(m.name.toLowerCase().split(' ')[0]);
     if (gone.length && !/\b(tir|remov|substitu|troq|troc|no lugar|sa[ií]|exclu|apag|refiz)/i.test(a.mensagem) && !gone.every(told))
       issues.push(`A mensagem não diz que saiu ${gone.filter((m) => !told(m)).map((m) => m.name).join(', ')}. Diga na resposta que saiu (e por quê).`);

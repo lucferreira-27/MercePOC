@@ -72,11 +72,63 @@ export function designSnapshot(design: Design, room: Room | undefined) {
               largura: o.widthMm,
               altura: o.heightMm,
             })),
+            // Paredes além da do fundo, em planta: x do canto, z da face do fundo.
+            ...(room.walls?.length
+              ? {
+                  paredes: room.walls.map((w) => ({
+                    id: w.id,
+                    ...(w.label ? { nome: w.label } : {}),
+                    direcao: w.rotation === 90 ? 'sai do fundo' : 'ao longo do fundo',
+                    x: w.xMm,
+                    z: w.zMm,
+                    comprimento: w.widthMm,
+                    altura: Math.min(w.heightMm, room.heightMm),
+                    espessura: w.thicknessMm,
+                  })),
+                }
+              : {}),
             encaixe: fitSummary(design, room),
           },
         }
       : {}),
   };
+}
+
+/**
+ * O que está selecionado na tela, com o nome que a pessoa vê e o módulo de
+ * cada item. Só com os ids ("faixa-topo:panel") no fim do estado, a IA
+ * ignorava a seleção e escolhia os dois módulos mais parecidos entre si.
+ */
+export function selectionFacts(design: Design, ids: readonly string[]) {
+  const g = generateDesign(design);
+  const cells = layout(canonical(design)).cells;
+  return ids.flatMap((id) => {
+    const part = g.parts.find((p) => p.id === id);
+    const cell = cells.find((c) => c.id === id || c.node.front?.id === id);
+    const owners = design.modules.some((m) => m.id === id) ? [id] : (part?.owners ?? (cell ? [cell.moduleId] : []));
+    const modules = owners.flatMap((o) => design.modules.filter((m) => m.id === o));
+    if (!part && !cell && !modules.length) return [];
+    return [
+      {
+        id,
+        nome: part?.name ?? (cell?.id === id ? cell.label : undefined) ?? modules[0]?.name ?? id,
+        ...(cell?.node.front?.id === id ? { frente: cell.node.front.type } : {}),
+        ...(cell && !part ? { vao_mm: cell.size.map(r1) } : {}),
+        modulos: modules.map((m) => ({ id: m.id, nome: m.name, largura: m.width, altura: m.height, profundidade: m.depth })),
+      },
+    ];
+  });
+}
+
+/** Linha da seleção logo antes do pedido: nome e medida de cada item. */
+export function selectionLine(design: Design, ids: readonly string[]) {
+  const facts = selectionFacts(design, ids);
+  if (!facts.length) return '';
+  const items = facts.map((f) => {
+    const where = f.modulos.map((m) => `módulo ${m.id}, ${m.largura} × ${m.altura} × ${m.profundidade} mm`).join('; ');
+    return `${f.nome} (${f.id}${where ? `; ${where}` : ''})`;
+  });
+  return `Selecionado na tela (${facts.length}): ${items.join(' | ')}. Quando o pedido aponta sem nomear a peça ("este", "esse", "esses", "os dois", "isso", "o menor"), o alvo é esta seleção.`;
 }
 
 /** Orçamento e chapas em uma linha, com a tabela de preços do navegador. */
@@ -106,7 +158,7 @@ export function contextSnapshot(ctx: AgentContext) {
     // A parede em coordenadas de quem desenha (x do canto, y do piso): o que
     // está fixo, o que ocupa e onde cabe. É com isto que place e modify contam.
     parede: sceneSummary(sceneOf(ctx.design, ctx.room)),
-    selecao: ctx.selected,
+    selecao: selectionFacts(ctx.design, ctx.selected),
     ...(ctx.ui ? { tela: ctx.ui } : {}),
   };
 }

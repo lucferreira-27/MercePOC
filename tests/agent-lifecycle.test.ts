@@ -10,6 +10,7 @@ import { normalize, type Design } from '../lib/studio';
 import { fitReport, tvPlacements, type Room } from '../lib/room';
 import { designFacts, factClaims } from '../lib/agent/facts';
 import type { ChatMessage, ModelReply, ToolCall } from '../lib/agent/model';
+import { openTrace, type Trace } from '../lib/trace';
 
 process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-lifecycle-'));
 process.env.MERCE_JEV = '0';
@@ -50,7 +51,7 @@ function start(request: string, from?: string) {
   const version = save(q, q.version).version;
   return { p: q, user, version };
 }
-function turn(s: ReturnType<typeof start>, fake: unknown, extra: { maxSteps?: number; signal?: AbortSignal } = {}) {
+function turn(s: ReturnType<typeof start>, fake: unknown, extra: { maxSteps?: number; signal?: AbortSignal; trace?: Trace } = {}) {
   return runAgentTurn({
     project: s.p,
     version: s.version,
@@ -69,8 +70,11 @@ function turn(s: ReturnType<typeof start>, fake: unknown, extra: { maxSteps?: nu
     usage: () => ({}),
     maxSteps: extra.maxSteps,
     call: fake as never,
+    trace: extra.trace,
   });
 }
+/** Linhas do registro do pedido, já lidas como objetos. */
+const events = (trace: Trace) => readFileSync(trace.file!, 'utf8').trim().split('\n').map((l) => JSON.parse(l) as Record<string, unknown> & { event: string });
 
 void test('tempo acabou com o rascunho válido: fica como parcial e a resposta conta o que ficou gravado', async () => {
   const s = start('Adicione mais móveis', 'lavanderia-2');
@@ -313,4 +317,72 @@ void test('mudança afirmada: "mudei a vista" não é mudar o móvel; "coloquei 
   ]);
   await turn(t, f2);
   assert.match(JSON.stringify(s2[1].at(-1)!.content), /nada mudou neste pedido/);
+});
+
+void test('desfazer no meio do pedido volta só a última mudança; tudo: true descarta o pedido inteiro', async () => {
+  const s = start('Adicione um apoio', 'cozinha-apoio');
+  const { fake } = scripted([
+    () => reply(call('design_apply', { ops: [{ kind: 'module.add', id: 'apoio-a', preset: 'niche', name: 'Apoio A' }, { kind: 'module.edit', id: 'apoio-a', position: [4000, 0, -75] }] })),
+    () => reply(call('design_apply', { ops: [{ kind: 'module.edit', id: 'apoio-a', name: 'Apoio largo' }] })),
+    () => reply(call('history_undo', {})),
+    () => reply(call('finish', { mensagem: 'Pus o Apoio A à direita.', sugestoes: [] })),
+  ]);
+  const r = await turn(s, fake);
+  const kept = get(r.projectId).revisions.at(-1)!.params.modules.find((m) => m.id === 'apoio-a');
+  assert.equal(kept?.name, 'Apoio A', 'o desfazer levou junto a mudança anterior, que era boa');
+  assert.equal(get(r.projectId).messages.at(-1)!.report?.reverted, 1);
+
+  const all = start('Adicione um apoio', 'cozinha-apoio');
+  const { fake: fake2 } = scripted([
+    () => reply(call('design_apply', { ops: [{ kind: 'module.add', id: 'apoio-a', preset: 'niche', name: 'Apoio A' }, { kind: 'module.edit', id: 'apoio-a', position: [4000, 0, -75] }] })),
+    () => reply(call('design_apply', { ops: [{ kind: 'module.edit', id: 'apoio-a', name: 'Apoio largo' }] })),
+    () => reply(call('history_undo', { tudo: true })),
+    () => reply(call('finish', { mensagem: 'Deixei como estava.', sugestoes: [] })),
+  ]);
+  const r2 = await turn(all, fake2);
+  assert.ok(!get(r2.projectId).revisions.at(-1)!.params.modules.some((m) => m.id === 'apoio-a'));
+});
+
+void test('registro do pedido guarda raciocínio, argumentos, resultado inteiro, rascunho e o fim', async () => {
+  const s = start('Adicione um apoio', 'cozinha-apoio');
+  const trace = openTrace(s.user.context!.requestId);
+  const { fake } = scripted([
+    () => ({ ...reply(call('design_apply', { ops: [{ kind: 'module.add', id: 'apoio-a', preset: 'niche', name: 'Apoio A' }, { kind: 'module.edit', id: 'apoio-a', position: [4000, 0, -75] }] })), reasoning: 'Vou pôr o apoio à direita da bancada.' }),
+    () => reply(call('finish', { mensagem: 'Pus um apoio à direita.', sugestoes: [] })),
+  ]);
+  await turn(s, fake, { trace });
+  const log = events(trace);
+  const kinds = log.map((e) => e.event);
+  for (const k of ['trace.open', 'turn.state', 'turn.route', 'loop.start', 'model.call', 'model.reply', 'tool.result', 'draft', 'turn.done'])
+    assert.ok(kinds.includes(k), `faltou ${k} no registro`);
+  const first = log.find((e) => e.event === 'model.reply')!;
+  assert.equal(first.reasoning, 'Vou pôr o apoio à direita da bancada.');
+  assert.match(String((first.calls as { arguments: string }[])[0].arguments), /apoio-a/);
+  const applied = log.find((e) => e.event === 'tool.result' && e.tool === 'design_apply')!;
+  assert.equal(applied.ok, true);
+  assert.ok(String(applied.result).length > 0);
+  // A segunda chamada leva só as mensagens novas: a resposta e o resultado da ferramenta.
+  const second = log.filter((e) => e.event === 'model.call')[1];
+  assert.deepEqual((second.added as ChatMessage[]).map((m) => m.role), ['assistant', 'tool']);
+  const done = log.find((e) => e.event === 'turn.done')!;
+  assert.equal(done.outcome, 'applied');
+});
+
+void test('registro do pedido interrompido diz a causa e guarda o rascunho de quando parou', async () => {
+  const s = start('Adicione mais móveis', 'lavanderia-2');
+  const trace = openTrace(s.user.context!.requestId);
+  const stop = new AbortController();
+  const fake = async (o: { messages: ChatMessage[] }) => {
+    if (o.messages.length > 2) {
+      stop.abort();
+      throw new Error('This operation was aborted');
+    }
+    return reply(call('state_read', {}));
+  };
+  await assert.rejects(turn(s, fake, { signal: stop.signal, trace }));
+  const failed = events(trace).find((e) => e.event === 'turn.failed')!;
+  assert.equal((failed.diagnostics as TurnDiagnostics).cause, 'cancelled');
+  assert.ok((failed.draft as { design: Design }).design.modules.length > 0);
+  const error = events(trace).find((e) => e.event === 'model.error')!;
+  assert.equal(error.requestAborted, true);
 });

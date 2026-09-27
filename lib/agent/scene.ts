@@ -130,7 +130,14 @@ const overlap = (a0: number, a1: number, b0: number, b1: number) => Math.min(a1,
  * protegida, borda da parede ou teto. Frase curta por conflito, com as
  * medidas de quem bloqueia, para a IA decidir de uma vez.
  */
-export function conflictsOf(scene: Scene, b: Box3, ignore: ReadonlySet<string> = new Set(), extra: readonly (Box3 & { name: string })[] = []) {
+export function conflictsOf(
+  scene: Scene,
+  b: Box3,
+  ignore: ReadonlySet<string> = new Set(),
+  extra: readonly (Box3 & { name: string })[] = [],
+  /** Painel de parede: é onde a TV se prende, então fica atrás dela sem "tapar" a tela. */
+  wallPanel = false,
+) {
   const out: { who: string; box: { x0: number; x1: number; y0: number; y1: number }; why: string }[] = [];
   if (scene.width !== null && (b.x0 < -0.5 || b.x1 > scene.width + 0.5))
     out.push({ who: 'parede', box: { x0: 0, x1: scene.width, y0: 0, y1: scene.height ?? 0 }, why: `passa da parede (0 a ${scene.width} mm)` });
@@ -145,6 +152,19 @@ export function conflictsOf(scene: Scene, b: Box3, ignore: ReadonlySet<string> =
   for (const z of scene.zones) {
     if (z.rule === 'free') continue;
     if (z.rule === 'tv') {
+      // A TV se prende no painel que passa pelo centro da tela (a mesma regra
+      // do encaixe final, tvMountZ); painel atrás só de uma borda dela tapa.
+      const cx = (z.x0 + z.x1) / 2,
+        cy = (z.y0 + z.y1) / 2;
+      if (wallPanel && b.x0 <= cx && b.x1 >= cx && b.y0 <= cy && b.y1 >= cy) continue;
+      if (wallPanel && overlap(b.x0, b.x1, z.x0, z.x1) && overlap(b.y0, b.y1, z.y0, z.y1)) {
+        out.push({
+          who: z.label,
+          box: z,
+          why: `fica atrás só de parte de ${z.label}: o painel que segura a TV passa pelo centro da tela (x ${Math.round(cx)}, y ${Math.round(cy)} mm)`,
+        });
+        continue;
+      }
       const c = TV_CLEARANCE_MM;
       if (overlap(b.x0, b.x1, z.x0 - c, z.x1 + c) && overlap(b.y0, b.y1, z.y0 - c, z.y1 + c) && b.d1 > (z.mount ?? 0) + 0.5)
         out.push({

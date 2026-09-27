@@ -185,6 +185,18 @@ void test('prateleira de parede: tábua horizontal presa na parede, com limites 
   const board = generateDesign(ok.design).parts.find((p) => p.id === 'pp:ledge')!;
   assert.equal(board.kind, 'shelf');
   assert.deepEqual([board.c, board.l, board.thickness], [900, 280, 30], 'corta como tábua: comprimento × fundo × espessura');
+  // O chat lê as prateleiras antes de cada turno: a de parede não tem vão e
+  // derrubava todo pedido do projeto.
+  const { shelfInfos } = await import('../lib/studio');
+  const withNiche = executeRequest(ok.design, [
+    { kind: 'module.add', id: 'n', preset: 'niche' },
+    { kind: 'cell.split', id: 'n:root', axis: 'y' },
+  ]);
+  assert.ok(withNiche.ok, !withNiche.ok ? withNiche.error : '');
+  if (!withNiche.ok) return;
+  const infos = shelfInfos(withNiche.design);
+  assert.ok(!infos.some((s) => s.id === 'pp:ledge'), 'prateleira de parede fica fora');
+  assert.equal(infos.length, 1, 'a prateleira do nicho continua listada');
   const thick = executeRequest(ok.design, [{ kind: 'module.edit', id: 'pp', height: 80 }]);
   assert.ok(!thick.ok && /15 a 60 mm de espessura/.test(thick.error));
   const split = executeRequest(ok.design, [{ kind: 'cell.split', id: 'pp:root', axis: 'y' }]);
@@ -286,4 +298,153 @@ void test('modify mover: mexer num módulo da fileira leva o conjunto, como o ar
   assert.ok(!('error' in alone) && alone.ops.some((o) => o.kind === 'disconnect'));
   const none = planModify(d, undefined, { remover: [], mover: [], medidas: [], interior: [] });
   assert.ok('error' in none, 'nada pedido continua sendo erro de uso');
+});
+
+void test('place: substituir troca o móvel inteiro pelas peças, no lugar dele, e o que saiu não bloqueia', async () => {
+  const { executeRequest, migrateParams } = await import('../lib/studio');
+  const { defaults } = await import('../lib/furniture');
+  const d = migrateParams(defaults);
+  // Uma cômoda de duas colunas onde estava a estante de partida: sem a troca,
+  // a primeira peça bateria na estante que ocupa o mesmo lugar.
+  const plan = planPieces(
+    d,
+    undefined,
+    [
+      { ref: 'gav', nome: 'Gavetas', tipo: 'gaveteiro', largura: 770, altura: 880, profundidade: 450, pes: 50, interior: { linhas: [{ frente: 'gavetas', gavetas: 4 }, { altura: 150, frente: 'aberto' }] }, onde: { x: 0, y: 0 } },
+      { ref: 'porta', nome: 'Porta', tipo: 'armario', largura: 330, interior: { linhas: [{ altura: 520, frente: 'porta' }, { frente: 'gavetas', gavetas: 2 }] }, onde: { de: 'gav', lado: 'direita' } },
+    ],
+    true,
+  );
+  assert.ok(!('error' in plan && plan.error), JSON.stringify(plan));
+  if ('error' in plan) return;
+  const r = executeRequest(d, plan.ops);
+  assert.ok(r.ok, !r.ok ? r.error : '');
+  if (!r.ok) return;
+  assert.deepEqual(r.design.modules.map((m) => m.id).sort(), ['gav', 'porta']);
+  // Dois corpos do mesmo móvel, mesma altura, pés e acabamento: um painel só entre eles.
+  assert.deepEqual(r.design.connections.map((c) => [c.parent, c.child, c.shared]), [['gav', 'porta', true]]);
+  const fronts = generateDesign(r.design).parts.filter((p) => p.kind === 'door' || (p.kind === 'drawer' && /Frente gaveta/.test(p.name)));
+  assert.equal(fronts.filter((p) => p.kind === 'drawer').length, 6);
+  assert.equal(fronts.filter((p) => p.kind === 'door').length, 1);
+});
+
+void test('place: painel de parede vai atrás da TV já marcada; prateleira na frente da tela continua recusada', () => {
+  const s = scene('parede-tv');
+  const d = normalize(s.design);
+  const tv = s.room!.obstacles!.find((o) => o.kind === 'tv')!;
+  const x = tv.xMm - 200;
+  const panel = planPieces(d, s.room!, [{ ref: 'painel', nome: 'Painel', tipo: 'painel', largura: tv.widthMm + 400, altura: 1400, profundidade: 25, onde: { x, y: tv.yMm - 400 } }]);
+  assert.ok(!('error' in panel && panel.error), JSON.stringify('error' in panel ? panel.error : ''));
+  const shelf = planPieces(d, s.room!, [{ ref: 'p', nome: 'Prateleira', tipo: 'prateleira', largura: 600, onde: { x: tv.xMm + 100, y: tv.yMm + 100 } }]);
+  assert.ok('error' in shelf && /tapa/.test(shelf.error ?? ''), 'a prateleira na frente da tela é recusada');
+});
+
+void test('place: pé abaixo do mínimo vira 50 mm com aviso, em vez de recusar a peça', async () => {
+  const { migrateParams } = await import('../lib/studio');
+  const { defaults } = await import('../lib/furniture');
+  const d = migrateParams(defaults);
+  const plan = planPieces(d, undefined, [{ ref: 'g', nome: 'Gaveteiro', tipo: 'gaveteiro', pes: 30, onde: { de: 'module-1', lado: 'direita' } }]);
+  assert.ok(!('error' in plan && plan.error), JSON.stringify(plan));
+  if ('error' in plan) return;
+  assert.equal(plan.placed[0].feet, 50);
+  assert.match(plan.placed[0].notes.join(' '), /30 mm viraram 50 mm/);
+});
+
+void test('modify: tirar todos os módulos devolve o caminho da troca (place com substituir), sem mudar nada', async () => {
+  const s = start('troca tudo por um guarda-roupa', 'parede-tv');
+  const ids = s.p.revisions[s.p.cursor].params.modules.map((m) => m.id);
+  const { fake, seen } = scripted([() => reply(call('modify', { remover: ids })), () => reply(call('finish', { mensagem: 'Não troquei nada.' }))]);
+  await turn(s, fake);
+  const result = seen[1].filter((m) => m.role === 'tool').map((m) => String(m.content)).join(' ');
+  assert.match(result, /substituir:true/);
+  assert.equal(get(s.p.id).revisions.length, s.p.revisions.length, 'nada foi gravado');
+});
+
+void test('place: painel atrás só da borda da TV é recusado já no place, com o centro da tela', () => {
+  const s = scene('parede-tv');
+  const d = normalize(s.design);
+  const tv = s.room!.obstacles!.find((o) => o.kind === 'tv')!;
+  const plan = planPieces(d, s.room!, [{ ref: 'painel', nome: 'Painel', tipo: 'painel', largura: 500, altura: 1400, profundidade: 25, onde: { x: tv.xMm - 300, y: tv.yMm - 400 } }]);
+  assert.ok('error' in plan && /centro da tela/.test(plan.error ?? ''), JSON.stringify(plan));
+});
+
+void test('room_obstacles: no projeto de partida a estante que vai sair não empurra a porta da foto', async () => {
+  const p = get(create().id);
+  const user: Message = {
+    id: `u${++n}`,
+    role: 'user',
+    content: 'monte essa parede da foto',
+    revisionId: p.revisions[0].id,
+    revision: 1,
+    context: { requestId: `r${n}`, baseRevisionId: p.revisions[0].id, selectedPartIds: [], referencedPartIds: [] },
+  };
+  p.messages.push(user);
+  const s = { p, user, version: save(p, p.version).version };
+  const { fake, seen } = scripted([
+    () =>
+      reply(
+        call('room_set', { largura: 3200, altura: 2600 }),
+        call('room_obstacles', { add: [{ kind: 'door', xMm: 100, yMm: 0, widthMm: 800, heightMm: 2100 }] }),
+      ),
+    () => reply(call('finish', { mensagem: 'Marquei a parede.' })),
+  ]);
+  await turn(s, fake);
+  const results = seen[1].filter((m) => m.role === 'tool').map((m) => String(m.content)).join(' ');
+  assert.doesNotMatch(results, /Não coube|Não cabe|Ajustei para um lugar livre/, results);
+  const door = get(p.id).room?.obstacles?.find((o) => o.kind === 'door');
+  assert.equal(door?.xMm, 100, 'a porta fica onde a foto mostra');
+});
+
+void test('place: painel, rack e prateleira da TV no mesmo lote: o rack fica preso na frente do painel do lote', async () => {
+  const s = scene('parede-tv');
+  const room = { ...s.room!, obstacles: s.room!.obstacles!.filter((o) => o.kind === 'tv') };
+  // Parede sem os módulos da cena: só a TV, como na foto da sala.
+  const { migrateParams } = await import('../lib/studio');
+  const { defaults } = await import('../lib/furniture');
+  const d = migrateParams(defaults);
+  const tv = room.obstacles.find((o) => o.kind === 'tv')!;
+  const plan = planPieces(
+    d,
+    { ...room, offsetMm: 2800 },
+    [
+      { ref: 'painel', nome: 'Painel', tipo: 'painel', largura: 1700, altura: 1600, profundidade: 25, onde: { x: tv.xMm - 235, y: 300 } },
+      { ref: 'rack', nome: 'Rack', tipo: 'gaveteiro', largura: 1600, altura: 300, profundidade: 400, interior: { colunas: 2, frente: 'gavetas', gavetas: 1 }, onde: { de: 'tv', lado: 'abaixo', y: 400 } },
+    ],
+  );
+  assert.ok(!('error' in plan && plan.error), JSON.stringify('error' in plan ? plan.error : ''));
+  if ('error' in plan) return;
+  const rack = plan.placed.find((p) => p.ref === 'rack')!;
+  assert.equal(rack.box.d0, 25, 'o rack encosta na frente do painel');
+  assert.match(rack.surface, /Painel/);
+});
+
+void test('place: peça larga que vira dois módulos divide as colunas do conjunto (3 nichos, não 6)', async () => {
+  const { executeRequest, migrateParams } = await import('../lib/studio');
+  const { defaults } = await import('../lib/furniture');
+  const d = migrateParams(defaults);
+  const plan = planPieces(d, undefined, [{ ref: 'n', nome: 'Nichos', tipo: 'nicho', largura: 1400, altura: 220, profundidade: 250, interior: { colunas: 3 }, onde: { x: 0, y: 1500 } }], true);
+  assert.ok(!('error' in plan && plan.error), JSON.stringify(plan));
+  if ('error' in plan) return;
+  const r = executeRequest(d, plan.ops);
+  assert.ok(r.ok, !r.ok ? r.error : '');
+  if (!r.ok) return;
+  const open = generateDesign(r.design).cells.filter((c) => !c.node.split && !c.node.front);
+  assert.equal(open.length, 3);
+  const w = open.map((c) => Math.round(c.size[0]));
+  assert.ok(Math.max(...w) - Math.min(...w) <= 12, `vãos iguais: ${w.join(", ")}`);
+});
+
+void test('place: o resultado conta as frentes montadas (porta_dupla em 4 colunas são 16 folhas)', async () => {
+  const { migrateParams } = await import('../lib/studio');
+  const { defaults } = await import('../lib/furniture');
+  const d = migrateParams(defaults);
+  const plan = planPieces(
+    d,
+    undefined,
+    [{ ref: 'g', nome: 'Guarda-roupa', tipo: 'armario', largura: 1600, altura: 2200, profundidade: 550, interior: { linhas: [{ altura: 1300, colunas: 4, frente: 'porta_dupla' }, { colunas: 4, frente: 'porta_dupla' }] }, onde: { x: 0, y: 0 } }],
+    true,
+  );
+  assert.ok(!('error' in plan && plan.error), JSON.stringify(plan));
+  if ('error' in plan) return;
+  assert.match(plan.placed[0].notes.join(' '), /frente: 16 folhas de porta, 0 gavetas, 0 vãos abertos/);
 });

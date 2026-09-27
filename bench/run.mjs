@@ -17,7 +17,7 @@
  *   npm run bench -- --agent               # o assistente em laço (lib/agent)
  *   npm run bench -- --agent --record      # grava respostas do modelo e do Jev
  *   npm run bench -- --agent --offline     # repete as gravações, sem rede
- *   npm run bench -- --agent --photo-loop  # foto também pelo laço (a rota usa o caminho antigo)
+ *   npm run bench -- --agent --photo-legacy  # foto pelo caminho antigo (a rota manda foto pelo laço)
  *   npm run bench -- --agent --repeat 3 --concurrency 4   # repetições em paralelo
  *
  * Casos com `image` (foto de referência) usam o arquivo indicado no caso. A
@@ -29,7 +29,7 @@
  * duas vezes) e, se continuar, a linha sai com `infra: true`, fora da taxa.
  */
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -39,9 +39,9 @@ import { basename, dirname, join, resolve } from 'node:path';
 process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-bench-'));
 
 const { applyRequest, create, get, revise, save, undo } = await import('../lib/store.ts');
-const { saveImage } = await import('../lib/images.ts');
+const { saveImage, imageDataUrl } = await import('../lib/images.ts');
 const { planDataUrl } = await import('../lib/plan-render.ts');
-const { interpretStream, profile } = await import('../lib/gateway.ts');
+const { interpretStream, profile, reviewAndCorrect } = await import('../lib/gateway.ts');
 const { addUsage, emptyUsage, priceOf, modelInfo, reasoningEffort, MODEL_KEYS, DEFAULT_MODEL } = await import('../lib/models.ts');
 const { executeRequest, generateDesign, entityIds, canonical, normalize } = await import('../lib/studio.ts');
 const { drawingParts } = await import('../lib/composition.ts');
@@ -50,7 +50,7 @@ const { AGENT_SYSTEM } = await import('../lib/agent/prompt.ts');
 const { toolSpecs } = await import('../lib/agent/loop.ts');
 const { DEFAULT_PRICES } = await import('../lib/quote.ts');
 const { callModel } = await import('../lib/agent/model.ts');
-const { fitReport } = await import('../lib/room.ts');
+const { fitReport, applyObstacleEdits } = await import('../lib/room.ts');
 const { cases, groups, askActMiss, INFRA_ERROR, caseHash } = await import('./cases.mjs');
 
 const args = process.argv.slice(2);
@@ -92,8 +92,9 @@ const agent = flag('agent');
 const concurrency = Math.max(1, Number(value('concurrency', '1')));
 // Espera antes de rodar de novo um caso que caiu por erro do provedor.
 const INFRA_WAITS = [10_000, 30_000];
-// --photo-loop: com --agent, foto também vai pelo laço (para medir; a rota manda foto pelo caminho antigo).
-const photoLoop = flag('photo-loop');
+// Com --agent, foto vai pelo laço, como na rota. --photo-legacy mede o caminho
+// antigo (uma chamada e a conferência); --photo-loop fica aceito, é o padrão.
+const photoLoop = !flag('photo-legacy');
 // O laço grava outra coisa (a sequência de respostas do modelo e do Jev):
 // pasta própria, para não misturar com as decisões do caminho antigo.
 // --fixtures <pasta>: gravações do laço noutra pasta (a base fica separada do candidato).
@@ -358,7 +359,7 @@ async function runAgentCase(project, benchCase, image, selection, telemetry, fix
     cells: generateDesign(designAfter).cells,
     startHash: stateHash(before, roomBefore),
     finalHash: stateHash(designAfter, room),
-    report: { outcome: answer.result?.outcome ?? null, applied: answer.result?.appliedOperations?.length ?? 0, attempted: answer.result?.attemptedOperations?.length ?? null, facts: answer.report?.facts ?? null, verification: answer.report?.verification ?? null },
+    report: { outcome: answer.result?.outcome ?? null, applied: answer.result?.appliedOperations?.length ?? 0, attempted: answer.result?.attemptedOperations?.length ?? null, facts: answer.report?.facts ?? null, verification: answer.report?.verification ?? null, review: answer.report?.review ?? null },
     design: designAfter,
     effects: r.state.effects ?? [],
     fronts: r.state.viewAction ?? null,
@@ -402,6 +403,12 @@ function evaluate(benchCase, info, helpers) {
   if (expect.design && info.action === 'update') {
     const verdict = expect.design(helpers.design, helpers, info);
     if (verdict !== true) errors.push(String(verdict));
+  }
+  // Nota contra o gabarito (fotos reais): abaixo do mínimo, o motivo vai no erro.
+  if (expect.score && info.action === 'update' && info.score) {
+    const s = info.score;
+    if (s.total < (expect.minScore ?? 0.7))
+      errors.push(`parecido ${Math.round(s.total * 100)}% (mínimo ${Math.round((expect.minScore ?? 0.7) * 100)}%): ${Object.entries(s.parts).map(([k, v]) => `${k} ${v}`).join(', ')}; ${s.notes.join('; ')}`);
   }
   if (expect.agent && info.agent) {
     const verdict = expect.agent(info.agent);
@@ -492,10 +499,29 @@ async function runCase(benchCase, run, imagePath) {
       if (!applied.ok) throw new Error(`preparação falhou: ${applied.error}`);
       save(project, project.version);
     }
+    // Conversa antes do pedido: foto num pedido anterior e a conferência
+    // dela, como a rota grava. O pedido do caso entra depois dela.
+    for (const h of benchCase.setup?.history ?? []) {
+      const revisionId = project.revisions[project.cursor].id;
+      project.messages.push({
+        id: randomUUID(),
+        role: h.role,
+        content: h.content,
+        ...(h.image ? { image: await saveImage(readFileSync(resolve(h.image)), basename(h.image)) } : {}),
+        ...(h.review
+          ? {
+              result: { outcome: 'applied', resultRevisionId: revisionId, appliedOperations: [], changes: [] },
+              report: { durationMs: 0, outcome: 'applied', changes: [], review: h.review },
+            }
+          : {}),
+      });
+    }
+    if (benchCase.setup?.history?.length) save(project, project.version);
     const fresh = get(project.id);
     const revision = fresh.revisions[fresh.cursor];
     const before = revision.params;
-    const selection = benchCase.setup?.selected ?? [];
+    const selected = benchCase.setup?.selected;
+    const selection = typeof selected === 'function' ? selected(before) : (selected ?? []);
     // A foto entra como o app manda: salva no diretório de dados e
     // referenciada na mensagem, para o prompt receber o mesmo bloco de
     // estimativa calibrada que um pedido real recebe.
@@ -535,10 +561,13 @@ async function runCase(benchCase, run, imagePath) {
       row.report = got.report;
       // O estado gravado, para julgar de novo com outro oráculo sem repetir o turno.
       if (benchCase.group === 'composicao') row.final = { design: canonical(got.designAfter), room: got.room ?? null };
+      const score = benchCase.expect?.score && got.action === 'update' ? benchCase.expect.score(got.designAfter, got.room ?? null) : null;
+      if (score) row.score = score;
+      if (benchCase.truth) row.final = { design: canonical(got.designAfter), room: got.room ?? null };
       row.errors.push(
         ...evaluate(
           benchCase,
-          { ...got, agent: got },
+          { ...got, agent: got, ...(score ? { score } : {}) },
           { design: got.designAfter, before, parts: generated.parts, cells: generated.cells, content: got.content },
         ),
       );
@@ -597,10 +626,38 @@ async function runCase(benchCase, run, imagePath) {
       const preview = row.preview ?? (ops.length ? executeRequest(before, ops) : { ok: true, design: before, noop: true });
       if (ops.length && preview.ok) {
         applied = JSON.stringify(preview.design) !== JSON.stringify(before);
+        // Como a rota: obstáculos da decisão entram no ambiente, e o turno de
+        // foto passa pela conferência do desenho (com a correção dela).
+        const obs = decision.obstacles;
+        if (obs && (obs.add?.length || obs.move?.length || obs.remove?.length))
+          project.room = applyObstacleEdits(project.room, obs, before.width ?? 0).room;
+        let finalDesign = preview.design;
+        if (applied && image && !offline) {
+          const t0 = Date.now();
+          const checked = await reviewAndCorrect(
+            {
+              photo: await imageDataUrl(image.id),
+              result: await planDataUrl(drawingParts(canonical(finalDesign))),
+              design: finalDesign,
+              applied: ops,
+              request: benchCase.prompt,
+              model,
+              room: project.room,
+              onUsage: (usage) => (telemetry.usage = addUsage(telemetry.usage, usage, priceOf(model, process.env))),
+            },
+            executeRequest,
+          );
+          telemetry.latencyMs += Date.now() - t0;
+          telemetry.calls += checked?.review.rejected ? 2 : 1;
+          if (checked) {
+            row.review = checked.review;
+            if (checked.ops.length) finalDesign = checked.design;
+          }
+        }
         if (applied) {
-          revise(project, preview.design, benchCase.prompt.slice(0, 60));
+          revise(project, finalDesign, benchCase.prompt.slice(0, 60));
           save(project, project.version);
-          designAfter = preview.design;
+          designAfter = finalDesign;
         }
       } else if (ops.length && !preview.ok) {
         row.errors.push(`validação recusou: ${preview.error}`);
@@ -622,9 +679,11 @@ async function runCase(benchCase, run, imagePath) {
 
     const generated = generateDesign(designAfter);
     row.warnings = generated.warnings ?? [];
+    const roomAfter = project.room ?? null;
     const helpers = {
       design: designAfter,
       before,
+      room: roomAfter,
       parts: generated.parts,
       cells: generated.cells,
       content,
@@ -636,7 +695,10 @@ async function runCase(benchCase, run, imagePath) {
       options,
       deadOptions,
       suggestions: decision.suggestions ?? [],
+      ...(benchCase.expect?.score && action === 'update' ? { score: benchCase.expect.score(designAfter, roomAfter) } : {}),
     };
+    if (info.score) row.score = info.score;
+    if (benchCase.truth) row.final = { design: canonical(designAfter), room: roomAfter };
     row.action = action;
     row.applied = applied;
     row.decision = {
@@ -680,9 +742,10 @@ for (const benchCase of selected) {
     continue;
   }
   const imagePath = benchCase.image ? resolve(benchCase.image) : '';
-  if (imagePath && !existsSync(imagePath)) {
-    console.log(`pulado ${benchCase.id} (sem a foto ${benchCase.image}; coloque o arquivo para rodar)`);
-    skipped.push({ id: benchCase.id, reason: `foto ausente: ${benchCase.image}` });
+  const missing = [benchCase.image, ...(benchCase.setup?.history ?? []).map((h) => h.image)].find((f) => f && !existsSync(resolve(f)));
+  if (missing) {
+    console.log(`pulado ${benchCase.id} (sem a foto ${missing}; coloque o arquivo para rodar)`);
+    skipped.push({ id: benchCase.id, reason: `foto ausente: ${missing}` });
     continue;
   }
   for (let run = 1; run <= repeat; run++) jobs.push({ benchCase, run, imagePath });
@@ -765,7 +828,7 @@ const autoLabel = () => {
     agent ? 'laço' : 'legado',
     askGate === false && 'sem portão',
     offline && 'offline',
-    photoLoop && 'foto no laço',
+    !photoLoop && 'foto no caminho antigo',
     repeat > 1 && `×${repeat}`,
     onlyGroup && onlyGroup,
     onlyIds && `${onlyIds.size} casos`,

@@ -1,0 +1,311 @@
+{
+ "id": "tv-01",
+ "at": "2026-09-26T22:26:29.563Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_dIl5uBdjp6WQFGs13DZmDXQU",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Conferir o painel e os espaços livres junto à TV\",\"Adicionar nichos e uma prateleira decorativa\",\"Ver a composição e ajustar se necessário\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_UADAk6tmeefp5uRVAVATuJ5E",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"nicho-esq\",\"nome\":\"Nicho decorativo esquerdo\",\"tipo\":\"nicho\",\"largura\":420,\"altura\":320,\"profundidade\":220,\"pes\":0,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":284,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"p\",\"lado\":\"acima\",\"folga\":0,\"alinhar\":\"centro\",\"x\":0,\"y\":1540}},{\"ref\":\"nicho-dir\",\"nome\":\"Nicho decorativo direito\",\"tipo\":\"nicho\",\"largura\":420,\"altura\":320,\"profundidade\":220,\"pes\":0,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":284,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"p\",\"lado\":\"acima\",\"folga\":0,\"alinhar\":\"centro\",\"x\":0,\"y\":1540}},{\"ref\":\"prat-centro\",\"nome\":\"Prateleira decorativa\",\"tipo\":\"prateleira\",\"largura\":920,\"altura\":30,\"profundidade\":220,\"pes\":0,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":100,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"p\",\"lado\":\"acima\",\"folga\":0,\"alinhar\":\"centro\",\"x\":0,\"y\":900}}],\"substituir\":false,\"rotulo\":\"Modelos custom no painel\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_RqMUE7RTZpJKYexmehzW9osW",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"nicho-esq\",\"nome\":\"Nicho decorativo esquerdo\",\"tipo\":\"nicho\",\"largura\":420,\"altura\":320,\"profundidade\":220,\"pes\":0,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":284,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"\",\"lado\":\"acima\",\"folga\":0,\"alinhar\":\"centro\",\"x\":817,\"y\":1450}},{\"ref\":\"nicho-dir\",\"nome\":\"Nicho decorativo direito\",\"tipo\":\"nicho\",\"largura\":420,\"altura\":320,\"profundidade\":220,\"pes\":0,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":284,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"\",\"lado\":\"acima\",\"folga\":0,\"alinhar\":\"centro\",\"x\":2563,\"y\":1450}},{\"ref\":\"prat-centro\",\"nome\":\"Prateleira decorativa inferior\",\"tipo\":\"prateleira\",\"largura\":1700,\"altura\":30,\"profundidade\":220,\"pes\":0,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":100,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"\",\"lado\":\"acima\",\"folga\":0,\"alinhar\":\"centro\",\"x\":1050,\"y\":900}}],\"substituir\":false,\"rotulo\":\"Modelos custom no painel\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_oJQzpxO7O1cWREOIhrZAOJHD",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "11|Pedido: Vamos adicionar os nossos modelos custum no painel seja creativo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_SOGDy7VQADNYeqSW6hFvsLl5",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Adicionei ao painel dois nichos decorativos simétricos e uma prateleira inferior em nogueira; a composição foi conferida e mantém a TV livre. A estimativa atualizada é de R$ 3.451,38.\",\"sugestoes\":[\"Destacar os nichos na cena\",\"Abrir o orçamento detalhado\",\"Exportar o desenho em PDF\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.67,
+      "probabilities": {
+       "ask": 0.01,
+       "options": 0.01,
+       "build": 0.71,
+       "studio": 0.16,
+       "view": 0,
+       "edit": 0.11
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.54
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.2
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.32
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1316,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 419,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.94
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.08
+     }
+    },
+    "usage": {
+     "input_tokens": 532,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

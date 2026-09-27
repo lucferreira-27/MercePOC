@@ -1,0 +1,413 @@
+{
+ "id": "op-01",
+ "at": "2026-09-26T22:25:05.543Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Me dá 3 opções de estante para uma parede de 2 m: uma mais barata, uma com portas e uma com gavetas",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_n5eCcGK1rxVPWpODEzXGZksr",
+      "type": "function",
+      "function": {
+       "name": "options_make",
+       "arguments": "{\"variantes\":[{\"nome\":\"Econômica aberta\",\"pedido\":\"Crie uma estante aberta de 200 cm de largura, 180 cm de altura e 35 cm de profundidade, em Carvalho natural. Sem portas e sem gavetas, com prateleiras abertas simples.\"},{\"nome\":\"Com portas\",\"pedido\":\"Crie uma estante de 200 cm de largura, 180 cm de altura e 35 cm de profundidade, em Carvalho natural, com prateleiras abertas na parte superior e portas fechadas na parte inferior.\"},{\"nome\":\"Com gavetas\",\"pedido\":\"Crie uma estante de 200 cm de largura, 180 cm de altura e 35 cm de profundidade, em Carvalho natural, com prateleiras abertas na parte superior e gavetas na parte inferior.\"}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "2|Pedido: Opção \"Econômica aberta\", uma entre 3 para a pessoa comparar: Crie uma estante aberta de 200 cm de largura, 180 cm de altura e 35 cm de profundidade, em Carvalho natural. Sem portas e sem gavetas, com prateleiras abertas simples.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_yERLgubtQ2dj08AJsJapvszz",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\":0,\"largura\":2000,\"altura\":1800,\"profundidade\":350,\"base\":0,\"tipo\":\"shelf\",\"nome\":\"Estante aberta econômica\",\"modulos\":3,\"largura_max_modulo\":1200,\"frente\":\"none\",\"gavetas\":1,\"material\":\"oak\",\"material_frente\":\"oak\",\"pes\":0,\"desviar_obstaculos\":true,\"folga\":50,\"substituir\":true}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Opção \"Econômica aberta\", uma entre 3 para a pessoa comparar: Crie uma estante aberta de 200 cm de largura, 180 cm de altura e 35 cm de profundidade, em Carvalho natural. Sem portas e sem gavetas, com prateleiras abertas simples.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_FdWMFnDEfs2cwZmEu8XTT50V",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Montei a opção “Econômica aberta”: estante de 200 × 180 × 35 cm, em Carvalho natural, com prateleiras abertas, sem portas nem gavetas.\",\"sugestoes\":[\"Confira o orçamento desta opção\",\"Ajuste a quantidade de prateleiras\",\"Compare os acabamentos\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "2|Pedido: Opção \"Com portas\", uma entre 3 para a pessoa comparar: Crie uma estante de 200 cm de largura, 180 cm de altura e 35 cm de profundidade, em Carvalho natural, com prateleiras abertas na parte superior e portas fechadas na parte inferior.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_HYoHQvN6Isj7YNVcMORcHVAN",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"rotulo\":\"Estante com portas\",\"ops\":[{\"kind\":\"remove\",\"ids\":[\"module-1\"]},{\"kind\":\"module.add\",\"id\":\"estante-esquerda\",\"preset\":\"shelf\",\"name\":\"Estante esquerda\"},{\"kind\":\"module.add\",\"id\":\"estante-direita\",\"preset\":\"shelf\",\"name\":\"Estante direita\"},{\"kind\":\"module.edit\",\"id\":\"estante-esquerda\",\"width\":1000,\"height\":1800,\"depth\":350,\"materialId\":\"oak\",\"position\":[0,0,0]},{\"kind\":\"module.edit\",\"id\":\"estante-direita\",\"width\":1000,\"height\":1800,\"depth\":350,\"materialId\":\"oak\",\"position\":[1000,0,0]},{\"kind\":\"connect\",\"parent\":\"estante-esquerda\",\"child\":\"estante-direita\",\"side\":\"right\",\"shared\":true,\"align\":\"front\",\"offset\":0},{\"kind\":\"cell.split\",\"id\":\"estante-esquerda:root\",\"axis\":\"y\",\"gapMm\":500},{\"kind\":\"cell.split\",\"id\":\"estante-esquerda:root:high\",\"axis\":\"y\",\"gapMm\":415},{\"kind\":\"cell.split\",\"id\":\"estante-esquerda:root:high:high\",\"axis\":\"y\",\"gapMm\":415},{\"kind\":\"front.set\",\"id\":\"estante-esquerda:root:low\",\"type\":\"double\",\"materialId\":\"oak\"},{\"kind\":\"cell.split\",\"id\":\"estante-direita:root\",\"axis\":\"y\",\"gapMm\":500},{\"kind\":\"cell.split\",\"id\":\"estante-direita:root:high\",\"axis\":\"y\",\"gapMm\":415},{\"kind\":\"cell.split\",\"id\":\"estante-direita:root:high:high\",\"axis\":\"y\",\"gapMm\":415},{\"kind\":\"front.set\",\"id\":\"estante-direita:root:low\",\"type\":\"double\",\"materialId\":\"oak\"}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "2|Pedido: Opção \"Com gavetas\", uma entre 3 para a pessoa comparar: Crie uma estante de 200 cm de largura, 180 cm de altura e 35 cm de profundidade, em Carvalho natural, com prateleiras abertas na parte superior e gavetas na parte inferior.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_1YWOWzzgCbV5a7X1DdvGl3NE",
+      "type": "function",
+      "function": {
+       "name": "row_build",
+       "arguments": "{\"inicio\":0,\"largura\":2000,\"altura\":1800,\"profundidade\":350,\"base\":0,\"tipo\":\"niche\",\"nome\":\"Estante com gavetas\",\"modulos\":2,\"largura_max_modulo\":1000,\"frente\":\"none\",\"gavetas\":3,\"material\":\"oak\",\"material_frente\":\"oak\",\"pes\":0,\"desviar_obstaculos\":true,\"folga\":50,\"substituir\":true}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Opção \"Com gavetas\", uma entre 3 para a pessoa comparar: Crie uma estante de 200 cm de largura, 180 cm de altura e 35 cm de profundidade, em Carvalho natural, com prateleiras abertas na parte superior e gavetas na parte inferior.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_PXhdc19329zF5z28F22Jjvsp",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"cell.split\",\"id\":\"estante-com--1:root\",\"axis\":\"y\",\"gapMm\":600},{\"kind\":\"front.set\",\"id\":\"estante-com--1:root:low\",\"type\":\"drawers\",\"count\":3}],\"rotulo\":\"Estante com gavetas\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Opção \"Com gavetas\", uma entre 3 para a pessoa comparar: Crie uma estante de 200 cm de largura, 180 cm de altura e 35 cm de profundidade, em Carvalho natural, com prateleiras abertas na parte superior e gavetas na parte inferior.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_GZ1xKL2KDaMDtdQfByiDL6d5",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Montei a opção de estante com 200 × 180 × 35 cm em Carvalho natural, com três gavetas na parte inferior e nichos abertos na parte superior.\",\"sugestoes\":[\"Ajuste a altura das gavetas\",\"Escolha o acabamento das frentes\",\"Revise o orçamento\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Opção \"Com portas\", uma entre 3 para a pessoa comparar: Crie uma estante de 200 cm de largura, 180 cm de altura e 35 cm de profundidade, em Carvalho natural, com prateleiras abertas na parte superior e portas fechadas na parte inferior.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_H7jkFP2YF76Wsn9Jyvej7L9q",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"rotulo\":\"Estante 200 cm com portas inferiores\",\"ops\":[{\"kind\":\"module.remove\",\"id\":\"module-1\"},{\"kind\":\"module.add\",\"id\":\"estante-esquerda\",\"preset\":\"niche\",\"name\":\"Estante esquerda\"},{\"kind\":\"module.edit\",\"id\":\"estante-esquerda\",\"width\":1000,\"height\":1800,\"depth\":350,\"materialId\":\"oak\",\"position\":[0,0,0]},{\"kind\":\"module.add\",\"id\":\"estante-direita\",\"preset\":\"niche\",\"name\":\"Estante direita\"},{\"kind\":\"module.edit\",\"id\":\"estante-direita\",\"width\":1000,\"height\":1800,\"depth\":350,\"materialId\":\"oak\",\"position\":[1000,0,0]},{\"kind\":\"connect\",\"parent\":\"estante-esquerda\",\"child\":\"estante-direita\",\"side\":\"right\",\"shared\":true,\"align\":\"front\",\"offset\":0},{\"kind\":\"cell.split\",\"id\":\"estante-esquerda:root\",\"axis\":\"y\",\"gapMm\":500},{\"kind\":\"cell.split\",\"id\":\"estante-esquerda:root:high\",\"axis\":\"y\",\"gapMm\":400},{\"kind\":\"cell.split\",\"id\":\"estante-esquerda:root:high:high\",\"axis\":\"y\",\"gapMm\":400},{\"kind\":\"front.set\",\"id\":\"estante-esquerda:root:low\",\"type\":\"double\",\"materialId\":\"oak\"},{\"kind\":\"cell.split\",\"id\":\"estante-direita:root\",\"axis\":\"y\",\"gapMm\":500},{\"kind\":\"cell.split\",\"id\":\"estante-direita:root:high\",\"axis\":\"y\",\"gapMm\":400},{\"kind\":\"cell.split\",\"id\":\"estante-direita:root:high:high\",\"axis\":\"y\",\"gapMm\":400},{\"kind\":\"front.set\",\"id\":\"estante-direita:root:low\",\"type\":\"double\",\"materialId\":\"oak\"}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Opção \"Com portas\", uma entre 3 para a pessoa comparar: Crie uma estante de 200 cm de largura, 180 cm de altura e 35 cm de profundidade, em Carvalho natural, com prateleiras abertas na parte superior e portas fechadas na parte inferior.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_9D21AwrXNp5UMQEb1JPNQUS0",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"rotulo\":\"Estante com portas\",\"ops\":[{\"kind\":\"asset.add\",\"asset\":\"estante\",\"width\":2000,\"height\":1800,\"depth\":350,\"materialId\":\"oak\",\"frontMaterialId\":\"oak\",\"placement\":\"replace\"}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Opção \"Com portas\", uma entre 3 para a pessoa comparar: Crie uma estante de 200 cm de largura, 180 cm de altura e 35 cm de profundidade, em Carvalho natural, com prateleiras abertas na parte superior e portas fechadas na parte inferior.. Monte só esta opção no rascunho, sem perguntar e sem ler o estado de novo (ele já está acima): numa resposta só, chame design_apply ou row_build e depois finish dizendo em uma frase o que ela tem.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_D6sJ37HddhD0LQlGh7AfkrHG",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Montei a opção em Carvalho natural, com 200 × 180 × 35 cm, prateleiras abertas na parte superior e portas na parte inferior.\",\"sugestoes\":[\"Confira o orçamento\",\"Ajuste a divisão interna\",\"Veja o plano de corte\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Me dá 3 opções de estante para uma parede de 2 m: uma mais barata, uma com portas e uma com gavetas",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_4VT5rhgFSDFCL3gWuWGLPLRP",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Preparei três alternativas para a parede de 2 m, mantendo 200 × 180 × 35 cm em Carvalho natural: a estante aberta econômica custa R$ 2.767,18; a opção com prateleiras abertas e portas embaixo custa R$ 2.978,05; e a opção com três gavetas embaixo e nichos abertos custa R$ 3.536,30. O móvel atual permaneceu como estava; você pode escolher uma das opções nos cartões para aplicá-la.\",\"sugestoes\":[\"Aplique a opção que preferir\",\"Compare as peças e o plano de corte\",\"Ajuste a altura ou profundidade\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "options",
+      "confidence": 1,
+      "probabilities": {
+       "studio": 0,
+       "edit": 0,
+       "options": 1,
+       "view": 0,
+       "build": 0,
+       "ask": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.66
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.22
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.79
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.22
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.93
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.2
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.15
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.01
+     }
+    },
+    "usage": {
+     "input_tokens": 1334,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.76
+     }
+    },
+    "usage": {
+     "input_tokens": 437,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.13
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.31
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 603,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

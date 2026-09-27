@@ -598,6 +598,8 @@ export async function reviewResult(params: {
   onUsage?: (usage: ProviderUsage) => void;
   /** Recebe a resposta crua do provedor: usado para diagnosticar o formato. */
   debug?: (raw: string) => void;
+  /** Correção anterior desta conferência, recusada pela validação: volta com o erro. */
+  rejected?: { ops: readonly ShelfOp[]; error: string };
 }): Promise<DesignReview | null> {
   const prof = profile(params.model ?? false);
   const reviewInfo = modelInfo(modelKey(params.model));
@@ -616,7 +618,11 @@ export async function reviewResult(params: {
   Se houver correção, use no máximo 10 operações do mesmo contrato, na ordem certa (medidas antes de ligar, todas as divisões antes das frentes), e só o que aproxima o desenho da foto. Se o desenho já corresponde, devolva ops vazio.
   Contrato das operações: ${JSON.stringify(z.toJSONSchema(opSchema))}.
   Composição atual em mm: ${JSON.stringify(canonical(params.design))}.
-  Operações que você acabou de aplicar: ${JSON.stringify(params.applied)}.${params.room ? ` Ambiente informado: ${JSON.stringify(params.room)}.` : ''}`,
+  Operações que você acabou de aplicar: ${JSON.stringify(params.applied)}.${params.room ? ` Ambiente informado: ${JSON.stringify(params.room)}.` : ''}${
+    params.rejected
+      ? `\n  Sua correção anterior foi recusada pela validação e nada dela foi aplicado: ${params.rejected.error} Operações recusadas: ${JSON.stringify(params.rejected.ops)}. A composição acima é a de antes dela: mande a correção inteira de novo, na ordem que a validação pede.`
+      : ''
+  }`,
       },
       {
         role: 'user',
@@ -679,6 +685,44 @@ export async function reviewResult(params: {
     );
     return null;
   }
+}
+/** Veredito da conferência e o que aconteceu com a correção que ela pediu. */
+export type CheckedReview = {
+  fidelity: DesignReview['fidelity'];
+  verdict: string;
+  corrections: number;
+  /** Erro da validação quando a correção não entrou nem na segunda tentativa. */
+  rejected?: string;
+};
+/**
+ * Conferência com a correção aplicada. A IA acerta o veredito e erra a ordem
+ * das operações (mesclar vão que tem frente, mover módulo ligado): a correção
+ * recusada sumia sem rastro e o turno gravava "parecido em parte" com zero
+ * ajustes. O erro da validação volta uma vez, como no laço de correção do
+ * pedido; se ainda não passar, o motivo fica no relatório.
+ */
+export async function reviewAndCorrect(
+  params: Parameters<typeof reviewResult>[0],
+  apply: (design: Design, ops: ShelfOp[]) => { ok: true; design: Design } | { ok: false; error: string },
+): Promise<{ review: CheckedReview; design: Design; ops: ShelfOp[] } | null> {
+  const first = await reviewResult(params);
+  if (!first) return null;
+  const review: CheckedReview = { fidelity: first.fidelity, verdict: first.verdict, corrections: 0 };
+  let ops = first.ops;
+  for (let attempt = 1; ops.length; attempt++) {
+    const fixed = apply(params.design, ops);
+    if (fixed.ok) {
+      if (JSON.stringify(fixed.design) === JSON.stringify(params.design)) break;
+      return { review: { ...review, corrections: ops.length }, design: fixed.design, ops };
+    }
+    console.warn(`[review] correção recusada (tentativa ${attempt}): ${fixed.error.slice(0, 200)}`);
+    if (attempt === 2) return { review: { ...review, rejected: fixed.error }, design: params.design, ops: [] };
+    params.signal?.throwIfAborted();
+    const retry = await reviewResult({ ...params, rejected: { ops, error: fixed.error } });
+    if (!retry?.ops.length) return { review: { ...review, rejected: fixed.error }, design: params.design, ops: [] };
+    ops = retry.ops;
+  }
+  return { review, design: params.design, ops: [] };
 }
 export function interpret(
   params: Design,

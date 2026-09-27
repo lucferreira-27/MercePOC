@@ -32,6 +32,28 @@ export type Room = {
    */
   anchor?: { x: number; z: number };
   obstacles?: Obstacle[];
+  /** Paredes além da do fundo: laterais, divisórias e muretas, no piso. */
+  walls?: Wall[];
+};
+
+/**
+ * Parede a mais no ambiente: a lateral que fecha um canto, uma divisória ou
+ * uma mureta. É um elemento próprio, não um obstáculo: fica no piso, em
+ * planta, e não na face da parede do fundo. Medidas em mm, com x a partir do
+ * canto esquerdo da parede do fundo e z a partir da face dela, para dentro do
+ * ambiente. (xMm, zMm) é o canto de trás à esquerda da base.
+ */
+export type Wall = {
+  id: string;
+  label?: string;
+  xMm: number;
+  zMm: number;
+  /** Comprimento: a largura de quem olha de frente para a parede. */
+  widthMm: number;
+  heightMm: number;
+  thicknessMm: number;
+  /** 0: corre ao longo da parede do fundo; 90: sai dela para a frente. */
+  rotation: 0 | 90;
 };
 
 type Extent = { min: readonly number[]; max: readonly number[] };
@@ -68,6 +90,7 @@ export type FitCode =
   | 'too-deep'
   | 'floor-gap'
   | 'obstacle-overlap'
+  | 'wall-overlap'
   | 'tv-blocked';
 
 export type FitIssue = {
@@ -88,6 +111,8 @@ export type FitReport = {
   notes: string[];
   /** Ids dos obstáculos que cruzam algum módulo: a lista do painel marca. */
   crossed?: string[];
+  /** Ids das paredes que cruzam algum módulo. */
+  crossedWalls?: string[];
 };
 
 /**
@@ -105,6 +130,12 @@ export const ROOM_LIMITS = {
   obstacleSize: [10, 20000],
   obstacleSwing: [0, 5000],
   obstacles: 32,
+  wallX: [-20000, 20000],
+  wallZ: [0, 20000],
+  wallLength: [100, 20000],
+  wallHeight: [100, 20000],
+  wallThickness: [50, 1000],
+  walls: 16,
 } as const;
 
 /**
@@ -202,6 +233,20 @@ export const obstacleSchema: z.ZodType<Obstacle> = z
   })
   .strict();
 
+const between = (limit: readonly [number, number]) => z.number().min(limit[0]).max(limit[1]);
+export const wallSchema: z.ZodType<Wall> = z
+  .object({
+    id: z.string().trim().min(1).max(100),
+    label: z.string().trim().min(1).max(80).optional(),
+    xMm: between(ROOM_LIMITS.wallX),
+    zMm: between(ROOM_LIMITS.wallZ),
+    widthMm: between(ROOM_LIMITS.wallLength),
+    heightMm: between(ROOM_LIMITS.wallHeight),
+    thicknessMm: between(ROOM_LIMITS.wallThickness),
+    rotation: z.union([z.literal(0), z.literal(90)]),
+  })
+  .strict();
+
 export const roomSchema: z.ZodType<Room> = z
   .object({
     schemaVersion: z.literal(1),
@@ -227,6 +272,7 @@ export const roomSchema: z.ZodType<Room> = z
       .strict()
       .optional(),
     obstacles: z.array(obstacleSchema).max(ROOM_LIMITS.obstacles).optional(),
+    walls: z.array(wallSchema).max(ROOM_LIMITS.walls).optional(),
   })
   .strict();
 
@@ -378,10 +424,251 @@ export function movedObstacle(before: Room | undefined, after: Room | undefined)
   return moved;
 }
 
+// ---------------------------------------------------------------- paredes
+
+/** Espessura de uma parede de alvenaria comum, com o reboco dos dois lados. */
+export const WALL_THICKNESS_MM = 150;
+/** Id da parede do fundo na seleção da cena: as outras paredes têm o próprio. */
+export const MAIN_WALL = 'main';
+/** Passo das paredes no arrasto e nas alças: 1 cm. */
+const WALL_GRID = 10;
+/** Distância em que a borda de uma parede gruda num canto ou noutra parede. */
+export const WALL_MAGNET_MM = 60;
+
+/** Base da parede em planta, no sistema do ambiente (x do canto, z da face do fundo). */
+export function wallFootprint(w: Pick<Wall, 'xMm' | 'zMm' | 'widthMm' | 'thicknessMm' | 'rotation'>) {
+  const along = w.rotation === 0;
+  return {
+    x0: w.xMm,
+    x1: w.xMm + (along ? w.widthMm : w.thicknessMm),
+    z0: w.zMm,
+    z1: w.zMm + (along ? w.thicknessMm : w.widthMm),
+  };
+}
+
+/**
+ * Caixa da parede no mundo, a partir do canto esquerdo e da face da parede do
+ * fundo (`wallAt`); a altura para no teto.
+ */
+export function wallBox(w: Wall, origin: { x: number; z: number }, ceiling: number): WorldBox {
+  const f = wallFootprint(w);
+  return { min: [origin.x + f.x0, 0, origin.z + f.z0], max: [origin.x + f.x1, Math.min(w.heightMm, ceiling), origin.z + f.z1] };
+}
+/** As caixas têm volume em comum, mais de 1 mm em cada eixo? Encostar face com face não conta. */
+export function boxesCross(a: WorldBox, b: WorldBox) {
+  return [0, 1, 2].every((i) => Math.min(a.max[i], b.max[i]) - Math.max(a.min[i], b.min[i]) > 1);
+}
+
+/** "Parede 2" pelo número do id, ou o nome dado. */
+export function wallName(w: Pick<Wall, 'id' | 'label'>) {
+  if (w.label) return w.label;
+  const n = /(\d+)$/.exec(w.id)?.[1];
+  return n ? `Parede ${n}` : 'Parede';
+}
+/** Com artigo, no meio da frase: "a parede 2", "a parede "Lavanderia"". */
+export function wallWord(w: Pick<Wall, 'id' | 'label'>) {
+  return w.label ? `a parede "${w.label}"` : `a ${wallName(w).toLowerCase()}`;
+}
+export function nextWallId(walls: readonly Pick<Wall, 'id'>[] = []) {
+  let n = 1;
+  while (walls.some((w) => w.id === `wall-${n}`)) n++;
+  return `wall-${n}`;
+}
+
+type WallRoom = Pick<Room, 'widthMm' | 'heightMm' | 'depthMm' | 'walls'>;
+
+/**
+ * Parede nova: sai da parede do fundo para a frente, com o pé-direito, 1,2 m
+ * de comprimento e 15 cm de espessura, fechando o canto direito por dentro.
+ * A prévia segue o cursor até o clique.
+ */
+export function presetWall(room: WallRoom): Wall {
+  return {
+    id: nextWallId(room.walls),
+    xMm: room.widthMm - WALL_THICKNESS_MM,
+    zMm: 0,
+    widthMm: Math.max(ROOM_LIMITS.wallLength[0], Math.min(1200, room.depthMm ?? 1200)),
+    heightMm: Math.min(room.heightMm, ROOM_LIMITS.wallHeight[1]),
+    thicknessMm: WALL_THICKNESS_MM,
+    rotation: 90,
+  };
+}
+
+/**
+ * Onde a base pode ficar: da face da parede do fundo para a frente (até a
+ * profundidade, quando informada) e até uma espessura para fora de cada
+ * canto, onde fica a lateral que fecha o canto por fora.
+ */
+function wallArea(room: WallRoom, w: Pick<Wall, 'thicknessMm'>) {
+  return { x0: -w.thicknessMm, x1: room.widthMm + w.thicknessMm, z0: 0, z1: room.depthMm ?? ROOM_LIMITS.wallZ[1] };
+}
+
+/** Linhas onde a borda de uma parede gruda: os cantos, a face do fundo e as outras paredes. */
+function wallTargets(room: WallRoom, except?: string) {
+  const xs = [0, room.widthMm];
+  const zs = [0, ...(room.depthMm ? [room.depthMm] : [])];
+  for (const v of room.walls ?? []) {
+    if (v.id === except) continue;
+    const f = wallFootprint(v);
+    xs.push(f.x0, f.x1);
+    zs.push(f.z0, f.z1);
+  }
+  return { xs, zs };
+}
+
+/** Quanto andar para a borda mais perto de uma linha grudar nela; 0 se nenhuma está perto. */
+function magnet(edges: readonly number[], targets: readonly number[], radius = WALL_MAGNET_MM) {
+  let best = 0,
+    dist = radius;
+  for (const e of edges)
+    for (const t of targets) {
+      const d = Math.abs(t - e);
+      if (d < dist) {
+        dist = d;
+        best = t - e;
+      }
+    }
+  return best;
+}
+const snapTo = (v: number, step = WALL_GRID) => Math.round(v / step) * step;
+const clampTo = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi));
+
+/**
+ * A parede levada para (x, z): passo de 1 cm, a borda grudando no canto, na
+ * face do fundo ou noutra parede quando chega perto, sem sair do ambiente.
+ */
+export function moveWallTo(w: Wall, xMm: number, zMm: number, room: WallRoom): Wall {
+  const moved = { ...w, xMm: snapTo(xMm), zMm: snapTo(zMm) };
+  const f = wallFootprint(moved);
+  const t = wallTargets(room, w.id);
+  const a = wallArea(room, w);
+  moved.xMm = Math.round(clampTo(moved.xMm + magnet([f.x0, f.x1], t.xs), a.x0, a.x1 - (f.x1 - f.x0)));
+  moved.zMm = Math.round(clampTo(moved.zMm + magnet([f.z0, f.z1], t.zs), a.z0, a.z1 - (f.z1 - f.z0)));
+  return moved;
+}
+
+/** Ponta da parede no comprimento: 'start' é a de x (ou z) menor. */
+export type WallEnd = 'start' | 'end';
+
+/**
+ * A ponta levada para `at` (mm no eixo da parede: x quando corre ao longo do
+ * fundo, z quando sai dele), com a outra ponta parada. Passo de 1 cm, gruda
+ * em cantos e noutras paredes, nunca fica com menos de 10 cm nem sai do
+ * ambiente.
+ */
+export function resizeWallEnd(w: Wall, end: WallEnd, at: number, room: WallRoom): Wall {
+  const along = w.rotation === 0;
+  const a = wallArea(room, w);
+  const t = wallTargets(room, w.id);
+  const [min, max] = ROOM_LIMITS.wallLength;
+  const start = along ? w.xMm : w.zMm;
+  const stop = start + w.widthMm;
+  let v = snapTo(at);
+  v += magnet([v], along ? t.xs : t.zs);
+  if (end === 'end') {
+    v = clampTo(v, start + min, Math.min(along ? a.x1 : a.z1, start + max));
+    return { ...w, widthMm: Math.round(v - start) };
+  }
+  v = clampTo(v, Math.max(along ? a.x0 : a.z0, stop - max), stop - min);
+  return { ...w, ...(along ? { xMm: Math.round(v) } : { zMm: Math.round(v) }), widthMm: Math.round(stop - v) };
+}
+
+/** Altura nova, de 10 cm até o pé-direito; perto do teto, vai até ele. */
+export function resizeWallHeight(w: Wall, heightMm: number, room: Pick<Room, 'heightMm'>): Wall {
+  const h = Math.abs(room.heightMm - heightMm) < WALL_MAGNET_MM ? room.heightMm : snapTo(heightMm);
+  return { ...w, heightMm: Math.round(clampTo(h, ROOM_LIMITS.wallHeight[0], room.heightMm)) };
+}
+
+/** Gira 90° em volta do centro da base, sem sair do ambiente. */
+export function rotateWall(w: Wall, room: WallRoom): Wall {
+  const f = wallFootprint(w);
+  const turned: Wall = { ...w, rotation: w.rotation === 0 ? 90 : 0 };
+  const g = wallFootprint({ ...turned, xMm: 0, zMm: 0 });
+  const a = wallArea(room, w);
+  return {
+    ...turned,
+    xMm: Math.round(clampTo((f.x0 + f.x1 - g.x1) / 2, a.x0, a.x1 - g.x1)),
+    zMm: Math.round(clampTo((f.z0 + f.z1 - g.z1) / 2, a.z0, a.z1 - g.z1)),
+  };
+}
+
+/** Paredes na altura do teto acompanham o pé-direito; nenhuma passa dele. */
+export function fitWallsToCeiling(walls: readonly Wall[], before: number, after: number): Wall[] {
+  return walls.map((w) => (w.heightMm >= before || w.heightMm > after ? { ...w, heightMm: after } : w));
+}
+
+/** Lado da parede do fundo que a alça mexe: as pontas (largura) ou o topo (pé-direito). */
+export type MainWallEdge = 'start' | 'end' | 'top';
+
+/**
+ * A parede do fundo com a alça solta em `at`, em mm no sistema do ambiente de
+ * agora: x a partir do canto esquerdo para as pontas, y do piso para o topo.
+ *
+ * A ponta direita muda a largura. A esquerda muda a largura e o canto, e
+ * prende a parede no mundo (`anchor`) para nada nela sair do lugar: os
+ * obstáculos e as outras paredes são recontados do canto novo. Nenhuma ponta
+ * passa por cima de um obstáculo, o teto não desce sobre um, e as paredes na
+ * altura do teto acompanham o pé-direito. As pontas grudam nos lados do móvel.
+ */
+export function resizeMainWall(room: Room, bounds: Extent, edge: MainWallEdge, at: number): Room {
+  const frames = (room.obstacles ?? []).map(framed);
+  if (edge === 'top') {
+    const h = Math.round(clampTo(snapTo(at), Math.max(ROOM_LIMITS.height[0], ...frames.map((f) => f.y1)), ROOM_LIMITS.height[1]));
+    return { ...room, heightMm: h, ...(room.walls ? { walls: fitWallsToCeiling(room.walls, room.heightMm, h) } : {}) };
+  }
+  const wall = wallAt(room, bounds);
+  const [minW, maxW] = ROOM_LIMITS.width;
+  let x = snapTo(at);
+  x += magnet([x], [bounds.min[0] - wall.x, bounds.max[0] - wall.x]);
+  if (edge === 'end') return { ...room, widthMm: Math.round(clampTo(x, Math.max(minW, ...frames.map((f) => f.x1)), maxW)) };
+  const shift = Math.round(clampTo(x, room.widthMm - maxW, Math.min(room.widthMm - minW, ...frames.map((f) => f.x0))));
+  if (!shift) return room;
+  const anchor = { x: wall.x + shift, z: wall.z };
+  const offset = Math.max(0, Math.round(bounds.min[0] - anchor.x));
+  const { offsetMm: _old, ...rest } = room;
+  void _old;
+  return {
+    ...rest,
+    widthMm: room.widthMm - shift,
+    ...(offset ? { offsetMm: offset } : {}),
+    anchor,
+    ...(room.obstacles ? { obstacles: room.obstacles.map((o) => ({ ...o, xMm: o.xMm - shift })) } : {}),
+    ...(room.walls ? { walls: room.walls.map((w) => ({ ...w, xMm: w.xMm - shift })) } : {}),
+  };
+}
+
+const WALL_SHAPE = ['xMm', 'zMm', 'widthMm', 'heightMm', 'rotation'] as const;
+/**
+ * Única parede que só mudou de lugar ou de medida (arrasto, alça, giro) entre
+ * os dois ambientes, com o resto igual: é o que junta ajustes seguidos numa
+ * versão só, como os arrastos de obstáculo.
+ */
+export function editedWall(before: Room | undefined, after: Room | undefined) {
+  if (!before || !after) return null;
+  const a = before.walls ?? [],
+    b = after.walls ?? [];
+  if (a.length !== b.length) return null;
+  const { walls: _a, ...restA } = before;
+  const { walls: _b, ...restB } = after;
+  void _a;
+  void _b;
+  if (JSON.stringify(restA) !== JSON.stringify(restB)) return null;
+  let edited: string | null = null;
+  for (const [i, w] of a.entries()) {
+    const n = b[i];
+    if (n.id !== w.id) return null;
+    if (JSON.stringify(n) === JSON.stringify(w)) continue;
+    const shape = Object.fromEntries(WALL_SHAPE.map((k) => [k, w[k]]));
+    if (JSON.stringify({ ...n, ...shape }) !== JSON.stringify(w) || edited) return null;
+    edited = w.id;
+  }
+  return edited;
+}
+
 /**
  * Rótulo da versão para uma mudança no ambiente, pelo que mudou: "Pôs a
  * porta", "Moveu a janela", "Tirou a TV", "Mudou as medidas da tomada",
- * "Medidas da parede".
+ * "Pôs a parede 1", "Girou a parede 2", "Medidas da parede".
  */
 export function roomChangeLabel(before: Room | undefined, after: Room) {
   const a = before?.obstacles ?? [],
@@ -392,9 +679,38 @@ export function roomChangeLabel(before: Room | undefined, after: Room) {
     const old = a.find((v) => v.id === o.id);
     return old && JSON.stringify(old) !== JSON.stringify(o);
   });
+  const wa = before?.walls ?? [],
+    wb = after.walls ?? [];
+  const wallsAdded = wb.filter((w) => !wa.some((v) => v.id === w.id));
+  const wallsRemoved = wa.filter((w) => !wb.some((v) => v.id === w.id));
+  const wallsChanged = wb.filter((w) => {
+    const old = wa.find((v) => v.id === w.id);
+    return old && JSON.stringify(old) !== JSON.stringify(w);
+  });
   const one = (verb: string, list: Obstacle[]) =>
     list.length === 1 ? `${verb} ${obstacleWord(list[0])}` : `${verb} ${list.length} obstáculos`;
-  if (!before) return added.length ? `Ambiente com ${one('', added).trim()}` : 'Medidas do ambiente';
+  const oneWall = (verb: string, list: Wall[]) => (list.length === 1 ? `${verb} ${wallWord(list[0])}` : `${verb} ${list.length} paredes`);
+  if (!before) {
+    if (added.length) return `Ambiente com ${one('', added).trim()}`;
+    return wallsAdded.length ? `Ambiente com ${oneWall('', wallsAdded).trim()}` : 'Medidas do ambiente';
+  }
+  // A parede do fundo mudou de medida: é o que a pessoa fez, mesmo quando o
+  // canto novo recontou os obstáculos e as paredes a partir dele.
+  const main = (r: Room) => JSON.stringify([r.widthMm, r.heightMm, r.depthMm, r.baseboardMm]);
+  if (main(before) !== main(after)) return 'Medidas da parede';
+  const obstaclesMoved = added.length + removed.length + changed.length > 0;
+  if (wallsAdded.length + wallsRemoved.length + wallsChanged.length && !obstaclesMoved) {
+    if (!wallsRemoved.length && !wallsChanged.length) return oneWall('Pôs', wallsAdded);
+    if (!wallsAdded.length && !wallsChanged.length) return oneWall('Tirou', wallsRemoved);
+    if (wallsChanged.length === 1 && !wallsAdded.length && !wallsRemoved.length) {
+      const n = wallsChanged[0],
+        old = wa.find((v) => v.id === n.id)!;
+      const sized = old.widthMm !== n.widthMm || old.heightMm !== n.heightMm || old.thicknessMm !== n.thicknessMm || old.label !== n.label;
+      if (sized) return `Mudou ${wallWord(n)}`;
+      return old.rotation !== n.rotation ? `Girou ${wallWord(n)}` : `Moveu ${wallWord(n)}`;
+    }
+    return 'Paredes do ambiente';
+  }
   if (added.length && !removed.length && !changed.length) return one('Pôs', added);
   if (removed.length && !added.length && !changed.length) return one('Tirou', removed);
   if (changed.length && !added.length && !removed.length) {
@@ -712,6 +1028,26 @@ export function fitReport(design: Composition, room: Room): FitReport {
       });
     }
   }
+  // Paredes do ambiente: é alvenaria, então qualquer volume em comum com um
+  // módulo não cabe. Encostar (face com face) cabe.
+  const wallIssues: FitIssue[] = [];
+  const crossedWalls = new Set<string>();
+  const origin = wallAt(room, g.bounds);
+  for (const w of room.walls ?? []) {
+    const f = wallFootprint(w);
+    const solid = wallBox(w, origin, room.heightMm);
+    for (const movel of design.modules) {
+      const box = modules.get(movel.id);
+      if (!box || !boxesCross(solid, { min: [box.minX, box.minY, box.minZ], max: [box.maxX, box.maxY, box.maxZ] })) continue;
+      crossedWalls.add(w.id);
+      wallIssues.push({
+        code: 'wall-overlap',
+        key: `wall-overlap:${w.id}:${movel.id}`,
+        message: `${wallWord(w).replace(/^a/, 'A')} cruza o módulo ${movel.name}`,
+        detail: `A parede ocupa x de ${plain(f.x0)} a ${plain(f.x1)} e vai de ${plain(f.z0)} a ${plain(f.z1)} da parede do fundo.`,
+      });
+    }
+  }
   // Um veredito é uma frase só: o primeiro problema é o que o resumo conta.
   if (height > room.heightMm)
     issues.push({
@@ -747,7 +1083,7 @@ export function fitReport(design: Composition, room: Room): FitReport {
         : `O móvel tem ${metres(depth)} de profundidade e o ambiente permite ${metres(room.depthMm)}`,
       detail: `Passa ${centimetres(depth + Math.max(gap, 0) - room.depthMm)} do limite do ambiente.`,
     });
-  issues.push(...tvIssues, ...obstacleIssues);
+  issues.push(...tvIssues, ...obstacleIssues, ...wallIssues);
   // Painel e módulo suspenso vão presos na parede: não precisam tocar o piso.
   const hung = design.modules.every((m) => m.kind === 'panel' || m.kind === 'ledge' || m.wall);
   if (base > ON_FLOOR && !hung)
@@ -787,7 +1123,7 @@ export function fitReport(design: Composition, room: Room): FitReport {
         `${obstacle.label ?? KIND_WORD[obstacle.kind]} com giro de ${plain(obstacle.swingMm)}: confira se a folha abre sem bater no móvel.`,
       );
   }
-  return { fits: issues.length === 0, issues, notes, crossed: [...crossed] };
+  return { fits: issues.length === 0, issues, notes, crossed: [...crossed], crossedWalls: [...crossedWalls] };
 }
 
 /**

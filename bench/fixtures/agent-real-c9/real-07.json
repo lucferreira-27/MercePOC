@@ -1,0 +1,319 @@
+{
+ "id": "real-07",
+ "at": "2026-09-26T22:41:36.033Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Monte essa parede do meu quarto como está na foto: a janela e a cômoda do lado.\nImagem 1: foto de referência deste pedido (real-quarto-janela.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_imzJXWYigBFTdCbyL6FR0R36",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Inventariar a cômoda da foto e estimar medidas pela janela\",\"Modelar a parede e registrar a janela\",\"Trocar a estante pela cômoda de dois corpos\",\"Conferir a composição renderizada e ajustar se preciso\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Monte essa parede do meu quarto como está na foto: a janela e a cômoda do lado.\nImagem 1: foto de referência deste pedido (real-quarto-janela.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_BoCPL6bIdBHN5oR8ThvmzoWT",
+      "type": "function",
+      "function": {
+       "name": "room_set",
+       "arguments": "{\"largura\":4000,\"altura\":2600,\"profundidade\":4000,\"rodape\":80}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Monte essa parede do meu quarto como está na foto: a janela e a cômoda do lado.\nImagem 1: foto de referência deste pedido (real-quarto-janela.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_SVdYizkxGhTMnoAHfjPgFffv",
+      "type": "function",
+      "function": {
+       "name": "room_obstacles",
+       "arguments": "{\"add\":[{\"kind\":\"window\",\"label\":\"Janela\",\"xMm\":1900,\"yMm\":900,\"widthMm\":1200,\"heightMm\":1000}],\"move\":[],\"remove\":[]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Monte essa parede do meu quarto como está na foto: a janela e a cômoda do lado.\nImagem 1: foto de referência deste pedido (real-quarto-janela.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_kJvlQZKAXlnlwao8pf9m9nQR",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Inventário: cômoda baixa, corpo à esquerda com nicho aberto e quatro gavetas; à右\",\"Corpo estreito à direita com uma porta; sem pés aparentes, tom marrom-escuro\",\"Estimativa pela janela: cômoda ~72 × 85 × 45 cm, junto à esquerda dela\",\"Substituir a estante, posicionar a janela e conferir a cena\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Monte essa parede do meu quarto como está na foto: a janela e a cômoda do lado.\nImagem 1: foto de referência deste pedido (real-quarto-janela.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_c9b6BMueGwwrsBG88KYU1Lm6",
+      "type": "function",
+      "function": {
+       "name": "room_set",
+       "arguments": "{\"largura\":2600,\"altura\":2600,\"profundidade\":4000,\"rodape\":80}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Monte essa parede do meu quarto como está na foto: a janela e a cômoda do lado.\nImagem 1: foto de referência deste pedido (real-quarto-janela.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_TnlV8vBAt7z4IEQ0nxnddqcq",
+      "type": "function",
+      "function": {
+       "name": "room_obstacles",
+       "arguments": "{\"add\":[{\"kind\":\"window\",\"label\":\"Janela\",\"xMm\":1500,\"yMm\":900,\"widthMm\":1200,\"heightMm\":1000}],\"move\":[],\"remove\":[]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "14|Pedido: Monte essa parede do meu quarto como está na foto: a janela e a cômoda do lado.\nImagem 1: foto de referência deste pedido (real-quarto-janela.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_70ON3UMjb2imIV9W0hJ8I2Tk",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "16|Pedido: Monte essa parede do meu quarto como está na foto: a janela e a cômoda do lado.\nImagem 1: foto de referência deste pedido (real-quarto-janela.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_UbyT2laDWkRyGbMkdQ9zZTN6",
+      "type": "function",
+      "function": {
+       "name": "room_set",
+       "arguments": "{\"largura\":4000,\"altura\":2600,\"profundidade\":4000,\"rodape\":80}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "18|Pedido: Monte essa parede do meu quarto como está na foto: a janela e a cômoda do lado.\nImagem 1: foto de referência deste pedido (real-quarto-janela.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_4CbvF0QdFHB8GlaCzWjreqUY",
+      "type": "function",
+      "function": {
+       "name": "room_obstacles",
+       "arguments": "{\"add\":[],\"move\":[{\"id\":\"window-1\",\"xMm\":2050,\"yMm\":900,\"widthMm\":1200,\"heightMm\":1000}],\"remove\":[\"window-2\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "20|Pedido: Monte essa parede do meu quarto como está na foto: a janela e a cômoda do lado.\nImagem 1: foto de referência deste pedido (real-quarto-janela.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_iKXyKz451foledM7atwmPrKI",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Inventário: cômoda escura em dois corpos, esquerda larga com nicho e quatro gav;\",\"corpo direito estreito com uma porta, sem pés aparentes; estimar 72×85×45 cm\",\"Referência de escala: janela estimada 1,20×1,00 m em parede de 4 m\",\"Substituir a estante, manter a janela e conferir visualmente\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "22|Pedido: Monte essa parede do meu quarto como está na foto: a janela e a cômoda do lado.\nImagem 1: foto de referência deste pedido (real-quarto-janela.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_mmwiBbETHZ3SjxfivYSxjbdf",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "24|Pedido: Monte essa parede do meu quarto como está na foto: a janela e a cômoda do lado.\nImagem 1: foto de referência deste pedido (real-quarto-janela.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_mqvzHgNKlqBCaZtTJ7MXZG7F",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"comoda-larga\",\"nome\":\"Cômoda - gaveteiro largo\",\"tipo\":\"gaveteiro\",\"largura\":500,\"altura\":850,\"profundidade\":450,\"pes\":0,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":110,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":165,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":1},{\"altura\":165,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":1},{\"altura\":165,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":1},{\"altura\":165,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":1330,\"y\":0}},{\"ref\":\"comoda-lateral\",\"nome\":\"Cômoda - corpo lateral\",\"tipo\":\"armario\",\"largura\":220,\"altura\":850,\"profundidade\":450,\"pes\":0,\"material\":\"walnut\",\"interior\":{\"linhas\":[{\"altura\":814,\"colunas\":1,\"frente\":\"porta\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"porta\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"comoda-larga\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}}],\"substituir\":true,\"rotulo\":\"Cômoda escura ao lado da janela\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "26|Pedido: Monte essa parede do meu quarto como está na foto: a janela e a cômoda do lado.\nImagem 1: foto de referência deste pedido (real-quarto-janela.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_RlSvNXc8fN7UV9aFY49QnzrE",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "29|Pedido: Monte essa parede do meu quarto como está na foto: a janela e a cômoda do lado.\nImagem 1: foto de referência deste pedido (real-quarto-janela.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_oE0uB4MDX2XqRMd6t5pDNw3R",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Modelei a parede de 4 m com a janela estimada em 1,20 × 1,00 m e a cômoda escura de 72 × 85 × 45 cm à esquerda, com nicho aberto, quatro gavetas e uma porta lateral. Usei a janela como régua; espere erro de ±10–20% e confirme a largura da parede e a posição/largura da janela para fechar as medidas; cama e cortinas ficaram de fora, e os puxadores não são detalhados.\",\"sugestoes\":[\"Confira as medidas reais da parede e da janela\",\"Ajuste a posição da cômoda\",\"Abra o orçamento estimado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.18
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.2
+     }
+    },
+    "usage": {
+     "input_tokens": 430,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.21
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 595,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

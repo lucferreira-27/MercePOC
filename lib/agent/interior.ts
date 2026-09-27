@@ -15,7 +15,7 @@ export const rowSchema = z
   .object({
     altura: z.number().min(100).max(2400).optional().describe('Vão livre da linha em mm; ausente divide o que sobra por igual'),
     colunas: z.number().int().min(1).max(6).optional(),
-    frente: z.enum(FRONTS).optional(),
+    frente: z.enum(FRONTS).optional().describe('Em cada coluna da linha: porta (uma folha; de 700 mm para cima vira duas), porta_dupla (duas folhas por coluna), gavetas ou aberto'),
     gavetas: z.number().int().min(1).max(6).optional(),
   })
   .strict();
@@ -64,7 +64,7 @@ export function interiorOps(
   spec: Interior,
   cellId = `${moduleId}:root`,
   inner?: { width: number; height: number },
-): { ops: ShelfOp[]; cells: string[][]; notes: string[] } | { error: string } {
+): { ops: ShelfOp[]; cells: string[][]; notes: string[]; fronts: { doors: number; drawers: number; open: number } } | { error: string } {
   const P = PROFILE.panel;
   const W = inner?.width ?? size.width - 2 * P;
   const H = inner?.height ?? size.height - 2 * P;
@@ -161,7 +161,16 @@ export function interiorOps(
   }
   if (spec.porta_inteira && spec.porta_inteira !== 'nenhuma' && !whole) notes.push('porta inteira ignorada: as linhas têm frente própria');
   if (notes.length) notes.push(`linhas de baixo para cima: ${heights.join(', ')} mm`);
-  return { ops, cells, notes };
+  // O que a pessoa vê de frente, contado das operações: a IA confere com o
+  // inventário (4 colunas com porta_dupla são 16 folhas, não 8).
+  const fronts = { doors: 0, drawers: 0, open: 0 };
+  for (const o of ops) {
+    if (o.kind !== 'front.set') continue;
+    if (o.type === 'drawers') fronts.drawers += o.count ?? 1;
+    else fronts.doors += o.type === 'double' ? 2 : 1;
+  }
+  if (!whole) fronts.open = filled.reduce((a, r) => a + (r.frente === 'aberto' ? r.colunas : 0), 0);
+  return { ops, cells, notes, fronts };
 }
 
 /**

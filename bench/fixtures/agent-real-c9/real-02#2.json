@@ -1,0 +1,259 @@
+{
+ "id": "real-02",
+ "at": "2026-09-26T22:37:32.073Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Faz esse guarda-roupa pra mim, com as mesmas cores.\nImagem 1: foto de referência deste pedido (real-guarda-roupa-duas-cores.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_jRWzKwaNqWDQEt4SMSW2jSyq",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Inventariar o guarda-roupa: dois corpos, frentes e cores\",\"Substituir a estante pelos módulos estimados lado a lado\",\"Conferir a composição na cena e ajustar se necessário\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Faz esse guarda-roupa pra mim, com as mesmas cores.\nImagem 1: foto de referência deste pedido (real-guarda-roupa-duas-cores.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_9bgM7b8TFyIM1UXTiTJUDXOg",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"wardrobe-black\",\"nome\":\"Guarda-roupa preto\",\"tipo\":\"armario\",\"largura\":650,\"altura\":2200,\"profundidade\":550,\"pes\":0,\"material\":\"black\",\"interior\":{\"linhas\":[{\"altura\":2164,\"colunas\":1,\"frente\":\"porta_dupla\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"black\"},\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}},{\"ref\":\"wardrobe-wood\",\"nome\":\"Guarda-roupa madeira e gavetas\",\"tipo\":\"armario\",\"largura\":650,\"altura\":2200,\"profundidade\":550,\"pes\":0,\"material\":\"black\",\"interior\":{\"linhas\":[{\"altura\":1764,\"colunas\":1,\"frente\":\"porta_dupla\",\"gavetas\":1},{\"altura\":200,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":1},{\"altura\":200,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"walnut\"},\"onde\":{\"de\":\"wardrobe-black\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}}],\"substituir\":true,\"rotulo\":\"Guarda-roupa preto e madeira da foto\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Faz esse guarda-roupa pra mim, com as mesmas cores.\nImagem 1: foto de referência deste pedido (real-guarda-roupa-duas-cores.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_Km7mbiiLLui6uWyTO6cMi3A0",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     },
+     {
+      "id": "call_rVFIT6XuQbaDbUJtaQjduGIk",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Faz esse guarda-roupa pra mim, com as mesmas cores.\nImagem 1: foto de referência deste pedido (real-guarda-roupa-duas-cores.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_UmZbNDugCaD20gyLsFWCdeYO",
+      "type": "function",
+      "function": {
+       "name": "modify",
+       "arguments": "{\"remover\":[],\"mover\":[],\"medidas\":[],\"interior\":[{\"linhas\":[{\"altura\":196,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":1},{\"altura\":198,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":1},{\"altura\":1734,\"colunas\":1,\"frente\":\"porta_dupla\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"walnut\",\"id\":\"wardrobe-wood\"}],\"rotulo\":\"Guarda-roupa ajustado conforme a foto\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Faz esse guarda-roupa pra mim, com as mesmas cores.\nImagem 1: foto de referência deste pedido (real-guarda-roupa-duas-cores.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_U4MUC5hNr0007T55nU3tOE9t",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "15|Pedido: Faz esse guarda-roupa pra mim, com as mesmas cores.\nImagem 1: foto de referência deste pedido (real-guarda-roupa-duas-cores.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_sypaJ8pggu7d9N65MVEXvoIQ",
+      "type": "function",
+      "function": {
+       "name": "modify",
+       "arguments": "{\"remover\":[],\"mover\":[],\"medidas\":[],\"interior\":[{\"linhas\":[{\"altura\":260,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":1},{\"altura\":1904,\"colunas\":1,\"frente\":\"porta_dupla\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"freijo\",\"id\":\"wardrobe-wood\"}],\"rotulo\":\"Guarda-roupa em preto e freijó conforme a foto\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "17|Pedido: Faz esse guarda-roupa pra mim, com as mesmas cores.\nImagem 1: foto de referência deste pedido (real-guarda-roupa-duas-cores.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_KNi1BYo9aeOP80ccSDdkz6Uo",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "20|Pedido: Faz esse guarda-roupa pra mim, com as mesmas cores.\nImagem 1: foto de referência deste pedido (real-guarda-roupa-duas-cores.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_xeRPfLgBEOwRbhnzJKKtuMSf",
+      "type": "function",
+      "function": {
+       "name": "modify",
+       "arguments": "{\"remover\":[],\"mover\":[],\"medidas\":[],\"interior\":[{\"linhas\":[{\"altura\":257,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":2},{\"altura\":1889,\"colunas\":1,\"frente\":\"porta_dupla\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"walnut\",\"id\":\"wardrobe-wood\"}],\"rotulo\":\"Guarda-roupa preto e nogueira com duas gavetas inferiores\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "22|Pedido: Faz esse guarda-roupa pra mim, com as mesmas cores.\nImagem 1: foto de referência deste pedido (real-guarda-roupa-duas-cores.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_dSzT2Y6Z0tDpXjcpY1DKzICX",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "25|Pedido: Faz esse guarda-roupa pra mim, com as mesmas cores.\nImagem 1: foto de referência deste pedido (real-guarda-roupa-duas-cores.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_HUm20nKmWIDd6Zwl0hcS4C9H",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Montei o guarda-roupa estimado pela porta da foto como régua: cerca de 128 × 220 × 55 cm, com frentes pretas e em nogueira e duas gavetas inferiores. A estimativa visual pode variar ±10–20%; a medida real de largura, altura e profundidade fecharia o projeto, e os puxadores da foto não foram representados.\",\"sugestoes\":[\"Ajuste as medidas com a trena\",\"Veja o orçamento atualizado\",\"Exporte o desenho em PDF\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.07
+     }
+    },
+    "usage": {
+     "input_tokens": 423,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.21
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.45
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.06
+     }
+    },
+    "usage": {
+     "input_tokens": 569,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

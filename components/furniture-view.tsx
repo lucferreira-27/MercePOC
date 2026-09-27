@@ -5,11 +5,23 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { materials, type Part } from '@/lib/furniture';
 import type { Design } from '@/lib/studio';
-import type { Obstacle, Room } from '@/lib/room';
+import type { MainWallEdge, Obstacle, Room, Wall } from '@/lib/room';
 import { feetOf, generateComposition } from '@/lib/composition';
 import { buildFeet, buildRoom, obstacleCrosses, referenceRoom, roomFocus, ROOM_PALETTE, type SceneBounds } from '@/lib/scene-room';
 import { buildObstacle, tintFrame } from '@/lib/scene-obstacles';
-import { Pencil, Scissors, Trash2, X } from 'lucide-react';
+import {
+  buildWall,
+  layoutWall,
+  liveDimLines,
+  mainHandlePoints,
+  mainLiveDims,
+  wallHandlePoints,
+  wallLiveDims,
+  type LiveDim,
+  type WallFrame,
+  type WallHandle,
+} from '@/lib/scene-walls';
+import { Pencil, RotateCw, Scissors, Trash2, X } from 'lucide-react';
 import { buildDims, type DimLabel } from '@/lib/scene-dims';
 import {
   FurnitureMotion,
@@ -22,7 +34,21 @@ import { DIFF_GLOW } from '@/lib/scene-materials';
 import { buildCutMarks, scissorsPose, type CutMarkMode } from '@/lib/cut-marks';
 import type { ModularOp } from '@/lib/composition';
 import { DEFAULT_DRAG_MODE, MOVE_GRID, constrainDrag, lockedAxes, moduleBoxes, moveGroup, moveOp, quickBlock, rotateOp, selectedGroup, shortMm, snapDelta, tryOp, type DragMode, type MoveGroup, type Vec3 } from '@/lib/move';
-import { floorBound, obstacleOverlap, wallAt } from '@/lib/room';
+import {
+  boxesCross,
+  floorBound,
+  MAIN_WALL,
+  moveWallTo,
+  obstacleOverlap,
+  resizeMainWall,
+  resizeWallEnd,
+  resizeWallHeight,
+  rotateWall,
+  wallAt,
+  wallBox,
+  wallFootprint,
+  wallName,
+} from '@/lib/room';
 import { MovePad, type NudgeDir } from './move-pad';
 import { useDelayedTrue } from '@/hooks/use-delayed';
 type CameraMove = {
@@ -54,6 +80,21 @@ type Runtime = {
   placeTo?: (x: number, y: number) => void;
   /** Põe o obstáculo novo onde a prévia está, se ali couber. */
   confirmPlacing?: () => void;
+  /** Parede nova seguindo o cursor no piso, antes do clique que a põe. */
+  placingWall?: { group: THREE.Group; wall: Wall };
+  /** Leva a prévia da parede nova para x, z do ambiente (mm). */
+  placeWallTo?: (x: number, z: number) => void;
+  /** Gira a prévia da parede nova. */
+  turnPlacingWall?: () => void;
+  confirmPlacingWall?: () => void;
+  /** Alças da parede escolhida (HTML por cima da cena): começo, arrasto e fim. */
+  beginHandle?: (handle: WallHandle, e: PointerEvent) => boolean;
+  moveHandle?: (e: PointerEvent) => void;
+  endHandle?: () => void;
+  /** Alça de parede sendo arrastada: as cotas de medida esperam ela parar. */
+  wallDragging?: boolean;
+  /** Cotas ao vivo do arrasto de uma alça: linhas na cena, rótulos em HTML. */
+  liveDims?: { dims: LiveDim[]; lines: THREE.LineSegments; dispose: () => void };
   feet?: { group: THREE.Group; dispose: () => void };
   ghosts?: { group: THREE.Group; dispose: () => void };
   /** Tracejado de corte nas peças do plano sob o cursor; `scissors` é a peça que leva a tesoura. */
@@ -154,6 +195,18 @@ const OBSTACLE_ARTICLE: Record<string, string> = {
 /** Chão de fundo bem abaixo do piso do ambiente: nunca disputa a mesma profundidade. */
 const GROUND_UNDER_ROOM = -40;
 
+/** Alças de uma parede do ambiente e da parede do fundo (que não sai do lugar). */
+const WALL_HANDLES: WallHandle[] = ['start', 'end', 'top', 'move'];
+const MAIN_HANDLES: WallHandle[] = ['start', 'end', 'top'];
+function handleLabel(h: WallHandle, main: boolean) {
+  if (h === 'move') return 'Arraste para mudar a parede de lugar';
+  if (h === 'top') return main ? 'Arraste para mudar o pé-direito' : 'Arraste para mudar a altura';
+  if (main) return h === 'start' ? 'Arraste para mudar a largura pela esquerda' : 'Arraste para mudar a largura pela direita';
+  return 'Arraste para mudar o comprimento';
+}
+/** Metros com duas casas e vírgula: "2,70". */
+const metresText = (mm: number) => (mm / 1000).toFixed(2).replace('.', ',');
+
 export default memo(FurnitureView);
 
 function FurnitureView({
@@ -188,8 +241,28 @@ function FurnitureView({
   onCancelPlace,
   onRemoveObstacle,
   onEditObstacle,
+  selectedWall = null,
+  onSelectWall,
+  onChangeWall,
+  onResizeMainWall,
+  placingWall = null,
+  onPlaceWall,
+  onRemoveWall,
+  onEditWall,
   keyboard = true,
 }: {
+  /** Parede escolhida (a do fundo é `MAIN_WALL`): destaque, alças e barra. */
+  selectedWall?: string | null;
+  onSelectWall?: (id: string | null) => void;
+  /** Parede do ambiente arrastada, esticada ou girada na cena. */
+  onChangeWall?: (w: Wall) => unknown;
+  /** Alça da parede do fundo solta em `at` (mm: x do canto nas pontas, y do piso no topo). */
+  onResizeMainWall?: (edge: MainWallEdge, at: number) => unknown;
+  /** Parede nova esperando lugar: a prévia segue o cursor no piso até o clique. */
+  placingWall?: Wall | null;
+  onPlaceWall?: (w: Wall) => void;
+  onRemoveWall?: (id: string) => void;
+  onEditWall?: (id: string) => void;
   /** Obstáculo escolhido na parede (clique nele): moldura e barra de ações. */
   selectedObstacle?: string | null;
   onSelectObstacle?: (id: string | null) => void;
@@ -299,11 +372,21 @@ function FurnitureView({
       // Sem armazenamento o modo vale só nesta aba.
     }
   };
-  const latest = useRef({ params, parts, selected, movable, onMove, onMoveObstacle, wallZ, dragMode, onSelectObstacle, selectedObstacle, placing, onPlace });
+  // Ambiente desenhado: o real, ou a parede de referência quando não há um.
+  const sceneRoom = useMemo(
+    () => (showRoom ? (room ?? referenceRoom(bounds, homeZ)) : undefined),
+    [showRoom, room, bounds, homeZ],
+  );
+  const wallProps = { selectedWall, onSelectWall, onChangeWall, onResizeMainWall, placingWall, onPlaceWall };
+  const latest = useRef({ params, parts, selected, movable, onMove, onMoveObstacle, wallZ, dragMode, onSelectObstacle, selectedObstacle, placing, onPlace, sceneRoom, bounds, ...wallProps });
   useEffect(() => {
-    latest.current = { params, parts, selected, movable, onMove, onMoveObstacle, wallZ, dragMode, onSelectObstacle, selectedObstacle, placing, onPlace };
-  }, [params, parts, selected, movable, onMove, onMoveObstacle, wallZ, dragMode, onSelectObstacle, selectedObstacle, placing, onPlace]);
+    latest.current = { params, parts, selected, movable, onMove, onMoveObstacle, wallZ, dragMode, onSelectObstacle, selectedObstacle, placing, onPlace, sceneRoom, bounds, selectedWall, onSelectWall, onChangeWall, onResizeMainWall, placingWall, onPlaceWall };
+  }, [params, parts, selected, movable, onMove, onMoveObstacle, wallZ, dragMode, onSelectObstacle, selectedObstacle, placing, onPlace, sceneRoom, bounds, selectedWall, onSelectWall, onChangeWall, onResizeMainWall, placingWall, onPlaceWall]);
   const obBar = useRef<HTMLDivElement>(null);
+  const wallBar = useRef<HTMLDivElement>(null),
+    wallHandles = useRef<HTMLDivElement>(null),
+    liveDimHost = useRef<HTMLDivElement>(null);
+  const [overWall, setOverWall] = useState(false);
   const lastParams = useRef(params);
   // Ponteiro sobre um obstáculo da parede que dá para arrastar.
   const [overObstacle, setOverObstacle] = useState(false);
@@ -663,16 +746,283 @@ function FurnitureView({
       // O cursor fica no meio da peça: é onde a pessoa está olhando.
       placeTo(hit.x - state.room.wall.x0 - o.widthMm / 2, hit.y - o.heightMm / 2);
     };
+    // Paredes do ambiente. Clique escolhe; o corpo arrasta pelo piso; as alças
+    // (HTML por cima da cena) esticam comprimento e altura. A parede do fundo
+    // só estica: é dela que tudo no ambiente é medido.
+    type Built = NonNullable<Runtime['room']>;
+    type WallEntry = Built['walls'][number];
+    let wallArmed: { entry: WallEntry; point: THREE.Vector3 } | null = null;
+    let handleDrag: {
+      target: string;
+      handle: WallHandle;
+      plane: THREE.Plane;
+      from: THREE.Vector3;
+      point: THREE.Vector3;
+      /** Plano de pé (câmera rente ao piso): o arrasto pelo piso descarta a altura. */
+      flat: boolean;
+      room: Room;
+      built: Built;
+      wall?: Wall;
+      draft?: Wall;
+      /** Parede do fundo como está no arrasto, e o valor que a alça grava. */
+      frame?: WallFrame;
+      at?: number;
+      changed: boolean;
+      modules: { name: string; box: SceneBounds }[];
+    } | null = null;
+    const frameOf = (built: Built): WallFrame => ({ x0: built.wall.x0, z: built.face, width: built.wall.width, height: built.wall.height });
+    const wallHit = () => {
+      // Parede translúcida (entre a câmera e o móvel) deixa o clique passar.
+      const list = (state.room?.walls ?? []).filter((v) => !v.group.userData.faded);
+      if (!list.length || !latest.current.onSelectWall) return null;
+      const h = ray.intersectObjects(
+        list.map((v) => v.group.userData.body as THREE.Object3D),
+        false,
+      )[0];
+      if (!h) return null;
+      let node: THREE.Object3D | null = h.object;
+      while (node && node.userData.wallId === undefined) node = node.parent;
+      const entry = list.find((v) => v.id === node?.userData.wallId);
+      return entry ? { entry, point: h.point.clone(), distance: h.distance } : null;
+    };
+    const mainWallHit = () => {
+      const mesh = state.room?.mainWall;
+      if (!mesh || !latest.current.onSelectWall) return null;
+      const h = ray.intersectObject(mesh, false)[0];
+      return h ? { distance: h.distance } : null;
+    };
+    /** Módulo que a parede cruza (nome), pela caixa de cada um. */
+    const crossing = (w: Wall, frame: WallFrame, modules: { name: string; box: SceneBounds }[]) => {
+      const solid = wallBox(w, { x: frame.x0, z: frame.z }, frame.height);
+      return modules.find(({ box }) => boxesCross(solid, box))?.name ?? null;
+    };
+    const namedBoxes = () => {
+      const now = latest.current;
+      return [...moduleBoxes(now.params)].map(([id, box]) => ({ name: now.params.modules.find((m) => m.id === id)?.name ?? 'o móvel', box }));
+    };
+    const spotOf = (w: Wall) => {
+      const f = wallFootprint(w);
+      return `${cmText(Math.abs(f.x0))} ${f.x0 < 0 ? 'fora do canto' : 'do canto'} · ${f.z0 ? `${cmText(f.z0)} da parede do fundo` : 'encostada no fundo'}`;
+    };
+    /** Cotas ao vivo: linhas refeitas a cada passo, rótulos reposicionados no quadro. */
+    const showLiveDims = (dims: LiveDim[]) => {
+      clearLiveDims();
+      if (!dims.length) return;
+      const made = liveDimLines(dims);
+      scene.add(made.lines);
+      state.liveDims = { dims, ...made };
+      const labels = liveDimHost.current ? Array.from(liveDimHost.current.children as HTMLCollectionOf<HTMLElement>) : [];
+      labels.forEach((node, i) => {
+        node.textContent = dims[i]?.text ?? '';
+        node.style.display = dims[i] ? '' : 'none';
+      });
+    };
+    const clearLiveDims = () => {
+      const old = state.liveDims;
+      if (!old) return;
+      scene.remove(old.lines);
+      state.retired.push(old.dispose);
+      state.liveDims = undefined;
+      for (const node of Array.from((liveDimHost.current?.children ?? []) as HTMLCollectionOf<HTMLElement>)) node.style.display = 'none';
+      state.dirty = true;
+    };
+    /**
+     * Plano do arrasto de uma alça: contém a linha em que ela anda e fica o
+     * mais de frente possível para a câmera, para o cursor mandar em qualquer
+     * ângulo. Levar a parede anda no plano do piso.
+     */
+    const handlePlane = (handle: WallHandle, point: THREE.Vector3, axis: THREE.Vector3) => {
+      const view = camera.getWorldDirection(new THREE.Vector3());
+      if (handle === 'move') {
+        if (Math.abs(view.y) > 0.12) return { plane: new THREE.Plane().setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), point), flat: false };
+        return { plane: new THREE.Plane().setFromNormalAndCoplanarPoint(new THREE.Vector3(-view.x, 0, -view.z).normalize(), point), flat: true };
+      }
+      const along = handle === 'top' ? new THREE.Vector3(0, 1, 0) : axis;
+      const normal = view.clone().addScaledVector(along, -view.dot(along));
+      if (normal.lengthSq() < 1e-4) normal.copy(handle === 'top' ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0));
+      return { plane: new THREE.Plane().setFromNormalAndCoplanarPoint(normal.normalize(), point), flat: false };
+    };
+    /** Começa o arrasto da alça (ou do corpo, com `grab`, o ponto pego na parede). */
+    const startWallDrag = (target: string, handle: WallHandle, e: PointerEvent, grab?: THREE.Vector3) => {
+      const built = state.room;
+      const room = latest.current.sceneRoom;
+      if (!built || !room) return false;
+      const frame = frameOf(built);
+      const wall = target === MAIN_WALL ? undefined : built.walls.find((v) => v.id === target)?.wall;
+      if (target !== MAIN_WALL && !wall) return false;
+      if (target === MAIN_WALL && handle === 'move') return false;
+      const points = wall ? wallHandlePoints(wall, frame) : mainHandlePoints(frame);
+      const point = grab ?? (handle === 'move' ? (points as ReturnType<typeof wallHandlePoints>).move : points[handle]);
+      const { plane, flat } = handlePlane(handle, point, points.axis);
+      let from = grab?.clone();
+      if (!from) {
+        aim(e);
+        from = new THREE.Vector3();
+        if (!ray.ray.intersectPlane(plane, from)) return false;
+      }
+      handleDrag = { target, handle, plane, from, point: point.clone(), flat, room, built, wall, changed: false, modules: namedBoxes() };
+      controls.enabled = false;
+      dragging.current = true;
+      state.wallDragging = true;
+      state.dirty = true;
+      setHover(null);
+      return true;
+    };
+    const wallDragMove = (e: PointerEvent) => {
+      const d = handleDrag;
+      if (!d) return;
+      aim(e);
+      if (!ray.ray.intersectPlane(d.plane, hit)) return;
+      const delta = hit.clone().sub(d.from);
+      if (d.flat) delta.y = 0;
+      const p = d.point.clone().add(delta);
+      const frame = frameOf(d.built);
+      const box = el.getBoundingClientRect();
+      const cursor = { x: e.clientX - box.left, y: e.clientY - box.top };
+      if (d.target === MAIN_WALL) {
+        const edge = d.handle as MainWallEdge;
+        const at = edge === 'top' ? p.y : p.x - frame.x0;
+        const next = resizeMainWall(d.room, latest.current.bounds, edge, at);
+        const nf: WallFrame = { x0: wallAt(next, latest.current.bounds).x, z: frame.z, width: next.widthMm, height: next.heightMm };
+        d.at = at;
+        d.frame = nf;
+        d.changed = nf.x0 !== frame.x0 || nf.width !== frame.width || nf.height !== frame.height;
+        d.built.resize(nf.x0, nf.width, nf.height);
+        // Paredes na altura do teto sobem e descem junto; o resto fica no lugar.
+        for (const entry of d.built.walls) {
+          const w = next.walls?.find((v) => v.id === entry.id);
+          if (w) layoutWall(entry.group, w, nf);
+        }
+        showLiveDims(mainLiveDims(nf, edge));
+      } else {
+        const base = d.wall!;
+        const next =
+          d.handle === 'move'
+            ? moveWallTo(base, base.xMm + delta.x, base.zMm + delta.z, d.room)
+            : d.handle === 'top'
+              ? resizeWallHeight(base, p.y, d.room)
+              : resizeWallEnd(base, d.handle, base.rotation === 0 ? p.x - frame.x0 : p.z - frame.z, d.room);
+        d.draft = next;
+        d.changed = JSON.stringify(next) !== JSON.stringify(base);
+        const entry = d.built.walls.find((v) => v.id === d.target);
+        if (entry) layoutWall(entry.group, next, frame);
+        showLiveDims(wallLiveDims(next, frame, d.handle));
+        // As medidas já estão nas cotas; perto do cursor, só o aviso de que
+        // a parede passa pelo móvel.
+        const hitName = crossing(next, frame, d.modules);
+        setMoveTip(hitName ? { ...cursor, text: `Cruza ${hitName}`, bad: false, warn: true } : null);
+      }
+      state.dirty = true;
+    };
+    /** Volta a parede ao que está gravado (arrasto sem efeito, ou que não gravou). */
+    const restoreWall = (d: NonNullable<typeof handleDrag>) => {
+      const frame = frameOf(d.built);
+      if (d.target === MAIN_WALL) d.built.resize(frame.x0, frame.width, frame.height);
+      for (const entry of d.built.walls) layoutWall(entry.group, entry.wall, frame);
+      state.dirty = true;
+    };
+    const wallDragEnd = () => {
+      const d = handleDrag;
+      handleDrag = null;
+      if (!d) return;
+      release();
+      state.wallDragging = false;
+      clearLiveDims();
+      setMoveTip(null);
+      const now = latest.current;
+      if (d.target !== MAIN_WALL) now.onSelectWall?.(d.target);
+      if (!d.changed) {
+        restoreWall(d);
+        return;
+      }
+      state.holdFrame = performance.now() + 5000;
+      const done = d.target === MAIN_WALL ? now.onResizeMainWall?.(d.handle as MainWallEdge, d.at!) : now.onChangeWall?.(d.draft!);
+      // Gravou: o ambiente novo chega e a cena é refeita com ele. Não gravou
+      // (erro, ou a pergunta de descartar versões): a parede volta ao gravado.
+      void Promise.resolve(done)
+        .catch(() => {})
+        .finally(() =>
+          window.setTimeout(() => {
+            if (state.room === d.built) restoreWall(d);
+          }, 250),
+        );
+    };
+    state.beginHandle = (handle, e) => {
+      const target = latest.current.selectedWall;
+      if (!target || !latest.current.movable || state.placing || state.placingWall) return false;
+      return startWallDrag(target, handle, e);
+    };
+    state.moveHandle = wallDragMove;
+    state.endHandle = wallDragEnd;
+    // Parede nova: a prévia anda pelo piso com o cursor ou as setas.
+    const placeWallTo = (x: number, z: number) => {
+      const pl = state.placingWall;
+      const built = state.room;
+      const room = latest.current.sceneRoom;
+      if (!pl || !built || !room) return;
+      const frame = frameOf(built);
+      pl.wall = moveWallTo(pl.wall, x, z, room);
+      layoutWall(pl.group, pl.wall, frame);
+      state.dirty = true;
+      const top = wallHandlePoints(pl.wall, frame).top.clone().setY(Math.min(pl.wall.heightMm, frame.height) + 80);
+      top.project(camera);
+      const hitName = crossing(pl.wall, frame, namedBoxes());
+      window.clearTimeout(tipTimer);
+      setMoveTip({
+        x: Math.min(((top.x + 1) / 2) * el.clientWidth, Math.max(8, el.clientWidth - 300)),
+        // Parede alta de perto: a etiqueta desce até abaixo do título da cena.
+        y: Math.max(safeArea().y0 + 36, ((1 - top.y) / 2) * el.clientHeight),
+        text: `${wallName(pl.wall)} · ${spotOf(pl.wall)}${hitName ? ` · cruza ${hitName}` : ''}`,
+        bad: false,
+        warn: !!hitName,
+      });
+    };
+    state.placeWallTo = placeWallTo;
+    state.turnPlacingWall = () => {
+      const pl = state.placingWall;
+      const room = latest.current.sceneRoom;
+      if (!pl || !room) return;
+      pl.wall = rotateWall(pl.wall, room);
+      placeWallTo(pl.wall.xMm, pl.wall.zMm);
+    };
+    state.confirmPlacingWall = () => {
+      const pl = state.placingWall;
+      if (!pl) return;
+      setMoveTip(null);
+      latest.current.onPlaceWall?.(pl.wall);
+    };
+    const placingWallMove = (e: PointerEvent) => {
+      const pl = state.placingWall;
+      if (!pl || !state.room || e.buttons) return;
+      aim(e);
+      if (!ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit)) return;
+      const f = wallFootprint(pl.wall);
+      // O cursor fica no meio da base.
+      placeWallTo(hit.x - state.room.wall.x0 - (f.x1 - f.x0) / 2, hit.z - state.room.face - (f.z1 - f.z0) / 2);
+    };
     const start = (e: PointerEvent) => {
       down = [e.clientX, e.clientY];
       const now = latest.current;
-      // Pondo um obstáculo: o clique é para ele; arrastar ainda gira a vista.
-      if (state.placing) return;
+      // Pondo um obstáculo ou uma parede: o clique é para ela; arrastar ainda gira a vista.
+      if (state.placing || state.placingWall) return;
       // Shift é para somar e tirar da seleção: nunca começa um arrasto.
       if (e.button !== 0 || !now.movable || !e.isPrimary || e.shiftKey) return;
       aim(e);
       const first = ray.intersectObjects(motion.pickable(), false)[0];
       const ob = now.onMoveObstacle ? obstacleHit() : null;
+      const wl = now.onChangeWall ? wallHit() : null;
+      // A parede na frente de tudo (móvel e obstáculo) é a que o ponteiro pegou.
+      if (wl && (!first || wl.distance < first.distance) && (!ob || wl.distance < ob.distance)) {
+        wallArmed = { entry: wl.entry, point: wl.point };
+        controls.enabled = false;
+        dragging.current = true;
+        try {
+          renderer.domElement.setPointerCapture(e.pointerId);
+        } catch {
+          // Sem captura o arrasto termina quando o ponteiro sai da cena.
+        }
+        return;
+      }
       if (ob && (!first || ob.distance < first.distance)) {
         obArmed = { entry: ob.entry, point: ob.point };
         controls.enabled = false;
@@ -734,6 +1084,20 @@ function FurnitureView({
         placingMove(e);
         return;
       }
+      if (state.placingWall) {
+        placingWallMove(e);
+        return;
+      }
+      if (wallArmed && Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) {
+        const armedWall = wallArmed;
+        wallArmed = null;
+        if (!startWallDrag(armedWall.entry.id, 'move', e, armedWall.point)) release();
+        else el.style.cursor = 'grabbing';
+      }
+      if (handleDrag) {
+        wallDragMove(e);
+        return;
+      }
       if (obArmed && Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) {
         obDrag = {
           entry: obArmed.entry,
@@ -776,7 +1140,22 @@ function FurnitureView({
         setMoveTip({ x, y, text: hitName ? `Bate em ${hitName}` : deltaText(delta), bad: !!hitName });
       } else setMoveTip((tip) => (tip ? { ...tip, x, y } : tip));
     };
+    /** Segurou uma parede e soltou sem arrastar: é um clique, escolhe a parede. */
+    const wallClick = () => {
+      const armedWall = wallArmed;
+      wallArmed = null;
+      release();
+      if (armedWall) latest.current.onSelectWall?.(armedWall.entry.id);
+    };
     const dragEnd = () => {
+      if (handleDrag) {
+        wallDragEnd();
+        return;
+      }
+      if (wallArmed) {
+        wallClick();
+        return;
+      }
       if (obArmed || obDrag) {
         obstacleEnd();
         return;
@@ -794,6 +1173,21 @@ function FurnitureView({
           placingMove(e);
           state.confirmPlacing?.();
         }
+        return;
+      }
+      if (state.placingWall) {
+        if (e.button === 0 && Math.hypot(e.clientX - down[0], e.clientY - down[1]) <= 5) {
+          placingWallMove(e);
+          state.confirmPlacingWall?.();
+        }
+        return;
+      }
+      if (handleDrag) {
+        wallDragEnd();
+        return;
+      }
+      if (wallArmed) {
+        wallClick();
         return;
       }
       if (obArmed || obDrag) {
@@ -818,20 +1212,44 @@ function FurnitureView({
       const first = ray.intersectObjects(motion.pickable(), false)[0];
       // Obstáculo na frente do móvel (ou sem móvel embaixo): escolhe ele.
       const ob = obstacleHit();
+      const wl = wallHit();
+      if (wl && (!first || wl.distance < first.distance) && (!ob || wl.distance < ob.distance)) {
+        latest.current.onSelectWall?.(wl.entry.id);
+        return;
+      }
       if (ob && (!first || ob.distance < first.distance)) {
         latest.current.onSelectObstacle?.(ob.entry.id);
         return;
       }
-      latest.current.onSelectObstacle?.(null);
+      // Parede do fundo: com nada escolhido, o clique nela escolhe a parede.
+      // Com algo escolhido, o primeiro clique no fundo só solta a escolha, como
+      // sempre foi: o fundo ocupa quase toda a cena.
+      const now = latest.current;
+      if (!first && !now.selected.length && !now.selectedObstacle && !now.selectedWall && mainWallHit()) {
+        now.onSelectWall?.(MAIN_WALL);
+        return;
+      }
+      now.onSelectObstacle?.(null);
+      now.onSelectWall?.(null);
       callback.current(first?.object.userData.id ?? null, e.shiftKey);
     };
+    // Um texto selecionado na página (o chat, as cotas) virava arrasto de
+    // texto do navegador por cima da cena: apertar na cena solta a seleção.
+    const releaseText = (e: PointerEvent) => {
+      if ((e.target as HTMLElement).closest('input, textarea, [contenteditable="true"]')) return;
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed) sel.removeAllRanges();
+    };
+    const noDrag = (e: DragEvent) => e.preventDefault();
+    el.addEventListener('pointerdown', releaseText, { capture: true });
+    el.addEventListener('dragstart', noDrag);
     renderer.domElement.addEventListener('pointerdown', start, { capture: true });
     renderer.domElement.addEventListener('pointerup', pick);
     renderer.domElement.addEventListener('pointercancel', dragEnd);
     renderer.domElement.addEventListener('pointermove', dragMove);
     const hover = (e: PointerEvent) => {
-      if (drag || obDrag) return;
-      if (state.placing) {
+      if (drag || obDrag || handleDrag) return;
+      if (state.placing || state.placingWall) {
         setHover(null);
         return;
       }
@@ -852,10 +1270,14 @@ function FurnitureView({
         null;
       if (!id) {
         setHover(null);
-        setOverObstacle(!!obstacleHit());
+        const ob = obstacleHit(),
+          wl = wallHit();
+        setOverObstacle(!!ob && (!wl || ob.distance < wl.distance));
+        setOverWall(!!wl && (!ob || wl.distance <= ob.distance));
         return;
       }
       setOverObstacle(false);
+      setOverWall(false);
       const box = el.getBoundingClientRect();
       const x = e.clientX - box.left;
       setHover({ id, x, y: Math.min(e.clientY - box.top, box.height - 100), flip: x > box.width - 230 });
@@ -873,6 +1295,97 @@ function FurnitureView({
     });
     resize.observe(el);
     const projected = new THREE.Vector3();
+    const sight = new THREE.Ray();
+    /** Ponto do mundo na tela, em px da cena; `behind` quando está atrás da câmera. */
+    const screenOf = (p: THREE.Vector3) => {
+      const v = p.clone().project(camera);
+      return { x: ((v.x + 1) / 2) * el.clientWidth, y: ((1 - v.y) / 2) * el.clientHeight, behind: v.z > 1 };
+    };
+    /**
+     * Área livre da cena, em px dela: abaixo do título, fora das ferramentas
+     * (coluna à direita na tela larga, faixa em cima na estreita) e acima da
+     * barra de vistas. As alças e a barra da parede ficam aqui dentro.
+     */
+    const safeArea = () => {
+      const box = el.getBoundingClientRect();
+      const stage = el.parentElement;
+      const rect = (sel: string) => {
+        const r = stage?.querySelector(sel)?.getBoundingClientRect();
+        return r && r.width && r.height ? r : null;
+      };
+      const head = rect('.stage-head'),
+        tools = rect('.stage-tools'),
+        bottom = rect('.scene-bottom');
+      let x1 = box.width - 14,
+        y0 = head ? head.bottom - box.top + 8 : 14;
+      if (tools && tools.height > tools.width) x1 = Math.min(x1, tools.left - box.left - 14);
+      else if (tools) y0 = Math.max(y0, tools.bottom - box.top + 8);
+      const y1 = (bottom ? bottom.top - box.top : box.height) - 14;
+      return { x0: 14, x1: Math.max(14, x1), y0: Math.max(14, y0), y1: Math.max(y0, y1) };
+    };
+    /** Cursor de redimensionar que segue a direção da alça na tela. */
+    const resizeCursor = (a: { x: number; y: number }, b: { x: number; y: number }) => {
+      const angle = ((Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI + 180) % 180;
+      return angle < 22.5 || angle >= 157.5 ? 'ew-resize' : angle < 67.5 ? 'nwse-resize' : angle < 112.5 ? 'ns-resize' : 'nesw-resize';
+    };
+    const placeWallUi = () => {
+      const id = latest.current.selectedWall;
+      const built = state.room;
+      const bar = wallBar.current,
+        handles = wallHandles.current;
+      if (!id || !built || (!bar && !handles)) return;
+      const safe = safeArea();
+      const d = handleDrag?.target === id ? handleDrag : null;
+      const frame = d?.frame ?? frameOf(built);
+      let points: { start: THREE.Vector3; end: THREE.Vector3; top: THREE.Vector3; move?: THREE.Vector3; axis: THREE.Vector3 };
+      if (id === MAIN_WALL) points = mainHandlePoints(frame);
+      else {
+        const w = d?.draft ?? built.walls.find((v) => v.id === id)?.wall;
+        if (!w) return;
+        points = wallHandlePoints(w, frame);
+      }
+      const spots = {
+        start: screenOf(points.start),
+        end: screenOf(points.end),
+        top: screenOf(points.top),
+        move: points.move ? screenOf(points.move) : null,
+      };
+      const along = resizeCursor(screenOf(points.start), screenOf(points.start.clone().addScaledVector(points.axis, 100)));
+      if (handles)
+        for (const node of Array.from(handles.children as HTMLCollectionOf<HTMLElement>)) {
+          const h = node.dataset.handle as WallHandle;
+          const s = spots[h];
+          // Arrastando, só a alça pega fica: as outras cairiam sobre as cotas.
+          // A de mover some quando o topo fica em cima dela (mureta baixa, de longe).
+          const crowded = h === 'move' && !!s && Math.hypot(s.x - spots.top.x, s.y - spots.top.y) < 44;
+          const hidden = !s || s.behind || (!!d && d.handle !== h) || crowded;
+          node.style.opacity = hidden ? '0' : '1';
+          node.style.pointerEvents = hidden ? 'none' : '';
+          if (!s) continue;
+          // Ponta fora da vista ou sob as ferramentas da cena: a alça fica na
+          // borda da área livre, apontando para ela. O arrasto conta o quanto
+          // o ponteiro andou, então esticar dali funciona igual.
+          const x = THREE.MathUtils.clamp(s.x, safe.x0, safe.x1),
+            y = THREE.MathUtils.clamp(s.y, safe.y0, safe.y1);
+          node.classList.toggle('clamped', Math.abs(x - s.x) > 1 || Math.abs(y - s.y) > 1);
+          node.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -50%)`;
+          node.style.cursor = h === 'move' ? 'move' : h === 'top' ? 'ns-resize' : along;
+        }
+      if (bar) {
+        const off = spots.top.behind;
+        bar.style.opacity = off || d ? '0' : '1';
+        bar.style.pointerEvents = off || d ? 'none' : '';
+        // Acima do topo; sem espaço (parede alta, de perto), logo abaixo dele.
+        // Nunca sai da área livre da cena nem cobre o título e as ferramentas.
+        const w = bar.offsetWidth,
+          h = bar.offsetHeight;
+        const topY = THREE.MathUtils.clamp(spots.top.y, safe.y0, safe.y1);
+        const above = topY - 22 - h >= safe.y0;
+        const x = THREE.MathUtils.clamp(spots.top.x, safe.x0 + w / 2, Math.max(safe.x0 + w / 2, safe.x1 - w / 2));
+        const y = above ? topY - 22 - h : Math.min(topY + 22, Math.max(safe.y0, safe.y1 - h));
+        bar.style.transform = `translate(${Math.round(x - w / 2)}px, ${Math.round(y)}px)`;
+      }
+    };
     let frame = 0,
       dimsShown = true;
     const draw = (now: number) => {
@@ -901,11 +1414,39 @@ function FurnitureView({
           foot.position.copy(home);
           if (offset) foot.position.add(offset);
         }
-      const settled = !motion.moving && !state.preview;
+      const settled = !motion.moving && !state.preview && !state.wallDragging;
       if (state.dims) state.dims.lines.visible = settled;
       if (labelHost.current && dimsShown !== settled) {
         dimsShown = settled;
         labelHost.current.style.visibility = settled ? '' : 'hidden';
+      }
+      // Parede do ambiente entre a câmera e o móvel fica translúcida: não
+      // esconde o que está sendo desenhado, e o clique passa por ela. A
+      // escolhida fica um pouco mais visível; as alças dela seguem valendo.
+      if (state.room?.walls.length) {
+        // Visadas da câmera para os cantos e o centro do móvel: a parede que
+        // corta qualquer uma esconde parte dele.
+        const b = latest.current.bounds;
+        const targets = [
+          ...[0, 1].flatMap((i) => [0, 1].flatMap((j) => [0, 1].map((k) => new THREE.Vector3(i ? b.max[0] : b.min[0], j ? b.max[1] : b.min[1], k ? b.max[2] : b.min[2])))),
+          new THREE.Vector3((b.min[0] + b.max[0]) / 2, (b.min[1] + b.max[1]) / 2, (b.min[2] + b.max[2]) / 2),
+        ];
+        sight.origin.copy(camera.position);
+        const hides = (box: THREE.Box3) =>
+          targets.some((t) => {
+            sight.direction.copy(t).sub(camera.position).normalize();
+            return !!sight.intersectBox(box, projected) && projected.distanceTo(camera.position) < t.distanceTo(camera.position) - 1;
+          });
+        for (const entry of state.room.walls) {
+          const box = entry.group.userData.box as THREE.Box3 | undefined;
+          const faded = !!box && hides(box);
+          const opacity = faded ? (entry.id === latest.current.selectedWall ? 0.4 : 0.22) : 1;
+          const m = entry.group.userData.material as THREE.MeshStandardMaterial;
+          entry.group.userData.faded = faded;
+          if (m.opacity === opacity) continue;
+          m.opacity = opacity;
+          m.depthWrite = !faded;
+        }
       }
       renderer.render(scene, camera);
       shownCamera.copy(camera.position);
@@ -919,6 +1460,19 @@ function FurnitureView({
         const off = at.x < 0 || at.y < 0 || at.x > el.clientWidth || at.y > el.clientHeight;
         bar.style.opacity = off ? '0' : '1';
         bar.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(Math.max(8, at.y))}px) translate(-50%, -100%)`;
+      }
+      // Parede escolhida: alças nas pontas, no topo e no pé, e a barra acima
+      // dela. Durante o arrasto, a posição vem do rascunho, não do gravado.
+      placeWallUi();
+      // Cotas ao vivo do arrasto: rótulo no meio de cada linha.
+      if (state.liveDims && liveDimHost.current) {
+        const nodes = liveDimHost.current.children as HTMLCollectionOf<HTMLElement>;
+        state.liveDims.dims.forEach((d, i) => {
+          const node = nodes[i];
+          if (!node) return;
+          const at = screenOf(d.a.clone().add(d.b).multiplyScalar(0.5));
+          node.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y)}px) translate(-50%, -50%)`;
+        });
       }
       // Tesoura no começo do tracejado da peça, seguindo a câmera.
       const shears = scissorsEl.current;
@@ -948,6 +1502,8 @@ function FurnitureView({
     return () => {
       window.clearTimeout(tipTimer);
       cancelAnimationFrame(frame);
+      el.removeEventListener('pointerdown', releaseText, { capture: true });
+      el.removeEventListener('dragstart', noDrag);
       resize.disconnect();
       controls.dispose();
       motion.dispose();
@@ -957,6 +1513,7 @@ function FurnitureView({
       state.ghosts?.dispose();
       state.cutMarks?.marks.dispose();
       state.dims?.dispose();
+      state.liveDims?.dispose();
       shadowFloor.geometry.dispose();
       shadowFloor.material.dispose();
       ground.geometry.dispose();
@@ -1073,7 +1630,7 @@ function FurnitureView({
     if (state) state.motion.setHover(hover?.id ?? null);
     // Sobre uma peça já selecionada, a mão avisa que dá para arrastar.
     if (host.current && !dragging.current)
-      host.current.style.cursor = placing
+      host.current.style.cursor = placing || placingWall
         ? 'crosshair'
         : hover
           ? movable && selected.includes(hover.id)
@@ -1083,8 +1640,12 @@ function FurnitureView({
             ? movable && onMoveObstacle
               ? 'grab'
               : 'pointer'
-            : '';
-  }, [hover, movable, selected, overObstacle, placing, onMoveObstacle]);
+            : overWall
+              ? movable && onChangeWall
+                ? 'grab'
+                : 'pointer'
+              : '';
+  }, [hover, movable, selected, overObstacle, placing, onMoveObstacle, overWall, placingWall, onChangeWall]);
   // Mover pelo controle e pelas setas: cada toque anda um passo na prévia e,
   // parado um instante, o lugar novo é gravado numa versão só.
   const target = useMemo(() => selectedGroup(params, parts, selected), [params, parts, selected]);
@@ -1181,7 +1742,7 @@ function FurnitureView({
       const dir = ARROW_KEYS[e.key];
       if (!dir || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
       if ((e.target as HTMLElement | null)?.closest?.(OWNS_ARROWS)) return;
-      if (latest.current.placing) return;
+      if (latest.current.placing || latest.current.placingWall) return;
       if (!latest.current.movable || !latest.current.selected.length) return;
       e.preventDefault();
       nudgeKey.current(dir, e.shiftKey);
@@ -1212,12 +1773,8 @@ function FurnitureView({
     s.ground.material.opacity = c.groundOpacity;
     s.dirty = true;
   }, [theme]);
-  // Sem ambiente informado, uma parede de referência dá escala e fundo; ela
-  // não aparece nas cotas de espaço livre nem no enquadramento.
-  const sceneRoom = useMemo(
-    () => (showRoom ? (room ?? referenceRoom(bounds, homeZ)) : undefined),
-    [showRoom, room, bounds, homeZ],
-  );
+  // Sem ambiente informado, a parede de referência (`sceneRoom`) dá escala e
+  // fundo; ela não aparece nas cotas de espaço livre nem no enquadramento.
   const measuredRoom = showRoom ? room : undefined;
   // Frente do que está preso na parede (painel): a TV fica na frente dele.
   const panelBoxes = useMemo(
@@ -1242,7 +1799,7 @@ function FurnitureView({
     }
     s.room = undefined;
     if (sceneRoom) {
-      s.room = buildRoom(sceneRoom, bounds, theme, panelBoxes, [...moduleBoxes(params).values()], selectedObstacle);
+      s.room = buildRoom(sceneRoom, bounds, theme, panelBoxes, [...moduleBoxes(params).values()], selectedObstacle, selectedWall);
       s.scene.add(s.room.group);
     }
     s.grid.visible = !sceneRoom;
@@ -1251,7 +1808,32 @@ function FurnitureView({
     s.shadowFloor.visible = !sceneRoom;
     s.ground.position.y = sceneRoom ? GROUND_UNDER_ROOM : -1;
     s.dirty = true;
-  }, [sceneRoom, bounds, theme, panelBoxes, params, selectedObstacle]);
+  }, [sceneRoom, bounds, theme, panelBoxes, params, selectedObstacle, selectedWall]);
+  // Parede nova: a prévia translúcida entra no lugar que veio com ela e segue
+  // o cursor pelo piso até o clique (ou Enter).
+  useEffect(() => {
+    const s = runtime.current;
+    if (!s || !placingWall || !s.room) return;
+    const disposables: { dispose: () => void }[] = [];
+    const group = buildWall(placingWall, {
+      palette: ROOM_PALETTE[theme],
+      theme,
+      bad: false,
+      ghost: true,
+      track: (d) => disposables.push(d),
+    });
+    layoutWall(group, placingWall, { x0: s.room.wall.x0, z: s.room.face, height: s.room.wall.height });
+    s.scene.add(group);
+    s.placingWall = { group, wall: placingWall };
+    s.placeWallTo?.(placingWall.xMm, placingWall.zMm);
+    return () => {
+      s.scene.remove(group);
+      s.retired.push(() => disposables.forEach((d) => d.dispose()));
+      s.placingWall = undefined;
+      s.dirty = true;
+      setMoveTip(null);
+    };
+  }, [placingWall, theme, sceneRoom, bounds]);
   // Obstáculo novo: a prévia translúcida entra na parede no lugar livre que
   // veio com ele e segue o cursor até o clique (ou Enter).
   useEffect(() => {
@@ -1310,6 +1892,41 @@ function FurnitureView({
     window.addEventListener('keydown', down);
     return () => window.removeEventListener('keydown', down);
   }, [placing]);
+  // Pondo parede: setas andam 10 cm (Shift, 1 cm), R gira, Enter põe, Esc desiste.
+  useEffect(() => {
+    if (!placingWall) return;
+    const down = (e: KeyboardEvent) => {
+      const s = runtime.current;
+      if (!s?.placingWall || e.ctrlKey || e.metaKey || e.altKey) return;
+      if ((e.target as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+      const step = e.shiftKey ? 10 : 100;
+      const { xMm, zMm } = s.placingWall.wall;
+      // Seta para cima leva para o fundo, como se afastar de quem olha.
+      const moves: Record<string, [number, number]> = {
+        ArrowLeft: [-step, 0],
+        ArrowRight: [step, 0],
+        ArrowUp: [0, -step],
+        ArrowDown: [0, step],
+      };
+      if (moves[e.key]) {
+        e.preventDefault();
+        s.placeWallTo?.(xMm + moves[e.key][0], zMm + moves[e.key][1]);
+      } else if (e.key.toLowerCase() === 'r') {
+        // Antes do atalho da página (R esconde o ambiente).
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        s.turnPlacingWall?.();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        s.confirmPlacingWall?.();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        cancelPlace.current?.();
+      }
+    };
+    window.addEventListener('keydown', down, { capture: true });
+    return () => window.removeEventListener('keydown', down, { capture: true });
+  }, [placingWall]);
   // Pés: não são peças de corte, vêm da composição. Somem no explodido.
   useEffect(() => {
     const s = runtime.current;
@@ -1524,6 +2141,12 @@ function FurnitureView({
   }, [snapshotRequest, caption, theme]);
   const hoveredPart = hover ? parts.find((v) => v.id === hover.id) : undefined;
   const chosenObstacle = showRoom && selectedObstacle ? room?.obstacles?.find((o) => o.id === selectedObstacle) : undefined;
+  const chosenWall = useMemo(() => {
+    if (!showRoom || !selectedWall || !room) return null;
+    if (selectedWall === MAIN_WALL) return { id: MAIN_WALL, name: 'Parede do fundo', width: room.widthMm, height: room.heightMm, wall: null };
+    const w = room.walls?.find((v) => v.id === selectedWall);
+    return w ? { id: w.id, name: wallName(w), width: w.widthMm, height: Math.min(w.heightMm, room.heightMm), wall: w } : null;
+  }, [showRoom, selectedWall, room]);
   // Gravar o lugar novo trava o controle por ~100 ms: sem este atraso ele
   // piscava apagado a cada movimento.
   const padLocked = useDelayedTrue(!movable, 300);
@@ -1561,6 +2184,84 @@ function FurnitureView({
           </button>
         </output>
       )}
+      {placingWall && (
+        <output className="place-hint">
+          <span>
+            <strong>Clique no piso</strong> para pôr a parede.
+            <span className="place-keys"> R gira, setas ajustam, Enter confirma.</span>
+          </span>
+          <button type="button" onClick={() => onCancelPlace?.()}>
+            Cancelar <kbd>Esc</kbd>
+          </button>
+        </output>
+      )}
+      {chosenWall && !placing && !placingWall && (
+        <div className="ob-bar wall-bar" ref={wallBar} role="toolbar" aria-label={`${chosenWall.name} escolhida`}>
+          <span className="ob-bar-name">
+            <strong>{chosenWall.name}</strong>
+            <small>
+              {metresText(chosenWall.width)} × {metresText(chosenWall.height)} m
+            </small>
+          </span>
+          {chosenWall.wall && onChangeWall && room && (
+            <button
+              type="button"
+              title="Girar 90°"
+              aria-label="Girar 90°"
+              disabled={!movable}
+              onClick={() => onChangeWall(rotateWall(chosenWall.wall!, room))}
+            >
+              <RotateCw size={14} />
+            </button>
+          )}
+          {onEditWall && (
+            <button type="button" title="Medidas exatas" aria-label="Medidas exatas" onClick={() => onEditWall(chosenWall.id)}>
+              <Pencil size={14} />
+            </button>
+          )}
+          {chosenWall.wall && onRemoveWall && (
+            <button type="button" className="danger" title="Remover (Delete)" aria-label="Remover" onClick={() => onRemoveWall(chosenWall.id)}>
+              <Trash2 size={14} />
+            </button>
+          )}
+          <button type="button" title="Fechar (Esc)" aria-label="Fechar" onClick={() => onSelectWall?.(null)}>
+            <X size={14} />
+          </button>
+        </div>
+      )}
+      {chosenWall && !placing && !placingWall && (chosenWall.wall ? onChangeWall : onResizeMainWall) && (
+        <div className="wall-handles" ref={wallHandles}>
+          {(chosenWall.wall ? WALL_HANDLES : MAIN_HANDLES).map((h) => (
+            <button
+              key={h}
+              type="button"
+              tabIndex={-1}
+              data-handle={h}
+              className={'wall-handle ' + h}
+              aria-label={handleLabel(h, !chosenWall.wall)}
+              title={handleLabel(h, !chosenWall.wall)}
+              onPointerDown={(e) => {
+                if (e.button !== 0) return;
+                e.preventDefault();
+                if (!runtime.current?.beginHandle?.(h, e.nativeEvent)) return;
+                try {
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                } catch {
+                  // Sem captura, o arrasto segue enquanto o ponteiro estiver na alça.
+                }
+              }}
+              onPointerMove={(e) => runtime.current?.moveHandle?.(e.nativeEvent)}
+              onPointerUp={() => runtime.current?.endHandle?.()}
+              onPointerCancel={() => runtime.current?.endHandle?.()}
+              onLostPointerCapture={() => runtime.current?.endHandle?.()}
+            />
+          ))}
+        </div>
+      )}
+      <div className="wall-live-dims" ref={liveDimHost} aria-hidden="true">
+        <span className="dim-label live" style={{ display: 'none' }} />
+        <span className="dim-label live" style={{ display: 'none' }} />
+      </div>
       {chosenObstacle && !placing && (
         <div className="ob-bar" ref={obBar} role="toolbar" aria-label={`${OBSTACLE_WORD[chosenObstacle.kind]} escolhida na parede`}>
           <span className="ob-bar-name">

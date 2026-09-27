@@ -5,6 +5,7 @@ import { fallbackModel, modelInfo, type ModelKey, type ProviderUsage } from '../
 import type { AgentContext } from './context';
 import { callModel, type ChatMessage, type ModelReply, type ToolSpec } from './model';
 import { TERMINAL, TOOLS } from './tools';
+import { NO_TRACE, type Trace } from '../trace';
 
 /** Tipos de operação do contrato: chamados como ferramenta, viram um design_apply. */
 const OP_KINDS = /^(asset\.add|module\.(add|edit|duplicate|remove)|connect|disconnect|cell\.(split|move|merge|distribute)|front\.set|drawer\.height)$/;
@@ -81,6 +82,10 @@ export type LoopOptions = {
    * e devolve a frase que a IA precisa saber para não descrever outra coisa.
    */
   onExhausted?: () => string | undefined;
+  /** Registro do pedido: cada chamada, resposta e resultado sem corte. */
+  trace?: Trace;
+  /** Nome do laço no registro ("principal", "opção"). */
+  tag?: string;
 };
 
 /**
@@ -103,7 +108,25 @@ export async function runLoop(ctx: AgentContext, o: LoopOptions) {
   let nudged = false,
     bonus = false;
   let model = o.model;
-  const usage = (u: ProviderUsage) => o.onUsage?.(u, modelKey(model));
+  const trace = o.trace ?? NO_TRACE;
+  const tag = o.tag ?? 'principal';
+  const usage = (u: ProviderUsage) => {
+    trace.write('model.usage', { loop: tag, model: modelKey(model), usage: u });
+    o.onUsage?.(u, modelKey(model));
+  };
+  trace.write('loop.start', {
+    loop: tag,
+    model: modelKey(model),
+    maxSteps,
+    maxMs: o.maxMs ?? MAX_MS,
+    tools: tools.map((t) => t.name),
+    system: o.system,
+    user: o.user,
+  });
+  /** Mensagens já gravadas no registro: cada chamada grava só as novas. */
+  let logged = 2;
+  /** Último rascunho gravado no registro: um novo só quando o desenho muda. */
+  let lastDraft = o.trace ? JSON.stringify({ design: ctx.design, room: ctx.room }) : '';
   // O prazo do laço vira sinal: quando acaba, a chamada em curso é cortada.
   // Relógio próprio (e não AbortSignal.timeout) porque o plano estende o prazo.
   const stop = new AbortController();
@@ -131,6 +154,9 @@ export async function runLoop(ctx: AgentContext, o: LoopOptions) {
           onPulse: o.onPulse,
         });
       let reply: ModelReply | undefined;
+      trace.write('model.call', { loop: tag, step, model: modelKey(model), messages: messages.length, added: messages.slice(logged) });
+      logged = messages.length;
+      const asked = Date.now();
       // Queda do fluxo, limite ou provedor fora do ar por instantes: a mesma
       // etapa de novo, com espera crescente. O rascunho não mudou.
       for (const [i, wait] of [...RETRY_WAITS, -1].entries()) {
@@ -138,6 +164,15 @@ export async function runLoop(ctx: AgentContext, o: LoopOptions) {
           reply = await ask();
           break;
         } catch (e) {
+          trace.write('model.error', {
+            loop: tag,
+            step,
+            attempt: i + 1,
+            error: (e as Error).message,
+            name: (e as Error).name,
+            requestAborted: !!o.signal?.aborted,
+            deadline: deadline.aborted,
+          });
           o.signal?.throwIfAborted();
           // Prazo do laço: sem nova tentativa, vai direto para o finish forçado.
           if (deadline.aborted) {
@@ -155,8 +190,20 @@ export async function runLoop(ctx: AgentContext, o: LoopOptions) {
           await new Promise((r) => setTimeout(r, wait));
         }
       }
-      if (timedOut) break;
+      if (timedOut) {
+        trace.write('loop.deadline', { loop: tag, step });
+        break;
+      }
       if (!reply) throw new Error('Sem resposta do provedor.');
+      trace.write('model.reply', {
+        loop: tag,
+        step,
+        took: Date.now() - asked,
+        finish: reply.finish,
+        content: reply.content,
+        reasoning: reply.reasoning ?? '',
+        calls: reply.calls.map((c) => ({ id: c.id, name: c.function.name, arguments: c.function.arguments })),
+      });
       if (reply.content) ctx.emit({ type: 'say', text: reply.content });
       if (!reply.calls.length) {
         // Sem ferramenta: texto puro vale como resposta final; vazio, um lembrete.
@@ -166,6 +213,7 @@ export async function runLoop(ctx: AgentContext, o: LoopOptions) {
         }
         if (nudged) break;
         nudged = true;
+        trace.write('loop.nudge', { loop: tag, step, finish: reply.finish });
         messages.push({ role: 'assistant', content: '' });
         messages.push({
           role: 'user',
@@ -183,6 +231,7 @@ export async function runLoop(ctx: AgentContext, o: LoopOptions) {
       for (const c of reply.calls) {
         if (broken || ctx.finish || ctx.ask) {
           messages.push({ role: 'tool', tool_call_id: c.id, content: 'Pulado: uma chamada anterior deste lote falhou ou o pedido já terminou.' });
+          trace.write('tool.skipped', { loop: tag, step, id: c.id, tool: c.function.name, arguments: c.function.arguments });
           continue;
         }
         // Modelo barato às vezes chama a operação ("asset.add") como se fosse a
@@ -197,6 +246,7 @@ export async function runLoop(ctx: AgentContext, o: LoopOptions) {
         }
         const t = byName.get(c.function.name);
         let text: string, okCall: boolean, label: string;
+        const ran = Date.now();
         if (!t) {
           okCall = false;
           text = `Ferramenta desconhecida: ${c.function.name}.`;
@@ -230,6 +280,25 @@ export async function runLoop(ctx: AgentContext, o: LoopOptions) {
           }
         }
         const entry = { tool: c.function.name, label, ok: okCall, ...(okCall ? {} : { detail: text.slice(0, 300) }) };
+        trace.write('tool.result', {
+          loop: tag,
+          step,
+          id: c.id,
+          tool: c.function.name,
+          arguments: c.function.arguments,
+          ok: okCall,
+          label,
+          took: Date.now() - ran,
+          result: text,
+          draft: { designChanged: ctx.designChanged, roomChanged: ctx.roomChanged, operations: ctx.allOps.length, rejected: ctx.attempted.length },
+        });
+        if (o.trace) {
+          const draft = JSON.stringify({ design: ctx.design, room: ctx.room });
+          if (draft !== lastDraft) {
+            lastDraft = draft;
+            trace.write('draft', { loop: tag, step, tool: c.function.name, design: ctx.design, room: ctx.room ?? null });
+          }
+        }
         ctx.steps.push(entry);
         ctx.emit({ type: 'step', step: entry, index: ctx.steps.length - 1 });
         // O estado inteiro não pode ser cortado: a IA via a cozinha pela metade.
@@ -250,6 +319,7 @@ export async function runLoop(ctx: AgentContext, o: LoopOptions) {
       if (ctx.finish || ctx.ask) return { steps: step + 1 };
       if (ctx.plan.length && !bonus) {
         bonus = true;
+        trace.write('loop.bonus', { loop: tag, step, plan: ctx.plan });
         maxSteps += PLAN_BONUS;
         until += PLAN_BONUS_MS;
         arm();
@@ -262,6 +332,7 @@ export async function runLoop(ctx: AgentContext, o: LoopOptions) {
   // contar o que ficou pronto e o que faltou, em vez de um resumo seco.
   const last = byName.get('finish');
   const settled = !ctx.finish && !ctx.ask ? o.onExhausted?.() : undefined;
+  trace.write('loop.exhausted', { loop: tag, timedOut, settled: settled ?? null, finished: !!ctx.finish, asked: !!ctx.ask });
   if (last && !ctx.finish && !ctx.ask) {
     messages.push({
       role: 'user',
@@ -269,7 +340,16 @@ export async function runLoop(ctx: AgentContext, o: LoopOptions) {
     });
     try {
       const cap = AbortSignal.timeout(FINISH_MS);
+      trace.write('model.call', { loop: tag, step: 'finish', model: modelKey(model), messages: messages.length, added: messages.slice(logged) });
       const reply = await call({ model, messages, tools: toolSpecs([last]), signal: o.signal ? AbortSignal.any([o.signal, cap]) : cap, onUsage: usage });
+      trace.write('model.reply', {
+        loop: tag,
+        step: 'finish',
+        finish: reply.finish,
+        content: reply.content,
+        reasoning: reply.reasoning ?? '',
+        calls: reply.calls.map((c) => ({ id: c.id, name: c.function.name, arguments: c.function.arguments })),
+      });
       const c = reply.calls.find((v) => v.function.name === 'finish');
       // Aqui não há outra chance: resposta longa demais é aparada na última
       // frase que cabe, em vez de cair no resumo automático das etapas.
@@ -281,6 +361,7 @@ export async function runLoop(ctx: AgentContext, o: LoopOptions) {
         await last.run(ctx, parsed.data);
       } else if (reply.content) ctx.finish = { message: reply.content, suggestions: [] };
     } catch (e) {
+      trace.write('model.error', { loop: tag, step: 'finish', error: (e as Error).message, requestAborted: !!o.signal?.aborted });
       if (o.signal?.aborted) throw e;
     }
   }

@@ -1,0 +1,302 @@
+{
+ "id": "real-06",
+ "at": "2026-09-26T22:40:55.902Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Monta essa parede da minha sala: o painel da TV com o rack e a porta do lado.\nImagem 1: foto de referência deste pedido (real-sala-painel.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_zGBfsIlLcfZiEZ3fghV3AY9D",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Inventariar painel, rack suspenso e porta da foto; estimar escala pela porta.\",\"Definir a parede e marcar a porta e a TV como obstáculos.\",\"Substituir a estante pelo painel, prateleiras e gabinete do rack.\",\"Conferir a composição na vista e finalizar com as estimativas.\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Monta essa parede da minha sala: o painel da TV com o rack e a porta do lado.\nImagem 1: foto de referência deste pedido (real-sala-painel.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_2FID6LP1NVuUsxKVTKjZohd4",
+      "type": "function",
+      "function": {
+       "name": "room_set",
+       "arguments": "{\"largura\":2500,\"altura\":2600,\"profundidade\":4000,\"rodape\":100}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Monta essa parede da minha sala: o painel da TV com o rack e a porta do lado.\nImagem 1: foto de referência deste pedido (real-sala-painel.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_XC2vOSMUIpll3yectcErogle",
+      "type": "function",
+      "function": {
+       "name": "room_obstacles",
+       "arguments": "{\"add\":[{\"kind\":\"door\",\"label\":\"Porta ao lado do painel\",\"xMm\":0,\"yMm\":0,\"widthMm\":800,\"heightMm\":2100},{\"kind\":\"tv\",\"label\":\"TV\",\"xMm\":1150,\"yMm\":900,\"widthMm\":550,\"heightMm\":320}],\"move\":[],\"remove\":[]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Monta essa parede da minha sala: o painel da TV com o rack e a porta do lado.\nImagem 1: foto de referência deste pedido (real-sala-painel.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_9ZkLEItE1BF0EDpqkGKlW9p9",
+      "type": "function",
+      "function": {
+       "name": "room_obstacles",
+       "arguments": "{\"add\":[],\"move\":[{\"id\":\"tv-1\",\"xMm\":1035,\"yMm\":900,\"widthMm\":1230,\"heightMm\":710}],\"remove\":[]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Monta essa parede da minha sala: o painel da TV com o rack e a porta do lado.\nImagem 1: foto de referência deste pedido (real-sala-painel.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_fikPeSEA4LOsYueOToEpEfub",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"painel-tv\",\"nome\":\"Painel de TV em madeira\",\"tipo\":\"painel\",\"largura\":1600,\"altura\":1300,\"profundidade\":18,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":1300,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"base\",\"x\":850,\"y\":750}},{\"ref\":\"rack\",\"nome\":\"Rack suspenso branco com duas portas\",\"tipo\":\"armario\",\"largura\":1600,\"altura\":300,\"profundidade\":350,\"pes\":0,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":264,\"colunas\":1,\"frente\":\"porta\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"porta\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"white\"},\"onde\":{\"de\":\"painel-tv\",\"lado\":\"abaixo\",\"folga\":0,\"alinhar\":\"esquerda\",\"x\":0,\"y\":0}},{\"ref\":\"prateleira-baixa\",\"nome\":\"Prateleira superior do rack\",\"tipo\":\"prateleira\",\"largura\":1600,\"altura\":30,\"profundidade\":350,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":100,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"rack\",\"lado\":\"acima\",\"folga\":0,\"alinhar\":\"esquerda\",\"x\":0,\"y\":0}},{\"ref\":\"prateleira-alta\",\"nome\":\"Prateleira decorativa superior\",\"tipo\":\"prateleira\",\"largura\":1600,\"altura\":30,\"profundidade\":250,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":100,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"painel-tv\",\"lado\":\"acima\",\"folga\":0,\"alinhar\":\"esquerda\",\"x\":0,\"y\":0}}],\"substituir\":true,\"rotulo\":\"Painel de TV com rack e prateleiras\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Monta essa parede da minha sala: o painel da TV com o rack e a porta do lado.\nImagem 1: foto de referência deste pedido (real-sala-painel.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_ZPWb8Dm2aIiB10z4xsAbHwAr",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"painel-tv\",\"nome\":\"Painel de TV em carvalho\",\"tipo\":\"painel\",\"largura\":1500,\"altura\":1300,\"profundidade\":18,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":1300,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"base\",\"x\":900,\"y\":700}},{\"ref\":\"rack-tv\",\"nome\":\"Rack suspenso branco com duas portas\",\"tipo\":\"armario\",\"largura\":1500,\"altura\":300,\"profundidade\":350,\"pes\":0,\"material\":\"white\",\"interior\":{\"linhas\":[{\"altura\":264,\"colunas\":1,\"frente\":\"porta\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"porta\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"white\"},\"onde\":{\"de\":\"painel-tv\",\"lado\":\"abaixo\",\"folga\":0,\"alinhar\":\"esquerda\",\"x\":0,\"y\":0}}],\"substituir\":true,\"rotulo\":\"Painel de TV com rack suspenso\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "14|Pedido: Monta essa parede da minha sala: o painel da TV com o rack e a porta do lado.\nImagem 1: foto de referência deste pedido (real-sala-painel.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_V1V7g0Ows7hUfqpbEvmiNmsA",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "16|Pedido: Monta essa parede da minha sala: o painel da TV com o rack e a porta do lado.\nImagem 1: foto de referência deste pedido (real-sala-painel.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_jFfKOA1Af5EgPTwMIo7iaTBy",
+      "type": "function",
+      "function": {
+       "name": "modify",
+       "arguments": "{\"remover\":[],\"mover\":[],\"medidas\":[],\"interior\":[{\"linhas\":[{\"altura\":264,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"white\",\"id\":\"rack-tv\"},{\"linhas\":[{\"altura\":264,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"white\",\"id\":\"rack-tv-2\"}],\"rotulo\":\"Rack com duas gavetas suspensas\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "18|Pedido: Monta essa parede da minha sala: o painel da TV com o rack e a porta do lado.\nImagem 1: foto de referência deste pedido (real-sala-painel.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_DT46JeQhAB6424ePeYxvDUqZ",
+      "type": "function",
+      "function": {
+       "name": "parts_list",
+       "arguments": "{\"modulo\":\"\",\"material\":\"\",\"tipo\":\"panel\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "20|Pedido: Monta essa parede da minha sala: o painel da TV com o rack e a porta do lado.\nImagem 1: foto de referência deste pedido (real-sala-painel.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_v2zfjkfV1LnDQVj2GDoqJ4UV",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"prateleira-rack\",\"nome\":\"Tampo superior do rack em carvalho\",\"tipo\":\"prateleira\",\"largura\":1500,\"altura\":30,\"profundidade\":300,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":100,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"painel-tv\",\"lado\":\"acima\",\"folga\":0,\"alinhar\":\"centro\",\"x\":0,\"y\":0}},{\"ref\":\"prateleira-alta\",\"nome\":\"Prateleira decorativa superior em carval\",\"tipo\":\"prateleira\",\"largura\":1300,\"altura\":30,\"profundidade\":220,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":100,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"prateleira-rack\",\"lado\":\"acima\",\"folga\":0,\"alinhar\":\"centro\",\"x\":0,\"y\":0}}],\"substituir\":false,\"rotulo\":\"Prateleiras do painel\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "22|Pedido: Monta essa parede da minha sala: o painel da TV com o rack e a porta do lado.\nImagem 1: foto de referência deste pedido (real-sala-painel.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_nJ0OiN7gCVh7o5J0ydSmpD4H",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "24|Pedido: Monta essa parede da minha sala: o painel da TV com o rack e a porta do lado.\nImagem 1: foto de referência deste pedido (real-sala-painel.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_tIoSbsQJ06hvsX7FpLLhWai0",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "27|Pedido: Monta essa parede da minha sala: o painel da TV com o rack e a porta do lado.\nImagem 1: foto de referência deste pedido (real-sala-painel.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_74CfJd6g1fR9wfIXWtIjLnjS",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Montei o painel de carvalho com rack suspenso branco de duas gavetas e duas prateleiras, ao lado da porta; usei a porta padrão de 80 × 210 cm e a TV de 55″ como régua, então a estimativa pode variar ±10–20%. A composição ocupa 1,50 m de largura por 2,06 m de altura; a medida real da parede e a posição da porta confirmariam o encaixe, e o entalhe da porta da foto não foi reproduzido.\",\"sugestoes\":[\"Confira a largura real da parede\",\"Ajuste a posição da porta\",\"Veja o orçamento detalhado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.07
+     }
+    },
+    "usage": {
+     "input_tokens": 429,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.73
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.05
+     }
+    },
+    "usage": {
+     "input_tokens": 597,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,234 @@
+{
+ "id": "real-08",
+ "at": "2026-09-26T22:40:15.064Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Quero um guarda-roupa igual a esse preto e madeira.\nImagem 1: foto de referência deste pedido (real-quarto-verde.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_Y3vROTZiwFO2knoroIkwm4HA",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Inventariar o guarda-roupa da foto: módulo escuro à esquerda e módulo de madeira\",\"Estimar medidas pela altura de uma porta padrão e montar os dois módulos\",\"Conferir a cena e ajustar se necessário\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Quero um guarda-roupa igual a esse preto e madeira.\nImagem 1: foto de referência deste pedido (real-quarto-verde.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_fF4wdhcTiX1LRCVl0Xg7oQ1H",
+      "type": "function",
+      "function": {
+       "name": "parts_list",
+       "arguments": "{\"modulo\":\"module-1\",\"material\":\"\",\"tipo\":\"side\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Quero um guarda-roupa igual a esse preto e madeira.\nImagem 1: foto de referência deste pedido (real-quarto-verde.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_3FbtYZRlrlo88II3AEivEz5M",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"corpo-escuro\",\"nome\":\"Corpo preto com portas\",\"tipo\":\"armario\",\"largura\":1400,\"altura\":2200,\"profundidade\":600,\"pes\":0,\"material\":\"black\",\"interior\":{\"linhas\":[{\"altura\":2264,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"porta_dupla\",\"material_frente\":\"black\"},\"onde\":{\"de\":\"\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}},{\"ref\":\"corpo-madeira\",\"nome\":\"Corpo madeira com porta e gaveta\",\"tipo\":\"armario\",\"largura\":800,\"altura\":2200,\"profundidade\":600,\"pes\":0,\"material\":\"oak\",\"interior\":{\"linhas\":[{\"altura\":220,\"colunas\":1,\"frente\":\"gavetas\",\"gavetas\":1},{\"altura\":2044,\"colunas\":1,\"frente\":\"porta\",\"gavetas\":1}],\"vaos\":2,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"oak\"},\"onde\":{\"de\":\"corpo-escuro\",\"lado\":\"direita\",\"folga\":0,\"alinhar\":\"piso\",\"x\":0,\"y\":0}}],\"substituir\":true,\"rotulo\":\"Guarda-roupa preto e madeira inspirado na foto\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Quero um guarda-roupa igual a esse preto e madeira.\nImagem 1: foto de referência deste pedido (real-quarto-verde.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_FAIqSku2dnlgvD17mjzRAq3T",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "11|Pedido: Quero um guarda-roupa igual a esse preto e madeira.\nImagem 1: foto de referência deste pedido (real-quarto-verde.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_cAPnUdYvAsfj6pGIl7tJYOCd",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "13|Pedido: Quero um guarda-roupa igual a esse preto e madeira.\nImagem 1: foto de referência deste pedido (real-quarto-verde.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_oJbPJe4r1YWE8HVoQLb5Sy60",
+      "type": "function",
+      "function": {
+       "name": "modify",
+       "arguments": "{\"remover\":[],\"mover\":[],\"medidas\":[{\"id\":\"corpo-escuro\",\"largura\":609,\"altura\":2200,\"altura_total\":2200,\"profundidade\":600,\"pes\":0,\"manter\":\"esquerda\"},{\"id\":\"corpo-escuro-2\",\"largura\":609,\"altura\":2200,\"altura_total\":2200,\"profundidade\":600,\"pes\":0,\"manter\":\"esquerda\"},{\"id\":\"corpo-madeira\",\"largura\":600,\"altura\":2200,\"altura_total\":2200,\"profundidade\":600,\"pes\":0,\"manter\":\"esquerda\"}],\"interior\":[], \"rotulo\":\"Ajuste das proporções para o guarda-roupa da foto\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "15|Pedido: Quero um guarda-roupa igual a esse preto e madeira.\nImagem 1: foto de referência deste pedido (real-quarto-verde.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_tOhLahBszcJ59CrWDVX18bnx",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"front.set\",\"id\":\"corpo-escuro:root\",\"type\":\"single\",\"materialId\":\"black\"},{\"kind\":\"front.set\",\"id\":\"corpo-escuro-2:root\",\"type\":\"single\",\"materialId\":\"black\"},{\"kind\":\"front.set\",\"id\":\"corpo-madeira:root:high\",\"type\":\"single\",\"materialId\":\"oak\"}],\"rotulo\":\"Ajuste das portas ao desenho da foto\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "17|Pedido: Quero um guarda-roupa igual a esse preto e madeira.\nImagem 1: foto de referência deste pedido (real-quarto-verde.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_VhyGPVirLmRxzHJ4lFY5KqZx",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "20|Pedido: Quero um guarda-roupa igual a esse preto e madeira.\nImagem 1: foto de referência deste pedido (real-quarto-verde.jpg).",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_0JSuBFXIuy6ilAL8ieEpGhC5",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Montei o guarda-roupa de 180 × 220 × 60 cm, com duas portas pretas, uma porta em madeira e uma gaveta inferior. Usei como régua uma porta padrão de 80 × 210 cm; a estimativa da foto pode variar ±10–20%, então medir largura, altura e profundidade disponíveis no local fecharia as medidas para fabricação.\",\"sugestoes\":[\"Confira as medidas no local\",\"Ajuste o tom da madeira\",\"Veja o orçamento detalhado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.1
+     }
+    },
+    "usage": {
+     "input_tokens": 422,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.66
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 567,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

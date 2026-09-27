@@ -1,0 +1,311 @@
+{
+ "id": "tv-03",
+ "at": "2026-09-26T22:27:16.700Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Quero nichos e prateleiras na parede em volta da TV, algo bonito e equilibrado.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_8CCUFAQDhQpGcWodzrsKSoMa",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Conferir o móvel e a TV na parede\",\"Adicionar nichos e prateleiras equilibrados ao redor\",\"Renderizar a composição e ajustar se necessário\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Quero nichos e prateleiras na parede em volta da TV, algo bonito e equilibrado.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_ZrjsIA6AnakoagfTL47wrtmw",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Quero nichos e prateleiras na parede em volta da TV, algo bonito e equilibrado.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_TEzQrgUoGZq744M2K3WcT1qA",
+      "type": "function",
+      "function": {
+       "name": "place",
+       "arguments": "{\"pecas\":[{\"ref\":\"nicho-esq\",\"nome\":\"Nicho lateral esquerdo\",\"tipo\":\"nicho\",\"largura\":300,\"altura\":800,\"profundidade\":250,\"pes\":0,\"material\":\"freijo\",\"interior\":{\"linhas\":[{\"altura\":240,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":240,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":240,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":3,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"freijo\"},\"onde\":{\"de\":\"tv\",\"lado\":\"esquerda\",\"folga\":50,\"alinhar\":\"centro\",\"x\":0,\"y\":0}},{\"ref\":\"nicho-dir\",\"nome\":\"Nicho lateral direito\",\"tipo\":\"nicho\",\"largura\":300,\"altura\":800,\"profundidade\":250,\"pes\":0,\"material\":\"freijo\",\"interior\":{\"linhas\":[{\"altura\":240,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":240,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1},{\"altura\":240,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":3,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"freijo\"},\"onde\":{\"de\":\"tv\",\"lado\":\"direita\",\"folga\":50,\"alinhar\":\"centro\",\"x\":0,\"y\":0}},{\"ref\":\"prat-sup\",\"nome\":\"Prateleira superior\",\"tipo\":\"prateleira\",\"largura\":1500,\"altura\":30,\"profundidade\":220,\"pes\":0,\"material\":\"freijo\",\"interior\":{\"linhas\":[{\"altura\":200,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"freijo\"},\"onde\":{\"de\":\"tv\",\"lado\":\"acima\",\"folga\":60,\"alinhar\":\"centro\",\"x\":0,\"y\":0}},{\"ref\":\"prat-inf\",\"nome\":\"Prateleira inferior\",\"tipo\":\"prateleira\",\"largura\":1200,\"altura\":30,\"profundidade\":220,\"pes\":0,\"material\":\"freijo\",\"interior\":{\"linhas\":[{\"altura\":200,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1}],\"vaos\":1,\"colunas\":1,\"frente\":\"aberto\",\"gavetas\":1,\"porta_inteira\":\"nenhuma\",\"material_frente\":\"freijo\"},\"onde\":{\"de\":\"tv\",\"lado\":\"abaixo\",\"folga\":180,\"alinhar\":\"centro\",\"x\":0,\"y\":0}}],\"substituir\":false,\"rotulo\":\"Nichos e prateleiras ao redor da TV\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Quero nichos e prateleiras na parede em volta da TV, algo bonito e equilibrado.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_J4nIQh0Zv27shujxdDwj4p0F",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "11|Pedido: Quero nichos e prateleiras na parede em volta da TV, algo bonito e equilibrado.",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_pu7SvcvdzFZuZ4EJnAJ1ccp9",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Acrescentei dois nichos laterais abertos, cada um com três vãos, e prateleiras de 1,50 m acima e 1,20 m abaixo da TV, em Freijó. Conferi a composição no desenho; ela cabe na parede com o móvel existente.\",\"sugestoes\":[\"Ajuste a altura das prateleiras\",\"Veja o orçamento atualizado\",\"Exporte o desenho em PDF\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.98,
+      "probabilities": {
+       "options": 0,
+       "view": 0,
+       "studio": 0,
+       "ask": 0,
+       "build": 0.99,
+       "edit": 0.01
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.67
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.68
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.89
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.32
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.18
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.2
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.3
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1327,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.5
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 430,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.9
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.03
+     }
+    },
+    "usage": {
+     "input_tokens": 541,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

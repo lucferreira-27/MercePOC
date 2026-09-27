@@ -94,10 +94,15 @@ export function designOf(d: Design) {
 export function shelfInfos(d: Design) {
   if (d.modules.length === 1 && d.modules[0].legacyIds)
     return old.shelfInfos(legacyProjection(d));
+  // Só prateleira de compartimento (divisão horizontal): a prateleira de parede
+  // também gera peça 'shelf', mas não tem vão acima nem abaixo para medir.
+  const cells = layout(d).cells;
   return generateDesign(d)
-    .parts.filter((p) => p.kind === 'shelf')
-    .map((p, i) => {
-      const info = layout(d).cells.find((c) => c.node.split?.id === p.id)!;
+    .parts.flatMap((p) => {
+      const info = p.kind === 'shelf' ? cells.find((c) => c.node.split?.id === p.id) : undefined;
+      return info ? [{ p, info }] : [];
+    })
+    .map(({ p, info }, i) => {
       const below = (info.size[1] - 18) * info.node.split!.ratio;
       return {
         id: p.id,
@@ -783,12 +788,37 @@ export function describeDesignChanges(before: Design, after: Design) {
       legacyProjection(after),
     );
   const out: string[] = [];
+  /** Raiz do grupo conectado: é ela que guarda se o grupo está preso num painel. */
+  const rootIn = (d: Design, id: string) => {
+    let at = id;
+    for (let c = d.connections.find((v) => v.child === at); c; c = d.connections.find((v) => v.child === at)) at = c.parent;
+    return d.modules.find((v) => v.id === at);
+  };
+  const nameIn = (d: Design, id: string) => d.modules.find((v) => v.id === id)?.name ?? id;
   for (const m of after.modules) {
     const b = before.modules.find((b) => b.id === m.id);
     if (!b) {
       out.push(`Módulo "${m.name}" adicionado`);
       continue;
     }
+    // Preso num painel de parede (mountOnPanels): diz o motivo, não "posição ajustada".
+    const grouped = after.connections.some((c) => c.parent === m.id) ? ' (com os módulos ligados a ele)' : '';
+    if (m.mountedOn && !b.mountedOn)
+      out.push(`${m.name}${grouped}: passa para a frente de ${nameIn(after, m.mountedOn.panel)}, avança ${mm(m.mountedOn.by)}`);
+    else if (!m.mountedOn && b.mountedOn)
+      out.push(`${m.name}${grouped}: sai da frente de ${nameIn(before, b.mountedOn.panel)} e volta para a parede`);
+    else if (m.mountedOn && b.mountedOn && (m.mountedOn.by !== b.mountedOn.by || m.mountedOn.panel !== b.mountedOn.panel))
+      out.push(`${m.name}${grouped}: na frente de ${nameIn(after, m.mountedOn.panel)}, avança ${mm(b.mountedOn.by)} → ${mm(m.mountedOn.by)}`);
+    const ra = rootIn(after, m.id),
+      rb = rootIn(before, m.id);
+    const shift = (ra?.mountedOn?.by ?? 0) - (rb?.mountedOn?.by ?? 0);
+    const a = ((ra?.rotation ?? 0) * Math.PI) / 180;
+    const onlyMount =
+      shift !== 0 &&
+      ra?.id === rb?.id &&
+      Math.abs(m.position[0] - (b.position[0] + shift * Math.round(Math.sin(a)))) < 0.01 &&
+      Math.abs(m.position[1] - b.position[1]) < 0.01 &&
+      Math.abs(m.position[2] - (b.position[2] + shift * Math.round(Math.cos(a)))) < 0.01;
     for (const key of [
       'name',
       'width',
@@ -822,7 +852,7 @@ export function describeDesignChanges(before: Design, after: Design) {
       );
     if (!!m.wall !== !!b.wall)
       out.push(`${m.name}: ${m.wall ? 'suspenso, preso na parede' : 'apoiado no piso'}`);
-    if (JSON.stringify(m.position) !== JSON.stringify(b.position))
+    if (JSON.stringify(m.position) !== JSON.stringify(b.position) && !onlyMount)
       out.push(`"${m.name}": posição ajustada`);
     if (JSON.stringify(m.root) !== JSON.stringify(b.root))
       out.push(`"${m.name}": compartimentos e frentes ajustados`);
