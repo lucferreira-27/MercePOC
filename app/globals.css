@@ -1620,6 +1620,10 @@ kbd {
   margin-left: auto;
   opacity: 0.55;
   transition: opacity 0.15s;
+  /* Como no cabeçalho do cartão: "v2" não quebra em "v / 2". */
+  flex: none;
+  overflow-wrap: normal;
+  white-space: nowrap;
 }
 .message:hover .msg-actions,
 .msg-actions:focus-within {
@@ -6015,6 +6019,8 @@ svg.tp-time {
   overflow: hidden;
   font-size: 12.5px;
   transition: border-color 0.2s, box-shadow 0.2s;
+  /* O cabeçalho se arruma pela largura do cartão, não da janela. */
+  container: cs / inline-size;
 }
 .cs.active {
   border-color: var(--accent-line);
@@ -6028,6 +6034,31 @@ svg.tp-time {
   padding: 0 6px 0 9px;
   background: var(--surface-2);
   border-bottom: 1px solid var(--line);
+  /* A mensagem quebra palavras em qualquer letra (overflow-wrap: anywhere):
+     aqui virava "Ediçã / o" e "Reve / r". Nada no cabeçalho quebra palavra. */
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+.cs-chips {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+/* Cartão estreito (coluna do chat ao lado da cena): título e Rever na
+   primeira linha, versão e contagem descem para a segunda, sob o título. */
+@container cs (max-width: 320px) {
+  .cs-head {
+    flex-wrap: wrap;
+    row-gap: 4px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  .cs-chips {
+    order: 3;
+    flex-basis: 100%;
+    padding-left: 25px;
+  }
 }
 .cs-icon {
   display: grid;
@@ -6040,6 +6071,9 @@ svg.tp-time {
   flex: none;
 }
 .cs-head strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 12.5px;
   font-weight: 650;
   color: var(--ink);
@@ -6091,6 +6125,7 @@ svg.tp-time {
 }
 .cs-play {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 4px;
   height: 22px;
