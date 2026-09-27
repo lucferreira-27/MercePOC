@@ -62,6 +62,12 @@ Use `Start-Merce.cmd`, ou `npm install` e `npm run dev` em `G:\MercePOC`. Abra h
 
 `npm run build` reescreve o pacote que o servidor em execução está servindo. Se o servidor já estava de pé, reinicie-o depois do build; sem isso a página trava em "Montando o estúdio…" porque o navegador recebe um pacote misturado e não hidrata. `npm run dev` (HMR na mesma porta) não tem esse problema.
 
+### Projetos de demonstração
+
+`npm run demos` grava cinco projetos prontos para mostrar o app: painel de TV com rack suspenso, guarda-roupa, cozinha compacta, home office e lavanderia. O nome de cada um começa com "Demo ·"; não são de clientes. Cada demo nasce de um modelo da biblioteca e passa por algumas sessões de pedidos e medidas do ambiente, todas aplicadas pelo motor do app, então histórico, Edição, orçamento, corte e exportações abrem como num projeto real. A receita fica em `lib/demos.ts`.
+
+Antes de escrever, o comando copia a base para `data/merce-before-demos-<hora>.sqlite`. Os ids são fixos: rodar de novo devolve as demos ao estado original, sem duplicar, e os outros projetos ficam. `npm run demos -- --replace` também apaga todos os projetos que não são demo. Numa base só com demos, o navegador sem projeto lembrado abre a primeira demo em vez de criar uma estante em branco. Recarregue a página depois de gravar.
+
 ### Configurar a IA
 
 Copie `.env.example` para `.env` (ignorado pelo Git):

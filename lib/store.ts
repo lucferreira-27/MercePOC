@@ -112,6 +112,12 @@ export type Project = {
    * e para a próxima limpeza a substituir; o cliente só vê quantas mensagens.
    */
   clearedChat?: { messages: Message[]; at: string; noteId: string };
+  /**
+   * Projeto de demonstração, gravado por `npm run demos` (lib/demos.ts). O id
+   * é fixo: gravar de novo devolve o projeto ao estado original, sem
+   * duplicar. `order` é a posição na vitrine (0 abre primeiro).
+   */
+  demo?: { key: string; order: number };
 };
 let db: DatabaseSync;
 function database() {
@@ -159,6 +165,7 @@ export function list() {
       version: p.cursor + 1,
       // Sem isto o seletor mostra centenas de "Minha estante" idênticas.
       modules,
+      ...(p.demo ? { demo: p.demo.order } : {}),
     };
   });
 }
@@ -371,6 +378,36 @@ export function createDemo() {
     .prepare('INSERT INTO projects VALUES (?, ?, ?, ?)')
     .run(p.id, encode(p), 0, new Date().toISOString());
   return view(p);
+}
+/**
+ * Grava um projeto pronto com o id dele, no lugar do que houver com o mesmo
+ * id. Só para os projetos de demonstração: a edição normal passa por save,
+ * que confere a versão.
+ */
+export function putProject(p: Project, updated: string) {
+  database()
+    .prepare('INSERT OR REPLACE INTO projects VALUES (?, ?, ?, ?)')
+    .run(p.id, encode(p), p.version, updated);
+}
+/** Cópia do banco inteiro num arquivo novo, na mesma pasta. Devolve o caminho. */
+export function backupDatabase(name: string) {
+  const file = join(process.env.MERCE_DATA_DIR || join(process.cwd(), 'data'), name);
+  if (existsSync(file)) throw new Error(`O backup ${file} já existe.`);
+  database().exec(`VACUUM INTO '${file.replaceAll("'", "''")}'`);
+  return file;
+}
+/** Apaga as demonstrações que saíram da lista (ids fora de `keep`). */
+export function removeDemosExcept(keep: readonly string[]) {
+  const all = database().prepare("SELECT id FROM projects WHERE json_extract(body, '$.demo') IS NOT NULL").all() as { id: string }[];
+  const gone = all.filter((r) => !keep.includes(r.id));
+  for (const r of gone) database().prepare('DELETE FROM projects WHERE id=?').run(r.id);
+  return gone.length;
+}
+/** Apaga os projetos que não são de demonstração. Devolve quantos saíram. */
+export function removeNonDemo() {
+  return Number(
+    database().prepare("DELETE FROM projects WHERE json_extract(body, '$.demo') IS NULL").run().changes,
+  );
 }
 export function save(p: Project, expected: number) {
   p.version = expected + 1;

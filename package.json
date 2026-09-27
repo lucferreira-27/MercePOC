@@ -13,6 +13,7 @@
     "format": "oxfmt",
     "test": "tsx --test tests/*.test.ts",
     "test:live": "node scripts/modular-live.mjs",
+    "demos": "tsx scripts/seed-demos.ts",
     "typecheck": "tsc --noEmit",
     "bench": "tsx bench/run.mjs",
     "bench:doc": "tsx bench/doc.mjs",
