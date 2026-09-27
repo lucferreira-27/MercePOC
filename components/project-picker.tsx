@@ -9,6 +9,8 @@ export type ProjectSummary = {
   revisions?: number;
   version?: number;
   modules?: number;
+  /** Posição na vitrine, quando é um projeto de demonstração (`npm run demos`). */
+  demo?: number;
 };
 
 /** Compara ignorando acentos e maiúsculas: "estante" acha "Estante". */

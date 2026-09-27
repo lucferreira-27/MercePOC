@@ -1046,6 +1046,10 @@ export default function Home() {
         // um projeto NOVO: o mais recente da base pode ser de outra pessoa e
         // abrir sozinho já causou pedido gravado no projeto errado.
         let mine = all.find((v) => v.id === readLocal('merce-project'));
+        // Base só com demonstrações (vitrine de `npm run demos`): abre a
+        // primeira em vez de criar uma estante em branco ao lado delas.
+        if (!mine && all.length && all.every((v) => v.demo !== undefined))
+          mine = [...all].sort((a, b) => a.demo! - b.demo!)[0];
         if (!mine && !claimProjectCreation()) {
           // Outra instância da página já está criando um projeto: espera por ele.
           await new Promise((done) => setTimeout(done, 700));
