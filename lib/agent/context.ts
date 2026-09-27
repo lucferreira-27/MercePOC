@@ -133,8 +133,23 @@ export class AgentContext {
     return JSON.stringify(this.room ?? null) !== JSON.stringify(this.project.room ?? null);
   }
 
-  /** Aceita um design já validado e mostra na cena. */
-  setDesign(design: Design, ops: ShelfOp[]) {
+  /**
+   * Como o rascunho estava antes de cada mudança do trecho atual: o
+   * history_undo no meio do pedido volta um passo, não o pedido inteiro.
+   */
+  private steps_: { design: Design; room: Room | undefined; ops: number }[] = [];
+  /** Mudanças do trecho atual que ainda dá para desfazer uma a uma. */
+  get undoable() {
+    return this.steps_.length;
+  }
+  private remember() {
+    this.steps_.push({ design: this.design, room: this.room, ops: this.ops.length });
+  }
+
+  /** Aceita um design já validado e mostra na cena (com o ambiente, quando ele muda junto). */
+  setDesign(design: Design, ops: ShelfOp[], room: Room | undefined = this.room) {
+    this.remember();
+    this.room = room;
     this.pinWall(design);
     this.design = design;
     this.ops.push(...ops);
@@ -163,6 +178,7 @@ export class AgentContext {
     this.room = { ...room, anchor: { x: was.x, z: was.z } };
   }
   setRoom(room: Room | undefined) {
+    this.remember();
     this.room = room;
     this.emit({ type: 'draft', params: this.design, room: room ?? null });
   }
@@ -189,6 +205,20 @@ export class AgentContext {
     this.rebase();
   }
 
+  /**
+   * Volta o rascunho um passo (a última mudança deste pedido). As operações
+   * dela ficam como desfeitas. Devolve false quando não há passo para voltar.
+   */
+  stepBack() {
+    const last = this.steps_.pop();
+    if (!last) return false;
+    this.design = last.design;
+    this.room = last.room;
+    this.reverted.push(...this.ops.splice(last.ops));
+    this.emit({ type: 'draft', params: this.design, room: this.room ?? null });
+    return true;
+  }
+
   /** Recomeça do que está gravado agora (depois de gravar ou navegar). */
   rebase() {
     this.design = this.base;
@@ -197,6 +227,7 @@ export class AgentContext {
     // O que não foi gravado antes de voltar sai do rascunho: fica como desfeito.
     this.reverted.push(...this.ops);
     this.ops = [];
+    this.steps_ = [];
   }
 
   /** Grava no banco: antes de outra rotina ler o projeto de lá. */

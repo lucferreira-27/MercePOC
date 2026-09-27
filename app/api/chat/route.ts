@@ -25,6 +25,7 @@ import { getImage, imageDataUrl, saveImage, type ImageRef } from '@/lib/images';
 import { planDataUrl, planPng } from '@/lib/plan-render';
 import { mergePrices, money, quote } from '@/lib/quote';
 import { runAgentTurn, type TurnDiagnostics } from '@/lib/agent/turn';
+import { openTrace } from '@/lib/trace';
 import { UI_TABS, VIEW_MODES, type AgentEvent } from '@/lib/agent/types';
 import {
   addUsage,
@@ -226,6 +227,24 @@ export async function POST(req: Request) {
     // pendência de novo: a mensagem atual já nomeia o alvo escolhido.
     const answeringClarification = Boolean(b.clarificationId && b.optionId);
     const agentMode = b.agent ?? process.env.MERCE_AGENT !== '0';
+    const trace = openTrace(requestId, {
+      projectId: p.id,
+      projectName: p.name,
+      version: b.version,
+      revision: baseRev.number,
+      model: modelChoice,
+      agent: agentMode,
+      message: b.message,
+      imageId: b.imageId ?? null,
+      selected: explicit,
+      ui: b.ui ?? null,
+      clarificationId: b.clarificationId ?? null,
+      optionId: b.optionId ?? null,
+      stream: !!req.headers.get('accept')?.includes('text/event-stream'),
+    });
+    // Quem fechou a conexão, e quando: sem isto "Interrompido" não dizia se
+    // foi a pessoa, a aba recarregada ou o servidor.
+    req.signal.addEventListener('abort', () => trace.write('client.disconnect', { reason: String(req.signal.reason ?? '') }), { once: true });
     const run = async (
       progress: (event: Progress) => void,
       signal: AbortSignal,
@@ -354,6 +373,7 @@ export async function POST(req: Request) {
           signal,
           progress,
           emit,
+          trace,
           onUsage: recordUsage,
           onText: (content) => {
             said = content.slice(0, 1200);
@@ -734,6 +754,15 @@ export async function POST(req: Request) {
           : aborted
             ? 'A resposta foi interrompida antes de terminar. O pedido ficou salvo e pode ser repetido.'
             : (e instanceof Error ? e.message : '') || 'Não foi possível concluir.';
+      trace.write('turn.error', {
+        error: e instanceof Error ? e.message : String(e),
+        name: e instanceof Error ? e.name : null,
+        stack: e instanceof Error ? e.stack : null,
+        shown: message,
+        clientGone: req.signal.aborted,
+        persistedUser,
+        usage: turnUsage,
+      });
       if (!persistedUser) return undefined;
       if (p.messages.some((m) => m.context?.requestId === requestId && m.result))
         return undefined;
@@ -783,7 +812,9 @@ export async function POST(req: Request) {
     };
     if (!req.headers.get('accept')?.includes('text/event-stream')) {
       try {
-        return Response.json(await run(() => {}, req.signal));
+        const result = await run((event) => trace.write('progress', event), req.signal);
+        trace.write('turn.end', { usage: turnUsage });
+        return Response.json(result);
       } catch (e) {
         persistFailure(e);
         throw e;
@@ -806,7 +837,8 @@ export async function POST(req: Request) {
                   `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`,
                 ),
               );
-            } catch {
+            } catch (e) {
+              trace.write('stream.write-failed', { event, error: (e as Error).message });
               ended = true;
               cancellation.abort();
             }
@@ -819,7 +851,10 @@ export async function POST(req: Request) {
         );
         try {
           const result = await run(
-            (event) => send('progress', event),
+            (event) => {
+              trace.write('progress', event);
+              send('progress', event);
+            },
             AbortSignal.any([req.signal, cancellation.signal]),
             (preview) => {
               // A proposta pública da IA aparece na hora para quem espera, mesmo
@@ -848,6 +883,7 @@ export async function POST(req: Request) {
             // Etapas, efeitos e o rascunho ao vivo do assistente em laço.
             (event) => send('agent', event),
           );
+          trace.write('turn.end', { usage: turnUsage });
           send('done', result);
         } catch (e) {
           // O estado volta junto do erro: o cliente precisa saber a versão nova
@@ -873,7 +909,8 @@ export async function POST(req: Request) {
           }
         }
       },
-      cancel() {
+      cancel(reason) {
+        trace.write('stream.cancel', { reason: String(reason ?? '') });
         ended = true;
         cancellation.abort();
       },

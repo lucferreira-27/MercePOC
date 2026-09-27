@@ -18,6 +18,7 @@ import { designFacts, factChanges, factClaims, factsLine } from './facts';
 import { PROVIDER_ERROR } from '../gateway';
 import { askJev } from './jev';
 import type { AgentEvent, UiState } from './types';
+import { NO_TRACE, type Trace } from '../trace';
 
 export type AgentTurnInput = {
   project: Project;
@@ -45,6 +46,8 @@ export type AgentTurnInput = {
   call?: typeof callModel;
   /** Troca o roteador (testes); ausente, usa o Jev quando há chave. */
   route?: (request: string) => Promise<Route>;
+  /** Registro completo do pedido (lib/trace.ts); ausente, nada é gravado. */
+  trace?: Trace;
 };
 
 /**
@@ -57,6 +60,8 @@ export async function runAgentTurn(input: AgentTurnInput) {
   // Como o projeto estava: uma falha no meio do pedido não pode deixar
   // gravação parcial no objeto que a rota salva junto com o erro.
   const initial = structuredClone({ revisions: input.project.revisions, cursor: input.project.cursor, room: input.project.room, name: input.project.name });
+  const trace = input.trace ?? NO_TRACE;
+  trace.write('turn.state', { revision: input.project.revisions[input.project.cursor].number, design: ctx.design, room: ctx.room ?? null });
   try {
     return await turnBody(ctx, input);
   } catch (e) {
@@ -78,6 +83,13 @@ export async function runAgentTurn(input: AgentTurnInput) {
       committed: persisted ? 'persisted-before-failure' : 'none',
       durationMs: Date.now() - input.started,
     };
+    trace.write('turn.failed', {
+      error: error.message,
+      name: error.name,
+      stack: error.stack,
+      diagnostics: (error as Error & { diagnostics?: TurnDiagnostics }).diagnostics,
+      draft: { design: ctx.design, room: ctx.room ?? null },
+    });
     throw error;
   }
 }
@@ -141,6 +153,8 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
     ? { kind: 'agent', intent: 'build', budget: 16 }
     : await (input.route ?? ((r) => routeRequest(r, input.signal)))(input.request);
   const seconds = ((Date.now() - t0) / 1000).toFixed(1).replace('.', ',');
+  const trace = input.trace ?? NO_TRACE;
+  trace.write('turn.route', { route, took: Date.now() - t0, photo: !!photo, earlierPhoto: earlier?.request ?? null, userText: text + note });
   if (route.kind === 'direct') {
     ctx.steps.push({ tool: 'router', label: `Pedido direto, sem IA (${seconds} s)`, ok: true });
     ctx.direct = true;
@@ -149,6 +163,7 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
       const t = TOOLS.find((v) => v.name === a.tool)!;
       const r = await t.run(ctx, t.args.parse(a.args));
       const step = { tool: t.name, label: r.label ?? t.name, ok: r.ok, ...(r.ok ? {} : { detail: r.text }) };
+      trace.write('tool.result', { loop: 'direto', tool: t.name, arguments: a.args, ok: r.ok, label: step.label, result: r.text });
       ctx.steps.push(step);
       ctx.emit({ type: 'step', step, index: ctx.steps.length - 1 });
     }
@@ -185,6 +200,8 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
       signal: input.signal,
       onUsage: input.onUsage,
       call: input.call,
+      trace: input.trace,
+      tag: 'opção',
     });
   let working = false;
   /**
@@ -226,7 +243,9 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
     },
     call: input.call,
     onExhausted: settle,
+    trace: input.trace,
   });
+  trace.write('turn.loop', { ...loop, completion, rolledBack });
   if (loop.exhausted && !ctx.ask) settle();
 
   // Foto: o laço já compara o desenho com a foto (render_look) antes do
@@ -383,6 +402,18 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
   p.messages.push(assistant);
   input.progress({ stage: 'saving', label: 'Salvando o resultado', detail: 'Registrando a versão e preparando o modelo 3D.' });
   const state = save(p, ctx.version);
+  trace.write('turn.done', {
+    outcome,
+    completion,
+    message,
+    changes,
+    checks: finalIssues,
+    discarded,
+    revision: p.revisions[p.cursor].number,
+    projectId: p.id,
+    steps: ctx.steps,
+    design: after,
+  });
   const alive = new Set(entityIds(after));
   return {
     projectId: p.id,
