@@ -1,0 +1,1541 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   Casca do app: celular e tablet (lib/shell.ts decide quando).
+
+   Um espaço de trabalho por vez, em tela cheia. A cena 3D é uma instância só:
+   em Cena ela ocupa a tela por baixo da barra; nos outros espaços encolhe
+   para uma janela viva flutuante que acompanha o que muda. Tudo aqui mora
+   sob .studio.app: o estúdio de desktop não muda.
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --bar-h: 56px;
+  --nav-h: 64px;
+  --pip-w: 124px;
+  --pip-h: 156px;
+  --glass: color-mix(in srgb, var(--surface) 84%, transparent);
+  --glass-line: color-mix(in srgb, var(--line-strong) 70%, transparent);
+  --ease-out: cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+html[data-shell='app'],
+html[data-shell='app'] body {
+  overscroll-behavior: none;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Antes de hidratar: só a cena carregando, sem o estúdio de desktop piscar. */
+html[data-shell='app'] .studio:not(.app) .chat-panel,
+html[data-shell='app'] .studio:not(.app) .inspector,
+html[data-shell='app'] .studio:not(.app) .stage-tools,
+html[data-shell='app'] .studio:not(.app) .scene-bottom,
+html[data-shell='app'] .studio:not(.app) .topbar-actions,
+html[data-shell='app'] .studio:not(.app) .project-picker {
+  display: none;
+}
+html[data-shell='app'] .studio:not(.app) .viewport {
+  height: calc(100dvh - var(--topbar-h));
+}
+
+/* ── Esqueleto: barra, corpo e navegação ───────────────────────────────── */
+.studio.app {
+  position: fixed;
+  left: 0;
+  top: var(--app-top, 0px);
+  width: 100%;
+  height: var(--app-h, 100dvh);
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: calc(var(--bar-h) + var(--sat)) minmax(0, 1fr) auto;
+  grid-template-areas: 'bar' 'body' 'nav';
+  overflow: hidden;
+  font-size: 15px;
+}
+.studio.app .topbar {
+  grid-area: bar;
+  height: auto;
+  gap: 6px;
+  padding: var(--sat) calc(6px + var(--sar)) 0 calc(10px + var(--sal));
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  z-index: 30;
+  transition: background 0.25s, border-color 0.25s;
+}
+/* Na Cena a barra flutua sobre o 3D, que vai até a borda de cima. */
+.studio.app[data-ws='stage'] .topbar {
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--bg) 88%, transparent), color-mix(in srgb, var(--bg) 0%, transparent));
+  border-bottom-color: transparent;
+}
+.studio.app .workbench {
+  grid-area: body;
+  position: relative;
+  display: block;
+  min-height: 0;
+  overflow: hidden;
+}
+.studio.app[data-ws='stage'] .workbench {
+  grid-row: bar / body;
+}
+
+.app-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 8px 0 2px;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  text-align: left;
+}
+.app-title:active:not(:disabled) {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+.app-title:disabled {
+  opacity: 1;
+}
+.app-title .brand-mark {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+}
+.app-title-text {
+  min-width: 0;
+  display: grid;
+  line-height: 1.2;
+}
+.app-title-text strong {
+  font-size: 16.5px;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-title-text small {
+  font-size: 12.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-title-chevron {
+  flex: none;
+  color: var(--faint);
+}
+.app-bar-actions {
+  display: flex;
+  gap: 2px;
+}
+.app-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-2);
+}
+.app-icon:active:not(:disabled) {
+  background: color-mix(in srgb, var(--ink) 9%, transparent);
+}
+.app-icon:disabled {
+  opacity: 0.32;
+}
+
+/* Navegação: barra embaixo no celular em pé. */
+.app-nav {
+  grid-area: nav;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 6px calc(6px + var(--sar)) calc(6px + var(--sab)) calc(6px + var(--sal));
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.app-nav button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 52px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 620;
+  letter-spacing: 0.01em;
+}
+.app-nav .nav-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 30px;
+  border-radius: 999px;
+  transition: background 0.2s var(--ease-out), color 0.2s;
+}
+.app-nav button.active {
+  color: var(--ink);
+}
+.app-nav button.active .nav-icon {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.app-nav button:active .nav-icon {
+  transform: scale(0.94);
+}
+.nav-live,
+.nav-badge {
+  position: absolute;
+  top: -2px;
+  right: 10px;
+}
+.nav-live {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--wood);
+  box-shadow: 0 0 0 2px var(--surface);
+  animation: nav-live 1.2s ease-in-out infinite;
+}
+@keyframes nav-live {
+  50% {
+    transform: scale(0.6);
+    opacity: 0.6;
+  }
+}
+.nav-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 750;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+/* Teclado na tela: a navegação sai e o compositor encosta no teclado. */
+.studio.app.kb .app-nav {
+  display: none;
+}
+
+/* ── Espaços: um por vez, trocando com um deslize curto ─────────────────── */
+.studio.app .chat-panel,
+.studio.app .inspector {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  border: 0;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.2s var(--ease-out),
+    transform 0.26s var(--ease-out),
+    visibility 0s linear 0.26s;
+}
+.studio.app[data-ws='chat'] .chat-panel,
+.studio.app[data-ws='build'] .inspector,
+.studio.app[data-ws='numbers'] .inspector {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.22s var(--ease-out),
+    transform 0.3s var(--ease-out);
+}
+
+/* ── A cena: tela cheia ou janela viva ──────────────────────────────────── */
+.studio.app .viewport {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border-radius: 0;
+  transition:
+    top 0.34s var(--ease-out),
+    left 0.34s var(--ease-out),
+    width 0.34s var(--ease-out),
+    height 0.34s var(--ease-out),
+    border-radius 0.34s var(--ease-out),
+    box-shadow 0.34s;
+}
+.studio.app[data-ws='chat'] {
+  --pip-top: 64px;
+  --pip-bottom: 168px;
+}
+.studio.app[data-ws='build'],
+.studio.app[data-ws='numbers'] {
+  --pip-top: 66px;
+  --pip-bottom: 14px;
+}
+.studio.app .viewport.pip {
+  z-index: 20;
+  width: var(--pip-w);
+  height: var(--pip-h);
+  border-radius: 20px;
+  box-shadow:
+    0 0 0 1px var(--glass-line),
+    0 14px 38px rgba(20, 16, 10, 0.28);
+}
+.studio.app .viewport.pip-tr {
+  top: var(--pip-top);
+  left: calc(100% - var(--pip-w) - 12px - var(--sar));
+}
+.studio.app .viewport.pip-tl {
+  top: var(--pip-top);
+  left: calc(12px + var(--sal));
+}
+.studio.app .viewport.pip-br {
+  top: calc(100% - var(--pip-h) - var(--pip-bottom));
+  left: calc(100% - var(--pip-w) - 12px - var(--sar));
+}
+.studio.app .viewport.pip-bl {
+  top: calc(100% - var(--pip-h) - var(--pip-bottom));
+  left: calc(12px + var(--sal));
+}
+.studio.app .viewport.pip.tucked {
+  width: 36px;
+  height: 64px;
+  top: 38%;
+  left: calc(100% - 36px);
+  border-radius: 16px 0 0 16px;
+}
+.studio.app .viewport.pip.tucked .scene {
+  opacity: 0;
+}
+/* Rolando o conteúdo: a janela desliza para a borda e volta quando para. */
+.studio.app .viewport.pip.away {
+  translate: calc(var(--pip-w) - 22px) 0;
+  opacity: 0.55;
+  transition:
+    translate 0.28s var(--ease-out),
+    opacity 0.28s,
+    top 0.34s var(--ease-out),
+    left 0.34s var(--ease-out);
+}
+.studio.app .viewport.pip-tl.away,
+.studio.app .viewport.pip-bl.away {
+  translate: calc(22px - var(--pip-w)) 0;
+}
+.studio.app .viewport.pip {
+  transition:
+    top 0.34s var(--ease-out),
+    left 0.34s var(--ease-out),
+    width 0.34s var(--ease-out),
+    height 0.34s var(--ease-out),
+    border-radius 0.34s var(--ease-out),
+    translate 0.34s var(--ease-out),
+    opacity 0.3s;
+}
+/* Na janela as etiquetas da cena (cotas, barras, controles) não cabem. */
+.studio.app .viewport.pip .scene > :not(canvas) {
+  display: none;
+}
+.pip-hit {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  touch-action: none;
+  cursor: pointer;
+}
+.pip-tuck {
+  position: absolute;
+  z-index: 6;
+  top: 6px;
+  left: 6px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--glass);
+  backdrop-filter: blur(8px);
+  color: var(--ink-2);
+  box-shadow: var(--shadow-sm);
+}
+.pip-tuck::before {
+  /* Alvo de toque maior que o desenho. */
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+.pip-working {
+  position: absolute;
+  z-index: 6;
+  left: 8px;
+  bottom: 8px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--glass);
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+
+/* Estado no topo da cena. */
+.app-status {
+  position: absolute;
+  z-index: 6;
+  top: calc(var(--bar-h) + var(--sat) + 4px);
+  left: calc(12px + var(--sal));
+  right: calc(12px + var(--sar));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  pointer-events: none;
+}
+.app-status > * {
+  pointer-events: auto;
+}
+.app-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  max-width: 100%;
+  padding: 0 12px;
+  border: 1px solid var(--glass-line);
+  border-radius: 999px;
+  background: var(--glass);
+  backdrop-filter: blur(14px) saturate(1.2);
+  box-shadow: var(--shadow-sm);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 640;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.app-chip > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-chip.return {
+  padding-left: 6px;
+  color: var(--accent);
+  border-color: var(--accent-line);
+}
+.app-chip.version.warn {
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn-soft) 92%, transparent);
+  border-color: color-mix(in srgb, var(--warn) 30%, transparent);
+}
+.app-chip.version.preview {
+  color: var(--wood);
+  background: color-mix(in srgb, var(--wood-soft) 92%, transparent);
+  border-color: color-mix(in srgb, var(--wood) 40%, transparent);
+}
+.app-chip.fit.ok {
+  color: var(--ok);
+}
+.app-chip.fit.bad {
+  color: var(--bad);
+  background: color-mix(in srgb, var(--bad-soft) 92%, transparent);
+  border-color: color-mix(in srgb, var(--bad) 35%, transparent);
+}
+.app-chip.working {
+  flex: 1 1 140px;
+  min-width: 0;
+  max-width: 280px;
+  color: var(--ink);
+}
+
+/* Doca: vistas, enquadrar e ferramentas; a seleção entra por cima dela. */
+.app-dock {
+  position: absolute;
+  z-index: 6;
+  left: calc(12px + var(--sal));
+  right: calc(12px + var(--sar));
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.app-dock > * {
+  pointer-events: auto;
+}
+.dock-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dock-views {
+  display: flex;
+  gap: 2px;
+  margin: 0 auto 0 0;
+  padding: 4px;
+  border: 1px solid var(--glass-line);
+  border-radius: 999px;
+  background: var(--glass);
+  backdrop-filter: blur(14px) saturate(1.2);
+  box-shadow: var(--shadow);
+}
+.dock-views button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-2);
+  transition: background 0.18s, color 0.18s;
+}
+.dock-views button.active {
+  background: var(--ink);
+  color: var(--surface);
+}
+.dock-btn {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 1px solid var(--glass-line);
+  border-radius: 50%;
+  background: var(--glass);
+  backdrop-filter: blur(14px) saturate(1.2);
+  box-shadow: var(--shadow);
+  color: var(--ink-2);
+}
+.dock-btn.on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
+}
+.dock-btn:active,
+.dock-views button:active {
+  transform: scale(0.94);
+}
+
+/* Cartão da seleção: o que foi tocado e o que dá para fazer com ele. */
+.sel-card {
+  padding: 12px;
+  border: 1px solid var(--glass-line);
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: var(--shadow-lg);
+  animation: rise-in 0.26s var(--ease-out);
+}
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+.sel-card header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sel-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.sel-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  line-height: 1.25;
+}
+.sel-text strong {
+  font-size: 15px;
+  font-weight: 680;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sel-text small {
+  font-size: 12.5px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sel-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+.sel-actions button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 58px;
+  padding: 6px 4px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 12.5px;
+  font-weight: 620;
+}
+.sel-actions button svg {
+  color: var(--accent);
+}
+.sel-actions button.on {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.sel-actions button.on svg {
+  color: inherit;
+}
+.sel-actions button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.app-notice {
+  align-self: flex-start;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--warn-soft) 94%, transparent);
+  color: var(--warn);
+  font-size: 13px;
+}
+
+/* Bandeja de ferramentas: toques grandes com nome, por cima da cena. */
+.tray-scrim {
+  position: absolute;
+  z-index: 7;
+  inset: 0;
+  border: 0;
+  background: color-mix(in srgb, var(--bg) 25%, transparent);
+  animation: fade-in 0.2s;
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.tools-tray {
+  position: absolute;
+  z-index: 8;
+  left: calc(12px + var(--sal));
+  right: calc(12px + var(--sar));
+  bottom: 12px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--glass-line);
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--surface) 95%, transparent);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow-lg);
+  animation: rise-in 0.24s var(--ease-out);
+}
+.tools-tray button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 66px;
+  padding: 6px 2px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 620;
+  text-align: center;
+  line-height: 1.15;
+}
+.tools-tray button.on {
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1.5px var(--accent-line);
+}
+
+/* Viagem no tempo: a fita de versões sobre a cena. */
+.time-strip {
+  position: absolute;
+  z-index: 7;
+  left: calc(12px + var(--sal));
+  right: calc(12px + var(--sar));
+  bottom: 12px;
+  display: grid;
+  gap: 10px;
+  padding: 12px 0 12px;
+  border: 1px solid var(--glass-line);
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow-lg);
+  animation: rise-in 0.26s var(--ease-out);
+}
+.time-strip header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 6px 0 16px;
+}
+.time-strip header span {
+  display: grid;
+  line-height: 1.25;
+}
+.time-strip header strong {
+  font-size: 15.5px;
+  font-weight: 700;
+}
+.time-strip header small {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.time-list {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 2px 16px 4px;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-padding: 0 16px;
+  scrollbar-width: none;
+}
+.time-list::-webkit-scrollbar {
+  display: none;
+}
+.time-list li {
+  flex: none;
+  scroll-snap-align: center;
+}
+.time-list button {
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  width: 148px;
+  height: 92px;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface-2);
+  text-align: left;
+  transition: border-color 0.18s, background 0.18s, transform 0.18s;
+}
+.time-list button strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 620;
+  line-height: 1.3;
+}
+.time-list button small {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.time-num {
+  font-size: 11.5px;
+  font-weight: 750;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.time-list button.current .time-num {
+  color: var(--accent);
+}
+.time-list button.on {
+  border-color: var(--wood);
+  background: var(--wood-soft);
+  box-shadow: inset 0 0 0 1px var(--wood);
+}
+.time-list button.on.current {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.time-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 8px;
+  padding: 0 12px;
+}
+.time-actions button,
+.place-hint.touch button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 650;
+}
+.time-actions button.primary,
+.place-hint.touch button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* Elementos do 3D reposicionados para a cena do app. */
+.studio.app .review-bar {
+  top: auto;
+  bottom: 12px;
+  left: calc(12px + var(--sal));
+  right: calc(12px + var(--sar));
+  width: auto;
+  max-width: none;
+  transform: none;
+  min-height: 60px;
+  border-radius: 20px;
+  font-size: 13px;
+}
+.studio.app .review-bar button {
+  width: 40px;
+  height: 40px;
+}
+.studio.app .stage-toast {
+  top: calc(var(--bar-h) + var(--sat) + 48px);
+  bottom: auto;
+  left: calc(12px + var(--sal));
+  right: calc(12px + var(--sar));
+  max-width: none;
+  transform: none;
+  justify-content: space-between;
+}
+.studio.app .stage-toast button {
+  min-height: 36px;
+}
+.studio.app .place-hint {
+  top: auto;
+  bottom: 12px;
+  left: calc(12px + var(--sal));
+  right: calc(12px + var(--sar));
+  max-width: none;
+  transform: none;
+  animation: rise-in 0.24s var(--ease-out);
+}
+.place-hint.touch {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 22px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.place-hint.touch > span {
+  grid-column: 1 / -1;
+}
+.studio.app .move-pad {
+  top: calc(var(--bar-h) + var(--sat) + 48px);
+  bottom: auto;
+  left: calc(12px + var(--sal));
+  width: 176px;
+  /* Setas do tamanho de um dedo. */
+  zoom: 1.22;
+  animation: rise-in 0.24s var(--ease-out);
+}
+.studio.app .move-pad button {
+  touch-action: none;
+}
+.studio.app .ob-bar button {
+  width: 40px;
+  height: 40px;
+}
+.studio.app .stage-loading {
+  padding-top: var(--bar-h);
+}
+
+/* ── Conversa ─────────────────────────────────────────────────────────── */
+.studio.app .chat-panel .panel-head {
+  height: 56px;
+  padding: 0 8px 0 16px;
+}
+.studio.app .chat-panel .panel-head [aria-label='Recolher a conversa'] {
+  display: none;
+}
+.studio.app .chat-panel .panel-head .icon-button {
+  width: 44px;
+  height: 44px;
+}
+.studio.app .chat-messages {
+  padding: 16px 16px 12px;
+  font-size: 15px;
+  scroll-padding-bottom: 12px;
+}
+.studio.app .message-body {
+  font-size: 15px;
+  line-height: 1.55;
+}
+.studio.app .msg-user-actions {
+  opacity: 1;
+  height: 32px;
+}
+.studio.app .msg-user-actions button,
+.studio.app .msg-actions button {
+  min-width: 36px;
+  min-height: 32px;
+  justify-content: center;
+}
+.studio.app .composer-wrap {
+  padding: 8px calc(10px + var(--sar)) 10px calc(10px + var(--sal));
+  gap: 8px;
+}
+.studio.app .suggestions {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin: 0 calc(-10px - var(--sar)) 0 calc(-10px - var(--sal));
+  padding: 0 calc(10px + var(--sar)) 2px calc(10px + var(--sal));
+  scrollbar-width: none;
+  mask-image: linear-gradient(to right, transparent, #000 10px, #000 calc(100% - 18px), transparent);
+}
+.studio.app .suggestions::-webkit-scrollbar {
+  display: none;
+}
+.studio.app .suggestions button {
+  flex: none;
+  max-width: 78vw;
+  min-height: 38px;
+  padding: 7px 13px;
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.studio.app .composer {
+  border-radius: 22px;
+  padding: 6px 6px 6px 8px;
+}
+.studio.app .composer textarea {
+  min-height: 42px;
+  max-height: 30vh;
+  font-size: 16px;
+}
+.studio.app .composer-bar .composer-hint {
+  display: none;
+}
+.studio.app .composer-bar {
+  gap: 2px;
+}
+.studio.app .composer-bar [data-slot='button'][data-size='icon'],
+.studio.app .composer-send {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+}
+.studio.app .composer-send {
+  margin-left: auto;
+}
+.studio.app .new-message-jump {
+  min-height: 36px;
+}
+.studio.app .intro h1 {
+  font-size: 28px;
+}
+.studio.app .start-cards button {
+  min-height: 64px;
+}
+
+/* ── Montar e Números ─────────────────────────────────────────────────── */
+.ws-seg {
+  flex: none;
+  display: flex;
+  gap: 4px;
+  margin: 10px calc(12px + var(--sar)) 6px calc(12px + var(--sal));
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--surface-3);
+}
+.ws-seg button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  height: 40px;
+  border: 0;
+  border-radius: 11px;
+  background: none;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 640;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+}
+.ws-seg button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-seg button.active {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+.ws-seg button.active svg {
+  color: var(--accent);
+}
+.inspector-stack {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.studio.app .inspector-content {
+  position: absolute;
+  inset: 0;
+  padding: 8px calc(16px + var(--sar)) calc(var(--pip-h) + 28px) calc(16px + var(--sal));
+  font-size: 14px;
+  overscroll-behavior: contain;
+}
+.studio.app .inspector-content.tab-off {
+  visibility: hidden;
+}
+
+/* ── Toque em geral ───────────────────────────────────────────────────── */
+@media (pointer: coarse) {
+  /* Menos de 16 px e o iOS aproxima a página ao focar o campo. */
+  .studio.app input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  .studio.app select,
+  .studio.app textarea {
+    font-size: 16px;
+  }
+  .studio.app input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  .studio.app select {
+    min-height: 40px;
+  }
+  .studio.app .modular-editor button,
+  .studio.app .room-panel button,
+  .studio.app .quote-panel button {
+    min-height: 36px;
+  }
+}
+
+/* ── Folhas ───────────────────────────────────────────────────────────── */
+.sheet-backdrop {
+  position: fixed;
+  z-index: 60;
+  inset: 0;
+  background: rgba(12, 10, 8, 0.42);
+  animation: fade-in 0.22s;
+}
+.app-sheet {
+  position: absolute;
+  top: auto;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: auto;
+  max-width: none;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  max-height: calc(100% - var(--sat) - 28px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 26px 26px 0 0;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.28s var(--ease-out);
+  animation: sheet-up 0.32s var(--ease-out);
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+.sheet-head {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 8px 6px 20px;
+  touch-action: none;
+  cursor: grab;
+}
+.sheet-grab {
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  width: 40px;
+  height: 5px;
+  margin-left: -20px;
+  border-radius: 3px;
+  background: var(--line-strong);
+}
+.sheet-head h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 740;
+  letter-spacing: -0.02em;
+}
+.sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 16px calc(24px + var(--sab));
+  display: grid;
+  align-content: start;
+  gap: 18px;
+}
+.proj-card {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, var(--accent-soft), var(--surface-2));
+  border: 1px solid var(--accent-line);
+}
+.proj-card .proj-name {
+  width: 100%;
+  min-height: 44px;
+  margin: -4px 0 2px -6px;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 20px;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+}
+.proj-card .proj-name:focus {
+  background: var(--surface);
+  border-color: var(--accent);
+}
+.proj-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.proj-meta svg {
+  color: var(--ok);
+}
+.proj-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.proj-actions button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 60px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 14.5px;
+  font-weight: 640;
+  text-align: left;
+}
+.proj-actions button svg {
+  color: var(--accent);
+}
+.sheet-section h3 {
+  margin: 0 0 8px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.sheet-section .hint {
+  margin: 8px 4px 0;
+  font-size: 12.5px;
+  color: var(--faint);
+}
+.seg3 {
+  margin: 0;
+  border: 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--surface-3);
+}
+.seg3 button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 42px;
+  border: 0;
+  border-radius: 11px;
+  background: none;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 640;
+}
+.seg3 button.on {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+.export-list {
+  display: grid;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.export-list button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 8px 14px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14.5px;
+  font-weight: 620;
+  text-align: left;
+}
+.export-list button:first-child {
+  border-top: 0;
+}
+.export-list button > span:nth-child(2) {
+  flex: 1;
+  display: grid;
+}
+.export-list small {
+  font-size: 12.5px;
+  font-weight: 450;
+  color: var(--muted);
+}
+.export-list button > svg {
+  color: var(--faint);
+}
+.export-list .menu-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.sheet-projects {
+  display: grid;
+  gap: 8px;
+}
+.sheet-projects .project-search {
+  min-height: 46px;
+  border-radius: 14px;
+}
+.sheet-projects .project-list {
+  max-height: none;
+  overflow: visible;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.sheet-projects .project-name {
+  min-height: 58px;
+}
+.sheet-projects .project-delete {
+  width: 48px;
+  min-height: 48px;
+}
+
+/* Diálogos do estúdio viram telas e folhas no celular. */
+.studio.app .modal-backdrop {
+  padding: 0;
+  align-items: flex-end;
+}
+.studio.app .modal-backdrop .modal {
+  width: 100%;
+  max-width: none;
+  max-height: calc(100% - var(--sat) - 20px);
+  margin: 0;
+  padding-bottom: calc(16px + var(--sab));
+  border-radius: 26px 26px 0 0;
+  animation: sheet-up 0.32s var(--ease-out);
+}
+.studio.app .modal.gallery {
+  height: calc(100% - var(--sat) - 12px);
+}
+.studio.app .gallery-filters {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.studio.app .gallery-filters button {
+  flex: none;
+  min-height: 38px;
+}
+.studio.app .gallery-actions button {
+  min-height: 44px;
+}
+.studio.app .bc-choice {
+  min-height: 64px;
+}
+.studio.app .palette-backdrop {
+  padding: calc(var(--sat) + 8px) 8px 0;
+  align-items: flex-start;
+}
+.studio.app .palette {
+  width: 100%;
+  max-height: calc(100% - 16px);
+}
+.studio.app .palette [cmdk-item] {
+  min-height: 48px;
+}
+.studio.app .palette kbd {
+  display: none;
+}
+
+/* ── Tablet e celular deitado: trilho à esquerda, mais espaço útil ───────── */
+@media (min-width: 700px), (orientation: landscape) and (max-height: 520px) {
+  .studio.app {
+    grid-template-columns: calc(88px + var(--sal)) minmax(0, 1fr);
+    grid-template-rows: calc(var(--bar-h) + var(--sat)) minmax(0, 1fr);
+    grid-template-areas: 'nav bar' 'nav body';
+  }
+  .app-nav {
+    grid-template-columns: none;
+    grid-auto-rows: 68px;
+    align-content: start;
+    gap: 6px;
+    padding: calc(var(--sat) + 12px) 6px calc(12px + var(--sab)) calc(6px + var(--sal));
+    border-top: 0;
+    border-right: 1px solid var(--line);
+  }
+  .studio.app .topbar {
+    padding-left: 10px;
+  }
+  .studio.app .viewport,
+  .app-status,
+  .app-dock,
+  .tools-tray,
+  .time-strip {
+    --sal: 0px;
+  }
+}
+@media (min-width: 700px) {
+  :root {
+    --pip-w: 248px;
+    --pip-h: 186px;
+    --bar-h: 64px;
+  }
+  .studio.app .chat-messages > *,
+  .studio.app .composer-wrap > * {
+    width: 100%;
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .studio.app .suggestions {
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .studio.app .inspector-content > * {
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .studio.app .ws-seg {
+    width: min(460px, calc(100% - 24px));
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .app-dock,
+  .time-strip,
+  .tools-tray,
+  .studio.app .review-bar,
+  .studio.app .place-hint {
+    left: 50%;
+    right: auto;
+    width: min(620px, calc(100% - 24px));
+    transform: translateX(-50%);
+  }
+  .tools-tray {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+  .studio.app[data-ws='stage'] .app-dock,
+  .studio.app[data-ws='stage'] .time-strip,
+  .studio.app[data-ws='stage'] .tools-tray {
+    bottom: calc(16px + var(--sab));
+  }
+  .sheet-backdrop .app-sheet {
+    left: auto;
+    top: calc(12px + var(--sat));
+    right: calc(12px + var(--sar));
+    bottom: calc(12px + var(--sab));
+    width: 440px;
+    max-height: none;
+    border-radius: 26px;
+    animation-name: sheet-side;
+  }
+  @keyframes sheet-side {
+    from {
+      transform: translateX(110%);
+    }
+  }
+  .proj-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .studio.app .modal-backdrop {
+    align-items: center;
+    padding: 24px;
+  }
+  .studio.app .modal-backdrop .modal {
+    width: min(900px, 100%);
+    border-radius: 26px;
+    max-height: calc(100% - 24px);
+  }
+  .studio.app .modal-backdrop .modal.branch-confirm {
+    width: min(560px, 100%);
+  }
+  .studio.app .palette-backdrop {
+    align-items: flex-start;
+    padding-top: 10vh;
+  }
+  .studio.app .palette {
+    width: min(640px, 100%);
+  }
+}
+/* Tablet deitado: sobra largura, então a conversa abre espaço para a janela
+   da cena em vez de passar por baixo dela. */
+@media (min-width: 1000px) {
+  .studio.app[data-ws='chat']:has(.viewport.pip-tr:not(.tucked)) .chat-messages,
+  .studio.app[data-ws='chat']:has(.viewport.pip-br:not(.tucked)) .chat-messages {
+    padding-right: calc(var(--pip-w) + 36px);
+  }
+  .studio.app[data-ws='chat']:has(.viewport.pip-tl:not(.tucked)) .chat-messages,
+  .studio.app[data-ws='chat']:has(.viewport.pip-bl:not(.tucked)) .chat-messages {
+    padding-left: calc(var(--pip-w) + 36px);
+  }
+  .studio.app:is([data-ws='build'], [data-ws='numbers']):has(.viewport.pip-br:not(.tucked), .viewport.pip-tr:not(.tucked)) .inspector-content {
+    padding-right: calc(var(--pip-w) + 36px);
+    padding-bottom: 28px;
+  }
+}
+/* Celular deitado: pouca altura, então tudo encolhe no eixo vertical. */
+@media (orientation: landscape) and (max-height: 520px) {
+  :root {
+    --bar-h: 48px;
+    --pip-w: 176px;
+    --pip-h: 116px;
+  }
+  .app-nav {
+    grid-auto-rows: 56px;
+    gap: 2px;
+    padding-top: 6px;
+  }
+  .app-nav .nav-icon {
+    height: 28px;
+  }
+  .sel-actions button {
+    min-height: 46px;
+    flex-direction: row;
+  }
+  .time-list button {
+    height: 72px;
+  }
+  .studio.app .chat-panel .panel-head {
+    height: 44px;
+  }
+  .studio.app[data-ws='chat'] {
+    --pip-top: 52px;
+  }
+  .studio.app .composer textarea {
+    min-height: 30px;
+  }
+  .studio.app .composer-wrap {
+    gap: 6px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  /* Com o teclado aberto e a tela baixa, as sugestões dão lugar à conversa. */
+  .studio.app.kb .suggestions {
+    display: none;
+  }
+  .time-strip {
+    gap: 6px;
+    padding: 8px 0;
+  }
+  .studio.app .modal-backdrop .modal {
+    max-height: calc(100% - 8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio.app .viewport,
+  .studio.app .chat-panel,
+  .studio.app .inspector,
+  .app-sheet,
+  .sel-card,
+  .tools-tray,
+  .time-strip {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* Impressão e PDF pelo celular: a casca (fixa, da altura da tela, em grade)
+   cortava o documento numa página só. No papel ela some e o documento corre
+   inteiro, como no desktop. */
+@media print {
+  html[data-shell='app'],
+  html[data-shell='app'] body {
+    overflow: visible;
+  }
+  .studio.app {
+    position: static;
+    display: block;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    font-size: inherit;
+  }
+  .studio.app .app-nav,
+  .studio.app .sheet-backdrop {
+    display: none !important;
+  }
+}

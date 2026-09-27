@@ -43,6 +43,7 @@ export function MovePad({
   onRotate,
   mode,
   onMode,
+  collapsible = true,
 }: {
   /** Nome do conjunto selecionado; sem seleção, o controle só ensina o gesto. */
   target: string | null;
@@ -53,6 +54,8 @@ export function MovePad({
   /** Como o arrasto na cena anda: altura travada e um eixo por vez. */
   mode: DragMode;
   onMode: (mode: DragMode) => void;
+  /** No app de toque quem abre e fecha o controle é o cartão da seleção. */
+  collapsible?: boolean;
 }) {
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -107,7 +110,7 @@ export function MovePad({
       {icon}
     </button>
   );
-  if (collapsed)
+  if (collapsed && collapsible)
     return (
       <button
         type="button"
@@ -199,7 +202,7 @@ export function MovePad({
       ) : (
         <p className="move-hint">Selecione um móvel e arraste-o na cena para mudar o lugar dele.</p>
       )}
-      <button
+      {collapsible && <button
         type="button"
         className="move-pad-close"
         onClick={() => collapse(true)}
@@ -207,7 +210,7 @@ export function MovePad({
         aria-label="Recolher o controle para mover o móvel"
       >
         <Minimize2 size={11} />
-      </button>
+      </button>}
     </fieldset>
   );
 }
