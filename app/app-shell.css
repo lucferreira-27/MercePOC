@@ -1517,3 +1517,25 @@ html[data-shell='app'] .studio:not(.app) .viewport {
     animation: none;
   }
 }
+
+/* Impressão e PDF pelo celular: a casca (fixa, da altura da tela, em grade)
+   cortava o documento numa página só. No papel ela some e o documento corre
+   inteiro, como no desktop. */
+@media print {
+  html[data-shell='app'],
+  html[data-shell='app'] body {
+    overflow: visible;
+  }
+  .studio.app {
+    position: static;
+    display: block;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    font-size: inherit;
+  }
+  .studio.app .app-nav,
+  .studio.app .sheet-backdrop {
+    display: none !important;
+  }
+}

@@ -305,7 +305,13 @@ function subscribeShell(onChange: () => void) {
   query.addEventListener('change', onChange);
   return () => query.removeEventListener('change', onChange);
 }
-const shellSnapshot = () => window.matchMedia(APP_SHELL_QUERY).matches;
+/**
+ * Imprimindo (PDF), a página é medida pela largura do papel, que cai abaixo
+ * de 960 px: sem esta trava o desktop virava app no meio da impressão.
+ */
+let lastShell = false;
+const shellSnapshot = () =>
+  window.matchMedia('print').matches ? lastShell : (lastShell = window.matchMedia(APP_SHELL_QUERY).matches);
 const shellServer = () => false;
 /**
  * Camada que o botão voltar do sistema fecha (folha, modo, "olhar no móvel").
