@@ -79,16 +79,19 @@ export function ChangeSet({
           <PencilLine size={13} />
         </span>
         <strong>Edição</strong>
-        {revision ? <span className="cs-rev">v{revision}</span> : null}
-        <span className="cs-stat" aria-label={`${stat['+']} entraram, ${stat['-']} saíram, ${stat['~']} mudaram`}>
-          {stat['+'] > 0 && <b className="add">+{stat['+']}</b>}
-          {stat['-'] > 0 && <b className="del">−{stat['-']}</b>}
-          {stat['~'] > 0 && <b className="mod">~{stat['~']}</b>}
-        </span>
-        <span className="cs-bar" aria-hidden="true">
-          {blocks.map((b, i) => (
-            <i key={i} className={SIGN_CLASS[b]} />
-          ))}
+        {/* Versão e contagem: na coluna estreita descem para a segunda linha. */}
+        <span className="cs-chips">
+          {revision ? <span className="cs-rev">v{revision}</span> : null}
+          <span className="cs-stat" aria-label={`${stat['+']} entraram, ${stat['-']} saíram, ${stat['~']} mudaram`}>
+            {stat['+'] > 0 && <b className="add">+{stat['+']}</b>}
+            {stat['-'] > 0 && <b className="del">−{stat['-']}</b>}
+            {stat['~'] > 0 && <b className="mod">~{stat['~']}</b>}
+          </span>
+          <span className="cs-bar" aria-hidden="true">
+            {blocks.map((b, i) => (
+              <i key={i} className={SIGN_CLASS[b]} />
+            ))}
+          </span>
         </span>
         <span className="cs-spacer" />
         {onReplay &&
