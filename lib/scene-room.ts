@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import type { Foot } from './composition';
-import { blocksTv, tvMountZ, wallAt, type Obstacle, type Room } from './room';
-import { buildObstacle } from './scene-obstacles';
+import { blocksTv, boxesCross, MAIN_WALL, tvMountZ, wallAt, wallBox, wallFootprint, type Obstacle, type Room, type Wall } from './room';
+import { buildObstacle, FRAME_COLOR } from './scene-obstacles';
+import { buildWall, layoutWall } from './scene-walls';
 
 /**
  * O ambiente desenhado na cena 3D, com a mesma convenção do veredito de
@@ -141,6 +142,8 @@ export function buildRoom(
   modules: readonly SceneBounds[] = [bounds],
   /** Obstáculo escolhido: ganha a moldura de destaque. */
   selectedId: string | null = null,
+  /** Parede escolhida (a do fundo é `MAIN_WALL`): ganha o destaque. */
+  selectedWall: string | null = null,
 ) {
   const c = ROOM_PALETTE[theme];
   const group = new THREE.Group();
@@ -156,46 +159,99 @@ export function buildRoom(
     disposables.push(m);
     return m;
   };
-  const box = (size: [number, number, number], at: [number, number, number], material: THREE.Material) => {
-    const geo = new THREE.BoxGeometry(...size);
-    disposables.push(geo);
-    const mesh = new THREE.Mesh(geo, material);
-    mesh.position.set(...at);
+  // Tudo que acompanha a largura e o pé-direito é geometria de 1 mm escalada:
+  // a alça da parede do fundo estica o ambiente ao vivo, sem refazer nada.
+  const unitBox = new THREE.BoxGeometry(1, 1, 1);
+  const unitPlane = new THREE.PlaneGeometry(1, 1);
+  disposables.push(unitBox, unitPlane);
+  const box = (material: THREE.Material) => {
+    const mesh = new THREE.Mesh(unitBox, material);
     mesh.receiveShadow = true;
     group.add(mesh);
     return mesh;
   };
   // Parede do fundo: recebe a sombra do móvel, que é o que faz ele "encostar".
-  const wall = box([W, H, 20], [x0 + W / 2, H / 2, wallZ - 10], mat(c.wall));
+  const wall = box(
+    mat(c.wall, selectedWall === MAIN_WALL ? { emissive: new THREE.Color(FRAME_COLOR.ok), emissiveIntensity: 0.035 } : {}),
+  );
   wall.castShadow = false;
-  // Paredes laterais translúcidas e curtas: dão o canto sem ficar entre a
-  // câmera e o móvel (inteiras, cobriam a TV e o rack com um véu cinza).
-  const sideDepth = Math.min(depth, 1000);
-  for (const side of [0, 1]) {
-    const m = mat(c.side, { transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false });
-    const geo = new THREE.PlaneGeometry(sideDepth, H);
-    disposables.push(geo);
-    const plane = new THREE.Mesh(geo, m);
-    plane.rotation.y = Math.PI / 2;
-    // Um pouco para fora do canto: com o móvel encostado (a partir do canto
-    // = 0) a lateral dele ficava no mesmo plano da parede translúcida e as
-    // duas brigavam pelos mesmos pixels, num pontilhado que mudava ao girar.
-    plane.position.set(x0 + (side ? W + SIDE_CLEARANCE : -SIDE_CLEARANCE), H / 2, wallZ + sideDepth / 2);
-    plane.renderOrder = 2;
-    group.add(plane);
+  wall.userData.mainWall = true;
+  // Escolhida: contorno na face, por cima do móvel, como a moldura dos obstáculos.
+  let outline: THREE.LineLoop | null = null;
+  if (selectedWall === MAIN_WALL) {
+    const geo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(1, 0, 0),
+      new THREE.Vector3(1, 1, 0),
+      new THREE.Vector3(0, 1, 0),
+    ]);
+    const line = new THREE.LineBasicMaterial({ color: FRAME_COLOR.ok, transparent: true, opacity: 0.9, depthTest: false });
+    disposables.push(geo, line);
+    outline = new THREE.LineLoop(geo, line);
+    outline.renderOrder = 20;
+    group.add(outline);
   }
+  // Paredes laterais translúcidas e curtas: dão o canto sem ficar entre a
+  // câmera e o móvel (inteiras, cobriam a TV e o rack com um véu cinza). Uma
+  // parede de verdade no canto toma o lugar dela.
+  const sideDepth = Math.min(depth, 1000);
+  const extra = room.walls ?? [];
+  const cornerTaken = (x: number) =>
+    extra.some((w) => {
+      const f = wallFootprint(w);
+      return w.rotation === 90 && f.z0 < 100 && f.x0 <= x + 10 && f.x1 >= x - 10;
+    });
+  const sides = [0, 1].map((side) => {
+    const m = mat(c.side, { transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false });
+    const plane = new THREE.Mesh(unitPlane, m);
+    plane.rotation.y = Math.PI / 2;
+    plane.renderOrder = 2;
+    plane.visible = !cornerTaken(side ? W : 0);
+    group.add(plane);
+    return plane;
+  });
   // Piso do ambiente, um pouco acima da grade para não piscar.
-  const floorGeo = new THREE.PlaneGeometry(W, depth);
-  disposables.push(floorGeo);
-  const floor = new THREE.Mesh(floorGeo, mat(c.floor, { roughness: 0.9 }));
+  const floor = new THREE.Mesh(unitPlane, mat(c.floor, { roughness: 0.9 }));
   floor.rotation.x = -Math.PI / 2;
-  floor.position.set(x0 + W / 2, -0.5, wallZ + depth / 2);
   floor.receiveShadow = true;
   group.add(floor);
   // Linha do teto e rodapé.
-  box([W, 12, 30], [x0 + W / 2, H - 6, wallZ + 15], mat(c.trim));
-  if (room.baseboardMm && room.baseboardMm > 0)
-    box([W, room.baseboardMm, 14], [x0 + W / 2, room.baseboardMm / 2, wallZ + 7], mat(c.trim));
+  const ceiling = box(mat(c.trim));
+  const baseboard = room.baseboardMm && room.baseboardMm > 0 ? box(mat(c.trim)) : null;
+  const shell = (left: number, width: number, height: number) => {
+    wall.scale.set(width, height, 20);
+    wall.position.set(left + width / 2, height / 2, wallZ - 10);
+    outline?.scale.set(width, height, 1);
+    outline?.position.set(left, 0, wallZ + 2);
+    for (const [i, plane] of sides.entries()) {
+      plane.scale.set(sideDepth, height, 1);
+      // Um pouco para fora do canto: com o móvel encostado (a partir do canto
+      // = 0) a lateral dele ficava no mesmo plano da parede translúcida e as
+      // duas brigavam pelos mesmos pixels, num pontilhado que mudava ao girar.
+      plane.position.set(left + (i ? width + SIDE_CLEARANCE : -SIDE_CLEARANCE), height / 2, wallZ + sideDepth / 2);
+    }
+    floor.scale.set(width, depth, 1);
+    floor.position.set(left + width / 2, -0.5, wallZ + depth / 2);
+    ceiling.scale.set(width, 12, 30);
+    ceiling.position.set(left + width / 2, height - 6, wallZ + 15);
+    if (baseboard && room.baseboardMm) {
+      baseboard.scale.set(width, room.baseboardMm, 14);
+      baseboard.position.set(left + width / 2, room.baseboardMm / 2, wallZ + 7);
+    }
+  };
+  shell(x0, W, H);
+  // Paredes do ambiente, cada uma no próprio grupo com o id: a cena pega,
+  // arrasta e estica pelas alças. Vermelha quando cruza um módulo.
+  const face = wallAt(room, bounds).z;
+  const walls: { id: string; group: THREE.Group; wall: Wall }[] = [];
+  for (const w of extra) {
+    const solid = wallBox(w, { x: x0, z: face }, H);
+    const bad = modules.some((b) => boxesCross(solid, b));
+    const wg = buildWall(w, { palette: c, theme, bad, selected: w.id === selectedWall, track: (d) => disposables.push(d) });
+    layoutWall(wg, w, { x0, z: face, height: H });
+    group.add(wg);
+    walls.push({ id: w.id, group: wg, wall: w });
+  }
   // Obstáculos: cada um num grupo próprio, com o id, para a cena poder
   // pegar e arrastar. Vermelho só quando cruza um módulo de verdade.
   const obstacles: { id: string; group: THREE.Group; obstacle: Obstacle }[] = [];
@@ -218,8 +274,18 @@ export function buildRoom(
   return {
     group,
     obstacles,
+    walls,
     /** Onde a parede está no mundo: o arrasto de obstáculo anda nela. */
     wall: { x0, z: wallZ, width: W, height: H },
+    /** Face da parede do fundo no mundo: as outras paredes contam z dela. */
+    face,
+    /** Parede do fundo (o bloco): clique nela escolhe a parede. */
+    mainWall: wall,
+    /**
+     * Estica o ambiente ao vivo, durante o arrasto de uma alça da parede do
+     * fundo: canto esquerdo, largura e pé-direito no mundo.
+     */
+    resize: shell,
     dispose() {
       for (const d of disposables) d.dispose();
     },

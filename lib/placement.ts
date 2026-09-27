@@ -6,16 +6,25 @@
  * saber se Desfazer e Refazer estão disponíveis.
  */
 export type Vec3 = [number, number, number];
-/** Onde a raiz do conjunto estava: é só isso que um movimento muda. */
-export type PlacementStep = { position: Vec3; rotation: number };
+/**
+ * Onde a raiz do conjunto estava: é só isso que um movimento muda. Numa
+ * parede do ambiente, o ajuste também muda a medida: `size` guarda
+ * comprimento e altura.
+ */
+export type PlacementStep = { position: Vec3; rotation: number; size?: [number, number] };
 export type Placement = {
-  /** Módulo raiz que os movimentos desta versão mexem (ou o obstáculo). */
+  /** Módulo raiz que os movimentos desta versão mexem (ou o obstáculo, ou a parede). */
   root: string;
   /**
    * Sequência de arrastos de um obstáculo da parede: `root` é o id dele e o
    * passo guarda x e y em `position` (z e giro ficam 0).
    */
   obstacle?: true;
+  /**
+   * Sequência de ajustes de uma parede do ambiente (arrasto, alças, giro):
+   * `root` é o id dela; o passo guarda x e z em `position`, o giro e a medida.
+   */
+  wall?: true;
   /** Último movimento, para saber se o próximo ainda é da mesma sequência. */
   at: string;
   /** Lugares anteriores, do mais antigo ao mais recente: Desfazer tira do fim. */

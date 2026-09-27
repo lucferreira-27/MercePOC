@@ -11,6 +11,7 @@ import {
   emptyRoom,
   fitReport,
   fitSummary,
+  fitWallsToCeiling,
   obstacleClash,
   obstacleEditsSchema,
   roomSchema,
@@ -375,6 +376,8 @@ const roomSet = tool({
       ...(a.altura !== undefined ? { heightMm: a.altura } : {}),
       ...(a.profundidade !== undefined ? { depthMm: a.profundidade } : {}),
       ...(a.rodape !== undefined ? { baseboardMm: a.rodape } : {}),
+      // Paredes na altura do teto acompanham o pé-direito novo.
+      ...(a.altura !== undefined && base.walls?.length ? { walls: fitWallsToCeiling(base.walls, base.heightMm, a.altura) } : {}),
     };
     const parsed = roomSchema.safeParse(next);
     if (!parsed.success) return fail(`Medida fora do limite do ambiente: ${parsed.error.issues.map((i) => `${i.path.join('.')} ${i.message}`).join('; ')}`);

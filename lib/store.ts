@@ -19,7 +19,7 @@ import {
 import { canonical, normalize, executeRequest } from './studio';
 import type { ImageRef } from './images';
 import type { ChatReport, TurnOutcome } from './progress';
-import { movedObstacle, roomChangeLabel, type Room } from './room';
+import { editedWall, movedObstacle, roomChangeLabel, type Room, type Wall } from './room';
 import type { TurnUsage } from './models';
 import { buildTemplate, templateById } from './templates';
 import { PLACEMENT_MAX_STEPS, PLACEMENT_MERGE_MS, type Placement, type PlacementStep } from './placement';
@@ -497,6 +497,7 @@ export function applyPlacement(p: Project, ops: ShelfOp[], label: string, root: 
   if (
     pl &&
     !pl.obstacle &&
+    !pl.wall &&
     before &&
     pl.root === root &&
     p.cursor === p.revisions.length - 1 &&
@@ -518,14 +519,41 @@ export function applyPlacement(p: Project, ops: ShelfOp[], label: string, root: 
   p.revisions[p.cursor].placement = { root, at: new Date(now).toISOString(), back: [], ahead: [] };
   return { ok: true as const, noop: false as const, design: result.design, discarded, merged: false };
 }
-/** Onde o que a sequência mexe está agora: a raiz do móvel ou o obstáculo. */
+/** Lugar e medida da parede: o passo que um ajuste dela guarda. */
+function wallStep(w: Wall): PlacementStep {
+  return { position: [w.xMm, w.zMm, 0], rotation: w.rotation, size: [w.widthMm, w.heightMm] };
+}
+/** Onde o que a sequência mexe está agora: a raiz do móvel, o obstáculo ou a parede. */
 function stepNow(rev: Revision, pl: Placement): PlacementStep | null {
+  if (pl.wall) {
+    const w = rev.room?.walls?.find((v) => v.id === pl.root);
+    return w ? wallStep(w) : null;
+  }
   if (!pl.obstacle) return stepOf(rev.params, pl.root);
   const o = rev.room?.obstacles?.find((v) => v.id === pl.root);
   return o ? { position: [o.xMm, o.yMm, 0], rotation: 0 } : null;
 }
-/** Leva o móvel ou o obstáculo da sequência ao passo; false se não deu. */
+/** Leva o móvel, o obstáculo ou a parede da sequência ao passo; false se não deu. */
 function stepTo(p: Project, rev: Revision, pl: Placement, step: PlacementStep) {
+  if (pl.wall) {
+    if (!rev.room?.walls?.some((w) => w.id === pl.root)) return false;
+    rev.room = {
+      ...rev.room,
+      walls: rev.room.walls.map((w) =>
+        w.id === pl.root
+          ? {
+              ...w,
+              xMm: step.position[0],
+              zMm: step.position[1],
+              rotation: step.rotation === 90 ? 90 : 0,
+              ...(step.size ? { widthMm: step.size[0], heightMm: step.size[1] } : {}),
+            }
+          : w,
+      ),
+    };
+    p.room = rev.room;
+    return true;
+  }
   if (pl.obstacle) {
     if (!rev.room) return false;
     rev.room = {
@@ -582,41 +610,46 @@ export function redo(p: Project): 'step' | 'version' | null {
   return 'step';
 }
 /**
- * Mudança no ambiente (painel, arrasto de obstáculo, IA) vira versão, com o
- * mesmo móvel e o ambiente novo: entra no Ctrl+Z e no histórico. Arrastos
- * seguidos do mesmo obstáculo juntam numa versão só, como os do móvel.
+ * Mudança no ambiente (painel, arrasto de obstáculo, alça de parede, IA) vira
+ * versão, com o mesmo móvel e o ambiente novo: entra no Ctrl+Z e no
+ * histórico. Arrastos seguidos do mesmo obstáculo, e ajustes seguidos da
+ * mesma parede, juntam numa versão só, como os do móvel.
  */
 export function reviseRoom(p: Project, room: Room, label: string, now = Date.now()) {
   const before = p.room;
   if (JSON.stringify(before ?? null) === JSON.stringify(room)) return { noop: true as const, discarded: 0 };
   const tip = p.revisions[p.cursor];
   const moved = movedObstacle(before, room);
+  const edited = moved ? null : editedWall(before, room);
   const pl = tip.placement;
   const referenced = p.messages.some(
     (m) => m.revisionId === tip.id || m.result?.resultRevisionId === tip.id || m.context?.baseRevisionId === tip.id,
   );
   const was = moved ? before?.obstacles?.find((o) => o.id === moved) : undefined;
-  if (
-    was &&
-    pl?.obstacle &&
-    pl.root === moved &&
-    p.cursor === p.revisions.length - 1 &&
-    now - Date.parse(pl.at) < PLACEMENT_MERGE_MS &&
-    !referenced
-  ) {
+  const wasWall = edited ? before?.walls?.find((w) => w.id === edited) : undefined;
+  const sameRun = (root: string | null) =>
+    !!pl && pl.root === root && p.cursor === p.revisions.length - 1 && now - Date.parse(pl.at) < PLACEMENT_MERGE_MS && !referenced;
+  const previous = was && pl?.obstacle && sameRun(moved)
+    ? { position: [was.xMm, was.yMm, 0] as [number, number, number], rotation: 0 }
+    : wasWall && pl?.wall && sameRun(edited)
+      ? wallStep(wasWall)
+      : null;
+  if (pl && previous) {
     p.room = room;
     tip.room = room;
     tip.placement = {
       ...pl,
       at: new Date(now).toISOString(),
-      back: [...pl.back, { position: [was.xMm, was.yMm, 0] as [number, number, number], rotation: 0 }].slice(-PLACEMENT_MAX_STEPS),
+      back: [...pl.back, previous].slice(-PLACEMENT_MAX_STEPS),
       ahead: [],
     };
     return { noop: false as const, discarded: 0, merged: true };
   }
   p.room = room;
   const discarded = revise(p, tip.params, label);
-  if (moved) p.revisions[p.cursor].placement = { root: moved, obstacle: true, at: new Date(now).toISOString(), back: [], ahead: [] };
+  const at = new Date(now).toISOString();
+  if (moved) p.revisions[p.cursor].placement = { root: moved, obstacle: true, at, back: [], ahead: [] };
+  else if (edited) p.revisions[p.cursor].placement = { root: edited, wall: true, at, back: [], ahead: [] };
   return { noop: false as const, discarded, merged: false };
 }
 /** Turno que mexeu no ambiente sem abrir versão: a mudança vira uma. */
