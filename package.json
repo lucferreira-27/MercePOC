@@ -9,7 +9,12 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "node scripts/start.mjs",
-    "lint": "oxlint app lib components/furniture-view.tsx components/turn-progress.tsx components/turn-activity.tsx components/model-picker.tsx components/usage-meter.tsx components/modular-editor.tsx components/finish-picker.tsx components/plan-thumb.tsx components/quote-panel.tsx components/cut-plan-panel.tsx components/cut-sheet-drawing.tsx components/parts-panel.tsx components/agent-steps.tsx components/room-panel.tsx components/command-palette.tsx components/template-gallery.tsx components/change-set.tsx components/move-pad.tsx components/branch-confirm.tsx components/print-sheet.tsx hooks/use-project-tools.ts hooks/use-event.ts hooks/use-delayed.ts tests scripts vite.config.ts",
+    "cf:build": "vinext build --mode cloudflare",
+    "cf:preview": "vinext build --mode cloudflare && wrangler dev --port 4311 --ip 127.0.0.1",
+    "cf:deploy": "vinext build --mode cloudflare && wrangler deploy",
+    "cf:secrets": "node scripts/cf-secrets.mjs",
+    "cf:logs": "wrangler tail -c cloudflare/wrangler.jsonc",
+    "lint": "oxlint app lib components/furniture-view.tsx components/turn-progress.tsx components/turn-activity.tsx components/model-picker.tsx components/usage-meter.tsx components/modular-editor.tsx components/finish-picker.tsx components/plan-thumb.tsx components/quote-panel.tsx components/cut-plan-panel.tsx components/cut-sheet-drawing.tsx components/parts-panel.tsx components/agent-steps.tsx components/room-panel.tsx components/command-palette.tsx components/template-gallery.tsx components/change-set.tsx components/move-pad.tsx components/branch-confirm.tsx components/print-sheet.tsx hooks/use-project-tools.ts hooks/use-event.ts hooks/use-delayed.ts tests scripts worker vite.config.ts",
     "format": "oxfmt",
     "test": "tsx --test tests/*.test.ts",
     "test:live": "node scripts/modular-live.mjs",
@@ -24,6 +29,7 @@
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",
+    "@resvg/resvg-wasm": "^2.6.2",
     "@shadcn/react": "0.3.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
@@ -65,6 +71,9 @@
     "typescript": "5.9.3",
     "vite": "8.0.13",
     "wrangler": "4.92.0"
+  },
+  "imports": {
+    "#platform": "./lib/platform/node.ts"
   },
   "type": "module"
 }

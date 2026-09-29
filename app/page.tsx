@@ -17,6 +17,7 @@ import { type Progress, type TextPreview } from '@/lib/progress';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { flushSync } from 'react-dom';
 import { renderPrintShot } from '@/lib/print-render';
+import { shrinkImage } from '@/lib/shrink-image';
 import {
   ArrowDown,
   ArrowUp,
@@ -1740,7 +1741,7 @@ export default function Home() {
     setUploading(true);
     try {
       if (file.size > 10 * 1024 * 1024) throw new Error('A imagem deve ter até 10 MB.');
-      const body = new FormData(); body.append('image', file);
+      const body = new FormData(); body.append('image', await shrinkImage(file));
       const response = await fetch('/api/images', { method: 'POST', body });
       const result = await response.json() as ImageRef & { error?: string };
       if (!response.ok) throw new Error(result.error || 'Não foi possível anexar a imagem.');

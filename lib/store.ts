@@ -1,7 +1,5 @@
-import { DatabaseSync } from 'node:sqlite';
-import { mkdirSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { openDatabase, backupDatabase as backupFile } from '#platform';
 import { defaults, type Params } from './furniture';
 import {
   designSchema,
@@ -119,35 +117,13 @@ export type Project = {
    */
   demo?: { key: string; order: number };
 };
-let db: DatabaseSync;
+/** SQLite do Node (data/merce.sqlite) ou do Durable Object na Cloudflare. */
 function database() {
-  if (!db) {
-    const dir = process.env.MERCE_DATA_DIR || join(process.cwd(), 'data');
-    mkdirSync(dir, { recursive: true });
-    db = new DatabaseSync(join(dir, 'merce.sqlite'));
-    db.exec(
-      'PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, body TEXT NOT NULL, version INTEGER NOT NULL, updated TEXT NOT NULL)',
-    );
-    const legacyRows = db
-      .prepare(
-        "SELECT count(*) AS n FROM projects WHERE EXISTS (SELECT 1 FROM json_each(body, '$.revisions') r WHERE json_extract(r.value, '$.params.schemaVersion') IS NOT 3)",
-      )
-      .get() as { n: number };
-    if (legacyRows.n && !existsSync(join(dir, 'merce-before-modules.sqlite'))) {
-      const backup = join(dir, 'merce-before-modules.sqlite').replaceAll(
-        "'",
-        "''",
-      );
-      db.exec(`VACUUM INTO '${backup}'`);
-    }
-  }
-  return db;
+  return openDatabase();
 }
 export function list() {
   return (
-    database()
-      .prepare('SELECT body, updated FROM projects ORDER BY updated DESC')
-      .all() as { body: string; updated: string }[]
+    database().all<{ body: string; updated: string }>('SELECT body, updated FROM projects ORDER BY updated DESC')
   ).map((r) => {
     const p = JSON.parse(r.body) as Project;
     const design = p.revisions[p.cursor]?.params;
@@ -172,11 +148,9 @@ export function list() {
 /** "Minha estante" já existe? Então "Minha estante 2", 3…; nomes iguais confundem. */
 export function uniqueName(base = 'Minha estante') {
   const taken = new Set(
-    (
-      database().prepare("SELECT json_extract(body, '$.name') AS name FROM projects").all() as {
-        name: string;
-      }[]
-    ).map((r) => r.name),
+    database()
+      .all<{ name: string }>("SELECT json_extract(body, '$.name') AS name FROM projects")
+      .map((r) => r.name),
   );
   if (!taken.has(base)) return base;
   for (let i = 2; ; i++) {
@@ -186,14 +160,12 @@ export function uniqueName(base = 'Minha estante') {
 }
 /** Apaga o projeto e o histórico dele. Não há lixeira: a ação é definitiva. */
 export function remove(id: string) {
-  const r = database().prepare('DELETE FROM projects WHERE id=?').run(id);
+  const r = database().run('DELETE FROM projects WHERE id=?', id);
   if (!r.changes) throw new Error('Projeto não encontrado.');
   return { ok: true as const, removed: id };
 }
 export function get(id: string) {
-  const r = database()
-    .prepare('SELECT body FROM projects WHERE id=?')
-    .get(id) as { body: string } | undefined;
+  const r = database().get<{ body: string }>('SELECT body FROM projects WHERE id=?', id);
   if (!r) throw new Error('Projeto não encontrado.');
   const p = JSON.parse(r.body) as Project;
   // Migração preguiçosa: revisões v1 viram design v2 só em memória, e
@@ -243,9 +215,7 @@ export function create() {
       },
     ],
   };
-  database()
-    .prepare('INSERT INTO projects VALUES (?, ?, ?, ?)')
-    .run(p.id, encode(p), 0, new Date().toISOString());
+  database().run('INSERT INTO projects VALUES (?, ?, ?, ?)', p.id, encode(p), 0, new Date().toISOString());
   return view(p);
 }
 /**
@@ -271,9 +241,7 @@ export function createFromTemplate(templateId: string) {
     ],
     ...(t.room ? { room: structuredClone(t.room) } : {}),
   };
-  database()
-    .prepare('INSERT INTO projects VALUES (?, ?, ?, ?)')
-    .run(p.id, encode(p), 0, new Date().toISOString());
+  database().run('INSERT INTO projects VALUES (?, ?, ?, ?)', p.id, encode(p), 0, new Date().toISOString());
   return view(p);
 }
 export function createDemo() {
@@ -374,9 +342,7 @@ export function createDemo() {
     revisions,
     messages,
   };
-  database()
-    .prepare('INSERT INTO projects VALUES (?, ?, ?, ?)')
-    .run(p.id, encode(p), 0, new Date().toISOString());
+  database().run('INSERT INTO projects VALUES (?, ?, ?, ?)', p.id, encode(p), 0, new Date().toISOString());
   return view(p);
 }
 /**
@@ -385,37 +351,33 @@ export function createDemo() {
  * que confere a versão.
  */
 export function putProject(p: Project, updated: string) {
-  database()
-    .prepare('INSERT OR REPLACE INTO projects VALUES (?, ?, ?, ?)')
-    .run(p.id, encode(p), p.version, updated);
+  database().run('INSERT OR REPLACE INTO projects VALUES (?, ?, ?, ?)', p.id, encode(p), p.version, updated);
 }
 /** Cópia do banco inteiro num arquivo novo, na mesma pasta. Devolve o caminho. */
 export function backupDatabase(name: string) {
-  const file = join(process.env.MERCE_DATA_DIR || join(process.cwd(), 'data'), name);
-  if (existsSync(file)) throw new Error(`O backup ${file} já existe.`);
-  database().exec(`VACUUM INTO '${file.replaceAll("'", "''")}'`);
-  return file;
+  return backupFile(name);
 }
 /** Apaga as demonstrações que saíram da lista (ids fora de `keep`). */
 export function removeDemosExcept(keep: readonly string[]) {
-  const all = database().prepare("SELECT id FROM projects WHERE json_extract(body, '$.demo') IS NOT NULL").all() as { id: string }[];
+  const all = database().all<{ id: string }>("SELECT id FROM projects WHERE json_extract(body, '$.demo') IS NOT NULL");
   const gone = all.filter((r) => !keep.includes(r.id));
-  for (const r of gone) database().prepare('DELETE FROM projects WHERE id=?').run(r.id);
+  for (const r of gone) database().run('DELETE FROM projects WHERE id=?', r.id);
   return gone.length;
 }
 /** Apaga os projetos que não são de demonstração. Devolve quantos saíram. */
 export function removeNonDemo() {
-  return Number(
-    database().prepare("DELETE FROM projects WHERE json_extract(body, '$.demo') IS NULL").run().changes,
-  );
+  return database().run("DELETE FROM projects WHERE json_extract(body, '$.demo') IS NULL").changes;
 }
 export function save(p: Project, expected: number) {
   p.version = expected + 1;
-  const r = database()
-    .prepare(
-      'UPDATE projects SET body=?, version=?, updated=? WHERE id=? AND version=?',
-    )
-    .run(encode(p), p.version, new Date().toISOString(), p.id, expected);
+  const r = database().run(
+    'UPDATE projects SET body=?, version=?, updated=? WHERE id=? AND version=?',
+    encode(p),
+    p.version,
+    new Date().toISOString(),
+    p.id,
+    expected,
+  );
   if (!r.changes)
     throw new Error(
       'O projeto mudou em outra janela. Recarregue antes de editar.',
@@ -744,9 +706,7 @@ export function fork(id: string, cursor: number, name: string) {
     revisionId: base.id,
     revision: base.number,
   });
-  database()
-    .prepare('INSERT INTO projects VALUES (?, ?, ?, ?)')
-    .run(p.id, encode(p), 0, new Date().toISOString());
+  database().run('INSERT INTO projects VALUES (?, ?, ?, ?)', p.id, encode(p), 0, new Date().toISOString());
   return view(p);
 }
 export function applyShelfOp(p: Project, op: ShelfOp, label: string) {
