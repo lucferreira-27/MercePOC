@@ -62,6 +62,10 @@ Use `Start-Merce.cmd`, ou `npm install` e `npm run dev` em `G:\MercePOC`. Abra h
 
 `npm run build` reescreve o pacote que o servidor em execução está servindo. Se o servidor já estava de pé, reinicie-o depois do build; sem isso a página trava em "Montando o estúdio…" porque o navegador recebe um pacote misturado e não hidrata. `npm run dev` (HMR na mesma porta) não tem esse problema.
 
+### Publicado na Cloudflare
+
+O mesmo app roda no plano gratuito da Cloudflare, com senha: `npm run cf:deploy` publica e `npm run cf:secrets` envia as chaves e a senha. Como funciona e os limites estão em [docs/cloudflare.md](docs/cloudflare.md).
+
 ### Projetos de demonstração
 
 `npm run demos` grava cinco projetos prontos para mostrar o app: painel de TV com rack suspenso, guarda-roupa, cozinha compacta, home office e lavanderia. O nome de cada um começa com "Demo ·"; não são de clientes. Cada demo nasce de um modelo da biblioteca e passa por algumas sessões de pedidos e medidas do ambiente, todas aplicadas pelo motor do app, então histórico, Edição, orçamento, corte e exportações abrem como num projeto real. A receita fica em `lib/demos.ts`.

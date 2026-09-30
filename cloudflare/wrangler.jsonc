@@ -1,0 +1,23 @@
+// Merce na Cloudflare. Veja docs/cloudflare.md.
+// Fica fora da raiz de propósito: com um wrangler.jsonc na raiz o vinext
+// recusa o build do Node (npm run build), que o G:\MercePOC-prod usa.
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "merce",
+  "account_id": "9b7008a9fb06287a7f5240eb24462041",
+  "main": "../worker/index.ts",
+  "compatibility_date": "2026-05-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "../dist/client",
+    "not_found_handling": "none",
+    "binding": "ASSETS"
+  },
+  // Um Durable Object com SQLite guarda projetos, fotos e registros dos turnos.
+  // É o único tipo de armazenamento do Durable Object no plano gratuito.
+  "durable_objects": {
+    "bindings": [{ "name": "STUDIO", "class_name": "Studio" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Studio"] }],
+  "observability": { "enabled": true }
+}
