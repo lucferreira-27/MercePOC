@@ -1595,6 +1595,15 @@ function resizeCells(node: Cell, oldSize: number[], newSize: number[]) {
     resizeCells(child, prev, next);
   });
 }
+/**
+ * Altura nova da caixa com os vãos redimensionados na proporção, como no
+ * `module.edit`. Serve a quem troca a base ou o tampo e guarda o envelope
+ * (o estilo): a caixa cede o que o pé, o tampo ou a moldura ganham.
+ */
+export function setBoxHeight(m: Module, height: number) {
+  if (!isFlat(m)) resizeCells(m.root, [m.width - 36, m.height - 36], [m.width - 36, height - 36]);
+  m.height = height;
+}
 /** Eixo da frente (z local) e lateral (x local) de uma rotação, no plano xz do mundo. */
 function axes(rotation: number) {
   const a = (rotation * Math.PI) / 180;

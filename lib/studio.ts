@@ -16,8 +16,9 @@ import {
   type CompositionV3,
   type ModularOp,
 } from './composition';
-import { lookChanges } from './look';
+import { describeLook, lookChanges } from './look';
 import { applyAssetOp, assetById, assetOpSchema, type AssetOp } from './assets';
+import { applyStyleOp, STYLES, styleOpSchema, type StyleOp } from './styles';
 export type Design = Composition & {
   width: number;
   height: number;
@@ -25,7 +26,7 @@ export type Design = Composition & {
   materialId: old.Design['materialId'];
   shelves: old.Shelf[];
 };
-export type ShelfOp = old.ShelfOp | ModularOp | AssetOp;
+export type ShelfOp = old.ShelfOp | ModularOp | AssetOp | StyleOp;
 /**
  * O projeto como é gravado: só os campos do contrato, na versão atual. Uma
  * composição v3 (projeto antigo, cena de teste) sai v4 com a mesma geometria.
@@ -69,6 +70,7 @@ export const opSchema = z.union([
   old.opSchema,
   modularOpSchema,
   assetOpSchema,
+  styleOpSchema,
 ]) as z.ZodType<ShelfOp>;
 export function isDesign(v: unknown): v is Design {
   return (
@@ -176,6 +178,7 @@ export function selectedPartIds(d: Design, selected: readonly string[]) {
 export function applyOp(input: Design, op: ShelfOp): Design {
   const d = canonical(input);
   if (op.kind === 'asset.add') return normalize(applyAssetOp(d, op));
+  if (op.kind === 'style.apply') return normalize(applyStyleOp(d, op));
   if (
     op.kind.includes('.') ||
     op.kind === 'connect' ||
@@ -264,6 +267,7 @@ export function applyOp(input: Design, op: ShelfOp): Design {
  */
 export function applyStep(pending: Composition, op: ShelfOp): Composition {
   if (op.kind === 'asset.add') return applyAssetOp(pending, op);
+  if (op.kind === 'style.apply') return applyStyleOp(pending, op);
   if (op.kind.includes('.') || op.kind === 'connect' || op.kind === 'disconnect')
     return applyModularOp(pending, op as ModularOp, false);
   return canonical(applyOp(normalize(pending), op));
@@ -371,6 +375,10 @@ export function describeHighlights(
         for (const m of after.modules) if (!before.modules.some((b) => b.id === m.id)) ids.add(m.id);
         continue;
       }
+      if (op.kind === 'style.apply') {
+        for (const m of restyled(after)) ids.add(m.id);
+        continue;
+      }
       for (const key of ['id', 'newId', 'child', 'parent'] as const) {
         const v = (op as Record<string, unknown>)[key];
         if (typeof v === 'string' && alive.has(v)) ids.add(v);
@@ -456,6 +464,12 @@ export function describeHighlights(
       offset: conn.offset,
     };
   };
+  /** Módulos que o estilo vestiu: os que mudaram de material, base ou acabamento. */
+  const restyled = (d: Design) =>
+    d.modules.filter((m) => {
+      const b = before.modules.find((v) => v.id === m.id);
+      return !!b && JSON.stringify(b) !== JSON.stringify(m);
+    });
   const out: ChangeHighlight[] = [];
   const novos = after.modules.filter((m) => !before.modules.some((b) => b.id === m.id));
   const addedIds = new Set(novos.map((m) => m.id));
@@ -486,6 +500,25 @@ export function describeHighlights(
             { label: 'Altura', value: mm(altura) },
           ],
           facts: novosDoAtivo.slice(0, 6).map((m) => ({ label: m.name, value: dims(m) })),
+        });
+        break;
+      }
+      case 'style.apply': {
+        const s = STYLES[op.style];
+        const vestidos = restyled(after);
+        const first = vestidos.find((m) => !m.kind) ?? vestidos[0];
+        const g = generateComposition(canonical(after));
+        const h = g.bounds.max[1];
+        out.push({
+          tool: op.kind,
+          title: op.ids ? `Estilo ${s.label} em ${vestidos.map((m) => m.name).slice(0, 3).join(', ')}${vestidos.length > 3 ? '…' : ''}` : `Estilo ${s.label} no projeto`,
+          summary: `${s.summary}. ${vestidos.length} ${vestidos.length === 1 ? 'módulo vestido' : 'módulos vestidos'}${op.keepMaterials ? ', com os materiais de antes' : ''}; as medidas por fora não mudaram.`,
+          sign: '~',
+          measures: [{ label: 'Altura', value: mm(h) }],
+          facts: [
+            ...(first ? [{ label: 'Corpo', value: materialName(first.materialId) }] : []),
+            ...(first ? describeLook(first).map((v) => ({ label: 'Acabamento', value: v })) : []),
+          ].slice(0, 6),
         });
         break;
       }

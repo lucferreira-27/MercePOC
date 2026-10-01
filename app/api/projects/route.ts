@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { validationMessage } from '@/lib/composition';
 import { obstacleClash, roomChangeLabel, roomSchema } from '@/lib/room';
 import { placementRoot } from '@/lib/placement';
+import { STYLE_IDS } from '@/lib/look';
 export async function GET(req: Request) {
   try {
     const id = new URL(req.url).searchParams.get('id');
@@ -22,9 +23,9 @@ export async function POST(req: Request) {
     if (setup.success)
       return Response.json(setup.data.action === 'demo' ? createDemo() : create());
     const fromTemplate = z
-      .object({ action: z.literal('template'), template: z.string().min(1).max(40) })
+      .object({ action: z.literal('template'), template: z.string().min(1).max(40), style: z.enum(STYLE_IDS).optional() })
       .safeParse(body);
-    if (fromTemplate.success) return Response.json(createFromTemplate(fromTemplate.data.template));
+    if (fromTemplate.success) return Response.json(createFromTemplate(fromTemplate.data.template, fromTemplate.data.style));
     const b = z
       .object({
         id: z.uuid(),

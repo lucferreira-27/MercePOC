@@ -403,20 +403,47 @@ export function drawingParts(d: Composition): ModularPart[] {
   const g = generateComposition(d, false);
   const extra = fittingsOf(d, g.parts)
     .filter((f) => !f.hidden)
-    .map((f): ModularPart => ({
-      id: f.id,
+    .flatMap((f) => legSegments(f).map((s, i, all): ModularPart => ({
+      id: all.length > 1 ? `${f.id}:seg-${i}` : f.id,
       name: f.kind === 'leg' ? 'Pé' : f.kind === 'handle' ? 'Puxador' : f.kind === 'led' ? 'LED' : 'Estrutura',
       kind: 'side',
-      size: f.size,
-      position: f.position,
+      size: s.size,
+      position: s.position,
       rotation: f.rotation,
-      c: f.size[1],
-      l: f.size[0],
-      thickness: f.size[2],
+      c: s.size[1],
+      l: s.size[0],
+      thickness: s.size[2],
       material: f.materialId ? materialOf(f.materialId).name : f.kind,
       color: f.color,
       owners: [f.moduleId],
       edges: { c1: null, c2: null, l1: null, l2: null },
-    }));
+    })));
   return [...g.parts, ...g.parts.flatMap((p) => faceOverlays(p, g.parts)), ...extra];
+}
+
+/**
+ * O desenho é feito de caixas: o pé inclinado e o cônico viram trechos
+ * curtos que afinam ao longo do eixo de verdade, senão a caixa que contém o
+ * pé inclinado aparecia como um bloco grosso e o anos 60 virava rústico.
+ */
+function legSegments(f: Fitting): { position: Vec; size: Vec }[] {
+  if (f.kind !== 'leg' || (f.type !== 'splayed' && f.type !== 'tapered')) return [{ position: f.position, size: f.size }];
+  const h = f.size[1];
+  const [ax, az] = f.splay ?? [0, 0];
+  const ox = Math.tan(ax) * h,
+    oz = Math.tan(az) * h;
+  const [top, tip] = f.type === 'splayed' ? [38, 20] : [40, 26];
+  const n = f.type === 'splayed' ? 8 : 4;
+  const cos = Math.cos(f.rotation),
+    sin = Math.sin(f.rotation);
+  return Array.from({ length: n }, (_, k) => {
+    const t = (k + 0.5) / n;
+    const lx = -ox / 2 + ox * t,
+      lz = -oz / 2 + oz * t;
+    const w = top + (tip - top) * t;
+    return {
+      position: [f.position[0] + lx * cos + lz * sin, f.position[1] + h / 2 - h * t, f.position[2] - lx * sin + lz * cos] as Vec,
+      size: [w, h / n + 0.5, w] as Vec,
+    };
+  });
 }

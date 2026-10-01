@@ -19,7 +19,9 @@ import type { ImageRef } from './images';
 import type { ChatReport, TurnOutcome } from './progress';
 import { editedWall, movedObstacle, roomChangeLabel, type Room, type Wall } from './room';
 import type { TurnUsage } from './models';
-import { buildTemplate, templateById } from './templates';
+import { buildTemplate, templateById, templateStart } from './templates';
+import type { StyleId } from './look';
+import { STYLES } from './styles';
 import { PLACEMENT_MAX_STEPS, PLACEMENT_MERGE_MS, type Placement, type PlacementStep } from './placement';
 export type TurnContext = {
   requestId: string;
@@ -223,10 +225,12 @@ export function create() {
  * primeira mensagem explica o que foi montado; um modelo que traz quarto de
  * exemplo já abre com o ambiente preenchido.
  */
-export function createFromTemplate(templateId: string) {
+export function createFromTemplate(templateId: string, style?: StyleId) {
   const t = templateById(templateId);
   if (!t) throw new Error('Modelo não encontrado.');
-  const params = normalize(buildTemplate(t));
+  const built = buildTemplate(t, style);
+  const params = normalize(built);
+  const start = templateStart(t, style, built);
   const revisionId = randomUUID();
   const p: Project = {
     id: randomUUID(),
@@ -234,12 +238,12 @@ export function createFromTemplate(templateId: string) {
     version: 0,
     cursor: 0,
     revisions: [
-      { id: revisionId, number: 1, params, label: `Modelo: ${t.name}`, at: new Date().toISOString() },
+      { id: revisionId, number: 1, params, label: `Modelo: ${t.name}${style ? ` ${STYLES[style].label}` : ''}`, at: new Date().toISOString() },
     ],
     messages: [
-      { id: randomUUID(), role: 'assistant', content: t.intro, revisionId, revision: 1 },
+      { id: randomUUID(), role: 'assistant', content: start.intro, revisionId, revision: 1 },
     ],
-    ...(t.room ? { room: structuredClone(t.room) } : {}),
+    ...(start.room ? { room: structuredClone(start.room) } : {}),
   };
   database().run('INSERT INTO projects VALUES (?, ?, ?, ?)', p.id, encode(p), 0, new Date().toISOString());
   return view(p);

@@ -135,6 +135,72 @@ function depthOf(part: ModularPart, view: ViewKind) {
   return view === 'front' ? z : x + z + part.position[1] / 1000;
 }
 
+type Bounds = { min: number[]; max: number[] };
+const EPS = 0.5;
+/**
+ * -1: `a` fica atrás de `b` (pinta antes); 1: na frente; 0: sem plano que
+ * separe as duas caixas. Olho no +x/+y/+z (isométrica) ou no +z (frontal):
+ * um plano de eixo que separa as duas caixas decide quem tapa quem, seja
+ * qual for o tamanho de cada uma.
+ */
+function compare(a: Bounds, b: Bounds, view: ViewKind) {
+  // Separadas em dois eixos com sentidos opostos (uma à esquerda e acima da
+  // outra), nenhum raio do olho passa pelas duas: não se tapam, e a caixa
+  // envolvente da imagem que se cruzava criava um ciclo falso.
+  let sign = 0;
+  for (const axis of view === 'front' ? [2] : [0, 2, 1]) {
+    const s = a.max[axis] <= b.min[axis] + EPS ? -1 : b.max[axis] <= a.min[axis] + EPS ? 1 : 0;
+    if (!s) continue;
+    if (sign && s !== sign) return 0;
+    sign = s;
+  }
+  return sign;
+}
+
+/**
+ * Ordem de pintura do fundo para a frente. Pelo centro só, um tampo comprido
+ * que cobre três módulos tinha o centro no do meio e o tampo do último
+ * módulo, embaixo dele, era pintado por cima. Aqui cada par que se cruza na
+ * imagem é ordenado pelo plano que separa as caixas; sem plano (caixas que se
+ * encostam por dentro), vale o centro. Ciclo raro se desfaz pelo centro.
+ */
+export function paintOrder(parts: readonly ModularPart[], view: ViewKind): ModularPart[] {
+  const n = parts.length;
+  const corners = parts.map(cornersOf);
+  const bounds: Bounds[] = corners.map((c) => ({
+    min: [0, 1, 2].map((i) => Math.min(...c.map((v) => v[i]))),
+    max: [0, 1, 2].map((i) => Math.max(...c.map((v) => v[i]))),
+  }));
+  const screen = corners.map((c) => {
+    const pts = c.map((v) => project(v, view));
+    return [Math.min(...pts.map((p) => p[0])), Math.min(...pts.map((p) => p[1])), Math.max(...pts.map((p) => p[0])), Math.max(...pts.map((p) => p[1]))];
+  });
+  const key = parts.map((p) => depthOf(p, view));
+  const after: number[][] = Array.from({ length: n }, () => []);
+  const pending: number[] = Array.from({ length: n }, () => 0);
+  for (let i = 0; i < n; i++)
+    for (let j = i + 1; j < n; j++) {
+      const [a, b] = [screen[i], screen[j]];
+      if (a[2] <= b[0] || b[2] <= a[0] || a[3] <= b[1] || b[3] <= a[1]) continue;
+      const c = compare(bounds[i], bounds[j], view);
+      if (!c) continue;
+      const [back, fore] = c < 0 ? [i, j] : [j, i];
+      after[back].push(fore);
+      pending[fore]++;
+    }
+  const out: ModularPart[] = [];
+  const done: boolean[] = Array.from({ length: n }, () => false);
+  for (let k = 0; k < n; k++) {
+    let pick = -1;
+    for (let i = 0; i < n; i++) if (!done[i] && !pending[i] && (pick < 0 || key[i] < key[pick])) pick = i;
+    if (pick < 0) for (let i = 0; i < n; i++) if (!done[i] && (pick < 0 || key[i] < key[pick])) pick = i;
+    done[pick] = true;
+    out.push(parts[pick]);
+    for (const f of after[pick]) pending[f]--;
+  }
+  return out;
+}
+
 /**
  * Geometria de uma vista: projeta, ordena do fundo para a frente e enquadra na
  * caixa do painel. Separado do SVG para o teste poder conferir o desenho sem
@@ -147,8 +213,8 @@ export function planView(
 ): PlanGeometry {
   // O fundo da cena (a parede atrás do móvel) vem sempre primeiro: pelo
   // centro, uma parede larga passava na frente do painel na isométrica.
-  const layer = (p: ModularPart) => (p.id === 'scene:wall' ? -1 : 0);
-  const ordered = [...parts].sort((a, b) => layer(a) - layer(b) || depthOf(a, view) - depthOf(b, view));
+  const wall = parts.filter((p) => p.id === 'scene:wall');
+  const ordered = [...wall, ...paintOrder(parts.filter((p) => p.id !== 'scene:wall'), view)];
   const raw: { points: [number, number][]; kind: ModularPart['kind']; tone: string; edge: string; depth: number; order: number }[] = [];
   const all: [number, number][] = [];
   for (const part of ordered) {

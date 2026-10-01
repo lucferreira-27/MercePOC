@@ -9,7 +9,9 @@ import {
   type ModularOp,
 } from './composition';
 import { materialIds, type MaterialId } from './furniture';
+import { STYLE_IDS, type StyleId } from './look';
 import { TV_CLEARANCE_MM, type Room } from './room';
+import { applyStyle, STYLES, styleFeet, styleProportion } from './styles';
 
 /**
  * Biblioteca de móveis prontos. Cada ativo é uma receita paramétrica que monta
@@ -35,11 +37,19 @@ export type AssetInput = AssetSize & {
   front: MaterialId;
   /** Altura dos pés em mm (0 = sem pés). Só vale para quem aceita pés. */
   feet: number;
+  /** Estilo do móvel: a receita adapta a estrutura e `applyStyle` veste. */
+  style?: StyleId;
 };
+/**
+ * Papel principal do ativo para o estilo: decide a altura dos pés com que a
+ * receita monta e a proporção do móvel novo (anos 60 baixo e comprido).
+ */
+export type AssetRole = 'low' | 'counter' | 'tall' | 'wall' | 'panel';
 export type Asset = {
   id: string;
   name: string;
   category: AssetCategory;
+  role: AssetRole;
   /** Uma linha para a galeria e para a IA. */
   summary: string;
   /** Palavras que a pessoa usa para pedir este móvel. */
@@ -141,7 +151,7 @@ export class Builder {
   }
   front(
     cell: string,
-    type: 'single' | 'double' | 'drawers',
+    type: 'single' | 'double' | 'drawers' | 'sliding' | 'flap',
     extra: { count?: number; hinge?: 'left' | 'right'; materialId?: MaterialId } = {},
   ) {
     this.op({ kind: 'front.set', id: cell, type, ...extra });
@@ -182,6 +192,10 @@ function columns(total: number, target: number, min = 1, max = 6) {
   return clamp(Math.max(Math.round(total / target), Math.ceil((total + P) / 1200)), min, max);
 }
 const inner = (h: number) => h - 2 * P;
+/** Vão (caixa inteira) que leva porta de correr de `n` folhas: folha de 250 mm e 300 de altura. */
+const slides = (w: number, h: number, n = 2) => (inner(w) - 2 * 2 + (n - 1) * 30) / n >= 250 && inner(h) - 2 * 2 >= 300;
+/** Vão de altura `h` (livre) que leva basculante: folha de 150 a 700 mm. */
+const flaps = (h: number) => h - 2 * 2 >= 150 && h - 2 * 2 <= 700;
 
 /** Tamanhos comuns de TV (largura e altura com a moldura, em mm). */
 const TV_SIZES = [
@@ -227,7 +241,8 @@ export const assets: Asset[] = [
     id: 'rack-tv',
     name: 'Rack de TV',
     category: 'sala',
-    summary: 'Rack baixo com pés palito: portas nas pontas, nichos e gavetas no centro',
+    role: 'low',
+    summary: 'Rack baixo: portas nas pontas, nichos e gavetas no centro',
     keywords: ['rack', 'tv', 'televisão', 'home', 'sala', 'móvel de tv', 'bancada de tv'],
     size: { default: { width: 1800, height: 550, depth: 450 }, min: { width: 1000, height: 400, depth: 350 }, max: { width: 3000, height: 750, depth: 550 } },
     body: 'freijo',
@@ -266,6 +281,7 @@ export const assets: Asset[] = [
     id: 'rack-suspenso',
     name: 'Painel com rack suspenso',
     category: 'sala',
+    role: 'panel',
     summary: 'Painel de parede para a TV e rack suspenso com gavetas e nichos',
     keywords: ['painel', 'painel de tv', 'rack suspenso', 'tv', 'home', 'sala', 'flutuante'],
     size: { default: { width: 2200, height: 1800, depth: 400 }, min: { width: 1400, height: 1200, depth: 300 }, max: { width: 2700, height: 1800, depth: 500 } },
@@ -299,6 +315,7 @@ export const assets: Asset[] = [
     id: 'rack',
     name: 'Rack com torres',
     category: 'sala',
+    role: 'tall',
     summary: 'Rack baixo entre duas torres de nichos, alinhados pelo fundo',
     keywords: ['estante de tv', 'torres', 'home theater', 'rack com torres', 'sala'],
     size: { default: { width: 2100, height: 1800, depth: 450 }, min: { width: 1600, height: 1200, depth: 400 }, max: { width: 3300, height: 2400, depth: 550 } },
@@ -308,7 +325,9 @@ export const assets: Asset[] = [
       `Montei um conjunto de sala de ${cm(p.width)} cm: rack grafite de ${cm(p.width - 900)} × 50 × ${cm(p.depth)} cm com gavetas e portas, entre duas torres de nogueira de 45 × ${cm(p.height)} × 35 cm alinhadas pelo fundo. Peça para alargar o rack, trocar as torres por portas ou mudar os acabamentos.`,
     // A TV fica entre as torres: a de 55" (1230 mm) entrava nas torres no
     // tamanho padrão (1200 mm entre elas). Vai a maior que cabe com folga.
-    room: (p, width) => tvRoom(width, 800, undefined, tvFor(width - 900)),
+    // A moldura do estilo nas torres avança para o vão (o quanto o móvel
+    // cresceu de cada lado): a TV escolhida cabe entre as molduras.
+    room: (p, width) => tvRoom(width, 800, undefined, tvFor(p.width - 900 - Math.max(0, width - p.width))),
     build(b, p) {
       const tower = (key: string, name: string) => {
         const id = b.box(key, name, [450, p.height, 350], p.body);
@@ -338,6 +357,7 @@ export const assets: Asset[] = [
     id: 'estante',
     name: 'Estante de livros',
     category: 'sala',
+    role: 'tall',
     summary: 'Corpos de nichos iguais, com portas embaixo no centro',
     keywords: ['estante', 'livros', 'biblioteca', 'nichos', 'prateleiras'],
     size: { default: { width: 2400, height: 2100, depth: 350 }, min: { width: 600, height: 1200, depth: 250 }, max: { width: 3600, height: 2400, depth: 450 } },
@@ -353,7 +373,7 @@ export const assets: Asset[] = [
       const ids = b.row('e', names, widthsOf(p.width, n), p.height, p.depth, p.body);
       ids.forEach((id, i) => {
         const slots = b.stack(b.root(id), shelves, inner(p.height));
-        if (i === Math.floor(n / 2) && n > 1) b.front(slots[0], 'double', { materialId: p.front });
+        if (i === Math.floor(n / 2) && n > 1 && !(p.style && STYLES[p.style].airy)) b.front(slots[0], 'double', { materialId: p.front });
       });
     },
   },
@@ -361,7 +381,8 @@ export const assets: Asset[] = [
     id: 'aparador',
     name: 'Aparador',
     category: 'sala',
-    summary: 'Buffet com pés: portas nas pontas e gavetas no centro',
+    role: 'low',
+    summary: 'Buffet: portas nas pontas e gavetas no centro',
     keywords: ['aparador', 'buffet', 'balcão de sala', 'bar', 'credenza'],
     size: { default: { width: 1800, height: 800, depth: 450 }, min: { width: 1000, height: 600, depth: 350 }, max: { width: 2700, height: 950, depth: 550 } },
     body: 'walnut',
@@ -376,8 +397,10 @@ export const assets: Asset[] = [
       const mid = Math.floor(n / 2);
       const names = Array.from({ length: n }, (_, i) => (i === mid ? 'Gavetas' : i < mid ? 'Portas esquerda' : 'Portas direita'));
       const ids = b.row('a', names.map((v, i) => (names.indexOf(v) !== i ? `${v} ${i + 1}` : v)), widthsOf(p.width, n), boxH, p.depth, p.body, { feet: p.feet });
+      const widths = widthsOf(p.width, n);
       ids.forEach((id, i) => {
         if (i === mid) b.front(b.root(id), 'drawers', { count: clamp(Math.floor(inner(boxH) / 170), 2, 4), materialId: p.front });
+        else if (p.style === 'midcentury' && slides(widths[i], boxH)) b.front(b.root(id), 'sliding', { count: 2, materialId: p.front });
         else b.front(b.root(id), 'double', { materialId: p.front });
       });
     },
@@ -386,6 +409,7 @@ export const assets: Asset[] = [
     id: 'guarda-roupa',
     name: 'Guarda-roupa',
     category: 'quarto',
+    role: 'tall',
     summary: 'Cabideiro, gaveteiro e portas, com maleiro em cima',
     keywords: ['guarda-roupa', 'roupeiro', 'armário de quarto', 'closet', 'maleiro'],
     size: { default: { width: 2400, height: 2400, depth: 600 }, min: { width: 1200, height: 2000, depth: 500 }, max: { width: 3600, height: 2400, depth: 650 } },
@@ -413,18 +437,23 @@ export const assets: Asset[] = [
       const names = widths.map((_, i) => (i === 0 ? 'Cabideiro' : i === 1 && n > 2 ? 'Gaveteiro' : n === 2 || i === n - 1 ? 'Coluna de portas' : `Portas ${i}`));
       const ids = b.row('g', names, widths, p.height, p.depth, p.body);
       const low = inner(p.height) - P - 450;
+      // Minimalista: portas de correr no corpo e basculante no maleiro.
+      const minimal = p.style === 'minimalist';
       ids.forEach((id, i) => {
         const [body, top] = b.split(b.root(id), 'y', low);
-        const doors = (cell: string) =>
-          widths[i] >= 700
-            ? b.front(cell, 'double', { materialId: p.front })
-            : b.front(cell, 'single', { hinge: i === n - 1 ? 'right' : 'left', materialId: p.front });
-        doors(top);
+        const doors = (cell: string, h: number) =>
+          minimal && slides(widths[i], h + 2 * P)
+            ? b.front(cell, 'sliding', { count: 2, materialId: p.front })
+            : widths[i] >= 700
+              ? b.front(cell, 'double', { materialId: p.front })
+              : b.front(cell, 'single', { hinge: i === n - 1 ? 'right' : 'left', materialId: p.front });
+        if (minimal && flaps(450)) b.front(top, 'flap', { materialId: p.front });
+        else doors(top, 450);
         if (i === 1 && n > 2) {
           const [drawers, upper] = b.split(body, 'y', 640);
           b.front(drawers, 'drawers', { count: 3, materialId: p.front });
-          doors(upper);
-        } else doors(body);
+          doors(upper, low - 640 - P);
+        } else doors(body, low);
       });
     },
   },
@@ -432,7 +461,8 @@ export const assets: Asset[] = [
     id: 'comoda',
     name: 'Cômoda',
     category: 'quarto',
-    summary: 'Gaveteiro largo com pés, quatro gavetas por coluna',
+    role: 'low',
+    summary: 'Gaveteiro largo, quatro gavetas por coluna',
     keywords: ['cômoda', 'comoda', 'gaveteiro', 'gavetas', 'quarto'],
     size: { default: { width: 1200, height: 900, depth: 450 }, min: { width: 600, height: 650, depth: 380 }, max: { width: 2000, height: 1200, depth: 550 } },
     body: 'white',
@@ -453,6 +483,7 @@ export const assets: Asset[] = [
     id: 'criado-mudo',
     name: 'Criado-mudo',
     category: 'quarto',
+    role: 'low',
     summary: 'Mesa de cabeceira com gaveta em cima e nicho embaixo',
     keywords: ['criado-mudo', 'criado mudo', 'mesa de cabeceira', 'mesinha'],
     size: { default: { width: 500, height: 550, depth: 400 }, min: { width: 350, height: 400, depth: 300 }, max: { width: 700, height: 750, depth: 500 } },
@@ -476,6 +507,7 @@ export const assets: Asset[] = [
     id: 'cabeceira',
     name: 'Cabeceira com criados suspensos',
     category: 'quarto',
+    role: 'panel',
     summary: 'Painel de cabeceira na parede e dois criados-mudos suspensos',
     keywords: ['cabeceira', 'painel de cama', 'criado suspenso', 'quarto', 'cama'],
     size: { default: { width: 2600, height: 1100, depth: 350 }, min: { width: 1800, height: 700, depth: 300 }, max: { width: 2700, height: 1600, depth: 450 } },
@@ -500,6 +532,7 @@ export const assets: Asset[] = [
     id: 'cozinha',
     name: 'Cozinha linear',
     category: 'cozinha',
+    role: 'counter',
     summary: 'Balcão com gaveteiro e portas, e armário aéreo alinhado em cima',
     keywords: ['cozinha', 'armário de cozinha', 'balcão e aéreo', 'planejado de cozinha'],
     size: { default: { width: 2400, height: 2200, depth: 580 }, min: { width: 1200, height: 2000, depth: 500 }, max: { width: 3600, height: 2400, depth: 650 } },
@@ -524,14 +557,20 @@ export const assets: Asset[] = [
         position: [0, 1500, -p.depth / 2 + upperD / 2],
         wall: true,
       });
-      up.forEach((id, i) => b.front(b.root(id), widths[i] >= 600 ? 'double' : 'single', { materialId: p.front, hinge: 'right' }));
+      // Minimalista: aéreo de basculante, quando a altura deixa.
+      up.forEach((id, i) =>
+        p.style === 'minimalist' && flaps(inner(upperH))
+          ? b.front(b.root(id), 'flap', { materialId: p.front })
+          : b.front(b.root(id), widths[i] >= 600 ? 'double' : 'single', { materialId: p.front, hinge: 'right' }),
+      );
     },
   },
   {
     id: 'balcao-cozinha',
     name: 'Balcão de cozinha',
     category: 'cozinha',
-    summary: 'Gabinete de pia ou balcão com gaveteiro, sem tampo',
+    role: 'counter',
+    summary: 'Gabinete de pia ou balcão com gaveteiro',
     keywords: ['balcão', 'gabinete de pia', 'pia', 'cozinha', 'bancada'],
     size: { default: { width: 1800, height: 850, depth: 580 }, min: { width: 800, height: 750, depth: 450 }, max: { width: 3600, height: 950, depth: 650 } },
     body: 'white',
@@ -555,6 +594,7 @@ export const assets: Asset[] = [
     id: 'aereo-cozinha',
     name: 'Armário aéreo',
     category: 'cozinha',
+    role: 'wall',
     summary: 'Armário suspenso de portas, preso na parede',
     keywords: ['aéreo', 'aereo', 'armário suspenso', 'armário de parede', 'cozinha', 'lavanderia'],
     size: { default: { width: 1800, height: 700, depth: 350 }, min: { width: 600, height: 400, depth: 280 }, max: { width: 3600, height: 900, depth: 450 } },
@@ -567,13 +607,18 @@ export const assets: Asset[] = [
       const n = columns(p.width, 700, 1, 6);
       const widths = widthsOf(p.width, n);
       const ids = b.row('a', widths.map((_, i) => (n === 1 ? 'Aéreo' : `Aéreo ${i + 1}`)), widths, p.height, p.depth, p.body, { position: [0, 1500, 0], wall: true });
-      ids.forEach((id, i) => b.front(b.root(id), widths[i] >= 600 ? 'double' : 'single', { materialId: p.front, hinge: 'right' }));
+      ids.forEach((id, i) =>
+        p.style === 'minimalist' && flaps(inner(p.height))
+          ? b.front(b.root(id), 'flap', { materialId: p.front })
+          : b.front(b.root(id), widths[i] >= 600 ? 'double' : 'single', { materialId: p.front, hinge: 'right' }),
+      );
     },
   },
   {
     id: 'gabinete-banheiro',
     name: 'Gabinete de banheiro',
     category: 'cozinha',
+    role: 'wall',
     summary: 'Gabinete suspenso com gavetas, para a cuba',
     keywords: ['banheiro', 'gabinete', 'lavabo', 'cuba', 'pia do banheiro'],
     size: { default: { width: 800, height: 500, depth: 450 }, min: { width: 450, height: 350, depth: 350 }, max: { width: 1600, height: 650, depth: 550 } },
@@ -592,6 +637,7 @@ export const assets: Asset[] = [
     id: 'armario-escritorio',
     name: 'Armário de escritório',
     category: 'escritorio',
+    role: 'tall',
     summary: 'Portas embaixo para pastas e nichos abertos em cima',
     keywords: ['escritório', 'home office', 'armário de escritório', 'arquivo', 'estante com portas'],
     size: { default: { width: 1600, height: 2000, depth: 400 }, min: { width: 600, height: 1400, depth: 300 }, max: { width: 3600, height: 2400, depth: 500 } },
@@ -616,6 +662,7 @@ export const assets: Asset[] = [
     id: 'sapateira',
     name: 'Sapateira de entrada',
     category: 'servico',
+    role: 'low',
     summary: 'Nichos para sapatos, porta e gavetas',
     keywords: ['sapateira', 'entrada', 'hall', 'sapatos', 'calçados'],
     size: { default: { width: 1600, height: 1100, depth: 350 }, min: { width: 800, height: 800, depth: 300 }, max: { width: 2400, height: 1600, depth: 450 } },
@@ -643,6 +690,7 @@ export const assets: Asset[] = [
     id: 'armario-lavanderia',
     name: 'Armário de lavanderia',
     category: 'servico',
+    role: 'tall',
     summary: 'Vassoureiro alto ao lado de portas, nicho e maleiro',
     keywords: ['lavanderia', 'área de serviço', 'vassoureiro', 'armário de limpeza'],
     size: { default: { width: 1200, height: 2200, depth: 500 }, min: { width: 900, height: 1800, depth: 400 }, max: { width: 1600, height: 2400, depth: 600 } },
@@ -669,36 +717,64 @@ export function assetById(id: string) {
   return assets.find((a) => a.id === id);
 }
 
-/** Medidas pedidas dentro dos limites do ativo, com o padrão no que faltar. */
+/**
+ * Medidas pedidas dentro dos limites do ativo, com o padrão no que faltar.
+ * Com estilo, o que a pessoa não disse vem dele: a proporção do móvel novo
+ * (anos 60 baixo e comprido, japandi baixo), os pés na altura do estilo e o
+ * corpo e as frentes da paleta.
+ */
 export function resolveInput(asset: Asset, want: Partial<AssetInput> = {}): AssetInput {
+  const style = want.style;
+  const scale = style && (asset.role === 'low' || asset.role === 'tall') ? styleProportion(style, asset.role) : { width: 1, height: 1 };
   const pick = (k: keyof AssetSize) => {
-    const v = want[k] ?? asset.size.default[k];
+    const factor = k === 'width' ? scale.width : k === 'height' ? scale.height : 1;
+    const v = want[k] ?? clamp(Math.round(asset.size.default[k] * factor), asset.size.min[k], asset.size.max[k]);
     if (v < asset.size.min[k] || v > asset.size.max[k])
       throw new Error(
         `${asset.name}: ${k === 'width' ? 'largura' : k === 'height' ? 'altura' : 'profundidade'} de ${asset.size.min[k]} a ${asset.size.max[k]} mm.`,
       );
     return Math.round(v);
   };
-  const feet = asset.feet === undefined ? 0 : (want.feet ?? asset.feet);
+  const styled = style && asset.feet !== undefined ? styleFeet(style, asset.role === 'counter' ? 'counter' : 'low') : undefined;
+  const feet = asset.feet === undefined ? 0 : (want.feet ?? styled ?? asset.feet);
   if (asset.feet === undefined && want.feet)
     throw new Error(`${asset.name} não leva pés.`);
   if (feet && (feet < 50 || feet > 300)) throw new Error('Pés: 0 (sem pés) ou de 50 a 300 mm.');
+  const palette = style ? STYLES[style].palette : undefined;
   return {
     width: pick('width'),
     height: pick('height'),
     depth: pick('depth'),
-    body: want.body ?? asset.body,
-    front: want.front ?? want.body ?? asset.front,
+    body: want.body ?? palette?.body ?? asset.body,
+    front: want.front ?? want.body ?? palette?.front ?? asset.front,
     feet,
+    ...(style ? { style } : {}),
   };
 }
 
-/** Monta o ativo sozinho, com ids `<prefixo><chave>`, e valida. */
+/** Boas-vindas do móvel novo no estilo: o que foi montado e o que pedir. */
+export function introOf(asset: Asset, p: AssetInput) {
+  if (!p.style) return asset.intro(p);
+  const s = STYLES[p.style];
+  return `${asset.name} de ${cm(p.width)} × ${cm(p.height)} × ${cm(p.depth)} cm no estilo ${s.label}: ${s.summary.charAt(0).toLowerCase()}${s.summary.slice(1)}. Peça para trocar de estilo, mudar as cores ou as medidas.`;
+}
+
+/**
+ * Monta o ativo sozinho, com ids `<prefixo><chave>`, e valida. Com estilo, a
+ * receita adapta a estrutura (correr no armário minimalista, estante aberta
+ * no escandinavo) e `applyStyle` veste o resultado, guardando o envelope.
+ */
 export function buildAsset(asset: Asset, want: Partial<AssetInput> = {}, pre = ''): Composition {
   const input = resolveInput(asset, want);
   const b = new Builder(pre);
   try {
     asset.build(b, input);
+    if (input.style)
+      b.d = applyStyle(b.d!, input.style, {
+        ...(want.body ? { body: want.body } : {}),
+        ...((want.front ?? want.body) ? { front: want.front ?? want.body } : {}),
+        ...(want.feet !== undefined && asset.feet !== undefined ? { feet: want.feet } : {}),
+      });
   } catch (e) {
     throw new Error(`${asset.name}: ${(e as Error).message}`);
   }
@@ -718,6 +794,8 @@ export const assetOpSchema = z
     materialId: z.enum(materialIds).optional(),
     frontMaterialId: z.enum(materialIds).optional(),
     feet: z.number().min(0).max(300).optional(),
+    /** Estilo do móvel; ausente, segue o do projeto quando entra ao lado. */
+    style: z.enum(STYLE_IDS).optional(),
     placement: z.enum(['replace', 'right', 'left']).default('replace'),
   })
   .strict();
@@ -747,9 +825,11 @@ export function applyAssetOp(d: Composition, raw: AssetOp): Composition {
   const pre = op.id ? `${op.id}-` : freePrefix(d, op.asset);
   if (op.placement !== 'replace' && d.modules.some((m) => m.id.startsWith(pre)))
     throw new Error(`Prefixo ${op.id} já usado no projeto: escolha outro id.`);
+  // Móvel que entra ao lado segue o estilo do projeto, se a pessoa não disse outro.
+  const style = op.style ?? (op.placement === 'replace' ? undefined : d.style);
   const piece = buildAsset(
     asset,
-    { width: op.width, height: op.height, depth: op.depth, body: op.materialId, front: op.frontMaterialId, feet: op.feet },
+    { width: op.width, height: op.height, depth: op.depth, body: op.materialId, front: op.frontMaterialId, feet: op.feet, ...(style ? { style } : {}) },
     pre,
   );
   if (op.placement === 'replace') return piece;
