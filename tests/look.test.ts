@@ -205,8 +205,9 @@ void test('ferragens: pés de cada tipo dentro da planta, estrutura em metros, L
   assert.equal(stand.length, 1);
   assert.equal(Math.round(stand[0].bom.qty * 1000), 4 * 200 + 2 * 560 + 2 * 410);
   const framed = fittingsOf(withLook(row(2), { frame: true, led: true }));
-  // 12 arestas no primeiro, 8 no segundo (a lateral dividida fica com o primeiro).
-  assert.equal(framed.filter((f) => f.kind === 'frame').length, 20);
+  // Contorno do conjunto: 12 arestas por fora e, na junta, só a coluna da
+  // frente (sem cruzar o tampo nem o fundo): 4 + 4 + 1 no primeiro, 4 + 4 no segundo.
+  assert.equal(framed.filter((f) => f.kind === 'frame').length, 17);
   assert.equal(framed.filter((f) => f.kind === 'led').length, 2);
   const q = quoteOf(withLook(row(2), { frame: true }), DEFAULT_PRICES);
   assert.ok(q.lines.some((l) => l.label === 'Estrutura em aço preto (tubo 20 × 20)'));

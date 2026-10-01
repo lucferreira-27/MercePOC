@@ -106,7 +106,7 @@ export function renderPrintShot(
     // Ferragens com a forma de verdade (pé inclinado, estrutura de aço), não
     // a caixa que o desenho usa: a caixa delas sai das peças.
     const fitted = new Set(fittings.map((f) => f.id));
-    motion.update(parts.filter((p) => !fitted.has(p.id)), params, false, [], 0, true, 0);
+    motion.update(parts.filter((p) => !fitted.has(p.id) && !p.decal), params, false, [], 0, true, 0);
     const box = new THREE.Box3();
     for (const e of motion.entries.values()) box.expandByObject(e.mesh);
     if (fittings.length) {

@@ -89,6 +89,13 @@ Branch `feat/estilos-5-ia`.
 - Bench: group `estilos` with cases like "estante industrial", "aparador anos 60", "criado-mudo escandinavo", "cozinha rústica", "cômoda clássica", "rack minimalista", "mesa de centro japandi", "deixe este móvel industrial" and a held-out pair written before the first run. Run live with the default model and record fixtures.
 - `docs/STYLES.md`: how to add a style, a part (leg, handle, front face) and a material.
 
+## Reference check: the industrial rack from the user's photo
+
+The user sent a photo of an industrial TV rack as an acceptance target: black steel frame around the piece, two doors with expanded-metal mesh in black frames, an open niche with a shelf in the middle, light wood body and top, black bar pulls and square tube legs that continue the frame posts.
+
+- **Phase 2 (parts library):** built only with contract operations (the same `design_apply` ops the assistant uses) in `tests/reference-rack.test.ts`, and captured in the running app next to the photo. Gaps it exposed and that phase 2 closes: diamond (expanded-metal) mesh instead of a square wire grid, tube legs that line up with the steel outline, and an outline that keeps only the front posts between bays instead of crossing the top at every joint. Still missing: exposed (visible) hinges, a small accent.
+- **Phase 5 (assistant):** a bench case asks for it in words ("rack industrial de 1,6 m com estrutura de aço preto, portas de tela nas pontas, nicho aberto no meio com prateleira, madeira clara e pés de tubo") and checks the same features. With the photo saved as `bench/images/rack-industrial.jpg` (local, not versioned, like the other photo cases), a photo case also runs the copy-from-photo path.
+
 ## Risks and how they are contained
 
 - **Part and prompt budgets.** Faces and slats are one part each (the face is geometry, not extra cut parts), so the 200 part limit holds; the catalog line is shortened and tested.

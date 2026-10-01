@@ -66,14 +66,17 @@ void test('puxador: porta do lado oposto à dobradiça, gaveta só na frente', (
     position: [200, 900, 180],
     rotation: 0,
     motion: { id: 'm', type: 'door', pivot: [0, 900, 180] as [number, number, number] },
+    handle: { type: 'bar', materialId: 'steel-brushed' },
   } as unknown as Part;
   const spec = handleSpec(door as never)!;
+  // O vidro da porta abre junto com ela, mas puxador é só da frente.
+  assert.equal(handleSpec({ ...door, id: 'a:door-l:insert', handle: undefined } as never), null);
   assert.equal(spec.vertical, true);
   assert.ok(spec.x > 0, 'dobradiça à esquerda, puxador à direita');
   assert.equal(spec.y + 900, 1000, 'porta alta: puxador a 1 m do piso');
   const box = { id: 'a:drawer-0:side-l', size: [18, 150, 400], position: [0, 100, 0], motion: { type: 'drawer', pivot: [0, 0, 0] } };
   assert.equal(handleSpec(box as never), null);
-  const front = { ...box, id: 'a:drawer-0:front', size: [600, 180, 18] };
+  const front = { ...box, id: 'a:drawer-0:front', size: [600, 180, 18], handle: { type: 'bar', materialId: 'steel-brushed' } };
   assert.equal(handleSpec(front as never)?.vertical, false);
 });
 

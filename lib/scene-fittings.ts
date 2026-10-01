@@ -164,3 +164,87 @@ export function buildFittings(fittings: readonly Fitting[]) {
     },
   };
 }
+
+/**
+ * Puxador na frente: um grupo com a origem no ponto de pegar (na face da
+ * frente), desenhado na medida real. A cena prende o grupo na peça da frente,
+ * então ele abre junto com a porta, a gaveta ou a folha de correr.
+ */
+export function handleShape(type: string, spec: { vertical: boolean; len: number; x: number }, materialId: string, color: string) {
+  const disposables: Disposable[] = [];
+  const machined = type === 'groove' || type === 'cutout';
+  const metal = !machined && type !== 'strap';
+  const material = new THREE.MeshStandardMaterial({
+    color: type === 'strap' ? '#6b4a32' : machined ? '#1c1a18' : color,
+    metalness: metal ? (materialId === 'steel-black' ? 0.55 : 0.85) : 0,
+    roughness: metal ? (materialId === 'steel-black' ? 0.45 : 0.3) : machined ? 0.95 : 0.6,
+  });
+  disposables.push(material);
+  const g = new THREE.Group();
+  // Desenha deitado (ao longo de x) e gira para a porta, em pé.
+  const body = new THREE.Group();
+  const len = spec.len;
+  const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
+  switch (type) {
+    case 'knob': {
+      body.add(rod(v(0, 0, 0), v(0, 0, 14), 5, 5, material, disposables));
+      const head = new THREE.SphereGeometry(15, 20, 14);
+      disposables.push(head);
+      const mesh = new THREE.Mesh(head, material);
+      mesh.scale.z = 0.62;
+      mesh.position.z = 20;
+      body.add(mesh);
+      break;
+    }
+    case 'cup': {
+      // Concha: meia cana aberta para baixo, presa numa chapinha.
+      body.add(block([104, 36, 2], [0, 0, 1], material, disposables));
+      const shell = new THREE.CylinderGeometry(15, 15, 96, 24, 1, true, 0, Math.PI);
+      disposables.push(shell);
+      const mesh = new THREE.Mesh(shell, material);
+      mesh.material.side = THREE.DoubleSide;
+      mesh.rotation.z = Math.PI / 2;
+      mesh.rotation.y = -Math.PI / 2;
+      mesh.position.set(0, 4, 3);
+      body.add(mesh);
+      break;
+    }
+    case 'edge':
+      // Perfil na borda: aba na frente e capa por cima da borda da chapa.
+      body.add(block([len, 26, 2], [0, -6, 1], material, disposables));
+      body.add(block([len, 2, 20], [0, 8, -9], material, disposables));
+      break;
+    case 'groove':
+      body.add(block([len, 18, 2], [0, 0, 1], material, disposables));
+      break;
+    case 'cutout':
+      body.add(block([110, 32, 2], [0, 0, 1], material, disposables));
+      break;
+    case 'strap': {
+      // Alça de couro: tira solta da frente, presa nas pontas com rebites.
+      body.add(block([90, 26, 3], [0, 0, 12], material, disposables));
+      for (const x of [-42, 42]) body.add(block([8, 26, 12], [x, 0, 6], material, disposables));
+      const rivet = new THREE.MeshStandardMaterial({ color: '#c7a14b', metalness: 0.85, roughness: 0.3 });
+      disposables.push(rivet);
+      for (const x of [-42, 42]) body.add(rod(v(x, 0, 12), v(x, 0, 14.5), 3.5, 3.5, rivet, disposables));
+      break;
+    }
+    default:
+      // Barra com dois pés, como sempre foi.
+      body.add(block([len, 12, 12], [0, 0, 26], material, disposables));
+      for (const end of [-1, 1]) body.add(block([10, 10, 20], [end * (len / 2 - 10), 0, 10], material, disposables));
+  }
+  // Em pé, a borda do perfil aponta para o lado de fora da porta.
+  if (spec.vertical) body.rotation.z = type === 'edge' && spec.x < 0 ? -Math.PI / 2 : Math.PI / 2;
+  g.add(body);
+  g.traverse((o) => {
+    if ((o as THREE.Mesh).isMesh) o.castShadow = !machined;
+  });
+  return {
+    group: g,
+    material,
+    dispose() {
+      for (const d of disposables) d.dispose();
+    },
+  };
+}

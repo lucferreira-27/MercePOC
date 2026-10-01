@@ -72,6 +72,8 @@ export const HARDWARE = {
   'handle-edge': { label: 'Puxador perfil de borda', unit: 'un', price: 36 },
   'handle-strap': { label: 'Alça de couro', unit: 'un', price: 32 },
   'handle-none': { label: 'Fecho toque (sem puxador)', unit: 'un', price: 24 },
+  sliding: { label: 'Kit de porta de correr (trilho e roldanas, por folha)', unit: 'un', price: 95 },
+  lift: { label: 'Pistão de basculante', unit: 'un', price: 38 },
   led: { label: 'Fita de LED com perfil', unit: 'm', price: 39 },
   weld: { label: 'Serralheria (corte, solda e pintura)', unit: 'm', price: 18 },
   machining: { label: 'Usinagem de frentes (moldura, ripado, quadro, cava)', unit: 'frentes', price: 45 },
@@ -293,7 +295,12 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
   }
   const doors = parts.filter((p) => p.kind === 'door');
   const drawers = parts.filter((p) => p.kind === 'drawer' && p.id.endsWith(':front'));
-  const hinges = doors.reduce((a, d) => a + hingesFor(d.size[1]), 0);
+  // Dobradiça só em porta que gira: a de giro pela altura da folha, a
+  // basculante duas (mais o pistão); folha de correr vai no trilho.
+  const sliding = doors.filter((p) => p.motion?.type === 'slide');
+  const flaps = doors.filter((p) => p.motion?.type === 'flap');
+  const hinged = doors.filter((p) => p.motion?.type !== 'slide' && p.motion?.type !== 'flap');
+  const hinges = hinged.reduce((a, d) => a + hingesFor(d.size[1]), 0) + 2 * flaps.length;
   if (hinges)
     lines.push({
       section: 'Ferragens',
@@ -304,8 +311,12 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
       unit: 'un',
       unitPrice: prices.hinge,
       total: hinges * prices.hinge,
-      note: `${doors.length} ${doors.length === 1 ? 'porta' : 'portas'}, pela altura de cada folha`,
+      note: `${hinged.length + flaps.length} ${hinged.length + flaps.length === 1 ? 'porta' : 'portas'}, pela altura de cada folha${flaps.length ? '; basculante leva duas' : ''}`,
     });
+  if (flaps.length)
+    lines.push({ section: 'Ferragens', parts: flaps.map((p) => p.id), price: { hardware: 'lift' }, label: HARDWARE.lift.label, qty: flaps.length, unit: 'un', unitPrice: hw.lift, total: flaps.length * hw.lift });
+  if (sliding.length)
+    lines.push({ section: 'Ferragens', parts: sliding.map((p) => p.id), price: { hardware: 'sliding' }, label: HARDWARE.sliding.label, qty: sliding.length, unit: 'un', unitPrice: hw.sliding, total: sliding.length * hw.sliding });
   if (drawers.length)
     lines.push({
       section: 'Ferragens',
