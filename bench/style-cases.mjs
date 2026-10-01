@@ -156,6 +156,62 @@ export const styleCases = [
     },
     learned: 'A foto do rack industrial que a pessoa mandou, descrita em palavras.',
   },
+  // Os cinco estilos que vieram depois (boho, brasileiro, art déco, provençal, praiano).
+  {
+    id: 'sty-10',
+    group: 'estilos',
+    askAct: 'agir',
+    agentOnly: true,
+    prompt: 'Aparador boho com palhinha',
+    expect: {
+      action: ['update'],
+      design: (d) => (d.style === 'boho' || most(d, (m) => m.look?.handle === 'strap') ? true : `estilo ${d.style ?? '-'}, sem alça de couro`),
+    },
+  },
+  {
+    id: 'sty-11',
+    group: 'estilos',
+    askAct: 'agir',
+    agentOnly: true,
+    prompt: 'Rack modernista brasileiro em freijó',
+    expect: {
+      action: ['update'],
+      design: (d) => (most(d, (m) => m.materialId === 'freijo') && most(d, legs('palito', 'splayed')) ? true : 'sem freijó ou sem pé palito'),
+    },
+  },
+  {
+    id: 'sty-12',
+    group: 'estilos',
+    askAct: 'agir',
+    agentOnly: true,
+    prompt: 'Quero um buffet art déco, preto com dourado',
+    expect: {
+      action: ['update'],
+      design: (d) => (most(d, (m) => m.look?.handleMaterialId === 'brass' || m.look?.legMaterialId === 'brass') ? true : 'sem latão'),
+    },
+  },
+  {
+    id: 'sty-13',
+    group: 'estilos',
+    askAct: 'agir',
+    agentOnly: true,
+    prompt: 'Cômoda provençal branca',
+    expect: {
+      action: ['update'],
+      design: (d) => (most(d, legs('turned')) && most(d, (m) => m.materialId === 'white') ? true : 'sem pé torneado ou não é branca'),
+    },
+  },
+  {
+    id: 'sty-14',
+    group: 'estilos',
+    askAct: 'agir',
+    agentOnly: true,
+    prompt: 'Criado-mudo para casa de praia',
+    expect: {
+      action: ['update'],
+      design: (d) => (d.style === 'coastal' || most(d, (m) => m.look?.front === 'slatted') ? true : `estilo ${d.style ?? '-'}`),
+    },
+  },
   // Escritos antes da primeira rodada: não ajustam o prompt.
   {
     id: 'sty-h1',
