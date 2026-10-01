@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { applyModularOp, generateComposition, openAllGroups, openingLimit, openingPose, preset, PROFILE, SCHEMA_VERSION, SLIDE_TRACK, type Composition, type Module } from '../lib/composition';
 import { fittingsOf, handlePlacement } from '../lib/fittings';
 import { DEFAULT_PRICES, quoteOf } from '../lib/quote';
+import { surfaceKind } from '../lib/scene-materials';
 
 const box = (id: string, extra: Partial<Module> = {}): Module => ({ ...preset('niche', id), width: 1000, height: 2000, depth: 600, ...extra });
 const one = (m: Module): Composition => ({ schemaVersion: SCHEMA_VERSION, profile: PROFILE, modules: [m], connections: [] });
@@ -120,6 +121,17 @@ void test('porta de serralheria: quadro de aço com tela ou almofada de madeira,
   // Aço só como quadro: porta lisa ou gaveta de aço não.
   assert.throws(() => applyModularOp(one(box('b')), { kind: 'front.set', id: 'b:root', type: 'single', materialId: 'steel-black' }), /Aço só no quadro de uma porta/);
   assert.throws(() => applyModularOp(one(box('c', { look: { front: 'mesh' } })), { kind: 'front.set', id: 'c:root', type: 'drawers', count: 2, materialId: 'steel-black' }), /Aço só no quadro de uma porta/);
+});
+
+void test('na cena, metal só vira tela no miolo: quadro, tampo e moldura de aço são chapa cheia', () => {
+  let d = one(box('a', { width: 800, height: 900, depth: 450, look: { front: 'mesh', insertMaterialId: 'brass', top: { materialId: 'steel-brushed', thickness: 4, overhang: 10, edge: 'square' } } }));
+  d = applyModularOp(d, { kind: 'front.set', id: 'a:root', type: 'double', materialId: 'steel-black' });
+  const parts = generateComposition(d).parts.filter((p) => p.category === 'metal');
+  const kinds = new Map(parts.map((p) => [p.kind, surfaceKind(p.materialId!, p.kind)]));
+  assert.deepEqual(Object.fromEntries(kinds), { door: null, insert: 'mesh', slab: null });
+  assert.equal(surfaceKind('nero', 'slab'), 'stone');
+  assert.equal(surfaceKind('glass-ribbed', 'insert'), 'ribbed');
+  assert.equal(surfaceKind('glass-clear', 'insert'), null);
 });
 
 void test('painel de ferramentas: chapa perfurada só em painel de parede, com usinagem', () => {

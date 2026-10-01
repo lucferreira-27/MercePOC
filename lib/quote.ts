@@ -491,3 +491,9 @@ const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' 
 export function money(value: number) {
   return brl.format(value);
 }
+
+/** Quantidade com a vírgula de casa: 4,66 m de tubo, 0,023 m³ de maciço. */
+const amount = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 3 });
+export function quantity(value: number) {
+  return amount.format(value);
+}

@@ -4,7 +4,7 @@ import { planDataUrl } from '../plan-render';
 import { sceneDrawingParts } from '../scene-parts';
 import { cutPlan } from '../cutplan';
 import { materialIds, PART_KINDS, type PartKind } from '../furniture';
-import { edgeSides, mergePrices, money, quoteOf, type Prices } from '../quote';
+import { edgeSides, mergePrices, money, quantity, quoteOf, type Prices } from '../quote';
 import {
   applyObstacleEdits,
   furnitureOnWall,
@@ -112,7 +112,7 @@ const quoteRead = tool({
   running: () => 'Calculando o orçamento',
   run: (ctx) => {
     const q = quoteOf(canonical(ctx.design), ctx.prices);
-    const lines = q.lines.map((l) => `${l.section} | ${l.label} | ${l.qty} ${l.unit} × ${money(l.unitPrice)} = ${money(l.total)}`);
+    const lines = q.lines.map((l) => `${l.section} | ${l.label} | ${quantity(l.qty)} ${l.unit} × ${money(l.unitPrice)} = ${money(l.total)}`);
     ctx.note('quote');
     return ok(
       [...lines, `Custo ${money(q.cost)} + margem ${ctx.prices.margin}% ${money(q.marginValue)} = total ${money(q.total)}`].join('\n'),

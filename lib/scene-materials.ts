@@ -143,20 +143,34 @@ export function panelUV(geometry: THREE.BufferGeometry, size: readonly [number, 
 }
 
 /**
- * Textura própria de pedra, palhinha, tela e vidro canelado, já na cor do
- * material (a cor da peça fica branca para não tingir de novo). Palhinha e
- * tela têm furos: o material usa `alphaTest` e as duas faces. Mesma escala
- * de `panelUV` (1400 × 700 mm por repetição).
+ * Que superfície própria a peça tem, se tem: pedra com veios, palhinha, tela
+ * e vidro canelado. Metal só é tela no miolo do quadro (`insert`): tampo,
+ * quadro de porta e moldura de aço são chapa cheia, sem furo.
  */
-export function surfaceTexture(materialId: string): THREE.Texture | null {
-  if (typeof document === 'undefined') return null;
+export function surfaceKind(materialId: string, kind?: string): 'stone' | 'cane' | 'mesh' | 'ribbed' | null {
   const m = materials.find((v) => v.id === materialId);
-  if (!m || !['stone', 'cane', 'glass', 'metal'].includes(m.finish)) return null;
-  if (m.finish === 'glass' && m.id !== 'glass-ribbed') return null;
+  if (!m) return null;
+  if (m.finish === 'stone') return 'stone';
+  if (m.finish === 'cane') return 'cane';
+  if (m.finish === 'metal') return kind === 'insert' ? 'mesh' : null;
+  return m.id === 'glass-ribbed' ? 'ribbed' : null;
+}
+
+/**
+ * Textura própria (`surfaceKind`), já na cor do material (a cor da peça fica
+ * branca para não tingir de novo). Palhinha e tela têm furos: misturam pelo
+ * alfa (`blend`) e mostram as duas faces. Mesma escala de `panelUV` (1400 ×
+ * 700 mm por repetição).
+ */
+export function surfaceTexture(materialId: string, kind?: string): THREE.Texture | null {
+  if (typeof document === 'undefined') return null;
+  const surface = surfaceKind(materialId, kind);
+  const m = materials.find((v) => v.id === materialId);
+  if (!surface || !m) return null;
   const key = `surface:${m.id}`;
   if (cache.has(key)) return cache.get(key)!;
   const texture =
-    m.finish === 'stone' ? stoneTexture(m.color, hash(m.id)) : m.finish === 'cane' ? caneTexture(m.color) : m.finish === 'metal' ? meshTexture(m.color) : ribbedTexture(m.color);
+    surface === 'stone' ? stoneTexture(m.color, hash(m.id)) : surface === 'cane' ? caneTexture(m.color) : surface === 'mesh' ? meshTexture(m.color) : ribbedTexture(m.color);
   cache.set(key, texture);
   return texture;
 }
@@ -252,7 +266,7 @@ function caneTexture(hex: string) {
         data[i + 3] = hole ? 0 : 255;
       }
   });
-  if (texture) texture.userData = { roughness: 0.75, white: true, alphaTest: 0.5, doubleSide: true };
+  if (texture) texture.userData = { roughness: 0.75, white: true, blend: true, doubleSide: true };
   return texture;
 }
 
@@ -273,7 +287,7 @@ function meshTexture(hex: string) {
         // Distância à borda do losango da célula: perto da borda é fio.
         const u = Math.abs(((x % cx) / cx) * 2 - 1),
           v = Math.abs(((y % cy) / cy) * 2 - 1);
-        const wire = Math.abs(u + v - 1) < 0.16;
+        const wire = Math.abs(u + v - 1) < 0.18;
         const i = (y * W + x) * 4;
         data[i] = r;
         data[i + 1] = g;
@@ -281,7 +295,9 @@ function meshTexture(hex: string) {
         data[i + 3] = wire ? 255 : 0;
       }
   });
-  if (texture) texture.userData = { roughness: 0.4, white: true, alphaTest: 0.5, doubleSide: true };
+  // Sem corte por alfa: de longe o fio fino some no mipmap e sobravam
+  // pontinhos (ou moiré, na palhinha); misturando, vira um véu, como no real.
+  if (texture) texture.userData = { roughness: 0.4, white: true, blend: true, doubleSide: true };
   return texture;
 }
 

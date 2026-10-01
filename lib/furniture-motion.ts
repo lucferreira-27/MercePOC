@@ -87,6 +87,11 @@ type AnimatedPart = {
   handle?: Handle;
   /** Opacidade da superfície (vidro, tela): o esmaecer do diff multiplica por ela. */
   alpha: number;
+  /**
+   * Textura com transparência própria (a tela): sempre no passe
+   * transparente, para o fio fino de longe virar um véu, não pontinhos.
+   */
+  blend?: boolean;
   pivot?: THREE.Vector3;
   /** Eixo do arco ao abrir: vertical (porta) ou o x da peça (basculante). */
   axis?: 'y' | 'x';
@@ -269,7 +274,7 @@ export class FurnitureMotion {
     for (const part of parts) {
       // Moldura, ripado, quadro e borda: geometria na medida real, escala 1.
       const shape = faceKey(part.face, part.size);
-      const special = part.face?.kind === 'perforated' ? perforatedTexture(part.color ?? color) : part.materialId ? surfaceTexture(part.materialId) : null;
+      const special = part.face?.kind === 'perforated' ? perforatedTexture(part.color ?? color) : part.materialId ? surfaceTexture(part.materialId, part.kind) : null;
       const target: Pose = {
         position: visualPosition(
           part,
@@ -368,10 +373,10 @@ export class FurnitureMotion {
         m.map = map;
         m.roughness = special?.userData.roughness ?? surface?.roughness ?? map?.userData.roughness ?? 0.72;
         m.metalness = surface?.metalness ?? 0;
-        // Palhinha e tela vazadas: o furo some, e o miolo aparece dos dois lados.
-        m.alphaTest = special?.userData.alphaTest ?? 0;
+        // Palhinha e tela vazadas: o furo deixa ver o miolo, dos dois lados.
         m.side = special?.userData.doubleSide ? THREE.DoubleSide : THREE.FrontSide;
-        entry.alpha = special?.userData.alphaTest ? 1 : (surface?.alpha ?? 1);
+        entry.blend = !!special?.userData.blend;
+        entry.alpha = entry.blend ? 1 : (surface?.alpha ?? 1);
         m.needsUpdate = true;
         // A geometria com forma já nasce com a textura em mm (`mmUV`).
         if (!shape) panelUV(entry.mesh.geometry, part.size);
@@ -503,7 +508,8 @@ export class FurnitureMotion {
       const fade = this.diff && this.diff.dim !== false && !mark && !e.selected ? 0.32 : 1;
       e.mesh.material.opacity =
         THREE.MathUtils.lerp(e.from.opacity, e.to.opacity, t) * fade * e.alpha;
-      const transparent = e.mesh.material.opacity < 0.999;
+      const faded = e.mesh.material.opacity < 0.999;
+      const transparent = faded || !!e.blend;
       if (e.mesh.material.transparent !== transparent) {
         e.mesh.material.transparent = transparent;
         e.mesh.material.needsUpdate = true;
@@ -511,8 +517,8 @@ export class FurnitureMotion {
       e.mesh.material.depthWrite = !transparent;
       if (e.handle) {
         e.handle.material.opacity = e.mesh.material.opacity;
-        if (e.handle.material.transparent !== transparent) {
-          e.handle.material.transparent = transparent;
+        if (e.handle.material.transparent !== faded) {
+          e.handle.material.transparent = faded;
           e.handle.material.needsUpdate = true;
         }
       }

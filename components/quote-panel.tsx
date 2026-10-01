@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Check, ChevronDown, Copy, Crosshair, Minus, Plus, RotateCcw } from 'lucide-react';
 import { CATEGORY_INFO, materials, type MaterialCategory } from '@/lib/furniture';
-import { DEFAULT_PRICES, HARDWARE, HARDWARE_KEYS, money, type HardwareKey, type PriceRef, type Prices, type Quote, type QuoteLine, type QuoteSection } from '@/lib/quote';
+import { DEFAULT_PRICES, HARDWARE, HARDWARE_KEYS, money, quantity, type HardwareKey, type PriceRef, type Prices, type Quote, type QuoteLine, type QuoteSection } from '@/lib/quote';
 
 const SECTION_TONE: Record<QuoteSection, string> = {
   Chapas: 'var(--chart-1)',
@@ -27,7 +27,7 @@ export function quoteText(name: string, q: Quote) {
     const items = q.lines.filter((l) => l.section === section);
     if (!items.length) continue;
     lines.push('', `${section}: ${money(items.reduce((a, l) => a + l.total, 0))}`);
-    for (const l of items) lines.push(`  ${l.label}: ${l.qty} ${l.unit} × ${money(l.unitPrice)} = ${money(l.total)}`);
+    for (const l of items) lines.push(`  ${l.label}: ${quantity(l.qty)} ${l.unit} × ${money(l.unitPrice)} = ${money(l.total)}`);
   }
   lines.push(
     '',
@@ -339,7 +339,7 @@ function Line({
       <div className="quote-line-main">
         <strong>{l.label}</strong>
         <span className="quote-calc">
-          {l.qty} {l.unit} ×{' '}
+          {quantity(l.qty)} {l.unit} ×{' '}
           {l.price ? (
             <span className="inline-price">
               <em>R$</em>
