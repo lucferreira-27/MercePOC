@@ -3411,7 +3411,7 @@ svg.tp-time {
 /* Galeria: o estilo dos modelos, logo abaixo dos cômodos. */
 .gallery-styles {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   flex-basis: 100%;
   min-width: 0;
@@ -3422,11 +3422,17 @@ svg.tp-time {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
+  line-height: 30px;
 }
-.gallery-styles .style-chips {
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  scrollbar-width: none;
+/* Doze estilos: quebram em duas linhas; no celular, correm de lado com a borda esmaecida avisando que tem mais. */
+@media (max-width: 700px) {
+  .gallery-styles .style-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-right: 32px;
+    mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
+  }
 }
 /* Título de grupo dentro do acabamento (o tampo da mesa). */
 .look-subtitle {

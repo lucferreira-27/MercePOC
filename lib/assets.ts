@@ -431,7 +431,7 @@ export const assets: Asset[] = [
       const widths = widthsOf(p.width, n);
       ids.forEach((id, i) => {
         if (i === mid) b.front(b.root(id), 'drawers', { count: clamp(Math.floor(inner(boxH) / 170), 2, 4), materialId: p.front });
-        else if (p.style === 'midcentury' && slides(widths[i], boxH)) b.front(b.root(id), 'sliding', { count: 2, materialId: p.front });
+        else if ((p.style === 'midcentury' || p.style === 'brazilian') && slides(widths[i], boxH)) b.front(b.root(id), 'sliding', { count: 2, materialId: p.front });
         else b.front(b.root(id), 'double', { materialId: p.front });
       });
     },
@@ -874,7 +874,7 @@ export const assets: Asset[] = [
     intro: (p) =>
       `Montei uma estante aberta de ${cm(p.width)} × ${cm(p.height)} × ${cm(p.depth)} cm: estrutura de tubo de aço preto e ${levelsFor(p.height) + 1} níveis de carvalho maciço. Peça mais níveis, outra madeira ou duas torres lado a lado.`,
     room: (_, width) => plainRoom(width),
-    styles: ['industrial', 'minimalist', 'scandinavian', 'japandi'],
+    styles: ['industrial', 'minimalist', 'scandinavian', 'japandi', 'artdeco'],
     build(b, p) {
       b.table('m', 'Estante aberta', [p.width, p.height, p.depth], p.body, { shelves: levelsFor(p.height), look: { legs: 'frame', legMaterialId: 'steel-black', top: { materialId: 'oak-solid', thickness: 30, overhang: 0, edge: 'square' } } });
     },

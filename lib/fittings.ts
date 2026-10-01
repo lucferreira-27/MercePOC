@@ -68,6 +68,7 @@ const LEG_LAYOUT: Partial<Record<LegType, { x: number; z: number; w: number; d?:
   splayed: { x: 75, z: 65, w: 38 },
   block: { x: 30, z: 30, w: 50 },
   bun: { x: 50, z: 50, w: 90 },
+  turned: { x: 50, z: 50, w: 68 },
   hairpin: { x: 40, z: 40, w: 12 },
   tube: { x: 25, z: 25, w: 30 },
   pipe: { x: 45, z: 45, w: 34 },
