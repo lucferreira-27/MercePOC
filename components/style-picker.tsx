@@ -1,5 +1,6 @@
 'use client';
 import { Check, X } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import { STYLE_IDS, type StyleId } from '@/lib/look';
 import { STYLES, styleChips, styleSwatch } from '@/lib/styles';
 import { Button } from './ui/button';
@@ -27,8 +28,17 @@ export function StyleChips({
   disabled?: boolean;
   label?: string;
 }) {
+  const row = useRef<HTMLFieldSetElement>(null);
+  // Fileira que corre de lado (galeria no celular): o estilo escolhido fica à vista.
+  useEffect(() => {
+    const el = row.current;
+    const active = el?.querySelector<HTMLElement>('button.active');
+    if (!el || !active || el.scrollWidth <= el.clientWidth) return;
+    const left = active.offsetLeft - el.offsetLeft;
+    if (left < el.scrollLeft || left + active.offsetWidth > el.scrollLeft + el.clientWidth - 32) el.scrollLeft = left - 16;
+  }, [value]);
   return (
-    <fieldset className="style-chips" aria-label={label}>
+    <fieldset ref={row} className="style-chips" aria-label={label}>
       {none && (
         <button type="button" className={value === null ? 'active' : ''} aria-pressed={value === null} disabled={disabled} onClick={() => onChange(null)}>
           {none}

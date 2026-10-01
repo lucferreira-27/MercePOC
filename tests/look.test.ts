@@ -53,7 +53,8 @@ void test('validação: corpo, frente, pé, tampo e fundo com a categoria certa,
   fails(box('a', { feet: 80, look: { legs: 'hairpin' } }), /pé grampo de 100 a 300 mm \(pediu 80\)/);
   fails(box('a', { look: { legs: 'tube' } }), /pé de tubo quadrado pede a altura em feet/);
   fails(box('a', { feet: 150, look: { legs: 'hairpin', legMaterialId: 'oak' } }), /pé grampo em metal/);
-  fails(box('a', { feet: 150, look: { legs: 'turned' } }), /pé torneado não vai em caixa/);
+  fails(box('a', { feet: 150, look: { legs: 'trestle' } }), /cavalete não vai em caixa/);
+  fails(box('a', { feet: 60, look: { legs: 'turned' } }), /pé torneado de 100 a 300 mm \(pediu 60\)/);
   fails(box('a', { look: { top: { materialId: 'glass-clear', thickness: 30, overhang: 0, edge: 'square' } } }), /tampo de vidro com 6 a 19 mm/);
   fails(box('a', { look: { top: { materialId: 'cane', thickness: 10, overhang: 0, edge: 'square' } } }), /tampo de palhinha não existe/);
   fails(box('a', { look: { top: marble, cornice: true } }), /moldura no topo e tampo sobreposto não vão juntos/);

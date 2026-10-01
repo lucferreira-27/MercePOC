@@ -13,7 +13,20 @@ import { categoryOf, idsOf, materialIds, materialOf, type MaterialCategory, type
  */
 
 /** Estilos do estúdio. A definição de cada um fica em `lib/styles.ts`. */
-export const STYLE_IDS = ['industrial', 'midcentury', 'scandinavian', 'minimalist', 'rustic', 'classic', 'japandi'] as const;
+export const STYLE_IDS = [
+  'industrial',
+  'midcentury',
+  'scandinavian',
+  'minimalist',
+  'rustic',
+  'classic',
+  'japandi',
+  'boho',
+  'brazilian',
+  'artdeco',
+  'provencal',
+  'coastal',
+] as const;
 export type StyleId = (typeof STYLE_IDS)[number];
 
 export const LEG_TYPES = [
@@ -55,7 +68,7 @@ export const LEGS: Record<LegType, LegSpec> = {
   tapered: { name: 'pé cônico de madeira', box: [80, 300], table: true, materials: ['sheet', 'solid'], defaultMaterial: 'oak-solid' },
   splayed: { name: 'pé inclinado', box: [100, 300], table: true, materials: ['sheet', 'solid'], defaultMaterial: 'walnut-solid' },
   block: { name: 'pé quadrado de madeira', box: [40, 200], table: true, materials: ['sheet', 'solid'], defaultMaterial: 'oak-solid' },
-  turned: { name: 'pé torneado', table: true, materials: ['sheet', 'solid'], defaultMaterial: 'walnut-solid' },
+  turned: { name: 'pé torneado', box: [100, 300], table: true, materials: ['sheet', 'solid'], defaultMaterial: 'walnut-solid' },
   bun: { name: 'pé bola', box: [40, 120], materials: ['sheet', 'solid'], defaultMaterial: 'walnut-solid' },
   hairpin: { name: 'pé grampo', box: [100, 300], table: true, materials: ['metal'], defaultMaterial: 'steel-black', metal: true },
   tube: { name: 'pé de tubo quadrado', box: [50, 300], table: true, materials: ['metal'], defaultMaterial: 'steel-black', metal: true },

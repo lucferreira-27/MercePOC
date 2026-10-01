@@ -20,7 +20,8 @@ import {
 
 /**
  * Estilos do estúdio: industrial, anos 60, escandinavo, minimalista, rústico,
- * clássico e japandi. Um estilo é uma receita de acabamento por papel do
+ * clássico, japandi, boho, brasileiro, art déco, provençal e praiano (a
+ * pesquisa dos cinco últimos está em docs/plans/more-styles.md). Um estilo é uma receita de acabamento por papel do
  * móvel (baixo, balcão, alto, aéreo, painel, prateleira): materiais, base,
  * puxador, frente, tampo e detalhes. `applyStyle` grava tudo explícito em cada
  * módulo (`look`, materiais, pés); o gerador nunca lê esta tabela, então mudar
@@ -165,7 +166,7 @@ export const STYLES: Record<StyleId, StyleDef> = {
     name: 'Clássico',
     label: 'clássico',
     summary: 'Creme com frente de moldura, puxador botão de latão, pé bola, tampo de mármore e moldura no topo',
-    keywords: ['clássico', 'clássica', 'classico', 'classica', 'provençal', 'provencal', 'tradicional', 'colonial', 'francês', 'frances'],
+    keywords: ['clássico', 'clássica', 'classico', 'classica', 'tradicional', 'colonial', 'neoclássico', 'neoclassico'],
     palette: { body: 'sand', front: 'sand', panel: 'sand', ledge: 'sand', accent: 'brass' },
     base: { front: 'shaker', handle: 'knob', handleMaterial: 'brass' },
     roles: {
@@ -195,6 +196,108 @@ export const STYLES: Record<StyleId, StyleDef> = {
     panel: { front: 'slatted' },
     proportions: { low: { height: 0.85 }, tall: { height: 0.9 } },
     airy: true,
+  },
+  boho: {
+    id: 'boho',
+    name: 'Boho',
+    label: 'boho',
+    summary: 'Carvalho claro com portas de palhinha, alça de couro, pé cônico de madeira e fundo terracota na estante aberta',
+    keywords: ['boho', 'boêmio', 'boêmia', 'boemio', 'boemia', 'rattan', 'ratan', 'de vime', 'em vime', 'fibra natural', 'étnico', 'étnica', 'etnico', 'etnica', 'hippie'],
+    palette: { body: 'oak', front: 'oak', panel: 'terracotta', ledge: 'oak-solid', accent: 'terracotta' },
+    base: { front: 'cane', insert: 'cane', handle: 'strap' },
+    roles: {
+      low: { legs: { type: 'tapered', height: 150, materialId: 'oak-solid' } },
+      tall: { legs: { type: 'tapered', height: 100, materialId: 'oak-solid' }, back: 'terracotta' },
+      counter: { legs: { type: 'plinth', height: 100 }, top: { materialId: 'oak-solid', thickness: 30, overhang: 20, edge: 'rounded' } },
+      wall: {},
+      table: { legs: { type: 'block', height: 0, materialId: 'oak-solid' }, top: { materialId: 'oak-solid', thickness: 40, overhang: 30, edge: 'rounded' } },
+    },
+    panel: { front: 'flat' },
+    airy: true,
+  },
+  brazilian: {
+    id: 'brazilian',
+    name: 'Brasileiro',
+    label: 'brasileiro moderno',
+    summary: 'Freijó com palhinha, pé palito de madeira maciça, cava no lugar do puxador, proporção baixa e comprida',
+    keywords: [
+      'brasileiro',
+      'brasileira',
+      'modernismo brasileiro',
+      'modernista brasileiro',
+      'design brasileiro',
+      'brasilidade',
+      'tropical',
+      'palhinha',
+      'sergio rodrigues',
+      'zanine',
+      'tenreiro',
+      'jacarandá',
+      'jacaranda',
+    ],
+    palette: { body: 'freijo', front: 'freijo', panel: 'freijo', ledge: 'freijo-solid', accent: 'cane' },
+    base: { front: 'cane', insert: 'cane', handle: 'groove' },
+    roles: {
+      low: { legs: { type: 'palito', height: 200, materialId: 'freijo-solid' } },
+      tall: { legs: { type: 'palito', height: 150, materialId: 'freijo-solid' } },
+      counter: { legs: { type: 'plinth', height: 100 }, top: { materialId: 'freijo-solid', thickness: 30, overhang: 20, edge: 'square' } },
+      wall: {},
+      table: { legs: { type: 'splayed', height: 0, materialId: 'freijo-solid' }, top: { materialId: 'freijo-solid', thickness: 30, overhang: 30, edge: 'rounded' } },
+    },
+    panel: { front: 'slatted' },
+    proportions: { low: { height: 0.9, width: 1.1 } },
+  },
+  artdeco: {
+    id: 'artdeco',
+    name: 'Art déco',
+    label: 'art déco',
+    summary: 'Preto com latão: portas de vidro canelado, puxador barra e pé de latão, tampo de mármore chanfrado e LED na cristaleira',
+    keywords: ['art déco', 'art deco', 'artdeco', 'glam', 'hollywood', 'gatsby', 'anos 20', 'anos 30', 'luxo', 'luxuoso', 'luxuosa'],
+    palette: { body: 'black', front: 'black', panel: 'black', ledge: 'black', accent: 'brass' },
+    base: { front: 'glass', insert: 'glass-ribbed', handle: 'bar', handleMaterial: 'brass' },
+    roles: {
+      low: { legs: { type: 'tube', height: 100, materialId: 'brass' }, top: { materialId: 'marble', thickness: 20, overhang: 15, edge: 'chamfer' } },
+      tall: { legs: { type: 'tube', height: 100, materialId: 'brass' }, led: true },
+      // Cozinha: porta lisa laqueada e bancada de mármore escuro.
+      counter: { legs: { type: 'plinth', height: 100 }, front: 'flat', insert: undefined, top: { materialId: 'nero', thickness: 20, overhang: 15, edge: 'chamfer' } },
+      wall: { led: true },
+      table: { legs: { type: 'sled', height: 0, materialId: 'brass' }, top: { materialId: 'marble', thickness: 20, overhang: 30, edge: 'chamfer' } },
+    },
+    panel: { front: 'slatted' },
+  },
+  provencal: {
+    id: 'provencal',
+    name: 'Provençal',
+    label: 'provençal',
+    summary: 'Branco com portas de almofada, pé torneado, puxador botão de bronze, tampo de carvalho e moldura no topo do armário',
+    keywords: ['provençal', 'provencal', 'francês', 'frances', 'francesa', 'campestre', 'romântico', 'romântica', 'romantico', 'romantica', 'shabby', 'pátina', 'patina'],
+    palette: { body: 'white', front: 'white', panel: 'white', ledge: 'white', accent: 'sage' },
+    base: { front: 'framed', insert: 'white', handle: 'knob', handleMaterial: 'bronze' },
+    roles: {
+      low: { legs: { type: 'turned', height: 150, materialId: 'white' }, top: { materialId: 'oak-solid', thickness: 30, overhang: 15, edge: 'rounded' } },
+      tall: { legs: { type: 'skirt', height: 100 }, cornice: true, back: 'sage' },
+      counter: { legs: { type: 'skirt', height: 100 }, top: { materialId: 'oak-solid', thickness: 30, overhang: 20, edge: 'rounded' } },
+      wall: { cornice: true },
+      table: { legs: { type: 'turned', height: 0, materialId: 'white' }, top: { materialId: 'oak-solid', thickness: 30, overhang: 30, edge: 'rounded' } },
+    },
+    panel: { front: 'flat' },
+  },
+  coastal: {
+    id: 'coastal',
+    name: 'Praiano',
+    label: 'praiano',
+    summary: 'Branco com frentes ripadas em azul claro, puxador botão de madeira, pé quadrado e tampo de freixo',
+    keywords: ['praiano', 'praiana', 'praia', 'coastal', 'litorâneo', 'litorânea', 'litoraneo', 'litoranea', 'litoral', 'beira-mar', 'beira mar', 'navy', 'náutico', 'nautico', 'hamptons'],
+    palette: { body: 'white', front: 'sky', panel: 'white', ledge: 'ash-solid', accent: 'sky' },
+    base: { front: 'slatted', handle: 'knob', handleMaterial: 'ash-solid' },
+    roles: {
+      low: { legs: { type: 'block', height: 100, materialId: 'ash-solid' }, top: { materialId: 'ash-solid', thickness: 30, overhang: 15, edge: 'rounded' } },
+      tall: { legs: { type: 'block', height: 80, materialId: 'ash-solid' } },
+      counter: { legs: { type: 'plinth', height: 100 }, top: { materialId: 'ash-solid', thickness: 30, overhang: 20, edge: 'rounded' } },
+      wall: {},
+      table: { legs: { type: 'block', height: 0, materialId: 'ash-solid' }, top: { materialId: 'ash-solid', thickness: 30, overhang: 30, edge: 'rounded' } },
+    },
+    panel: { front: 'slatted' },
   },
 };
 
@@ -488,12 +591,18 @@ export function applyStyleOp(d: Composition, raw: StyleOp): Composition {
   return applyStyle(d, op.style, { ids: op.ids, keepMaterials: op.keepMaterials });
 }
 
-/** Estilo pelo id ou pelas palavras da pessoa ("anos 60", "nórdico"). */
+/**
+ * Estilo pelo id ou pelas palavras da pessoa ("anos 60", "nórdico"). Vale a
+ * palavra mais longa que aparece: "modernista brasileiro" é brasileiro, não
+ * anos 60; no empate, a ordem da tabela.
+ */
 export function styleFrom(text: string): StyleId | null {
   const norm = (v: string) => v.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
   const t = norm(text);
-  for (const s of Object.values(STYLES)) if (s.keywords.some((k) => t.includes(norm(k))) || t.includes(norm(s.name))) return s.id;
-  return null;
+  let best: { id: StyleId; length: number } | null = null;
+  for (const s of Object.values(STYLES))
+    for (const k of [s.name, ...s.keywords].map(norm)) if (t.includes(k) && (!best || k.length > best.length)) best = { id: s.id, length: k.length };
+  return best?.id ?? null;
 }
 
 /**
