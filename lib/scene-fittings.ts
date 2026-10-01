@@ -119,11 +119,13 @@ export function fittingShape(f: Fitting, mat: THREE.Material, disposables: Dispo
     case 'frame': {
       // Estrutura de aço: quatro colunas, o quadro que segura a caixa e outro perto do piso.
       const t = 20;
-      for (const x of [-w / 2 + t / 2, w / 2 - t / 2]) for (const z of [-d / 2 + t / 2, d / 2 - t / 2]) g.add(block([t, h, t], [x, 0, z], mat, disposables));
+      // Colunas nas pontas e, numa fileira longa, as do meio.
+      const columns = [-w / 2 + t / 2, ...(f.posts ?? []), w / 2 - t / 2];
+      for (const x of columns) for (const z of [-d / 2 + t / 2, d / 2 - t / 2]) g.add(block([t, h, t], [x, 0, z], mat, disposables));
       const rails = h >= 200 ? [top - t / 2, bottom + 60] : [top - t / 2];
       for (const y of rails) {
         for (const z of [-d / 2 + t / 2, d / 2 - t / 2]) g.add(block([w - 2 * t, t, t], [0, y, z], mat, disposables));
-        for (const x of [-w / 2 + t / 2, w / 2 - t / 2]) g.add(block([t, t, d - 2 * t], [x, y, 0], mat, disposables));
+        for (const x of columns) g.add(block([t, t, d - 2 * t], [x, y, 0], mat, disposables));
       }
       break;
     }

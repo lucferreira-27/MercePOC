@@ -778,7 +778,7 @@ export function runsOf(d: Composition, key: (m: Module) => string | null): Run[]
   });
 }
 /** Ponto do referencial de uma fileira (s ao longo, f para a frente) no mundo. */
-function runPoint(rotation: number, s: number, y: number, f: number): Vec {
+export function runPoint(rotation: number, s: number, y: number, f: number): Vec {
   const a = (rotation * Math.PI) / 180;
   return [s * Math.cos(a) + f * Math.sin(a), y, -s * Math.sin(a) + f * Math.cos(a)];
 }

@@ -245,3 +245,23 @@ void test('acabamento em frases para o cartão de mudanças e para a IA', () => 
   const after = normalize(applyModularOp(before, { kind: 'module.edit', id: 'a', look: { legs: 'tube', legMaterialId: 'steel-black' } }));
   assert.ok(describeDesignChanges(before, after).includes('Nicho: pé de tubo quadrado de 150 mm em aço preto'));
 });
+
+void test('pés escolhidos vão por fileira: pontas e só os apoios que o vão pede', () => {
+  // Três caixas de 600 (1764 mm): quatro pés nas pontas, como um aparador.
+  const short = fittingsOf(withLook(row(3, { feet: 200 }), { legs: 'splayed' })).filter((f) => f.kind === 'leg');
+  assert.equal(short.length, 4);
+  // Quatro caixas (2346 mm): um par no meio, na junta do meio.
+  const long = withLook(row(4, { feet: 200 }), { legs: 'tapered' });
+  const legs = fittingsOf(long).filter((f) => f.kind === 'leg');
+  assert.equal(legs.length, 6);
+  const xs = [...new Set(legs.map((f) => Math.round(f.position[0])))].sort((a, b) => a - b);
+  const g = generateComposition(long);
+  const joint = g.parts.find((p) => p.id === 'a2:right')!.position[0];
+  assert.equal(xs[1], Math.round(joint));
+  // Estrutura de aço e base trenó correm a fileira inteira.
+  const stand = fittingsOf(withLook(row(4, { feet: 200 }), { legs: 'frame' })).filter((f) => f.kind === 'stand');
+  assert.equal(stand.length, 1);
+  assert.equal(stand[0].posts?.length, 1);
+  assert.equal(fittingsOf(withLook(row(3, { feet: 200 }), { legs: 'sled' })).filter((f) => f.kind === 'stand').length, 2);
+  assert.equal(quoteOf(withLook(row(3, { feet: 200 }), { legs: 'splayed' }), DEFAULT_PRICES).lines.find((l) => l.label === 'Pé inclinado de madeira')?.qty, 4);
+});

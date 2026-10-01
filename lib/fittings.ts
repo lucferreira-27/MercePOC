@@ -1,4 +1,4 @@
-import { generateComposition, isFlat, legsOf, point, PROFILE, type Composition, type ModularPart, type Module } from './composition';
+import { generateComposition, isFlat, point, PROFILE, runPoint, runsOf, type Composition, type ModularPart, type Module } from './composition';
 import { materialOf, type MaterialId } from './furniture';
 import { LEGS, type HandleType, type LegType } from './look';
 
@@ -28,6 +28,8 @@ export type Fitting = {
   rotation: number;
   /** Pé inclinado: quanto o pé abre para fora em x e z do módulo (rad). */
   splay?: [number, number];
+  /** Estrutura de aço longa: colunas a mais, em x a partir do centro (mm). */
+  posts?: number[];
   /** Peça que o puxador acompanha ao abrir. */
   attach?: string;
   /** Puxador: medidas no referencial da frente, para a cena prender nela. */
@@ -37,6 +39,12 @@ export type Fitting = {
   /** Só conta no orçamento (fecho toque, sapata do rodapé): nada a desenhar. */
   hidden?: boolean;
 };
+
+/** Eixo ao longo da parede (lateral) para uma rotação em graus. */
+function axesOf(rotation: number) {
+  const a = (rotation * Math.PI) / 180;
+  return { side: (p: readonly number[]) => p[0] * Math.cos(a) - p[2] * Math.sin(a) };
+}
 
 const legColor = (m: Module, type: LegType) => {
   const id = m.look?.legMaterialId ?? LEGS[type].defaultMaterial;
@@ -65,57 +73,120 @@ const LEG_LAYOUT: Partial<Record<LegType, { x: number; z: number; w: number; d?:
 /** Abertura do pé inclinado (anos 60), em graus, para fora nos dois eixos. */
 export const SPLAY_DEG = 9;
 
+/**
+ * Maior vão entre apoios de uma fileira sobre pés. Um aparador de 1,8 m fica
+ * com os quatro pés das pontas, como na marcenaria; acima disso entra um par
+ * no meio, de preferência embaixo de uma junta entre módulos.
+ */
+export const LEG_SPAN = 1700;
+/** Distância máxima para um apoio do meio ir para a junta mais próxima. */
+const SNAP_TO_JOINT = 250;
+
+/** Onde vão os apoios do meio: espaçados por igual, puxados para as juntas. */
+function supports(from: number, to: number, joints: number[]) {
+  const span = to - from;
+  const k = Math.max(0, Math.ceil(span / LEG_SPAN - 1e-9) - 1);
+  return Array.from({ length: k }, (_, i) => {
+    const ideal = from + (span * (i + 1)) / (k + 1);
+    const joint = joints.reduce((best, j) => (Math.abs(j - ideal) < Math.abs(best - ideal) ? j : best), Number.NaN);
+    return Math.abs(joint - ideal) <= SNAP_TO_JOINT ? joint : ideal;
+  });
+}
+
+/** Pé palito da v3 (pés sem tipo escolhido): quatro por caixa, como era, e fora do orçamento. */
+function legacyFeet(m: Module, out: Fitting[]) {
+  const h = m.feet ?? 0;
+  const { id: materialId, color } = legColor(m, 'palito');
+  const lay = LEG_LAYOUT.palito!;
+  const x = m.width / 2 - lay.x,
+    z = m.depth / 2 - lay.z;
+  [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz], i) => {
+    const top = point([sx * x, 0, sz * z], m);
+    out.push({ id: `${m.id}:foot-${i}`, moduleId: m.id, kind: 'leg', type: 'palito', materialId, color, rotation: (m.rotation * Math.PI) / 180, position: [top[0], m.position[1] + h / 2, top[2]], size: [lay.w, h, lay.w], bom: { unit: 'un', qty: 0 } });
+  });
+}
+
+/**
+ * Pés escolhidos (estilo, editor, IA): por fileira, não por módulo. Módulos
+ * lado a lado com a mesma base dividem os pés das pontas e os apoios do meio;
+ * a base trenó e a estrutura de aço correm a fileira inteira.
+ */
+function legsOfRows(d: Composition, out: Fitting[]) {
+  const key = (m: Module) => (m.feet && m.look?.legs && m.look.legs !== 'plinth' && m.look.legs !== 'skirt' ? `${m.look.legs}|${m.feet}|${m.look.legMaterialId ?? ''}` : null);
+  for (const run of runsOf(d, key)) {
+    const first = d.modules.find((m) => m.id === run.ids[0])!;
+    const type = first.look!.legs!;
+    const h = first.feet!;
+    const { id: materialId, color } = legColor(first, type);
+    const rotation = (run.rotation * Math.PI) / 180;
+    const base = { moduleId: first.id, materialId, color, rotation } as const;
+    const y = first.position[1] + h / 2;
+    const at = (sv: number, fv: number): Vec => runPoint(run.rotation, sv, y, fv);
+    const fc = (run.back + run.front) / 2,
+      depth = run.front - run.back;
+    // Juntas entre módulos da fileira, no meio do painel dividido.
+    const { side } = axesOf(run.rotation);
+    const spans = run.ids.map((id) => d.modules.find((m) => m.id === id)!).map((m) => [side(m.position) - m.width / 2, side(m.position) + m.width / 2]);
+    const joints = spans.slice(1).map((sp, i) => (spans[i][1] + sp[0]) / 2);
+    if (type === 'frame') {
+      // Estrutura de aço: colunas nas pontas (e no meio, quando a fileira é
+      // longa) e o quadro que segura as caixas.
+      const w = run.s1 - run.s0 - 40,
+        dd = depth - 40;
+      const sc = (run.s0 + run.s1) / 2;
+      const posts = supports(run.s0 + 30, run.s1 - 30, joints).map((v) => v - sc);
+      out.push({ ...base, id: `${first.id}:stand`, kind: 'stand', type, position: at(sc, fc), size: [w, h, dd], posts, bom: { unit: 'm', qty: (4 * h + 2 * w + 2 * dd + posts.length * 2 * h + posts.length * dd) / 1000 } });
+      continue;
+    }
+    if (type === 'sled') {
+      // Alças em U de tubo 40 × 20 nas pontas e onde a fileira pede apoio.
+      const dd = depth - 60;
+      const at40 = [run.s0 + 40, ...supports(run.s0 + 40, run.s1 - 40, joints), run.s1 - 40];
+      at40.forEach((sv, i) =>
+        out.push({ ...base, id: `${first.id}:sled-${i}`, kind: 'stand', type, position: at(sv, fc), size: [20, h, dd], bom: { unit: 'm', qty: (2 * h + dd) / 1000 } }),
+      );
+      continue;
+    }
+    const lay = LEG_LAYOUT[type] ?? LEG_LAYOUT.palito!;
+    const angle = (SPLAY_DEG * Math.PI) / 180;
+    const splay = type === 'splayed' ? Math.tan(angle) * h : 0;
+    // Pé grampo: o V corre na profundidade, mais estreito em móvel raso.
+    const hairpin = type === 'hairpin' ? Math.max(60, Math.min(150, depth / 2 - 60)) : 0;
+    const s0 = run.s0 + lay.x,
+      s1 = run.s1 - lay.x;
+    const along: { s: number; out: number }[] = [{ s: s0, out: -1 }, ...supports(s0, s1, joints).map((v) => ({ s: v, out: 0 })), { s: s1, out: 1 }];
+    let i = 0;
+    for (const a of along)
+      for (const sz of [-1, 1]) {
+        const fz = fc + sz * (depth / 2 - lay.z - hairpin / 2);
+        out.push({
+          ...base,
+          id: `${first.id}:foot-${i++}`,
+          kind: 'leg',
+          type,
+          // Inclinado: a caixa que contém o pé vai do encaixe à ponta no piso;
+          // o do meio abre só para a frente e para trás.
+          position: at(a.s + (a.out * splay) / 2, fz + (sz * splay) / 2),
+          size: [lay.w + (a.out ? splay : 0), h, (lay.d ?? lay.w) + splay + hairpin],
+          ...(splay ? { splay: [a.out * angle, sz * angle] as [number, number] } : {}),
+          bom: { unit: 'un', qty: 1 },
+        });
+      }
+  }
+}
+
+/** Base de cada caixa: pé da v3, sapatas do rodapé; os pés escolhidos vão por fileira. */
 function legsOfBox(m: Module, out: Fitting[]) {
   const h = m.feet ?? 0;
   if (!h || isFlat(m)) return;
-  const type = legsOf(m);
-  const { id: materialId, color } = legColor(m, type);
-  const rotation = (m.rotation * Math.PI) / 180;
-  const base = { moduleId: m.id, materialId, color, rotation } as const;
-  // Projeto da v3 (pé palito sem tipo escolhido) segue fora do orçamento, como era.
-  const priced = !!m.look?.legs;
-  const at = (lx: number, lz: number): Vec => {
-    const top = point([lx, 0, lz], m);
-    return [top[0], m.position[1] + h / 2, top[2]];
-  };
+  const type = m.look?.legs;
+  if (!type) return legacyFeet(m, out);
   if (type === 'plinth' || type === 'skirt') {
     // A chapa do rodapé é peça de corte; aqui só as sapatas niveladoras.
-    out.push({ ...base, id: `${m.id}:levelers`, kind: 'leg', type, position: at(0, 0), size: [0, 0, 0], bom: { unit: 'un', qty: 4 }, hidden: true });
-    return;
+    const { id: materialId, color } = legColor(m, type);
+    const top = point([0, 0, 0], m);
+    out.push({ id: `${m.id}:levelers`, moduleId: m.id, kind: 'leg', type, materialId, color, rotation: (m.rotation * Math.PI) / 180, position: [top[0], m.position[1] + h / 2, top[2]], size: [0, 0, 0], bom: { unit: 'un', qty: 4 }, hidden: true });
   }
-  if (type === 'sled') {
-    // Duas alças em U de tubo 40 × 20, uma em cada ponta, correndo na profundidade.
-    const depth = m.depth - 60;
-    for (const sx of [-1, 1])
-      out.push({ ...base, id: `${m.id}:sled-${sx < 0 ? 'left' : 'right'}`, kind: 'stand', type, position: at(sx * (m.width / 2 - 40), 0), size: [20, h, depth], bom: { unit: 'm', qty: (2 * h + depth) / 1000 } });
-    return;
-  }
-  if (type === 'frame') {
-    // Estrutura de aço: quatro colunas e o quadro que segura a caixa.
-    const w = m.width - 40,
-      d = m.depth - 40;
-    out.push({ ...base, id: `${m.id}:stand`, kind: 'stand', type, position: at(0, 0), size: [w, h, d], bom: { unit: 'm', qty: (4 * h + 2 * w + 2 * d) / 1000 } });
-    return;
-  }
-  const lay = LEG_LAYOUT[type] ?? LEG_LAYOUT.palito!;
-  const splay = type === 'splayed' ? Math.tan((SPLAY_DEG * Math.PI) / 180) * h : 0;
-  // Pé grampo: o V corre na profundidade, mais estreito em móvel raso.
-  const hairpin = type === 'hairpin' ? Math.max(60, Math.min(150, m.depth / 2 - 60)) : 0;
-  const x = m.width / 2 - lay.x,
-    z = m.depth / 2 - lay.z - hairpin / 2;
-  [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz], i) => {
-    out.push({
-      ...base,
-      id: `${m.id}:foot-${i}`,
-      kind: 'leg',
-      type,
-      // Inclinado: a caixa que contém o pé vai do encaixe à ponta no piso.
-      position: at(sx * (x + splay / 2), sz * (z + splay / 2)),
-      size: [lay.w + splay, h, (lay.d ?? lay.w) + splay + hairpin],
-      ...(splay ? { splay: [sx * ((SPLAY_DEG * Math.PI) / 180), sz * ((SPLAY_DEG * Math.PI) / 180)] as [number, number] } : {}),
-      bom: { unit: 'un', qty: priced ? 1 : 0 },
-    });
-  });
 }
 
 /** Contorno de tubo 20 × 20 nas arestas da caixa (industrial). Lateral dividida com o vizinho leva um só. */
@@ -250,8 +321,9 @@ function handlesOf(parts: readonly ModularPart[], out: Fitting[]) {
 /** Todas as ferragens e estruturas do projeto, com lugar, forma e quantidade. */
 export function fittingsOf(d: Composition, parts: readonly ModularPart[] = generateComposition(d, false).parts): Fitting[] {
   const out: Fitting[] = [];
+  for (const m of d.modules) legsOfBox(m, out);
+  legsOfRows(d, out);
   for (const m of d.modules) {
-    legsOfBox(m, out);
     frameOf(d, m, out);
     ledOf(m, out);
   }
