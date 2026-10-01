@@ -35,7 +35,7 @@ function box(id: string, width: number, height: number, x = 0, y = 0): Module {
 }
 
 function composition(modules: Module[]): Composition {
-  return { schemaVersion: 3, profile: PROFILE, modules, connections: [] };
+  return { schemaVersion: 4, profile: PROFILE, modules, connections: [] };
 }
 
 /** Quarto medido de partida dos testes: 3,00 m de parede e 2,87 m de teto. */

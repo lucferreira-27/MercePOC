@@ -11,7 +11,7 @@ import {
 import { cutPlan } from '../lib/cutplan';
 
 const single = (): Composition => ({
-  schemaVersion: 3,
+  schemaVersion: 4,
   profile: PROFILE,
   modules: [{ ...preset('niche', 'a'), width: 900, height: 500, depth: 450 }],
   connections: [],

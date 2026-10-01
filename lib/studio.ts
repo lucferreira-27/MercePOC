@@ -10,10 +10,13 @@ import {
   layout,
   migrateComposition,
   modularOpSchema,
+  SCHEMA_VERSION,
   settle,
   type Composition,
+  type CompositionV3,
   type ModularOp,
 } from './composition';
+import { lookChanges } from './look';
 import { applyAssetOp, assetById, assetOpSchema, type AssetOp } from './assets';
 export type Design = Composition & {
   width: number;
@@ -23,21 +26,26 @@ export type Design = Composition & {
   shelves: old.Shelf[];
 };
 export type ShelfOp = old.ShelfOp | ModularOp | AssetOp;
-export function canonical(input: Composition): Composition {
+/**
+ * O projeto como é gravado: só os campos do contrato, na versão atual. Uma
+ * composição v3 (projeto antigo, cena de teste) sai v4 com a mesma geometria.
+ */
+export function canonical(input: Composition | CompositionV3): Composition {
   return compositionSchema.parse(
     JSON.parse(
       JSON.stringify({
-        schemaVersion: 3,
+        schemaVersion: SCHEMA_VERSION,
         profile: input.profile,
         modules: input.modules,
         connections: input.connections,
+        ...('style' in input && input.style ? { style: input.style } : {}),
       }),
     ),
   );
 }
-export function normalize(input: Composition | old.Design): Design {
+export function normalize(input: Composition | CompositionV3 | old.Design): Design {
   const d =
-    input.schemaVersion === 3 ? canonical(input) : migrateComposition(input);
+    input.schemaVersion === SCHEMA_VERSION || input.schemaVersion === 3 ? canonical(input) : migrateComposition(input);
   settle(d);
   const g = generateComposition(d);
   const m = d.modules[0];
@@ -67,7 +75,7 @@ export function isDesign(v: unknown): v is Design {
     !!v &&
     typeof v === 'object' &&
     'schemaVersion' in v &&
-    [2, 3].includes(Number(v.schemaVersion))
+    [2, 3, SCHEMA_VERSION].includes(Number(v.schemaVersion))
   );
 }
 export function migrateParams(v: Params) {
@@ -523,6 +531,7 @@ export function describeHighlights(
           mudancas.push(`orientação em ${edited.rotation}°`);
         if (edited.back !== previous.back)
           mudancas.push(edited.back ? 'ganhou fundo sobreposto' : 'ficou sem fundo');
+        mudancas.push(...lookChanges(previous, edited));
         out.push({
           tool: op.kind,
           title: `${edited.name} ajustado`,
@@ -852,6 +861,7 @@ export function describeDesignChanges(before: Design, after: Design) {
       );
     if (!!m.wall !== !!b.wall)
       out.push(`${m.name}: ${m.wall ? 'suspenso, preso na parede' : 'apoiado no piso'}`);
+    for (const line of lookChanges(b, m)) out.push(`${m.name}: ${line}`);
     if (JSON.stringify(m.position) !== JSON.stringify(b.position) && !onlyMount)
       out.push(`"${m.name}": posição ajustada`);
     if (JSON.stringify(m.root) !== JSON.stringify(b.root))
@@ -862,6 +872,8 @@ export function describeDesignChanges(before: Design, after: Design) {
       out.push(`Módulo "${m.name}" removido`);
   if (JSON.stringify(before.connections) !== JSON.stringify(after.connections))
     out.push('Conexões entre os módulos ajustadas');
+  if ((before.style ?? null) !== (after.style ?? null))
+    out.push(after.style ? `Estilo do projeto: ${after.style}` : 'Projeto sem estilo marcado');
   return out;
 }
 export const describeChanges = describeDesignChanges;

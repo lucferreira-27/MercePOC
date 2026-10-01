@@ -22,14 +22,19 @@ export function openDatabase(): Sql {
   d.exec(
     'PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, body TEXT NOT NULL, version INTEGER NOT NULL, updated TEXT NOT NULL)',
   );
-  const legacyRows = d
-    .prepare(
-      "SELECT count(*) AS n FROM projects WHERE EXISTS (SELECT 1 FROM json_each(body, '$.revisions') r WHERE json_extract(r.value, '$.params.schemaVersion') IS NOT 3)",
-    )
-    .get() as { n: number };
-  if (legacyRows.n && !existsSync(join(dir, 'merce-before-modules.sqlite'))) {
-    const backup = join(dir, 'merce-before-modules.sqlite').replaceAll("'", "''");
-    d.exec(`VACUUM INTO '${backup}'`);
+  // Cópia de segurança antes de cada migração de formato, uma vez só: v1/v2
+  // para módulos (v3) e v3 para estilos (v4). A migração é na leitura e grava
+  // no formato novo no próximo salvamento.
+  for (const [below, file] of [
+    [3, 'merce-before-modules.sqlite'],
+    [4, 'merce-before-styles.sqlite'],
+  ] as const) {
+    const rows = d
+      .prepare(
+        `SELECT count(*) AS n FROM projects WHERE EXISTS (SELECT 1 FROM json_each(body, '$.revisions') r WHERE IFNULL(json_extract(r.value, '$.params.schemaVersion'), 0) < ${below})`,
+      )
+      .get() as { n: number };
+    if (rows.n && !existsSync(join(dir, file))) d.exec(`VACUUM INTO '${join(dir, file).replaceAll("'", "''")}'`);
   }
   sql = {
     all: <T>(query: string, ...params: SqlValue[]) => d.prepare(query).all(...params) as T[],

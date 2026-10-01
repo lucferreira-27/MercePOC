@@ -3,8 +3,8 @@ import { generateComposition, layout, openingLimit, type ModularPart } from '../
 import { planDataUrl } from '../plan-render';
 import { sceneDrawingParts } from '../scene-parts';
 import { cutPlan } from '../cutplan';
-import { materialIds } from '../furniture';
-import { edgeSides, mergePrices, money, quote, type Prices } from '../quote';
+import { materialIds, PART_KINDS, type PartKind } from '../furniture';
+import { edgeSides, mergePrices, money, quoteOf, type Prices } from '../quote';
 import {
   applyObstacleEdits,
   furnitureOnWall,
@@ -83,7 +83,7 @@ const partsList = tool({
     .object({
       modulo: z.string().max(100).optional(),
       material: z.string().max(60).optional(),
-      tipo: z.enum(['side', 'base', 'top', 'back', 'shelf', 'divider', 'door', 'drawer', 'panel']).optional(),
+      tipo: z.enum(PART_KINDS as [PartKind, ...PartKind[]]).optional(),
     })
     .strict(),
   running: () => 'Conferindo as peças',
@@ -111,7 +111,7 @@ const quoteRead = tool({
   args: z.object({}).strict(),
   running: () => 'Calculando o orçamento',
   run: (ctx) => {
-    const q = quote(generateDesign(ctx.design).parts as ModularPart[], ctx.design.modules.length, ctx.prices);
+    const q = quoteOf(canonical(ctx.design), ctx.prices);
     const lines = q.lines.map((l) => `${l.section} | ${l.label} | ${l.qty} ${l.unit} × ${money(l.unitPrice)} = ${money(l.total)}`);
     ctx.note('quote');
     return ok(
@@ -535,7 +535,7 @@ const pricesSet = tool({
     });
     ctx.prices = next;
     ctx.effect({ type: 'prices', prices: next });
-    const q = quote(generateDesign(ctx.design).parts as ModularPart[], ctx.design.modules.length, next);
+    const q = quoteOf(canonical(ctx.design), next);
     return ok(`Tabela atualizada. Total agora ${money(q.total)} (custo ${money(q.cost)} + margem ${next.margin}%).`, `Ajustei os preços: total ${money(q.total)}`);
   },
 });
@@ -1053,8 +1053,7 @@ const renderLook = tool({
 const clip = (text: string, max: number) => (text.length <= max ? text : `${text.slice(0, text.lastIndexOf(' ', max)).trimEnd()}…`);
 /** Números de uma opção, todos do código: a IA só dá o nome e a frase. */
 export function optionCard(id: string, name: string, brief: string, design: Design, ctx: AgentContext, note: string): OptionCard {
-  const parts = generateDesign(design).parts as ModularPart[];
-  const q = quote(parts, design.modules.length, ctx.prices);
+  const q = quoteOf(canonical(design), ctx.prices);
   const b = generateComposition(canonical(design)).bounds;
   return {
     id,

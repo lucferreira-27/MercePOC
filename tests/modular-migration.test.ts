@@ -7,6 +7,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { defaults, generate } from '../lib/furniture';
 import { get, save } from '../lib/store';
 import { generateDesign } from '../lib/studio';
+import { SCHEMA_VERSION } from '../lib/composition';
 const dir = mkdtempSync(join(tmpdir(), 'merce-migrate-modules-'));
 process.env.MERCE_DATA_DIR = dir;
 void test('v1 migration backs up consistent SQLite, preserves all revisions, messages and resolvable IDs', () => {
@@ -88,7 +89,7 @@ void test('v1 migration backs up consistent SQLite, preserves all revisions, mes
   snapshot.close();
   save(first, 0);
   const loaded = get(old.id);
-  assert.equal(loaded.revisions[0].params.schemaVersion, 3);
+  assert.equal(loaded.revisions[0].params.schemaVersion, SCHEMA_VERSION);
   assert.equal(loaded.messages[0].id, first.messages[0].id);
   assert.equal(loaded.revisions[1].params.modules[0].width, 950);
 });

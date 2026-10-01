@@ -12,7 +12,7 @@ const byId = (d: Composition, id: string) => d.modules.find((m) => m.id === id)!
 /** Parede da TV: fileira de dois racks suspensos, prateleira de parede em cima e o painel acima de tudo. */
 function tvWall(): Composition {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     profile: PROFILE,
     modules: [
       box('r1', { name: 'Rack 1', width: 900, height: 400, depth: 450, wall: true, position: [0, 300, WALL + 225] }),
@@ -51,7 +51,7 @@ void test('painel que não chega ao móvel não mexe em nada', () => {
 void test('cabeceira na parede lateral (90°) prende o criado na frente dela, na espessura dela', () => {
   // Parede lateral em x = 0: com rotação 90° a frente aponta para +x.
   const d: Composition = {
-    schemaVersion: 3,
+    schemaVersion: 4,
     profile: PROFILE,
     modules: [
       box('n', { name: 'Criado', width: 500, height: 550, depth: 400, rotation: 90, position: [200, 0, 1200] }),
@@ -68,7 +68,7 @@ void test('cabeceira na parede lateral (90°) prende o criado na frente dela, na
 void test('móvel longe da parede não é empurrado pelo painel atrás dele', () => {
   // Balcão solto, 300 mm à frente da parede: o painel atrás dele não o toca.
   const d: Composition = {
-    schemaVersion: 3,
+    schemaVersion: 4,
     profile: PROFILE,
     modules: [
       box('b', { name: 'Balcão', width: 800, height: 900, depth: 500, position: [0, 0, WALL + 300 + 250] }),
@@ -83,7 +83,7 @@ void test('móvel longe da parede não é empurrado pelo painel atrás dele', ()
 /** Armário solto encostado na parede, e um painel que ainda não chega nele. */
 function cabinet(): Composition {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     profile: PROFILE,
     modules: [
       flat('p', 'panel', { name: 'Painel', width: 1000, height: 400, depth: 18, position: [0, 1200, WALL + 9] }),
@@ -107,7 +107,7 @@ void test('painel que pega só a borda do armário continua sendo erro, e o erro
 
 void test('pilha conectada com o painel só atrás do de cima continua sendo erro: o de baixo sairia da parede', () => {
   const d: Composition = {
-    schemaVersion: 3,
+    schemaVersion: 4,
     profile: PROFILE,
     modules: [
       box('base', { name: 'Balcão', width: 600, height: 800, depth: 400, position: [0, 0, WALL + 200] }),

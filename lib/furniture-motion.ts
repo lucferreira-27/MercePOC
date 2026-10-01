@@ -70,8 +70,30 @@ export function handleSpec(part: Part & { motion?: { type: string; pivot: [numbe
   return { vertical: true, len, x: side * (w / 2 - 45), y, z: t / 2 };
 }
 
+/**
+ * Como a superfície responde à luz, pela categoria do material: vidro deixa
+ * ver o que está atrás, metal brilha, pedra é polida, palhinha e tela deixam
+ * passar um pouco. Chapa e madeira maciça usam a textura do acabamento.
+ */
+export function surfaceOf(part: Pick<Part, 'category' | 'materialId' | 'kind'>) {
+  switch (part.category) {
+    case 'glass':
+      return { alpha: part.materialId === 'glass-smoked' ? 0.62 : 0.3, roughness: 0.06, metalness: 0.1, textured: false };
+    case 'metal':
+      return { alpha: part.kind === 'insert' ? 0.7 : 1, roughness: 0.38, metalness: part.materialId === 'steel-black' ? 0.55 : 0.85, textured: false };
+    case 'stone':
+      return { alpha: 1, roughness: 0.28, metalness: 0, textured: true };
+    case 'fiber':
+      return { alpha: 0.88, roughness: 0.8, metalness: 0, textured: true };
+    default:
+      return null;
+  }
+}
+
 type AnimatedPart = {
   handle?: Handle;
+  /** Opacidade da superfície (vidro, tela): o esmaecer do diff multiplica por ela. */
+  alpha: number;
   pivot?: THREE.Vector3;
   mesh: THREE.Mesh<THREE.BoxGeometry, THREE.MeshStandardMaterial>;
   edge: THREE.LineSegments<THREE.EdgesGeometry, THREE.LineBasicMaterial>;
@@ -227,7 +249,8 @@ export class FurnitureMotion {
       position: entry.mesh.position.clone(),
       size: entry.mesh.scale.clone(),
       color: entry.mesh.material.color.clone(),
-      opacity: entry.mesh.material.opacity,
+      // A opacidade da pose é a do esmaecer; a do vidro entra à parte.
+      opacity: entry.alpha ? entry.mesh.material.opacity / entry.alpha : entry.mesh.material.opacity,
       rotation: entry.mesh.rotation.y,
     };
   }
@@ -286,6 +309,7 @@ export class FurnitureMotion {
         entry = {
           mesh,
           edge,
+          alpha: 1,
           from: target,
           to: target,
           started: now,
@@ -316,9 +340,12 @@ export class FurnitureMotion {
       const finish = part.color ?? color;
       const sizeKey = part.size.map((v) => Math.round(v)).join('x');
       if (entry.finish !== finish || entry.sizeKey !== sizeKey) {
-        const map = finishTexture(finish);
+        const surface = surfaceOf(part);
+        const map = !surface || surface.textured ? finishTexture(finish) : null;
         entry.mesh.material.map = map;
-        entry.mesh.material.roughness = map?.userData.roughness ?? 0.72;
+        entry.mesh.material.roughness = surface?.roughness ?? map?.userData.roughness ?? 0.72;
+        entry.mesh.material.metalness = surface?.metalness ?? 0;
+        entry.alpha = surface?.alpha ?? 1;
         entry.mesh.material.needsUpdate = true;
         panelUV(entry.mesh.geometry, part.size);
         entry.finish = finish;
@@ -435,7 +462,7 @@ export class FurnitureMotion {
       // Sem marca durante o diff, a peça esmaece: o que mudou salta aos olhos.
       const fade = this.diff && this.diff.dim !== false && !mark && !e.selected ? 0.32 : 1;
       e.mesh.material.opacity =
-        THREE.MathUtils.lerp(e.from.opacity, e.to.opacity, t) * fade;
+        THREE.MathUtils.lerp(e.from.opacity, e.to.opacity, t) * fade * e.alpha;
       const transparent = e.mesh.material.opacity < 0.999;
       if (e.mesh.material.transparent !== transparent) {
         e.mesh.material.transparent = transparent;

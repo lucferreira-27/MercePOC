@@ -113,7 +113,8 @@ import { OptionCards } from '@/components/option-cards';
 import type { OptionCard } from '@/lib/agent/types';
 import { cutPlan } from '@/lib/cutplan';
 import { entityIds, canonical, selectedPartIds } from '@/lib/studio';
-import { drawingParts, openingLimit, openingPose, type ModularPart } from '@/lib/composition';
+import { openingLimit, openingPose, SCHEMA_VERSION, type ModularPart } from '@/lib/composition';
+import { drawingParts, fittingsOf } from '@/lib/fittings';
 import { emptyRoom, fitWallsToCeiling, roomChangeLabel, fitReport, fitSummary, freeSpot, MAIN_WALL, obstacleWord, OBSTACLE_LABEL, presetObstacle, presetWall, resizeMainWall, roomOffset, wallAt, wallWord, ROOM_LIMITS, type MainWallEdge, type Obstacle, type ObstacleKind, type Room, type Wall } from '@/lib/room';
 import { moduleBoxes } from '@/lib/move';
 import { DEFAULT_PRICES, mergePrices, money, quote as buildQuote, type Prices } from '@/lib/quote';
@@ -924,7 +925,7 @@ export default function Home() {
   // Orçamento e plano de corte sempre da versão exibida: arrastar a linha do
   // tempo mostra quanto cada versão custava.
   const quote = useMemo(
-    () => (visualParams ? buildQuote(visualParts as ModularPart[], visualParams.modules.length, prices) : null),
+    () => (visualParams ? buildQuote(visualParts as ModularPart[], visualParams.modules.length, prices, fittingsOf(canonical(visualParams), visualParts as ModularPart[])) : null),
     [visualParts, visualParams, prices],
   );
   // Quanto custava a versão anterior à exibida: a mudança mais recente em reais.
@@ -933,7 +934,7 @@ export default function Home() {
   const previousQuote = useMemo(() => {
     if (!previousRevision) return null;
     const d = designOf(previousRevision.params);
-    return { version: shownIndex, total: buildQuote(d.parts as ModularPart[], previousRevision.params.modules.length, prices).total };
+    return { version: shownIndex, total: buildQuote(d.parts as ModularPart[], previousRevision.params.modules.length, prices, fittingsOf(canonical(previousRevision.params), d.parts as ModularPart[])).total };
   }, [previousRevision, shownIndex, prices]);
   // Números do plano de corte do projeto gravado (a lista de peças é dele).
   const savedParts = p?.parts;
@@ -2078,7 +2079,7 @@ export default function Home() {
   const preparePrint = useEvent(() => {
     if (!params || shotFor.current === printDrawing) return;
     shotFor.current = printDrawing;
-    const shot = renderPrintShot(printDrawing, params);
+    const shot = renderPrintShot(printDrawing, params, undefined, fittingsOf(params));
     flushSync(() => setPrintShot(shot));
   });
   function printProject() {
@@ -2099,7 +2100,7 @@ export default function Home() {
       JSON.stringify(
         {
           ...p,
-          schemaVersion: 3,
+          schemaVersion: SCHEMA_VERSION,
           params: canonical(p.params),
           revisions: p.revisions.map((r) => ({ ...r, params: canonical(r.params) })),
           // Medidas gerais fora das revisões: quem lê o arquivo

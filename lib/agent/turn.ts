@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { drawingParts } from '../composition';
+import { drawingParts } from '../fittings';
 import { reviewAndCorrect, type CheckedReview, type ModelChoice } from '../gateway';
 import { imageDataUrl, saveImage, type ImageRef } from '../images';
 import type { ModelKey, ProviderUsage } from '../models';

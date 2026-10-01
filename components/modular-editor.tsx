@@ -609,7 +609,7 @@ function ModularEditorPanel({
           </div>
           <div className="finish-field">
             <span>Acabamento</span>
-            <FinishPicker name="material" defaultValue={m.materialId} />
+            <FinishPicker name="material" defaultValue={m.materialId} categories={m.kind === 'ledge' ? ['sheet', 'solid', 'glass'] : ['sheet']} />
           </div>
           <label>
             Orientação

@@ -3,11 +3,13 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { materials, type Part } from '@/lib/furniture';
+import type { Part } from '@/lib/furniture';
 import type { Design } from '@/lib/studio';
 import type { MainWallEdge, Obstacle, Room, Wall } from '@/lib/room';
-import { feetOf, generateComposition } from '@/lib/composition';
-import { buildFeet, buildRoom, obstacleCrosses, referenceRoom, roomFocus, ROOM_PALETTE, type SceneBounds } from '@/lib/scene-room';
+import { generateComposition } from '@/lib/composition';
+import { fittingsOf } from '@/lib/fittings';
+import { buildFittings } from '@/lib/scene-fittings';
+import { buildRoom, obstacleCrosses, referenceRoom, roomFocus, ROOM_PALETTE, type SceneBounds } from '@/lib/scene-room';
 import { buildObstacle, tintFrame } from '@/lib/scene-obstacles';
 import {
   buildWall,
@@ -1959,7 +1961,8 @@ function FurnitureView({
     window.addEventListener('keydown', down, { capture: true });
     return () => window.removeEventListener('keydown', down, { capture: true });
   }, [placingWall]);
-  // Pés: não são peças de corte, vêm da composição. Somem no explodido.
+  // Pés, estrutura de aço e LED: não são peças de corte, vêm da composição
+  // (lib/fittings.ts). Somem no explodido.
   useEffect(() => {
     const s = runtime.current;
     if (!s) return;
@@ -1969,13 +1972,9 @@ function FurnitureView({
       s.retired.push(s.feet.dispose);
       s.feet = undefined;
     }
-    const feet = exploded ? [] : feetOf(params);
-    if (!feet.length) return;
-    const colorOf = (id: string) => {
-      const m = params.modules.find((v) => v.id === id);
-      return materials.find((v) => v.id === m?.materialId)?.color ?? '#888888';
-    };
-    s.feet = buildFeet(feet, colorOf);
+    const fittings = exploded ? [] : fittingsOf(params).filter((f) => !f.hidden && f.kind !== 'handle');
+    if (!fittings.length) return;
+    s.feet = buildFittings(fittings);
     s.scene.add(s.feet.group);
   }, [params, exploded]);
   // Cotas: some no explodido, onde as peças não estão na medida real.

@@ -1,7 +1,7 @@
-import { layout, type ModularPart } from '../composition';
+import { layout } from '../composition';
 import { canonical, generateDesign, type Design } from '../studio';
 import { fitSummary, type Room } from '../room';
-import { mergePrices, money, quote, type Prices } from '../quote';
+import { mergePrices, money, quoteOf, type Prices } from '../quote';
 import type { AgentContext } from './context';
 import { sceneOf, sceneSummary } from './scene';
 
@@ -134,7 +134,7 @@ export function selectionLine(design: Design, ids: readonly string[]) {
 /** Orçamento e chapas em uma linha, com a tabela de preços do navegador. */
 export function quoteLine(design: Design, prices: Prices) {
   try {
-    const q = quote(generateDesign(design).parts as ModularPart[], design.modules.length, mergePrices(prices));
+    const q = quoteOf(canonical(design), mergePrices(prices));
     const sheets = q.plan.groups
       .map((g) => `${g.sheets}× ${g.material} ${g.thickness} mm (${Math.round(g.efficiency * 100)}%)`)
       .join('; ');

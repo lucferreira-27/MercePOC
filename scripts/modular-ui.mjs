@@ -35,7 +35,7 @@ p = await post({
   name: 'Modular · verificação visual',
 });
 let d = normalize({
-  schemaVersion: 3,
+  schemaVersion: 4,
   profile: PROFILE,
   modules: [{ ...preset('niche', 'a'), name: 'Base esquerda', height: 900 }],
   connections: [],

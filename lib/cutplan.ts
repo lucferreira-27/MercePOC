@@ -1,4 +1,4 @@
-import { materials, type Part } from './furniture';
+import { materialOf, materials, type Part } from './furniture';
 
 /**
  * Plano de corte: encaixa as peças nas chapas que a oficina compra.
@@ -79,15 +79,21 @@ export type CutPlan = {
 type Free = Offcut;
 type OpenSheet = CutSheet & { free: Free[] };
 
-/** "Carvalho natural 18" → material do catálogo; peça sem catálogo fica lisa. */
+/**
+ * "Carvalho natural 18" → material do catálogo; peça sem catálogo fica lisa.
+ * O nome mais longo ganha: "Carvalho defumado 18" não é "Carvalho".
+ */
 export function materialFromLabel(label: string) {
-  return materials.find((m) => label.startsWith(m.name + ' ')) ?? null;
+  return [...materials].sort((a, b) => b.name.length - a.name.length).find((m) => label.startsWith(m.name + ' ')) ?? null;
 }
 
 export function cutPlan(parts: readonly Part[], spec: SheetSpec = DEFAULT_SHEET): CutPlan {
   const usable = { w: spec.length - 2 * spec.trim, h: spec.width - 2 * spec.trim };
   const groups = new Map<string, Part[]>();
   for (const part of parts) {
+    // Só chapa entra no plano: maciço, pedra, vidro, metal e palhinha são
+    // comprados na medida e cobrados por m³, m² ou metro no orçamento.
+    if (part.category && part.category !== 'sheet') continue;
     const list = groups.get(part.material);
     if (list) list.push(part);
     else groups.set(part.material, [part]);
@@ -103,7 +109,7 @@ export function cutPlan(parts: readonly Part[], spec: SheetSpec = DEFAULT_SHEET)
   });
   for (const key of keys) {
     const list = groups.get(key)!;
-    const mat = materialFromLabel(key);
+    const mat = list[0].materialId ? materialOf(list[0].materialId) : materialFromLabel(key);
     const grain = mat?.finish === 'wood';
     const thickness = list[0].thickness;
     // Maior lado primeiro: em guilhotina, as peças compridas definem as faixas

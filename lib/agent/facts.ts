@@ -1,6 +1,6 @@
 import type { ModularPart } from '../composition';
-import { generateDesign, type Design } from '../studio';
-import { mergePrices, money, quote, type Prices } from '../quote';
+import { canonical, generateDesign, type Design } from '../studio';
+import { mergePrices, money, quoteOf, type Prices } from '../quote';
 
 /**
  * Fatos do objetivo, calculados pelo app no estado que fica: chapas por
@@ -14,7 +14,7 @@ export type DesignFacts = {
 };
 
 export function designFacts(design: Design, prices: Prices): DesignFacts {
-  const q = quote(generateDesign(design).parts as ModularPart[], design.modules.length, mergePrices(prices));
+  const q = quoteOf(canonical(design), mergePrices(prices));
   return {
     sheets: q.plan.sheets.length,
     groups: q.plan.groups.map((g) => ({ material: g.material, thickness: g.thickness, sheets: g.sheets })),

@@ -35,7 +35,7 @@ const withWalls = (walls: Wall[], extra: Partial<Room> = {}): Room => ({ ...empt
 
 /** Um módulo de 1000 × 2000 × 400 mm centrado em x = 0: ocupa x de -500 a 500. */
 function design(): Composition {
-  return { schemaVersion: 3, profile: PROFILE, modules: [{ ...preset('niche', 'a'), width: 1000, height: 2000, depth: 400, position: [0, 0, 0] }], connections: [] };
+  return { schemaVersion: 4, profile: PROFILE, modules: [{ ...preset('niche', 'a'), width: 1000, height: 2000, depth: 400, position: [0, 0, 0] }], connections: [] };
 }
 const bounds = { min: [-500, 0, -200], max: [500, 2000, 200] };
 
