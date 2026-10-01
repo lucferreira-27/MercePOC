@@ -269,3 +269,11 @@ export function generate(input: Params) {
     openings,
   });
 }
+
+/** Materiais por categoria em uma linha, para o prompt da IA (ids, como o contrato usa). */
+export function materialsForPrompt() {
+  const label: Record<MaterialCategory, string> = { sheet: 'chapa (corpo, frentes, painel)', solid: 'madeira maciça (tampo, pé, prateleira de mesa)', metal: 'metal (pé, estrutura, puxador, tela, tampo fino)', glass: 'vidro (miolo de porta, tampo)', stone: 'pedra (tampo)', fiber: 'palhinha (miolo de porta)' };
+  return (Object.keys(label) as MaterialCategory[])
+    .map((c) => `${label[c]}: ${idsOf(c).join(', ')}`)
+    .join('; ');
+}

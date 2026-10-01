@@ -236,12 +236,13 @@ const rowBuild = tool({
     // móvel não podem arrastar a parede junto.
     const room = plan.anchor && ctx.room ? { ...ctx.room, anchor: plan.anchor } : ctx.room;
     const before = ctx.design;
-    const r = executeRequest(before, plan.ops);
+    const ops = withProjectStyle(before, plan.ops, !!(a.material || a.material_frente));
+    const r = executeRequest(before, ops);
     if (!r.ok) {
-      ctx.attempted.push({ ops: plan.ops, error: r.error });
+      ctx.attempted.push({ ops, error: r.error });
       return fail(`Recusado pela validação, nada mudou: ${r.error}`, 'Fileira recusada; ajustando');
     }
-    ctx.setDesign(r.design, plan.ops, room);
+    ctx.setDesign(r.design, ops, room);
     const parts = plan.segments.map((v) => `${v.from}–${v.to} mm: ${v.ids.join(', ')} (compartimentos ${v.ids.map((id) => `${id}:root`).join(', ')})`);
     const count = plan.segments.reduce((n, v) => n + v.ids.length, 0);
     // A IA repetia a largura pedida na resposta ("bancada de 2 m") quando só
@@ -277,6 +278,23 @@ function applyPlanned(ctx: AgentContext, ops: ShelfOp[], room: Room | undefined,
     `${head} ${changes.length ? `${changes.join('. ')}. ` : ''}Medidas gerais: ${mm(r.design)}.${fresh.length ? ` Ids novos: ${fresh.slice(0, 40).join(', ')}.` : ''}${fitNote(ctx, before, r.design, roomBefore)}${sheetNote(ctx, before, r.design)}`,
     label,
   );
+}
+
+/**
+ * Projeto com estilo: as peças novas (place, row_build) saem vestidas nele,
+ * sem a IA repetir o estilo a cada chamada. Quando ela escolheu o material,
+ * fica o material dela e o estilo dá a forma. Se vestir não couber, a peça
+ * entra como veio.
+ */
+function withProjectStyle(before: Design, ops: ShelfOp[], keepMaterials: boolean): ShelfOp[] {
+  if (!before.style) return ops;
+  const r = executeRequest(before, ops);
+  if (!r.ok) return ops;
+  const had = new Set(before.modules.map((m) => m.id));
+  const fresh = r.design.modules.filter((m) => !had.has(m.id)).map((m) => m.id);
+  if (!fresh.length) return ops;
+  const styled: ShelfOp[] = [...ops, { kind: 'style.apply', style: before.style, ids: fresh, ...(keepMaterials ? { keepMaterials: true } : {}) }];
+  return executeRequest(before, styled).ok ? styled : ops;
 }
 
 /** Parede presa antes de mexer: sem âncora ela acompanharia o lado esquerdo do móvel. */
@@ -320,7 +338,7 @@ const placeTool = tool({
     const count = plan.placed.filter((p) => p.cells.length || p.surface !== 'piso').length;
     return applyPlanned(
       ctx,
-      plan.ops,
+      withProjectStyle(ctx.design, plan.ops, a.pecas.some((p) => !!p.material)),
       room,
       `Montado no rascunho (não mova nem refaça o que coube): ${plan.placed.map(placedLine).join('; ')}.`,
       a.rotulo ?? (count === 1 ? `Pus ${plan.placed[0].name.toLowerCase()}` : `Pus ${plan.placed.length} peças`),
@@ -842,7 +860,30 @@ export type ClaimEvidence = {
   view: string | null;
   /** Designs no fim do pedido (o rascunho e as opções montadas), para conferir o que o pedido quer ver neles. */
   designs?: Design[];
+  /** O design no começo do pedido. */
+  before?: Design;
 };
+
+/**
+ * Cores do projeto por módulo: corpo, frentes e o que o acabamento pinta
+ * (pé, puxador, miolo, tampo, contorno, fundo). Peça nova (biblioteca no
+ * lugar do móvel) ou estilo aplicado também trocam cor, sem linha de
+ * "material" nas mudanças.
+ */
+function colorsOf(d: Design) {
+  const out: string[] = [];
+  const walk = (m: Design['modules'][number], c: Design['modules'][number]['root']) => {
+    if (c.front?.materialId) out.push(`${m.id}:${c.id}:${c.front.materialId}`);
+    c.split?.children.forEach((v) => walk(m, v));
+  };
+  for (const m of d.modules) {
+    out.push(`${m.id}:${m.materialId}`);
+    const l = m.look ?? {};
+    for (const v of [l.legMaterialId, l.handleMaterialId, l.insertMaterialId, l.top?.materialId, l.frameMaterialId, l.backMaterialId]) if (v) out.push(`${m.id}:${v}`);
+    walk(m, m.root);
+  }
+  return out.sort().join('|');
+}
 
 const VIEW_TOOLS = ['view_camera', 'view_frame', 'view_toggle', 'ui_tab'];
 const NAV_TOOLS = ['history_goto', 'history_undo', 'history_redo', 'project_fork', 'project_new', 'project_open'];
@@ -896,7 +937,10 @@ export const CLAIMS = {
   material: {
     q: 'afirma que trocou o material ou a cor de um móvel que já existia?',
     min: 0.6,
-    done: (e: ClaimEvidence) => e.changes.some((c) => /: material |compartimentos e frentes/.test(c)) || NAV_TOOLS.some((t) => e.tools.has(t)),
+    done: (e: ClaimEvidence) =>
+      e.changes.some((c) => /: material |compartimentos e frentes/.test(c)) ||
+      (!!e.before && !!e.designs?.[0] && colorsOf(e.before) !== colorsOf(e.designs[0])) ||
+      NAV_TOOLS.some((t) => e.tools.has(t)),
     fix: 'diz que trocou material ou cor, mas nenhum material mudou',
   },
 } as const;
@@ -983,6 +1027,7 @@ function evidenceOf(ctx: AgentContext): ClaimEvidence {
     changes: describeDesignChanges(ctx.turnStart.design, ctx.design),
     view: ctx.ui?.view ?? null,
     designs: [ctx.design, ...(ctx.options ?? []).map((o) => o.params as Design)],
+    before: ctx.turnStart.design,
   };
 }
 

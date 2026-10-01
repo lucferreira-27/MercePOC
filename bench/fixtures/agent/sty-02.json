@@ -1,0 +1,346 @@
+{
+ "id": "sty-02",
+ "at": "2026-10-01T22:23:42.590Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Faz um aparador anos 60",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_anxWGfAM2fTyzgX9mXSo9uLl",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Trocar a estante inicial por um aparador anos 60\",\"Enquadrar e conferir o novo móvel\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls",
+    "reasoning": "**Planning furniture replacement**\n\nI need to figure out how to replace some furniture, specifically a mid-century style sideboard or \"aparador.\" I might start by gathering dimensions and materials, perhaps defaulting to oak since that's a common choice. I'll consider the placement and how it fits into a larger project plan. There could be two steps involved. It seems like the user doesn't want to rename the project, so I’ll keep it straightforward and focus on adding the necessary asset."
+   }
+  },
+  {
+   "key": "4|Pedido: Faz um aparador anos 60",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_gScCShkpf7gF8xWR9J7DfUeC",
+      "type": "function",
+      "function": {
+       "name": "state_read",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Faz um aparador anos 60",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_MVkiG5n8vQHlP13B2yXYA8QQ",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"asset.add\",\"asset\":\"aparador\",\"width\":1800,\"height\":800,\"depth\":450,\"style\":\"midcentury\",\"placement\":\"replace\"}],\"rotulo\":\"Aparador anos 60\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Faz um aparador anos 60",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_ueD5O4JBxkx2uIhPaihMxAra",
+      "type": "function",
+      "function": {
+       "name": "view_camera",
+       "arguments": "{\"vista\":\"perspective\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Faz um aparador anos 60",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_DqBvMjUsoabIeZUXS3Pf6XUU",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "12|Pedido: Faz um aparador anos 60",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_4j5XJvdwXKHkK5XbbEJ44M3X",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "15|Pedido: Faz um aparador anos 60",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_I1U9xAhv0V5bE1H2Vt7bslND",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Troquei a estante inicial por um aparador anos 60, com 180 × 80 × 45 cm, portas nas laterais e três gavetas centrais. O móvel está enquadrado em perspectiva.\",\"sugestoes\":[\"Ajuste o acabamento ou os puxadores\",\"Veja o orçamento detalhado\",\"Exporte o desenho em PDF\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 1,
+      "probabilities": {
+       "view": 0,
+       "ask": 0,
+       "studio": 0,
+       "build": 1,
+       "options": 0,
+       "edit": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.96
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.04
+     }
+    },
+    "usage": {
+     "input_tokens": 1314,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.21
+     }
+    },
+    "usage": {
+     "input_tokens": 417,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.95
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.24
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.98
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.07
+     }
+    },
+    "usage": {
+     "input_tokens": 527,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

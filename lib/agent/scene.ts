@@ -78,7 +78,8 @@ export function sceneOf(design: Design, room: Room | undefined): Scene {
   const modules: SceneModule[] = design.modules.flatMap((m) => {
     const b = boxes.get(m.id);
     if (!b) return [];
-    const y0 = m.feet ? m.position[1] : b.min[1];
+    // Pés e base de mesa são ferragens: a peça começa no piso (ou na base do módulo), não na primeira chapa.
+    const y0 = m.feet || (m.kind === 'table' && !m.wall) ? m.position[1] : b.min[1];
     return [
       {
         id: m.id,

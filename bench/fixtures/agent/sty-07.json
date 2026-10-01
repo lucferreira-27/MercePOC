@@ -1,0 +1,295 @@
+{
+ "id": "sty-07",
+ "at": "2026-10-01T22:23:54.713Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Mesa de centro japandi",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_A4z65IvYKJw4ntRWnQG3k0Fx",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Trocar a estante inicial por uma mesa de centro Japandi\",\"Enquadrar a mesa para conferir o resultado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls",
+    "reasoning": "**Planning new furniture**\n\nI’m thinking we need to request new furniture for our project. I'm considering adding a mesa-centro style in the Japandi design, but the material isn't specified yet. It seems we should first create a plan for the large pieces. After that, I can move forward with the placement and any replacements needed. I might need to check default dimensions as well. Let's make sure everything is well thought out!"
+   }
+  },
+  {
+   "key": "4|Pedido: Mesa de centro japandi",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_JtvapEs6eJhue2RbOE1MyNWl",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"asset.add\",\"asset\":\"mesa-centro\",\"placement\":\"replace\",\"width\":1000,\"height\":420,\"depth\":550,\"materialId\":\"oak\",\"style\":\"japandi\"}]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Mesa de centro japandi",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_BqFVetbYKkw9o2Wh0V3kGU1X",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Mesa de centro japandi",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_aSEqSGVopqvYd4upshBdsmnr",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Troquei a estante inicial por uma mesa de centro Japandi em carvalho, com 100 × 55 cm e 42 cm de altura, e enquadrei o móvel na cena.\",\"sugestoes\":[\"Veja a mesa em perspectiva\",\"Ajuste o acabamento do tampo\",\"Consulte o orçamento atualizado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.15
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.15
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.8
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.13
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.89,
+      "probabilities": {
+       "view": 0.01,
+       "ask": 0.07,
+       "studio": 0,
+       "build": 0.92,
+       "options": 0,
+       "edit": 0
+      }
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.15
+     }
+    },
+    "usage": {
+     "input_tokens": 1310,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.09
+     }
+    },
+    "usage": {
+     "input_tokens": 413,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.29
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.96
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.19
+     }
+    },
+    "usage": {
+     "input_tokens": 521,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

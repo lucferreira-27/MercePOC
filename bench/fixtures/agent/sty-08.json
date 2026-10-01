@@ -1,0 +1,277 @@
+{
+ "id": "sty-08",
+ "at": "2026-10-01T22:23:55.687Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Deixe este móvel industrial",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_Du7DXAnvfTGWLp4Tf6XBsrnw",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"style.apply\",\"style\":\"industrial\"}],\"rotulo\":\"Estante industrial\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "4|Pedido: Deixe este móvel industrial",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_TQrsfXVrNF6QeXEU6n1AZnSD",
+      "type": "function",
+      "function": {
+       "name": "render_look",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "7|Pedido: Deixe este móvel industrial",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_E4Fn5WsrYhbFvOOAcnw3yOFc",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Apliquei o estilo industrial ao móvel e conferi a composição: acabamento em carvalho natural, estrutura e puxadores em aço preto, com frentes de tela metálica. As medidas gerais permanecem em 180 × 80 × 45 cm.\",\"sugestoes\":[\"Abra as portas para conferir o interior\",\"Veja o orçamento atualizado\",\"Exporte o desenho em PDF\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "edit",
+      "confidence": 0.6,
+      "probabilities": {
+       "build": 0.16,
+       "studio": 0.07,
+       "options": 0.01,
+       "edit": 0.67,
+       "view": 0.08,
+       "ask": 0.01
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.38
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.33
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.15
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.15
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.13
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.19
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.13
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.26
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.22
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.05
+     }
+    },
+    "usage": {
+     "input_tokens": 1312,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.07
+     }
+    },
+    "usage": {
+     "input_tokens": 415,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.74
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.54
+     }
+    },
+    "usage": {
+     "input_tokens": 537,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

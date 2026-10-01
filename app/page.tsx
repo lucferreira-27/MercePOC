@@ -2860,7 +2860,7 @@ export default function Home() {
               />
               <p className="proj-meta">
                 {visualSize ? `${metres(visualSize[0])} × ${metres(visualSize[1])} × ${metres(visualSize[2])} m · ` : ''}
-                {p.params.modules.length} {p.params.modules.length === 1 ? 'módulo' : 'módulos'} · {p.parts.length} peças
+                {p.params.modules.length} {p.params.modules.length === 1 ? 'módulo' : 'módulos'} · {p.parts.length} {p.parts.length === 1 ? 'peça' : 'peças'}
                 {quote ? ` · ${money(quote.total)}` : ''}
               </p>
               <p className="proj-meta">
@@ -4030,7 +4030,7 @@ export default function Home() {
                   <i />
                   {visualParams!.modules.length} {visualParams!.modules.length === 1 ? 'módulo' : 'módulos'}
                   <i />
-                  {visualParts.length} peças
+                  {visualParts.length} {visualParts.length === 1 ? 'peça' : 'peças'}
                   {quote && (
                     <>
                       <i />

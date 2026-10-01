@@ -1,4 +1,5 @@
 import { layout } from '../composition';
+import { describeLook } from '../look';
 import { canonical, generateDesign, type Design } from '../studio';
 import { fitSummary, type Room } from '../room';
 import { mergePrices, money, quoteOf, type Prices } from '../quote';
@@ -15,6 +16,7 @@ const r1 = (v: number) => Math.round(v * 10) / 10;
 export function designSnapshot(design: Design, room: Room | undefined) {
   const cells = layout(canonical(design)).cells;
   return {
+    ...(design.style ? { estilo: design.style } : {}),
     medidas_gerais_mm: { largura: r1(design.width), altura: r1(design.height), profundidade: r1(design.depth) },
     modulos: design.modules.map((m) => ({
       id: m.id,
@@ -28,7 +30,12 @@ export function designSnapshot(design: Design, room: Room | undefined) {
       ...(m.wall ? { suspenso: true } : {}),
       ...(m.rotation ? { rotacao: m.rotation } : {}),
       posicao: m.position.map(r1),
-      ...(m.back ? {} : { sem_fundo: true }),
+      ...(m.back || m.kind ? {} : { sem_fundo: true }),
+      ...(m.shelves ? { niveis: m.shelves } : {}),
+      ...(m.drawers ? { gavetas: m.drawers } : {}),
+      ...(m.hooks ? { ganchos: m.hooks } : {}),
+      // Acabamento em frases curtas: o que a pessoa vê (base, puxador, frente, tampo).
+      ...(m.look ? { acabamento: describeLook(m).join('; ') } : {}),
     })),
     conexoes: design.connections.map((c) => ({
       pai: c.parent,
@@ -55,6 +62,8 @@ export function designSnapshot(design: Design, room: Room | undefined) {
               tipo: c.node.front.type,
               ...(c.node.front.type === 'drawers' ? { gavetas: c.node.front.heights.length } : {}),
               ...(c.node.front.materialId ? { material: c.node.front.materialId } : {}),
+              ...(c.node.front.style ? { estilo: c.node.front.style } : {}),
+              ...(c.node.front.handle ? { puxador: c.node.front.handle } : {}),
             },
           }
         : {}),

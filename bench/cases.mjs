@@ -29,6 +29,7 @@
 import { createHash } from 'node:crypto';
 import { compositionCases, compositionGroup } from './composition-cases.mjs';
 import { photoCases } from './photo-real.mjs';
+import { styleCases, styleGroup } from './style-cases.mjs';
 
 export const groups = {
   ambiguidade: 'Medida ou alvo ambíguo: pergunta quando não há padrão razoável, faz quando há',
@@ -42,7 +43,7 @@ export const groups = {
   recusa: 'Pedido fora do escopo do produto: não inventar',
   referencia: 'Referência a peça que mudou ou sumiu',
   navegacao: 'Desfazer, refazer e voltar versão',
-  tipos: 'Tipos de móvel que o produto declara não suportar',
+  tipos: 'Tipos de peça: o que o produto faz (porta de correr, mesa) e o que fica de fora (curva)',
   sugestoes: 'Próximos passos propostos pela IA para o chip de sugestão',
   foto: 'Foto de referência: estimar a escala e montar o layout, sem recusar',
   'foto-real': 'Fotos reais de móveis e ambientes, comparadas com o gabarito montado à mão',
@@ -52,6 +53,7 @@ export const groups = {
   'trabalho-completo': 'Assistente em laço: pedido grande do começo ao fim (parede, móveis, vista, arquivo)',
   opcoes: 'Assistente em laço: opções lado a lado sem mudar o projeto',
   ...compositionGroup,
+  ...styleGroup,
 };
 
 const modulos = (design) => design.modules.length;
@@ -772,25 +774,41 @@ export const cases = [
   {
     id: 'tip-01',
     group: 'tipos',
-    askAct: 'responder',
+    askAct: 'agir',
+    agentOnly: true,
     prompt: 'Quero uma porta de correr neste armário.',
     expect: {
-      action: ['answer', 'update'],
-      content: { mustMatch: [/não|correr|disponível|suporta/i] },
+      action: ['update'],
+      design: (design, helpers) => (helpers.cells.some((c) => c.node.front?.type === 'sliding') ? true : 'sem porta de correr'),
     },
-    learned: 'Porta deslizante está fora do perfil: o produto avisa, não finge.',
+    learned: 'Até a fase 2 dos estilos a porta de correr ficava de fora e o produto avisava; agora existe (front.set sliding).',
   },
   {
     id: 'tip-02',
     group: 'tipos',
-    askAct: 'responder',
+    askAct: 'agir',
+    agentOnly: true,
     prompt: 'Faça um tampo de mesa de 1,50 m para o escritório.',
     expect: {
-      action: ['answer'],
-      applied: false,
-      content: { mustMatch: [/não|mesa|tampo|suporta/i] },
+      action: ['update'],
+      design: (design) => {
+        const t = design.modules.find((m) => m.kind === 'table');
+        if (!t) return 'não montou mesa';
+        return Math.abs(t.width - 1500) <= 20 ? true : `mesa de ${t.width} mm (pedido 1500)`;
+      },
     },
-    learned: 'Tampos avulsos e mesas estão fora do escopo declarado.',
+    learned: 'Até a fase 4 dos estilos mesa e tampo avulso ficavam de fora; agora a escrivaninha da biblioteca ou o preset table resolvem.',
+  },
+  {
+    id: 'tip-03',
+    group: 'tipos',
+    askAct: 'responder',
+    prompt: 'Faça uma estante curva, em arco, para o canto da sala.',
+    expect: {
+      action: ['answer', 'update'],
+      content: { mustMatch: [/curv|arco|não/i] },
+    },
+    learned: 'Curva continua fora do perfil: o produto diz, sem fingir que montou um arco.',
   },
   {
     id: 'mon-06',
@@ -1187,6 +1205,7 @@ cases.push(
 );
 cases.push(...compositionCases);
 cases.push(...photoCases);
+cases.push(...styleCases);
 
 /** Rótulos de askAct e o que a ação de cada um não pode ser. */
 export const ASK_ACT = ['agir', 'perguntar', 'responder', 'livre'];

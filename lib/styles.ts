@@ -395,7 +395,14 @@ function dress(m: Module, s: StyleDef, plan: RoleLook, attempt: Attempt, envelop
   const height = envelope - (legs?.height ?? 0) - (top?.thickness ?? 0) - (cornice ? corniceHeight : 0);
   if (height < 150) throw new Error('a caixa ficaria baixa demais para esse acabamento.');
   m.materialId = bodyMaterial;
-  const front = attempt.front ?? 'flat';
+  // Tela, vidro, palhinha e almofada só aparecem em porta: módulo só de
+  // gavetas (ou aberto) grava a moldura que ele mostra, e o estado diz a verdade.
+  let doors = false;
+  cells(m.root, (c) => {
+    if (c.front && c.front.type !== 'drawers') doors = true;
+  });
+  const wanted = attempt.front ?? 'flat';
+  const front = framedFront(wanted) && !doors ? 'shaker' : wanted;
   const insert = FRONTS[front].inserts ? (plan.insert ?? FRONTS[front].insertDefault) : undefined;
   const look: Look = {
     ...(legs ? { legs: legs.type, ...(legs.materialId && LEGS[legs.type].materials ? { legMaterialId: legs.materialId } : {}) } : {}),
@@ -487,4 +494,14 @@ export function styleFrom(text: string): StyleId | null {
   const t = norm(text);
   for (const s of Object.values(STYLES)) if (s.keywords.some((k) => t.includes(norm(k))) || t.includes(norm(s.name))) return s.id;
   return null;
+}
+
+/**
+ * Os estilos para o prompt da IA, uma linha cada: id, nome e as palavras que
+ * a pessoa usa. Sai da tabela, então estilo novo chega à IA sem mexer no prompt.
+ */
+export function styleCatalogForPrompt() {
+  return Object.values(STYLES)
+    .map((s) => `- ${s.id}: ${s.name}; pedidos como ${s.keywords.slice(0, 4).join(', ')}`)
+    .join('\n');
 }
