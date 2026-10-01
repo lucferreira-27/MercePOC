@@ -2,9 +2,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeftToLine, ArrowRightToLine, FilePlus2, Search, X } from 'lucide-react';
 import { buildTemplate, templates } from '@/lib/templates';
-import { CATEGORY_LABEL, type AssetCategory } from '@/lib/assets';
+import { CATEGORY_LABEL, resolveInput, type AssetCategory } from '@/lib/assets';
 import { drawingParts } from '@/lib/fittings';
+import type { StyleId } from '@/lib/look';
+import { STYLES } from '@/lib/styles';
 import { PlanThumb } from './plan-thumb';
+import { StyleChips } from './style-picker';
 
 type Filter = 'all' | AssetCategory;
 const FILTERS: Filter[] = ['all', 'sala', 'quarto', 'cozinha', 'escritorio', 'servico'];
@@ -16,11 +19,15 @@ const norm = (v: string) => v.normalize('NFD').replace(/\p{Diacritic}/gu, '').to
  * continua possível); em `add`, o ativo entra no projeto atual, encostado à
  * esquerda ou à direita do que já existe. A miniatura é o desenho do ativo
  * montado pelo motor, não uma ilustração: o que aparece aqui é o que entra.
+ * Com um estilo escolhido, as miniaturas se redesenham nele (e a medida
+ * padrão segue a proporção do estilo); somando ao projeto, começa no estilo
+ * do projeto.
  */
 export function TemplateGallery({
   open,
   busy,
   mode = 'new',
+  projectStyle,
   onClose,
   onBlank,
   onPick,
@@ -29,25 +36,34 @@ export function TemplateGallery({
   open: boolean;
   busy: boolean;
   mode?: 'new' | 'add';
+  /** Estilo do projeto aberto: somando ao projeto, a galeria começa nele. */
+  projectStyle?: StyleId;
   onClose: () => void;
   onBlank: () => void;
-  onPick: (id: string) => void;
-  onAdd?: (id: string, placement: 'left' | 'right') => void;
+  onPick: (id: string, style?: StyleId) => void;
+  onAdd?: (id: string, placement: 'left' | 'right', style?: StyleId) => void;
 }) {
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
+  const [chosen, setChosen] = useState<{ style: StyleId | null; for: string } | null>(null);
+  // Cada abertura começa do estilo do projeto (somando) ou livre (novo).
+  const key = `${open}:${mode}:${projectStyle ?? ''}`;
+  const style = chosen?.for === key ? chosen.style : mode === 'add' ? (projectStyle ?? null) : null;
+  const setStyle = (v: StyleId | null) => setChosen({ style: v, for: key });
   const previews = useMemo(
     () =>
       open
         ? templates.map((t) => {
+            const size = resolveInput(t.asset, style ? { style } : {});
             try {
-              return { t, parts: drawingParts(buildTemplate(t)) };
+              const parts = drawingParts(buildTemplate(t, style ?? undefined));
+              return { t, parts, size, legs: parts.some((p) => p.name === 'Pé' || p.kind === 'plinth') };
             } catch {
-              return { t, parts: [] };
+              return { t, parts: [], size, legs: false };
             }
           })
         : [],
-    [open],
+    [open, style],
   );
   useEffect(() => {
     if (!open) return;
@@ -113,6 +129,10 @@ export function TemplateGallery({
               onChange={(e) => setQuery(e.target.value)}
             />
           </label>
+          <div className="gallery-styles">
+            <span>Estilo</span>
+            <StyleChips value={style} onChange={setStyle} none={mode === 'add' && projectStyle ? undefined : 'Livre'} label="Estilo dos modelos" />
+          </div>
         </div>
         <div className="gallery-grid">
           {mode === 'new' && filter === 'all' && !q && (
@@ -124,8 +144,7 @@ export function TemplateGallery({
               <small>Uma estante simples de 80 × 180 cm para começar do jeito que quiser</small>
             </button>
           )}
-          {shown.map(({ t, parts }) => {
-            const s = t.asset.size.default;
+          {shown.map(({ t, parts, size: s, legs }) => {
             const body = (
               <>
                 <span className="gallery-art">
@@ -135,25 +154,26 @@ export function TemplateGallery({
                 <small>{t.summary}</small>
                 <span className="gallery-meta">
                   <em className="tag">{cm(s.width)} × {cm(s.height)} × {cm(s.depth)} cm</em>
-                  {t.asset.feet ? <em className="tag">pés</em> : null}
+                  {style ? <em className="tag">{STYLES[style].name}</em> : legs ? <em className="tag">pés</em> : null}
                   {mode === 'new' && t.room ? <em className="tag">com ambiente</em> : null}
                 </span>
               </>
             );
+            const picked = style ?? undefined;
             return mode === 'add' ? (
               <div className="gallery-card add" key={t.id}>
                 {body}
                 <span className="gallery-actions">
-                  <button type="button" disabled={busy} onClick={() => onAdd?.(t.id, 'left')} title="Encostar à esquerda do projeto">
+                  <button type="button" disabled={busy} onClick={() => onAdd?.(t.id, 'left', picked)} title="Encostar à esquerda do projeto">
                     <ArrowLeftToLine size={14} /> Esquerda
                   </button>
-                  <button type="button" className="primary" disabled={busy} onClick={() => onAdd?.(t.id, 'right')} title="Encostar à direita do projeto">
+                  <button type="button" className="primary" disabled={busy} onClick={() => onAdd?.(t.id, 'right', picked)} title="Encostar à direita do projeto">
                     Direita <ArrowRightToLine size={14} />
                   </button>
                 </span>
               </div>
             ) : (
-              <button type="button" className="gallery-card" key={t.id} disabled={busy} onClick={() => onPick(t.id)}>
+              <button type="button" className="gallery-card" key={t.id} disabled={busy} onClick={() => onPick(t.id, picked)}>
                 {body}
               </button>
             );

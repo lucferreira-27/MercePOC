@@ -11,7 +11,7 @@ import {
 import { materialIds, type MaterialId } from './furniture';
 import { STYLE_IDS, type StyleId } from './look';
 import { TV_CLEARANCE_MM, type Room } from './room';
-import { applyStyle, STYLES, styleFeet, styleProportion, styleReach } from './styles';
+import { applyStyle, STYLES, styleFeet, styleProportion } from './styles';
 
 /**
  * Biblioteca de móveis prontos. Cada ativo é uma receita paramétrica que monta
@@ -325,8 +325,9 @@ export const assets: Asset[] = [
       `Montei um conjunto de sala de ${cm(p.width)} cm: rack grafite de ${cm(p.width - 900)} × 50 × ${cm(p.depth)} cm com gavetas e portas, entre duas torres de nogueira de 45 × ${cm(p.height)} × 35 cm alinhadas pelo fundo. Peça para alargar o rack, trocar as torres por portas ou mudar os acabamentos.`,
     // A TV fica entre as torres: a de 55" (1230 mm) entrava nas torres no
     // tamanho padrão (1200 mm entre elas). Vai a maior que cabe com folga.
-    // A moldura do estilo nas torres avança sobre o vão: a TV escolhida já conta.
-    room: (p, width) => tvRoom(width, 800, undefined, tvFor(width - 900 - 2 * styleReach(p.style, 'tall'))),
+    // A moldura do estilo nas torres avança para o vão (o quanto o móvel
+    // cresceu de cada lado): a TV escolhida cabe entre as molduras.
+    room: (p, width) => tvRoom(width, 800, undefined, tvFor(p.width - 900 - Math.max(0, width - p.width))),
     build(b, p) {
       const tower = (key: string, name: string) => {
         const id = b.box(key, name, [450, p.height, 350], p.body);

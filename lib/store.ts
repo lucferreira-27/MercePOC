@@ -228,8 +228,9 @@ export function create() {
 export function createFromTemplate(templateId: string, style?: StyleId) {
   const t = templateById(templateId);
   if (!t) throw new Error('Modelo não encontrado.');
-  const params = normalize(buildTemplate(t, style));
-  const start = templateStart(t, style);
+  const built = buildTemplate(t, style);
+  const params = normalize(built);
+  const start = templateStart(t, style, built);
   const revisionId = randomUUID();
   const p: Project = {
     id: randomUUID(),

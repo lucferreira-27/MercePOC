@@ -13,7 +13,7 @@ const EDGE_NAME = { square: 'Reta', rounded: 'Boleada', chamfer: 'Chanfrada' } a
 const TOP_CATEGORIES: MaterialCategory[] = ['sheet', 'solid', 'stone', 'glass', 'metal'];
 
 /**
- * Estilo e acabamento do módulo: base, puxador, frente, tampo sobreposto,
+ * Acabamento do módulo: base, puxador, frente, tampo sobreposto,
  * moldura, contorno de aço, fundo de outra cor e LED. Aplica um `module.edit`
  * com o remendo do `look` (e a altura dos pés), pela mesma validação de
  * qualquer edição: a recusa aparece aqui, em frase.

@@ -935,6 +935,23 @@ function mergeBox(a: Box, b: Box): Box {
   };
 }
 
+/**
+ * Caixas das peças de cada módulo. O encaixe confere peça por peça: pela
+ * união, a moldura no topo de uma torre (4 cm para o lado, lá em cima)
+ * alargava a torre inteira e ela "tapava" a TV ao lado, na altura da tela.
+ */
+function partBoxesOf(parts: readonly ModularPart[]) {
+  const out = new Map<string, Box[]>();
+  for (const part of parts)
+    for (const owner of part.owners) {
+      const list = out.get(owner);
+      if (list) list.push(partBox(part));
+      else out.set(owner, [partBox(part)]);
+    }
+  return out;
+}
+const asMinMax = (b: Box) => ({ min: [b.minX, b.minY, b.minZ] as const, max: [b.maxX, b.maxY, b.maxZ] as const });
+
 /** Caixa de cada módulo (x ao longo da parede, y do piso): a união das peças dele. */
 export function moduleBoxes(parts: readonly ModularPart[]) {
   const modules = new Map<string, Box>();
@@ -968,6 +985,7 @@ export function fitReport(design: Composition, room: Room): FitReport {
   // O envelope é a união das caixas das peças; a caixa de cada módulo é a união
   // das peças dele (um painel compartilhado pertence aos dois).
   const modules = moduleBoxes(g.parts);
+  const pieces = partBoxesOf(g.parts);
   const obstacles = room.obstacles ?? [];
   const crossed = new Set<string>();
   const obstacleIssues: FitIssue[] = [];
@@ -983,8 +1001,8 @@ export function fitReport(design: Composition, room: Room): FitReport {
   const tvIssues: FitIssue[] = [];
   for (const tv of tvPlacements(design, room, g))
     for (const movel of design.modules) {
-      const box = modules.get(movel.id);
-      if (!box || !blocksTv(tv.rect, tv.mountZ, { min: [box.minX, box.minY, box.minZ], max: [box.maxX, box.maxY, box.maxZ] })) continue;
+      const box = pieces.get(movel.id)?.find((b) => blocksTv(tv.rect, tv.mountZ, asMinMax(b)));
+      if (!box) continue;
       const who = tv.obstacle.label ?? 'TV';
       const inFront =
         Math.min(box.maxX, tv.rect.x1) - Math.max(box.minX, tv.rect.x0) > 0.5 && Math.min(box.maxY, tv.rect.y1) - Math.max(box.minY, tv.rect.y0) > 0.5;
@@ -1013,7 +1031,7 @@ export function fitReport(design: Composition, room: Room): FitReport {
     // `module` é palavra reservada na regra do Next: usar outro nome.
     for (const movel of design.modules) {
       const box = modules.get(movel.id);
-      if (!box || !crosses(area, box)) continue;
+      if (!box || !pieces.get(movel.id)?.some((b) => crosses(area, b))) continue;
       const who = obstacle.label ?? KIND_WORD[obstacle.kind];
       if (obstacle.kind === 'outlet') {
         behind.push(`${who} fica atrás do módulo ${movel.name}: recorte no fundo ou mude a tomada de lugar na obra.`);
@@ -1037,8 +1055,7 @@ export function fitReport(design: Composition, room: Room): FitReport {
     const f = wallFootprint(w);
     const solid = wallBox(w, origin, room.heightMm);
     for (const movel of design.modules) {
-      const box = modules.get(movel.id);
-      if (!box || !boxesCross(solid, { min: [box.minX, box.minY, box.minZ], max: [box.maxX, box.maxY, box.maxZ] })) continue;
+      if (!pieces.get(movel.id)?.some((b) => boxesCross(solid, asMinMax(b)))) continue;
       crossedWalls.add(w.id);
       wallIssues.push({
         code: 'wall-overlap',

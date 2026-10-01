@@ -1,5 +1,5 @@
 'use client';
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo, useState, type ReactNode } from 'react';
 import { Button } from './ui/button';
 import { FinishPicker } from './finish-picker';
 import { LookEditor } from './look-editor';
@@ -103,12 +103,15 @@ function ModularEditorPanel({
   onOp,
   onOps,
   onLibrary,
+  styleRow,
   busy,
   onOpen,
   opened,
 }: {
   /** Abre a biblioteca de móveis prontos para somar ao projeto. */
   onLibrary?: () => void;
+  /** Estilo do projeto (topo do painel), com o módulo selecionado, se houver. */
+  styleRow?: (piece: { id: string; name: string } | null) => ReactNode;
   design: Composition;
   selected: string[];
   /** `extend` é o shift+clique: o pai soma o conjunto à seleção. */
@@ -354,6 +357,7 @@ function ModularEditorPanel({
   }
   return (
     <div className="modular-editor">
+      {styleRow?.(target ? { id: m.id, name: m.name } : null)}
       {g.warnings.slice(1).map((w) => (
         <p className="warning" key={w}>
           {w}
@@ -699,7 +703,7 @@ function ModularEditorPanel({
           </Button>
         </form>
         <details open={error?.scope === 'look'}>
-          <summary>Estilo e acabamento</summary>
+          <summary>Acabamento do módulo</summary>
           <LookEditor
             key={m.id + JSON.stringify(m.look ?? {}) + (m.feet ?? 0) + editAttempt}
             module={m}

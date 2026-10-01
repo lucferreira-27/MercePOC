@@ -56,7 +56,8 @@ export type StyleDef = {
   summary: string;
   /** Palavras que a pessoa usa para pedir o estilo. */
   keywords: string[];
-  palette: { body: MaterialId; front: MaterialId; panel: MaterialId; ledge: MaterialId };
+  /** `accent`: a cor que marca o estilo na amostra (aço, petróleo, latão…). */
+  palette: { body: MaterialId; front: MaterialId; panel: MaterialId; ledge: MaterialId; accent: MaterialId };
   /** O que vale para todo papel; cada papel sobrepõe o seu. */
   base: RoleLook;
   roles: Record<'low' | 'counter' | 'tall' | 'wall', RoleLook>;
@@ -76,7 +77,7 @@ export const STYLES: Record<StyleId, StyleDef> = {
     label: 'industrial',
     summary: 'Carvalho e aço preto: contorno de metalon, pé de tubo, portas de tela em quadro de aço e puxador barra',
     keywords: ['industrial', 'loft', 'ferro', 'metalon', 'serralheria', 'urbano', 'galpão'],
-    palette: { body: 'oak', front: 'oak', panel: 'smoked', ledge: 'oak-solid' },
+    palette: { body: 'oak', front: 'oak', panel: 'smoked', ledge: 'oak-solid', accent: steel },
     base: { front: 'mesh', insert: steel, doorFrame: steel, handle: 'bar', handleMaterial: steel, frame: steel },
     roles: {
       low: { legs: { type: 'tube', height: 100, materialId: steel } },
@@ -93,7 +94,7 @@ export const STYLES: Record<StyleId, StyleDef> = {
     label: 'anos 60',
     summary: 'Nogueira sobre pé palito inclinado, puxador recortado na frente, proporção baixa e comprida',
     keywords: ['anos 60', 'anos 50', 'mid-century', 'midcentury', 'retrô', 'retro', 'vintage', 'pé palito', 'modernista'],
-    palette: { body: 'walnut', front: 'walnut', panel: 'freijo', ledge: 'walnut-solid' },
+    palette: { body: 'walnut', front: 'walnut', panel: 'freijo', ledge: 'walnut-solid', accent: 'petrol' },
     base: { front: 'flat', handle: 'cutout' },
     roles: {
       low: { legs: { type: 'splayed', height: 200, materialId: 'walnut-solid' } },
@@ -110,7 +111,7 @@ export const STYLES: Record<StyleId, StyleDef> = {
     label: 'escandinavo',
     summary: 'Branco com madeira clara: pé cônico de freixo, puxador botão de madeira, estante aberta e linhas limpas',
     keywords: ['escandinavo', 'escandinava', 'nórdico', 'nórdica', 'nordico', 'nordica', 'scandi', 'hygge', 'madeira clara'],
-    palette: { body: 'white', front: 'white', panel: 'ash', ledge: 'ash-solid' },
+    palette: { body: 'white', front: 'white', panel: 'ash', ledge: 'ash-solid', accent: 'ash-solid' },
     base: { front: 'flat', handle: 'knob', handleMaterial: 'ash-solid' },
     roles: {
       low: { legs: { type: 'tapered', height: 150, materialId: 'ash-solid' } },
@@ -127,7 +128,7 @@ export const STYLES: Record<StyleId, StyleDef> = {
     label: 'minimalista',
     summary: 'Grafite liso, cava no lugar do puxador, rodapé recuado, LED nos nichos, correr e basculante no armário',
     keywords: ['minimalista', 'contemporâneo', 'contemporânea', 'contemporaneo', 'contemporanea', 'moderno', 'moderna', 'sem puxador', 'clean'],
-    palette: { body: 'graphite', front: 'graphite', panel: 'graphite', ledge: 'graphite' },
+    palette: { body: 'graphite', front: 'graphite', panel: 'graphite', ledge: 'graphite', accent: 'marble' },
     base: { front: 'flat', handle: 'groove' },
     roles: {
       low: { legs: { type: 'plinth', height: 80 } },
@@ -143,7 +144,7 @@ export const STYLES: Record<StyleId, StyleDef> = {
     label: 'rústico',
     summary: 'Pinus com frente de moldura, tampo maciço grosso, pé quadrado e puxador concha de bronze',
     keywords: ['rústico', 'rústica', 'rustico', 'rustica', 'fazenda', 'country', 'casa de campo', 'farmhouse', 'demolição'],
-    palette: { body: 'pine', front: 'pine', panel: 'pine', ledge: 'pine-solid' },
+    palette: { body: 'pine', front: 'pine', panel: 'pine', ledge: 'pine-solid', accent: 'bronze' },
     base: { front: 'shaker', handle: 'cup', handleMaterial: 'bronze' },
     roles: {
       low: { legs: { type: 'block', height: 100, materialId: 'pine-solid' }, top: { materialId: 'pine-solid', thickness: 40, overhang: 20, edge: 'square' } },
@@ -159,7 +160,7 @@ export const STYLES: Record<StyleId, StyleDef> = {
     label: 'clássico',
     summary: 'Creme com frente de moldura, puxador botão de latão, pé bola, tampo de mármore e moldura no topo',
     keywords: ['clássico', 'clássica', 'classico', 'classica', 'provençal', 'provencal', 'tradicional', 'colonial', 'francês', 'frances'],
-    palette: { body: 'sand', front: 'sand', panel: 'sand', ledge: 'sand' },
+    palette: { body: 'sand', front: 'sand', panel: 'sand', ledge: 'sand', accent: 'brass' },
     base: { front: 'shaker', handle: 'knob', handleMaterial: 'brass' },
     roles: {
       low: { legs: { type: 'bun', height: 80, materialId: 'sand' }, top: { materialId: 'marble', thickness: 20, overhang: 15, edge: 'rounded' } },
@@ -175,7 +176,7 @@ export const STYLES: Record<StyleId, StyleDef> = {
     label: 'japandi',
     summary: 'Freixo ripado sobre base baixa de madeira escura, sem puxador aparente, estante aberta e proporção baixa',
     keywords: ['japandi', 'japonês', 'japonesa', 'japones', 'zen', 'wabi-sabi', 'ripado', 'ripada', 'oriental'],
-    palette: { body: 'ash', front: 'ash', panel: 'smoked', ledge: 'smoked-solid' },
+    palette: { body: 'ash', front: 'ash', panel: 'smoked', ledge: 'smoked-solid', accent: 'smoked-solid' },
     base: { front: 'slatted', handle: 'none' },
     roles: {
       low: { legs: { type: 'block', height: 60, materialId: 'smoked-solid' } },
@@ -193,13 +194,6 @@ export const STYLES: Record<StyleId, StyleDef> = {
 export function roleLook(style: StyleId, role: 'low' | 'counter' | 'tall' | 'wall'): RoleLook {
   const s = STYLES[style];
   return { ...s.base, ...s.roles[role] };
-}
-
-/** Quanto o topo do estilo avança para os lados (tampo ou moldura), em mm. */
-export function styleReach(style: StyleId | undefined, role: 'low' | 'counter' | 'tall' | 'wall') {
-  if (!style) return 0;
-  const look = roleLook(style, role);
-  return Math.max(look.top?.overhang ?? 0, look.cornice ? CORNICE.capReach : 0);
 }
 
 /** Pés que o estilo dá a um móvel novo (o ativo monta já com a altura certa). */
@@ -404,6 +398,12 @@ export function styleProportion(style: StyleId, role: 'low' | 'counter' | 'tall'
   return { height: 1, width: 1 };
 }
 
+/** Amostra do estilo: a cor do corpo e a que marca o estilo. */
+export function styleSwatch(style: StyleId): [string, string] {
+  const p = STYLES[style].palette;
+  return [materialOf(p.body).color, materialOf(p.accent).color];
+}
+
 /** O estilo em frases curtas para os chips da prévia e o cartão de mudança. */
 export function styleChips(style: StyleId): string[] {
   const s = STYLES[style];
@@ -417,7 +417,8 @@ export function styleChips(style: StyleId): string[] {
     ...(low.top ? { top: low.top } : {}),
     ...(low.frame ? { frame: true, frameMaterialId: low.frame } : {}),
   };
-  return [materialOf(s.palette.body).name, ...describeLook({ look }).map((v) => v.replace(/ de \d+ mm/, ''))];
+  const up = (v: string) => v.charAt(0).toUpperCase() + v.slice(1);
+  return [materialOf(s.palette.body).name, ...describeLook({ look }).map(up)];
 }
 
 export const styleOpSchema = z

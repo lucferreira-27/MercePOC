@@ -37,9 +37,8 @@ for (const style of STYLE_IDS)
         for (const m of d.modules)
           if (!m.kind && !m.wall) assert.ok(outer(m) <= s.height + 1, `${a.id} ${style}: ${m.name} com ${outer(m)} mm`);
         if (a.room) {
-          // Como o app monta o ambiente do modelo: pela largura pedida.
-          const input = resolveInput(a, { ...s, style });
-          const report = fitReport(d, a.room(input, input.width));
+          // Como o app monta o ambiente do modelo: pela largura do móvel montado.
+          const report = fitReport(d, a.room(resolveInput(a, { ...s, style }), width));
           assert.deepEqual(report.issues.map((i) => i.message), [], `${a.id} ${style} ${JSON.stringify(s)}`);
         }
       }
