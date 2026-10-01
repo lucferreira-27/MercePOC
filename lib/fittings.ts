@@ -231,7 +231,8 @@ function tableBase(m: Module, out: Fitting[]) {
     // Dois cavaletes nas pontas e a travessa entre eles, a um terço da altura.
     for (const sx of [-1, 1])
       out.push({ ...base, id: `${m.id}:trestle-${sx < 0 ? 0 : 1}`, kind: 'leg', type: 'trestle', position: at(sx * (bw / 2 - 40), lh / 2, 0), size: [80, lh, bd], bom: { unit: 'un', qty: 1 } });
-    out.push({ ...base, id: `${m.id}:beam`, kind: 'leg', type: 'beam', position: at(0, lh / 3, 0), size: [bw - 160, 70, 40], bom: { unit: 'un', qty: 0 } });
+    // Longarina a 1/3 do piso, entrando até o meio do travessão de cada cavalete.
+    out.push({ ...base, id: `${m.id}:beam`, kind: 'leg', type: 'beam', position: at(0, lh / 3, 0), size: [bw - 80, 70, 40], bom: { unit: 'un', qty: 0 } });
     return;
   }
   if (type === 'wall') {
@@ -529,7 +530,14 @@ function drawnBoxes(f: Fitting): { position: Vec; size: Vec }[] {
   }
   if (f.kind === 'stand' && f.type === 'sled') return [box(0, 0, -d / 2 + 10, [w, h, 20]), box(0, 0, d / 2 - 10, [w, h, 20]), box(0, -h / 2 + 10, 0, [w, 20, d])];
   if (f.type === 'trestle')
-    return [box(0, 0, -d / 2 + 60, [60, h, 60]), box(0, 0, d / 2 - 60, [60, h, 60]), box(0, -h / 2 + 30, 0, [w, 60, d]), box(0, h / 2 - 30, 0, [w, 60, d - 40])];
+    return [
+      box(0, 0, -d / 2 + 60, [60, h, 60]),
+      box(0, 0, d / 2 - 60, [60, h, 60]),
+      box(0, -h / 2 + 30, 0, [w, 60, d]),
+      box(0, h / 2 - 30, 0, [w, 60, d - 40]),
+      // Travessão entre as colunas, na altura da longarina (1/3 do piso).
+      box(0, h / 3 - h / 2, 0, [60, 70, d - 240]),
+    ];
   if (f.type === 'wall') return [box(0, 0, -d / 2 + 4, [w, h, 8]), box(0, h / 2 - 4, 0, [w, 8, d])];
   if (f.kind !== 'leg' || (f.type !== 'splayed' && f.type !== 'tapered')) return [{ position: f.position, size: f.size }];
   const [ax, az] = f.splay ?? [0, 0];

@@ -51,6 +51,8 @@ function block(size: [number, number, number], at: [number, number, number], mat
 }
 
 const BRASS = '#c7a14b';
+/** Altura do travessão do cavalete, em fração da altura, a partir do centro: a longarina fica a 1/3 do piso. */
+const TRESTLE_RAIL_Y = 1 / 3 - 1 / 2;
 
 /** A forma da ferragem, centrada na caixa dela e no referencial do módulo. */
 export function fittingShape(f: Fitting, mat: THREE.Material, disposables: Disposable[], cache: Map<string, THREE.Material>) {
@@ -156,10 +158,12 @@ export function fittingShape(f: Fitting, mat: THREE.Material, disposables: Dispo
       break;
     }
     case 'trestle':
-      // Cavalete: duas colunas, a sapata no piso e a travessa embaixo do tampo.
+      // Cavalete em H: duas colunas, a sapata no piso, a travessa embaixo do
+      // tampo e o travessão entre as colunas, onde a longarina entra.
       for (const z of [-d / 2 + 60, d / 2 - 60]) g.add(block([60, h, 60], [0, 0, z], mat, disposables));
       g.add(block([w, 60, d], [0, bottom + 30, 0], mat, disposables));
       g.add(block([w, 60, d - 40], [0, top - 30, 0], mat, disposables));
+      g.add(block([60, 70, d - 240], [0, TRESTLE_RAIL_Y * h, 0], mat, disposables));
       break;
     case 'wall':
       // Suporte de parede em L: chapa na parede e braço embaixo do tampo.
