@@ -56,6 +56,10 @@ export type StyleDef = {
   label: string;
   /** Uma linha para a galeria, o cartão de mudança e a IA. */
   summary: string;
+  /** Poucas palavras para o cartão do seletor ("Carvalho e aço preto"). */
+  hint: string;
+  /** Família do seletor de estilos (`STYLE_FAMILIES`). */
+  family: StyleFamily;
   /** Palavras que a pessoa usa para pedir o estilo. */
   keywords: string[];
   /** `accent`: a cor que marca o estilo na amostra (aço, petróleo, latão…). */
@@ -70,6 +74,18 @@ export type StyleDef = {
   airy?: boolean;
 };
 
+/**
+ * Famílias do seletor: com muitos estilos, a pessoa acha o seu pelo jeito
+ * (moderno, natural, sofisticado, clássico) antes de ler cada nome.
+ */
+export const STYLE_FAMILIES = [
+  { id: 'modern', name: 'Moderno' },
+  { id: 'natural', name: 'Natural e despojado' },
+  { id: 'bold', name: 'Urbano e sofisticado' },
+  { id: 'classic', name: 'Clássico e romântico' },
+] as const;
+export type StyleFamily = (typeof STYLE_FAMILIES)[number]['id'];
+
 const steel: MaterialId = 'steel-black';
 
 export const STYLES: Record<StyleId, StyleDef> = {
@@ -78,6 +94,8 @@ export const STYLES: Record<StyleId, StyleDef> = {
     name: 'Industrial',
     label: 'industrial',
     summary: 'Carvalho e aço preto: contorno de metalon, pé de tubo, portas de tela em quadro de aço e puxador barra',
+    hint: 'Carvalho e aço preto',
+    family: 'bold',
     keywords: ['industrial', 'loft', 'ferro', 'metalon', 'serralheria', 'urbano', 'galpão'],
     palette: { body: 'oak', front: 'oak', panel: 'smoked', ledge: 'oak-solid', accent: steel },
     base: { front: 'mesh', insert: steel, doorFrame: steel, handle: 'bar', handleMaterial: steel, frame: steel },
@@ -96,6 +114,8 @@ export const STYLES: Record<StyleId, StyleDef> = {
     name: 'Anos 60',
     label: 'anos 60',
     summary: 'Nogueira sobre pé palito inclinado, puxador recortado na frente, proporção baixa e comprida',
+    hint: 'Nogueira e pé inclinado',
+    family: 'modern',
     keywords: ['anos 60', 'anos 50', 'mid-century', 'midcentury', 'retrô', 'retro', 'vintage', 'pé palito', 'modernista'],
     palette: { body: 'walnut', front: 'walnut', panel: 'freijo', ledge: 'walnut-solid', accent: 'petrol' },
     base: { front: 'flat', handle: 'cutout' },
@@ -114,6 +134,8 @@ export const STYLES: Record<StyleId, StyleDef> = {
     name: 'Escandinavo',
     label: 'escandinavo',
     summary: 'Branco com madeira clara: pé cônico de freixo, puxador botão de madeira, estante aberta e linhas limpas',
+    hint: 'Branco e madeira clara',
+    family: 'modern',
     keywords: ['escandinavo', 'escandinava', 'nórdico', 'nórdica', 'nordico', 'nordica', 'scandi', 'hygge', 'madeira clara'],
     palette: { body: 'white', front: 'white', panel: 'ash', ledge: 'ash-solid', accent: 'ash-solid' },
     base: { front: 'flat', handle: 'knob', handleMaterial: 'ash-solid' },
@@ -132,6 +154,8 @@ export const STYLES: Record<StyleId, StyleDef> = {
     name: 'Minimalista',
     label: 'minimalista',
     summary: 'Grafite liso, cava no lugar do puxador, rodapé recuado, LED nos nichos, correr e basculante no armário',
+    hint: 'Grafite liso, sem puxador',
+    family: 'modern',
     keywords: ['minimalista', 'contemporâneo', 'contemporânea', 'contemporaneo', 'contemporanea', 'moderno', 'moderna', 'sem puxador', 'clean'],
     palette: { body: 'graphite', front: 'graphite', panel: 'graphite', ledge: 'graphite', accent: 'marble' },
     base: { front: 'flat', handle: 'groove' },
@@ -149,6 +173,8 @@ export const STYLES: Record<StyleId, StyleDef> = {
     name: 'Rústico',
     label: 'rústico',
     summary: 'Pinus com frente de moldura, tampo maciço grosso, pé quadrado e puxador concha de bronze',
+    hint: 'Pinus maciço e bronze',
+    family: 'natural',
     keywords: ['rústico', 'rústica', 'rustico', 'rustica', 'fazenda', 'country', 'casa de campo', 'farmhouse', 'demolição'],
     palette: { body: 'pine', front: 'pine', panel: 'pine', ledge: 'pine-solid', accent: 'bronze' },
     base: { front: 'shaker', handle: 'cup', handleMaterial: 'bronze' },
@@ -166,6 +192,8 @@ export const STYLES: Record<StyleId, StyleDef> = {
     name: 'Clássico',
     label: 'clássico',
     summary: 'Creme com frente de moldura, puxador botão de latão, pé bola, tampo de mármore e moldura no topo',
+    hint: 'Creme, latão e mármore',
+    family: 'classic',
     keywords: ['clássico', 'clássica', 'classico', 'classica', 'tradicional', 'colonial', 'neoclássico', 'neoclassico'],
     palette: { body: 'sand', front: 'sand', panel: 'sand', ledge: 'sand', accent: 'brass' },
     base: { front: 'shaker', handle: 'knob', handleMaterial: 'brass' },
@@ -183,6 +211,8 @@ export const STYLES: Record<StyleId, StyleDef> = {
     name: 'Japandi',
     label: 'japandi',
     summary: 'Freixo ripado sobre base baixa de madeira escura, sem puxador aparente, estante aberta e proporção baixa',
+    hint: 'Freixo ripado, base baixa',
+    family: 'modern',
     keywords: ['japandi', 'japonês', 'japonesa', 'japones', 'zen', 'wabi-sabi', 'ripado', 'ripada', 'oriental'],
     palette: { body: 'ash', front: 'ash', panel: 'smoked', ledge: 'smoked-solid', accent: 'smoked-solid' },
     base: { front: 'slatted', handle: 'none' },
@@ -202,6 +232,8 @@ export const STYLES: Record<StyleId, StyleDef> = {
     name: 'Boho',
     label: 'boho',
     summary: 'Carvalho claro com portas de palhinha, alça de couro, pé cônico de madeira e fundo terracota na estante aberta',
+    hint: 'Carvalho, palhinha e couro',
+    family: 'natural',
     keywords: ['boho', 'boêmio', 'boêmia', 'boemio', 'boemia', 'rattan', 'ratan', 'de vime', 'em vime', 'fibra natural', 'étnico', 'étnica', 'etnico', 'etnica', 'hippie'],
     palette: { body: 'oak', front: 'oak', panel: 'terracotta', ledge: 'oak-solid', accent: 'terracotta' },
     base: { front: 'cane', insert: 'cane', handle: 'strap' },
@@ -220,6 +252,8 @@ export const STYLES: Record<StyleId, StyleDef> = {
     name: 'Brasileiro',
     label: 'brasileiro moderno',
     summary: 'Freijó com palhinha, pé palito de madeira maciça, cava no lugar do puxador, proporção baixa e comprida',
+    hint: 'Freijó e palhinha',
+    family: 'modern',
     keywords: [
       'brasileiro',
       'brasileira',
@@ -252,6 +286,8 @@ export const STYLES: Record<StyleId, StyleDef> = {
     name: 'Art déco',
     label: 'art déco',
     summary: 'Preto com latão: portas de vidro canelado, puxador barra e pé de latão, tampo de mármore chanfrado e LED na cristaleira',
+    hint: 'Preto, latão e mármore',
+    family: 'bold',
     keywords: ['art déco', 'art deco', 'artdeco', 'glam', 'hollywood', 'gatsby', 'anos 20', 'anos 30', 'luxo', 'luxuoso', 'luxuosa'],
     palette: { body: 'black', front: 'black', panel: 'black', ledge: 'black', accent: 'brass' },
     base: { front: 'glass', insert: 'glass-ribbed', handle: 'bar', handleMaterial: 'brass' },
@@ -270,6 +306,8 @@ export const STYLES: Record<StyleId, StyleDef> = {
     name: 'Provençal',
     label: 'provençal',
     summary: 'Branco com portas de almofada, pé torneado, puxador botão de bronze, tampo de carvalho e moldura no topo do armário',
+    hint: 'Branco com pé torneado',
+    family: 'classic',
     keywords: ['provençal', 'provencal', 'francês', 'frances', 'francesa', 'campestre', 'romântico', 'romântica', 'romantico', 'romantica', 'shabby', 'pátina', 'patina'],
     palette: { body: 'white', front: 'white', panel: 'white', ledge: 'white', accent: 'sage' },
     base: { front: 'framed', insert: 'white', handle: 'knob', handleMaterial: 'bronze' },
@@ -287,6 +325,8 @@ export const STYLES: Record<StyleId, StyleDef> = {
     name: 'Praiano',
     label: 'praiano',
     summary: 'Branco com frentes ripadas em azul claro, puxador botão de madeira, pé quadrado e tampo de freixo',
+    hint: 'Branco e azul claro',
+    family: 'natural',
     keywords: ['praiano', 'praiana', 'praia', 'coastal', 'litorâneo', 'litorânea', 'litoraneo', 'litoranea', 'litoral', 'beira-mar', 'beira mar', 'navy', 'náutico', 'nautico', 'hamptons'],
     palette: { body: 'white', front: 'sky', panel: 'white', ledge: 'ash-solid', accent: 'sky' },
     base: { front: 'slatted', handle: 'knob', handleMaterial: 'ash-solid' },
@@ -584,13 +624,24 @@ export function applyStyleOp(d: Composition, raw: StyleOp): Composition {
   return applyStyle(d, op.style, { ids: op.ids, keepMaterials: op.keepMaterials });
 }
 
+const norm = (v: string) => v.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+
+/** Busca do seletor: estilos cujo nome, dica, resumo ou palavras contêm o texto, na ordem da tabela. */
+export function searchStyles(text: string): StyleId[] {
+  const t = norm(text.trim());
+  if (!t) return [...STYLE_IDS];
+  return STYLE_IDS.filter((id) => {
+    const s = STYLES[id];
+    return [s.name, s.hint, s.summary, ...s.keywords].some((k) => norm(k).includes(t));
+  });
+}
+
 /**
  * Estilo pelo id ou pelas palavras da pessoa ("anos 60", "nórdico"). Vale a
  * palavra mais longa que aparece: "modernista brasileiro" é brasileiro, não
  * anos 60; no empate, a ordem da tabela.
  */
 export function styleFrom(text: string): StyleId | null {
-  const norm = (v: string) => v.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
   const t = norm(text);
   let best: { id: StyleId; length: number } | null = null;
   for (const s of Object.values(STYLES))

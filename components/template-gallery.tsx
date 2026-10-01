@@ -7,7 +7,7 @@ import { drawingParts } from '@/lib/fittings';
 import type { StyleId } from '@/lib/look';
 import { STYLES } from '@/lib/styles';
 import { PlanThumb } from './plan-thumb';
-import { StyleChips } from './style-picker';
+import { StyleSelect } from './style-picker';
 
 type Filter = 'all' | AssetCategory;
 const FILTERS: Filter[] = ['all', 'sala', 'quarto', 'cozinha', 'escritorio', 'servico'];
@@ -133,7 +133,7 @@ export function TemplateGallery({
           </label>
           <div className="gallery-styles">
             <span>Estilo</span>
-            <StyleChips value={style} onChange={setStyle} none={mode === 'add' && projectStyle ? undefined : 'Livre'} label="Estilo dos modelos" />
+            <StyleSelect value={style} onChange={setStyle} none={mode === 'add' && projectStyle ? undefined : 'Livre'} label="Estilo dos modelos" />
           </div>
         </div>
         <div className="gallery-grid">
