@@ -314,6 +314,15 @@ const MODULE_FIELD: Record<
 const SIDE_LABEL = { left: 'à esquerda', right: 'à direita', top: 'em cima' } as const;
 const HINGE_LABEL = { left: 'dobradiça à esquerda', right: 'dobradiça à direita' } as const;
 const ALIGN_LABEL = { front: 'alinhado pela frente', back: 'alinhado pelos fundos' } as const;
+/** A frente como quem desenha fala: "3 gavetas", "porta de correr de 2 folhas". */
+function frontWord(type: string, count: number | undefined, none: string) {
+  if (type === 'drawers') return `${count ?? 3} gavetas`;
+  if (type === 'double') return 'porta dupla';
+  if (type === 'single') return 'porta';
+  if (type === 'sliding') return `porta de correr de ${count ?? 2} folhas`;
+  if (type === 'flap') return 'porta basculante';
+  return none;
+}
 /** Nome do material para as etapas: o relatório mostra o nome, não o id. */
 function materialName(id: string) {
   return materials.find((m) => m.id === id)?.name ?? id;
@@ -411,6 +420,8 @@ export function describeHighlights(
       .map((c) => {
         const front = c.node.front!;
         if (front.type === 'drawers') return `${front.heights.length} gavetas`;
+        if (front.type === 'sliding') return `porta de correr de ${front.heights.length} folhas`;
+        if (front.type === 'flap') return 'porta basculante';
         return front.type === 'double' ? 'porta dupla' : 'porta simples';
       });
     const open = cells.filter((c) => !c.node.front && !c.node.split).length;
@@ -645,14 +656,7 @@ export function describeHighlights(
         break;
       case 'front.set': {
         const alvo = cellsAfter.find((c) => c.id === op.id)?.node.front;
-        const frente =
-          op.type === 'drawers'
-            ? `${op.count ?? 3} gavetas`
-            : op.type === 'double'
-              ? 'porta dupla'
-              : op.type === 'single'
-                ? 'porta'
-                : 'vão aberto';
+        const frente = frontWord(op.type, op.count, 'vão aberto');
         const frenteTxt = `${frente[0].toUpperCase()}${frente.slice(1)}`;
         const titulo =
           op.type === 'none'
@@ -677,14 +681,7 @@ export function describeHighlights(
             )
             .map((frenteOp) => ({
             label: cellLabel(frenteOp.id),
-            value:
-              frenteOp.type === 'drawers'
-                ? `${frenteOp.count ?? 3} gavetas`
-                : frenteOp.type === 'double'
-                  ? 'porta dupla'
-                  : frenteOp.type === 'single'
-                    ? 'porta'
-                    : 'aberto',
+            value: frontWord(frenteOp.type, frenteOp.count, 'aberto'),
           })),
           ...(op.hinge ? { facts: [{ label: 'Abertura', value: HINGE_LABEL[op.hinge] }] } : {}),
           ...(alvo?.materialId

@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import { materials, type Part } from './furniture';
-import { DIFF_GLOW, finishTexture, panelUV, SELECTION_GLOW } from './scene-materials';
+import { handlePlacement } from './fittings';
+import type { HandleType } from './look';
+import { faceGeometry, faceKey } from './scene-faces';
+import { handleShape } from './scene-fittings';
+import { DIFF_GLOW, finishTexture, panelUV, perforatedTexture, SELECTION_GLOW, surfaceTexture } from './scene-materials';
 
 /**
  * Diff na cena: peças que entraram brilham em verde, as que mudaram em âmbar
@@ -33,6 +37,8 @@ export const ease = (value: number) => {
 };
 type Pose = {
   rotation: number;
+  /** Giro no eixo x da peça: só a basculante aberta. */
+  tilt: number;
   position: THREE.Vector3;
   size: THREE.Vector3;
   color: THREE.Color;
@@ -43,31 +49,18 @@ type Pose = {
  * e desfaz a escala da caixa unitária a cada quadro, então a barra fica com a
  * medida real em mm em qualquer tamanho de frente.
  */
-type Handle = { group: THREE.Group; local: THREE.Vector3; material: THREE.MeshStandardMaterial; key: string };
+type Handle = { group: THREE.Group; local: THREE.Vector3; material: THREE.MeshStandardMaterial; key: string; dispose: () => void };
 
-/** Onde vai o puxador, no espaço da própria frente (mm a partir do centro). */
-export function handleSpec(part: Part & { motion?: { type: string; pivot: [number, number, number] }; rotation?: number }) {
-  const m = part.motion;
-  if (!m) return null;
-  const [w, h, t] = part.size;
-  if (m.type === 'drawer') {
-    // A gaveta inteira abre junto (laterais, fundo, traseira): só a frente
-    // leva puxador.
-    if (!part.id.endsWith(':front')) return null;
-    const len = THREE.MathUtils.clamp(w * 0.35, 96, 224);
-    return { vertical: false, len, x: 0, y: h > 260 ? h / 2 - 90 : 0, z: t / 2 };
-  }
-  // Porta: do lado oposto à dobradiça, que é o pivô da abertura.
-  const rot = part.rotation ?? 0;
-  const dx = m.pivot[0] - part.position[0],
-    dz = m.pivot[2] - part.position[2];
-  const localX = dx * Math.cos(rot) - dz * Math.sin(rot);
-  const side = localX > 0 ? -1 : 1;
-  const len = THREE.MathUtils.clamp(h * 0.22, 96, 192);
-  const bottom = part.position[1] - h / 2;
-  // Porta alta: puxador a ~1 m do piso; baixa ou aérea, no meio.
-  const y = h > 900 ? THREE.MathUtils.clamp(1000 - bottom - h / 2, -h / 2 + len, h / 2 - len) : 0;
-  return { vertical: true, len, x: side * (w / 2 - 45), y, z: t / 2 };
+type MotionPart = Part & { motion?: { type: string; pivot: [number, number, number]; direction?: number }; rotation?: number };
+/**
+ * Onde vai o puxador, no espaço da própria frente (mm a partir do centro),
+ * pelo tipo do puxador da peça: a mesma conta do desenho e do orçamento
+ * (`handlePlacement` em lib/fittings.ts).
+ */
+export function handleSpec(part: MotionPart) {
+  // Só frente leva puxador: o vidro e a caixa da gaveta abrem junto, sem.
+  if (!part.motion || !part.handle) return null;
+  return handlePlacement(part as Parameters<typeof handlePlacement>[0], (part.handle?.type ?? 'bar') as HandleType);
 }
 
 /**
@@ -94,8 +87,17 @@ type AnimatedPart = {
   handle?: Handle;
   /** Opacidade da superfície (vidro, tela): o esmaecer do diff multiplica por ela. */
   alpha: number;
+  /**
+   * Textura com transparência própria (a tela): sempre no passe
+   * transparente, para o fio fino de longe virar um véu, não pontinhos.
+   */
+  blend?: boolean;
   pivot?: THREE.Vector3;
-  mesh: THREE.Mesh<THREE.BoxGeometry, THREE.MeshStandardMaterial>;
+  /** Eixo do arco ao abrir: vertical (porta) ou o x da peça (basculante). */
+  axis?: 'y' | 'x';
+  /** Forma na medida real (moldura, ripado, quadro, borda): a escala fica 1. */
+  shape?: string;
+  mesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
   edge: THREE.LineSegments<THREE.EdgesGeometry, THREE.LineBasicMaterial>;
   from: Pose;
   to: Pose;
@@ -252,6 +254,7 @@ export class FurnitureMotion {
       // A opacidade da pose é a do esmaecer; a do vidro entra à parte.
       opacity: entry.alpha ? entry.mesh.material.opacity / entry.alpha : entry.mesh.material.opacity,
       rotation: entry.mesh.rotation.y,
+      tilt: entry.mesh.rotation.x,
     };
   }
   update(
@@ -269,6 +272,9 @@ export class FurnitureMotion {
     const centres = moduleCentres(parts);
     const fallbackCentre = new THREE.Vector3(0, params.height / 2, 0);
     for (const part of parts) {
+      // Moldura, ripado, quadro e borda: geometria na medida real, escala 1.
+      const shape = faceKey(part.face, part.size);
+      const special = part.face?.kind === 'perforated' ? perforatedTexture(part.color ?? color) : part.materialId ? surfaceTexture(part.materialId, part.kind) : null;
       const target: Pose = {
         position: visualPosition(
           part,
@@ -276,28 +282,33 @@ export class FurnitureMotion {
             fallbackCentre,
           exploded,
         ),
-        size: new THREE.Vector3(...part.size),
-        color: new THREE.Color(part.color ?? color),
+        size: shape ? new THREE.Vector3(1, 1, 1) : new THREE.Vector3(...part.size),
+        // Pedra, palhinha e tela: a textura já tem a cor.
+        color: new THREE.Color(special?.userData.white ? '#ffffff' : (part.color ?? color)),
         opacity: 1,
         rotation: part.rotation ?? 0,
+        tilt: part.tilt ?? 0,
       };
       let entry = this.entries.get(part.id);
       if (!entry) {
-        const geo = new THREE.BoxGeometry(1, 1, 1),
+        const geo = shape ? faceGeometry(part.face!, part.size) : new THREE.BoxGeometry(1, 1, 1),
           material = new THREE.MeshStandardMaterial({
             color: target.color,
             roughness: 0.72,
             envMapIntensity: 0.55,
           });
-        const mesh = new THREE.Mesh(geo, material);
+        const mesh = new THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>(geo, material);
         mesh.position.copy(target.position);
+        // Giro vertical primeiro e o da basculante no x da própria peça.
+        mesh.rotation.order = 'YXZ';
         mesh.rotation.y = target.rotation;
+        mesh.rotation.x = target.tilt;
         mesh.scale.copy(target.size);
         mesh.userData.id = part.id;
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         const edge = new THREE.LineSegments(
-          new THREE.EdgesGeometry(geo),
+          new THREE.EdgesGeometry(geo, 25),
           new THREE.LineBasicMaterial({
             color: EDGE.rest,
             transparent: true,
@@ -310,6 +321,7 @@ export class FurnitureMotion {
           mesh,
           edge,
           alpha: 1,
+          shape,
           from: target,
           to: target,
           started: now,
@@ -334,6 +346,21 @@ export class FurnitureMotion {
         entry.from.position.copy(target.position);
         entry.from.rotation = target.rotation;
       }
+      // Mudou a superfície ou a medida de uma peça com forma: refaz a
+      // geometria e as arestas, e a escala vai direto para 1 (sem esticar a
+      // forma velha até a nova).
+      if (entry.shape !== shape) {
+        const old = entry.mesh.geometry;
+        const geo = shape ? faceGeometry(part.face!, part.size) : new THREE.BoxGeometry(1, 1, 1);
+        entry.mesh.geometry = geo;
+        entry.edge.geometry.dispose();
+        entry.edge.geometry = new THREE.EdgesGeometry(geo, 25);
+        old.dispose();
+        entry.shape = shape;
+        entry.sizeKey = undefined;
+        entry.from.size.copy(target.size);
+        entry.mesh.scale.copy(target.size);
+      }
       // Acabamento e veio seguem a peça: a textura é da cor de catálogo e as
       // coordenadas de textura são em milímetros do tamanho final, para o veio
       // não esticar numa lateral de 2,4 m nem encolher numa frente de gaveta.
@@ -341,13 +368,18 @@ export class FurnitureMotion {
       const sizeKey = part.size.map((v) => Math.round(v)).join('x');
       if (entry.finish !== finish || entry.sizeKey !== sizeKey) {
         const surface = surfaceOf(part);
-        const map = !surface || surface.textured ? finishTexture(finish) : null;
-        entry.mesh.material.map = map;
-        entry.mesh.material.roughness = surface?.roughness ?? map?.userData.roughness ?? 0.72;
-        entry.mesh.material.metalness = surface?.metalness ?? 0;
-        entry.alpha = surface?.alpha ?? 1;
-        entry.mesh.material.needsUpdate = true;
-        panelUV(entry.mesh.geometry, part.size);
+        const map = special ?? (!surface || surface.textured ? finishTexture(finish) : null);
+        const m = entry.mesh.material;
+        m.map = map;
+        m.roughness = special?.userData.roughness ?? surface?.roughness ?? map?.userData.roughness ?? 0.72;
+        m.metalness = surface?.metalness ?? 0;
+        // Palhinha e tela vazadas: o furo deixa ver o miolo, dos dois lados.
+        m.side = special?.userData.doubleSide ? THREE.DoubleSide : THREE.FrontSide;
+        entry.blend = !!special?.userData.blend;
+        entry.alpha = entry.blend ? 1 : (surface?.alpha ?? 1);
+        m.needsUpdate = true;
+        // A geometria com forma já nasce com a textura em mm (`mmUV`).
+        if (!shape) panelUV(entry.mesh.geometry, part.size);
         entry.finish = finish;
         entry.sizeKey = sizeKey;
       }
@@ -358,8 +390,11 @@ export class FurnitureMotion {
           motion?: { type: string; pivot: [number, number, number] };
         }
       ).motion;
+      // Porta gira no eixo vertical da dobradiça; basculante, no eixo x
+      // da aresta de cima. A transição faz o arco em volta do pivô.
+      entry.axis = motion?.type === 'flap' ? 'x' : 'y';
       entry.pivot =
-        !exploded && motion?.type === 'door'
+        !exploded && (motion?.type === 'door' || motion?.type === 'flap')
           ? new THREE.Vector3(...motion.pivot)
           : undefined;
       if (entry.pivot) {
@@ -367,8 +402,8 @@ export class FurnitureMotion {
           .clone()
           .sub(entry.pivot)
           .applyAxisAngle(
-            new THREE.Vector3(0, 1, 0),
-            target.rotation - entry.from.rotation,
+            entry.axis === 'x' ? new THREE.Vector3(Math.cos(target.rotation), 0, -Math.sin(target.rotation)) : new THREE.Vector3(0, 1, 0),
+            entry.axis === 'x' ? target.tilt - entry.from.tilt : target.rotation - entry.from.rotation,
           )
           .add(entry.pivot);
         if (expected.distanceTo(target.position) > 1e-4)
@@ -424,7 +459,8 @@ export class FurnitureMotion {
         e.to.rotation,
         t,
       );
-      if (e.pivot && Math.abs(e.to.rotation - e.from.rotation) > 1e-8) {
+      e.mesh.rotation.x = THREE.MathUtils.lerp(e.from.tilt, e.to.tilt, t);
+      if (e.pivot && e.axis !== 'x' && Math.abs(e.to.rotation - e.from.rotation) > 1e-8) {
         e.mesh.position
           .copy(e.from.position)
           .sub(e.pivot)
@@ -432,6 +468,15 @@ export class FurnitureMotion {
             new THREE.Vector3(0, 1, 0),
             e.mesh.rotation.y - e.from.rotation,
           )
+          .add(e.pivot);
+      }
+      // Basculante: o arco em volta da aresta de cima, no x da peça.
+      if (e.pivot && e.axis === 'x' && Math.abs(e.to.tilt - e.from.tilt) > 1e-8) {
+        const r = e.mesh.rotation.y;
+        e.mesh.position
+          .copy(e.from.position)
+          .sub(e.pivot)
+          .applyAxisAngle(new THREE.Vector3(Math.cos(r), 0, -Math.sin(r)), e.mesh.rotation.x - e.from.tilt)
           .add(e.pivot);
       }
       if (t === 1) e.mesh.position.copy(e.to.position);
@@ -463,7 +508,8 @@ export class FurnitureMotion {
       const fade = this.diff && this.diff.dim !== false && !mark && !e.selected ? 0.32 : 1;
       e.mesh.material.opacity =
         THREE.MathUtils.lerp(e.from.opacity, e.to.opacity, t) * fade * e.alpha;
-      const transparent = e.mesh.material.opacity < 0.999;
+      const faded = e.mesh.material.opacity < 0.999;
+      const transparent = faded || !!e.blend;
       if (e.mesh.material.transparent !== transparent) {
         e.mesh.material.transparent = transparent;
         e.mesh.material.needsUpdate = true;
@@ -471,8 +517,8 @@ export class FurnitureMotion {
       e.mesh.material.depthWrite = !transparent;
       if (e.handle) {
         e.handle.material.opacity = e.mesh.material.opacity;
-        if (e.handle.material.transparent !== transparent) {
-          e.handle.material.transparent = transparent;
+        if (e.handle.material.transparent !== faded) {
+          e.handle.material.transparent = faded;
           e.handle.material.needsUpdate = true;
         }
       }
@@ -502,41 +548,25 @@ export class FurnitureMotion {
   }
   /** Cria, refaz ou tira o puxador quando a frente muda de tamanho ou de lado. */
   private syncHandle(entry: AnimatedPart, part: Part) {
-    const spec = handleSpec(part as Parameters<typeof handleSpec>[0]);
-    const key = spec ? [spec.vertical, spec.len, spec.x, spec.y].map((v) => (typeof v === 'number' ? Math.round(v) : v)).join(':') : '';
-    if (entry.handle?.key === key) return;
+    const spec = handleSpec(part as MotionPart);
+    const type = part.handle?.type ?? 'bar';
+    const materialId = part.handle?.materialId ?? 'steel-brushed';
+    const key = spec && type !== 'none' ? [type, materialId, spec.vertical, spec.len, spec.x, spec.y].map((v) => (typeof v === 'number' ? Math.round(v) : v)).join(':') : '';
+    if ((entry.handle?.key ?? '') === key) return;
     if (entry.handle) {
       entry.mesh.remove(entry.handle.group);
-      this.disposeHandle(entry.handle);
+      entry.handle.dispose();
       entry.handle = undefined;
     }
-    if (!spec) return;
-    const material = new THREE.MeshStandardMaterial({ color: '#b9bfc5', metalness: 0.8, roughness: 0.32 });
-    const group = new THREE.Group();
-    const bar = spec.vertical ? new THREE.BoxGeometry(12, spec.len, 12) : new THREE.BoxGeometry(spec.len, 12, 12);
-    const barMesh = new THREE.Mesh(bar, material);
-    barMesh.position.z = 26;
-    barMesh.castShadow = true;
-    group.add(barMesh);
-    // Dois pés ligam a barra à frente.
-    for (const end of [-1, 1]) {
-      const post = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 20), material);
-      const along = end * (spec.len / 2 - 10);
-      post.position.set(spec.vertical ? 0 : along, spec.vertical ? along : 0, 10);
-      group.add(post);
-    }
-    entry.mesh.add(group);
-    entry.handle = { group, local: new THREE.Vector3(spec.x, spec.y, spec.z), material, key };
+    if (!spec || type === 'none') return;
+    const color = materials.find((m) => m.id === materialId)?.color ?? '#b9bfc5';
+    const shape = handleShape(type, spec, materialId, color);
+    entry.mesh.add(shape.group);
+    entry.handle = { group: shape.group, local: new THREE.Vector3(spec.x, spec.y, spec.z), material: shape.material, key, dispose: () => shape.dispose() };
     this.dirty = true;
   }
-  private disposeHandle(h: Handle) {
-    h.group.traverse((o) => {
-      if (o instanceof THREE.Mesh) o.geometry.dispose();
-    });
-    h.material.dispose();
-  }
   private disposeEntry(e: AnimatedPart) {
-    if (e.handle) this.disposeHandle(e.handle);
+    if (e.handle) e.handle.dispose();
     this.scene.remove(e.mesh);
     e.mesh.geometry.dispose();
     e.mesh.material.dispose();

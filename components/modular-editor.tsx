@@ -2,14 +2,17 @@
 import { memo, useMemo, useState } from 'react';
 import { Button } from './ui/button';
 import { FinishPicker } from './finish-picker';
+import { LookEditor } from './look-editor';
 import { materials } from '@/lib/furniture';
 import {
   generateComposition,
   type Cell,
   type Composition,
+  type Front,
   type ModularOp,
   type Module,
 } from '@/lib/composition';
+import { FRONT_STYLES, FRONTS, framedFront, HANDLE_TYPES, HANDLES, type FrontStyle, type HandleType } from '@/lib/look';
 
 /** Limites do formulário em português: o balão nativo chega em inglês. */
 const sizeHints = [
@@ -35,7 +38,7 @@ const axisHints = [
   'Z: -20000 a 20000 mm.',
 ];
 
-type PanelScope = 'module' | 'actions' | 'cell' | 'front' | 'connect';
+type PanelScope = 'module' | 'actions' | 'cell' | 'front' | 'connect' | 'look';
 type PanelError = {
   scope: PanelScope;
   message: string;
@@ -323,7 +326,7 @@ function ModularEditorPanel({
       ' mm' +
       (node.front
         ? ' · ' +
-          { single: 'porta', double: 'duas portas', drawers: 'gavetas' }[
+          { single: 'porta', double: 'duas portas', drawers: 'gavetas', sliding: 'porta de correr', flap: 'basculante' }[
             node.front.type
           ]
         : '');
@@ -695,6 +698,16 @@ function ModularEditorPanel({
             Aplicar módulo
           </Button>
         </form>
+        <details open={error?.scope === 'look'}>
+          <summary>Estilo e acabamento</summary>
+          <LookEditor
+            key={m.id + JSON.stringify(m.look ?? {}) + (m.feet ?? 0) + editAttempt}
+            module={m}
+            busy={busy}
+            error={error?.scope === 'look' ? error.message : ''}
+            onApply={(op) => void run(op, 'Acabamento do módulo', 'look')}
+          />
+        </details>
         <details>
           <summary>Conectar e alinhar módulos</summary>
           <label>
@@ -1056,14 +1069,14 @@ function FrontControls({
   error: string;
   onLimit: (message: string) => void;
 }) {
-  const [type, setType] = useState<'none' | 'single' | 'double' | 'drawers'>(
-    cell.front?.type ?? 'none',
-  );
+  const [type, setType] = useState<'none' | Front['type']>(cell.front?.type ?? 'none');
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
         const data = new FormData(e.currentTarget);
+        const style = formText(data, 'style'),
+          handle = formText(data, 'handle');
         run(
           {
             kind: 'front.set',
@@ -1072,13 +1085,16 @@ function FrontControls({
             ...(type === 'single'
               ? { hinge: formText(data, 'hinge') as 'left' | 'right' }
               : {}),
-            ...(type === 'drawers' ? { count: Number(data.get('count')) } : {}),
+            ...(type === 'drawers' || type === 'sliding' ? { count: Number(data.get('count')) } : {}),
             ...(type !== 'none'
               ? {
                   materialId: formText(
                     data,
                     'material',
                   ) as Module['materialId'],
+                  // "Igual ao módulo" tira o estilo e o puxador próprios desta frente.
+                  style: style ? (style as FrontStyle) : null,
+                  handle: handle ? (handle as HandleType) : null,
                 }
               : {}),
           },
@@ -1096,6 +1112,8 @@ function FrontControls({
           <option value="none">Aberto</option>
           <option value="single">Porta simples</option>
           <option value="double">Porta dupla</option>
+          <option value="sliding">Porta de correr</option>
+          <option value="flap">Porta basculante</option>
           <option value="drawers">Gavetas</option>
         </select>
       </label>
@@ -1124,14 +1142,52 @@ function FrontControls({
           />
         </label>
       )}
-      {type !== 'none' && (
-        <div className="finish-field">
-          <span>Material da frente</span>
-          <FinishPicker
-            name="material"
-            defaultValue={cell.front?.materialId ?? module.materialId}
+      {type === 'sliding' && (
+        <label>
+          Folhas
+          <input
+            name="count"
+            type="number"
+            min={2}
+            max={4}
+            defaultValue={cell.front?.type === 'sliding' ? cell.front.heights.length : 2}
+            required
+            {...limitHint('Porta de correr: 2 a 4 folhas.', onLimit)}
           />
-        </div>
+        </label>
+      )}
+      {type !== 'none' && (
+        <>
+          <label>
+            Estilo desta frente
+            <select name="style" defaultValue={cell.front?.style ?? ''}>
+              <option value="">Igual ao módulo</option>
+              {FRONT_STYLES.filter((v) => type !== 'drawers' || !framedFront(v)).map((v) => (
+                <option key={v} value={v}>
+                  {capital(FRONTS[v].name)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Puxador desta frente
+            <select name="handle" defaultValue={cell.front?.handle ?? ''}>
+              <option value="">Igual ao módulo</option>
+              {HANDLE_TYPES.map((v) => (
+                <option key={v} value={v}>
+                  {capital(HANDLES[v].name)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="finish-field">
+            <span>Material da frente</span>
+            <FinishPicker
+              name="material"
+              defaultValue={cell.front?.materialId ?? module.materialId}
+            />
+          </div>
+        </>
       )}
       {error && (
         <p className="field-error" role="alert">
@@ -1144,6 +1200,8 @@ function FrontControls({
     </form>
   );
 }
+
+const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 function formText(data: FormData, key: string) {
   const value = data.get(key);

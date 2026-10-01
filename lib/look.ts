@@ -84,18 +84,26 @@ export const HANDLES: Record<HandleType, { name: string; materials: readonly Mat
 /** Acabamento de puxador quando o módulo não diz: o aço escovado de sempre. */
 export const DEFAULT_HANDLE_MATERIAL: MaterialId = 'steel-brushed';
 
-export const FRONT_STYLES = ['flat', 'shaker', 'slatted', 'glass', 'mesh', 'cane'] as const;
+export const FRONT_STYLES = ['flat', 'shaker', 'slatted', 'glass', 'mesh', 'cane', 'framed', 'perforated'] as const;
 export type FrontStyle = (typeof FRONT_STYLES)[number];
-export const FRONTS: Record<FrontStyle, { name: string; insert?: MaterialCategory; insertDefault?: MaterialId }> = {
+/**
+ * Estilos de frente. Os de quadro (vidro, tela, palhinha e almofada de
+ * madeira) levam um miolo, peça à parte nas categorias de `inserts`; o quadro
+ * pode ser de chapa ou de aço (porta de serralheria). Chapa perfurada é só do
+ * painel de parede (o painel de ferramentas).
+ */
+export const FRONTS: Record<FrontStyle, { name: string; inserts?: readonly MaterialCategory[]; insertDefault?: MaterialId; insertName?: string; panelOnly?: boolean }> = {
   flat: { name: 'lisa' },
   shaker: { name: 'com moldura (shaker)' },
   slatted: { name: 'ripada' },
-  glass: { name: 'de vidro com quadro', insert: 'glass', insertDefault: 'glass-clear' },
-  mesh: { name: 'de tela metálica com quadro', insert: 'metal', insertDefault: 'steel-black' },
-  cane: { name: 'de palhinha com quadro', insert: 'fiber', insertDefault: 'cane' },
+  glass: { name: 'de vidro com quadro', inserts: ['glass'], insertDefault: 'glass-clear', insertName: 'Vidro' },
+  mesh: { name: 'de tela metálica com quadro', inserts: ['metal'], insertDefault: 'steel-black', insertName: 'Tela' },
+  cane: { name: 'de palhinha com quadro', inserts: ['fiber'], insertDefault: 'cane', insertName: 'Palhinha' },
+  framed: { name: 'com quadro e almofada de madeira', inserts: ['sheet', 'solid'], insertDefault: 'pine', insertName: 'Almofada' },
+  perforated: { name: 'de chapa perfurada', panelOnly: true },
 };
 /** Frente com quadro vazado: porta leva o miolo; gaveta fica com a moldura. */
-export const framedFront = (s: FrontStyle | undefined) => s === 'glass' || s === 'mesh' || s === 'cane';
+export const framedFront = (s: FrontStyle | undefined) => s === 'glass' || s === 'mesh' || s === 'cane' || s === 'framed';
 
 export const EDGE_PROFILES = ['square', 'rounded', 'chamfer'] as const;
 export type EdgeProfile = (typeof EDGE_PROFILES)[number];
@@ -220,9 +228,9 @@ export function lookIssues(m: LookModule): LookIssue[] {
     const ok = m.kind === 'panel' ? ['front', 'led'] : ['led'];
     const extra = set.filter((k) => !ok.includes(k));
     if (extra.length)
-      fail('look', m.kind === 'panel' ? 'painel de parede aceita só frente ripada ou lisa e LED.' : 'prateleira de parede aceita só LED.');
-    if (m.kind === 'panel' && look.front && look.front !== 'flat' && look.front !== 'slatted')
-      fail('look', 'painel de parede aceita só frente ripada ou lisa.');
+      fail('look', m.kind === 'panel' ? 'painel de parede aceita só superfície lisa, ripada ou perfurada e LED.' : 'prateleira de parede aceita só LED.');
+    if (m.kind === 'panel' && look.front && !['flat', 'slatted', 'perforated'].includes(look.front))
+      fail('look', 'painel de parede aceita só superfície lisa, ripada ou perfurada.');
     const body: MaterialCategory[] = m.kind === 'ledge' ? ['sheet', 'solid', 'glass'] : ['sheet'];
     if (!allowed(m.materialId, body)) fail('materialId', `${materialOf(m.materialId).name} não serve aqui; use ${options(body)}.`);
     return out;
@@ -245,10 +253,11 @@ export function lookIssues(m: LookModule): LookIssue[] {
     const spec = HANDLES[look.handle ?? 'bar'];
     if (spec.materials && !allowed(look.handleMaterialId, spec.materials)) fail('handleMaterialId', `${spec.name} em ${options(spec.materials)}.`);
   }
+  if (look.front && FRONTS[look.front].panelOnly) fail('front', `frente ${FRONTS[look.front].name} é só de painel de parede.`);
   if (look.insertMaterialId) {
     const spec = FRONTS[look.front ?? 'flat'];
-    if (!spec.insert) fail('insertMaterialId', 'vidro, tela ou palhinha só com frente de quadro (glass, mesh ou cane).');
-    else if (!allowed(look.insertMaterialId, [spec.insert])) fail('insertMaterialId', `frente ${spec.name} leva ${options([spec.insert])}.`);
+    if (!spec.inserts) fail('insertMaterialId', 'miolo só com frente de quadro (glass, mesh, cane ou framed).');
+    else if (!allowed(look.insertMaterialId, spec.inserts)) fail('insertMaterialId', `frente ${spec.name} leva ${options(spec.inserts)}.`);
   }
   if (look.top) {
     const cat = categoryOf(look.top.materialId);
@@ -287,7 +296,7 @@ const GROUPS: { keys: (keyof Look)[]; say: (l: Look, feet?: number) => string; n
   },
   {
     keys: ['front', 'insertMaterialId'],
-    say: (l) => `frente ${FRONTS[l.front ?? 'flat'].name}${l.insertMaterialId && FRONTS[l.front ?? 'flat'].insert ? ` (${lower(l.insertMaterialId)})` : ''}`,
+    say: (l) => `frente ${FRONTS[l.front ?? 'flat'].name}${l.insertMaterialId && FRONTS[l.front ?? 'flat'].inserts ? ` (${lower(l.insertMaterialId)})` : ''}`,
     none: 'frente lisa',
   },
   {

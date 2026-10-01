@@ -72,6 +72,8 @@ export const HARDWARE = {
   'handle-edge': { label: 'Puxador perfil de borda', unit: 'un', price: 36 },
   'handle-strap': { label: 'Alça de couro', unit: 'un', price: 32 },
   'handle-none': { label: 'Fecho toque (sem puxador)', unit: 'un', price: 24 },
+  sliding: { label: 'Kit de porta de correr (trilho e roldanas, por folha)', unit: 'un', price: 95 },
+  lift: { label: 'Pistão de basculante', unit: 'un', price: 38 },
   led: { label: 'Fita de LED com perfil', unit: 'm', price: 39 },
   weld: { label: 'Serralheria (corte, solda e pintura)', unit: 'm', price: 18 },
   machining: { label: 'Usinagem de frentes (moldura, ripado, quadro, cava)', unit: 'frentes', price: 45 },
@@ -243,7 +245,10 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
   // Madeira maciça, pedra, vidro, palhinha e chapa de metal: pela medida, não
   // por chapa. Uma linha por material e espessura.
   const others = new Map<string, ModularPart[]>();
-  for (const p of parts) if (!isSheet(p)) others.set(p.material, [...(others.get(p.material) ?? []), p]);
+  // Porta de quadro de aço (serralheria): o quadro é tubo, cobrado por metro
+  // de perímetro, como a estrutura; o miolo segue como material.
+  const steelFrames = parts.filter((p) => p.category === 'metal' && p.face?.kind === 'frame');
+  for (const p of parts) if (!isSheet(p) && !steelFrames.includes(p)) others.set(p.material, [...(others.get(p.material) ?? []), p]);
   for (const [label, list] of others) {
     const id = list[0].materialId!;
     const cat = categoryOf(id);
@@ -276,6 +281,23 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
   const tubes = new Map<string, Fitting[]>();
   for (const f of fittings) if ((f.kind === 'stand' || f.kind === 'frame') && f.materialId) tubes.set(f.materialId, [...(tubes.get(f.materialId) ?? []), f]);
   let welded = 0;
+  const frameGroups = new Map<string, ModularPart[]>();
+  for (const p of steelFrames) frameGroups.set(p.materialId!, [...(frameGroups.get(p.materialId!) ?? []), p]);
+  for (const [id, list] of frameGroups) {
+    const metres = r2(list.reduce((a, p) => a + (2 * (p.c + p.l)) / 1000, 0) * (WASTE.metal ?? 1));
+    welded += metres;
+    lines.push({
+      section: 'Materiais',
+      parts: list.map((p) => p.id),
+      price: { sheet: id as MaterialId },
+      label: `Quadro das portas em ${materialOf(id).name.toLowerCase()} (tubo 20 × 20)`,
+      qty: metres,
+      unit: 'm',
+      unitPrice: prices.sheets[id as MaterialId],
+      total: metres * prices.sheets[id as MaterialId],
+      note: `${list.length} ${list.length === 1 ? 'porta' : 'portas'}, pelo perímetro, +10% de sobra`,
+    });
+  }
   for (const [id, list] of tubes) {
     const metres = r2(list.reduce((a, f) => a + f.bom.qty, 0) * (WASTE.metal ?? 1));
     welded += metres;
@@ -293,7 +315,12 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
   }
   const doors = parts.filter((p) => p.kind === 'door');
   const drawers = parts.filter((p) => p.kind === 'drawer' && p.id.endsWith(':front'));
-  const hinges = doors.reduce((a, d) => a + hingesFor(d.size[1]), 0);
+  // Dobradiça só em porta que gira: a de giro pela altura da folha, a
+  // basculante duas (mais o pistão); folha de correr vai no trilho.
+  const sliding = doors.filter((p) => p.motion?.type === 'slide');
+  const flaps = doors.filter((p) => p.motion?.type === 'flap');
+  const hinged = doors.filter((p) => p.motion?.type !== 'slide' && p.motion?.type !== 'flap');
+  const hinges = hinged.reduce((a, d) => a + hingesFor(d.size[1]), 0) + 2 * flaps.length;
   if (hinges)
     lines.push({
       section: 'Ferragens',
@@ -304,8 +331,12 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
       unit: 'un',
       unitPrice: prices.hinge,
       total: hinges * prices.hinge,
-      note: `${doors.length} ${doors.length === 1 ? 'porta' : 'portas'}, pela altura de cada folha`,
+      note: `${hinged.length + flaps.length} ${hinged.length + flaps.length === 1 ? 'porta' : 'portas'}, pela altura de cada folha${flaps.length ? '; basculante leva duas' : ''}`,
     });
+  if (flaps.length)
+    lines.push({ section: 'Ferragens', parts: flaps.map((p) => p.id), price: { hardware: 'lift' }, label: HARDWARE.lift.label, qty: flaps.length, unit: 'un', unitPrice: hw.lift, total: flaps.length * hw.lift });
+  if (sliding.length)
+    lines.push({ section: 'Ferragens', parts: sliding.map((p) => p.id), price: { hardware: 'sliding' }, label: HARDWARE.sliding.label, qty: sliding.length, unit: 'un', unitPrice: hw.sliding, total: sliding.length * hw.sliding });
   if (drawers.length)
     lines.push({
       section: 'Ferragens',
@@ -397,8 +428,11 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
       unitPrice: prices.labourPerFront,
       total: fronts * prices.labourPerFront,
     });
-  // Frente com moldura, ripada, de quadro ou com cava: usinagem por frente.
-  const machined = [...doors, ...drawers].filter((p) => p.face || p.handle?.type === 'groove' || p.handle?.type === 'cutout');
+  // Frente com moldura, ripada, de quadro ou com cava, e painel ripado ou
+  // perfurado: usinagem por peça. Quadro de aço é serralheria, não usinagem.
+  const machined = [...doors, ...drawers, ...parts.filter((p) => p.kind === 'panel')].filter(
+    (p) => (p.face && isSheet(p)) || p.handle?.type === 'groove' || p.handle?.type === 'cutout',
+  );
   if (machined.length)
     lines.push({
       section: 'Mão de obra',
@@ -456,4 +490,10 @@ export function quoteOf(d: Composition, prices: Prices) {
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 export function money(value: number) {
   return brl.format(value);
+}
+
+/** Quantidade com a vírgula de casa: 4,66 m de tubo, 0,023 m³ de maciço. */
+const amount = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 3 });
+export function quantity(value: number) {
+  return amount.format(value);
 }

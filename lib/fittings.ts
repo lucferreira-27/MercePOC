@@ -147,7 +147,9 @@ function legsOfRows(d: Composition, out: Fitting[]) {
       );
       continue;
     }
-    const lay = LEG_LAYOUT[type] ?? LEG_LAYOUT.palito!;
+    // Caixa com contorno de aço: o pé de tubo é a coluna do contorno que
+    // desce até o piso, na mesma seção e no mesmo lugar (a aresta da caixa).
+    const lay = type === 'tube' && first.look?.frame ? { x: 0, z: 0, w: 20 } : (LEG_LAYOUT[type] ?? LEG_LAYOUT.palito!);
     const angle = (SPLAY_DEG * Math.PI) / 180;
     const splay = type === 'splayed' ? Math.tan(angle) * h : 0;
     // Pé grampo: o V corre na profundidade, mais estreito em móvel raso.
@@ -199,14 +201,19 @@ function frameOf(d: Composition, m: Module, out: Fitting[]) {
     w = m.width,
     h = m.height,
     dep = m.depth;
-  const sharedLeft = d.connections.some((c) => c.shared && ((c.parent === m.id && c.side === 'left') || (c.child === m.id && c.side === 'right')));
+  // Numa fileira de painel dividido o contorno é do conjunto: na junta fica
+  // só a coluna da frente (entre os vãos), sem cruzar o tampo nem o fundo.
+  const shared = (side: 'left' | 'right') =>
+    d.connections.some((c) => c.shared && c.side !== 'top' && ((c.parent === m.id && c.side === side) || (c.child === m.id && c.side !== side)));
   const edges: { key: string; at: Vec; size: Vec }[] = [];
   for (const y of [0, h])
     for (const z of [-dep / 2, dep / 2]) edges.push({ key: `x${y ? 't' : 'b'}${z > 0 ? 'f' : 'r'}`, at: [0, y, z], size: [w, t, t] });
   for (const x of [-w / 2, w / 2]) {
-    if (x < 0 && sharedLeft) continue;
-    for (const z of [-dep / 2, dep / 2]) edges.push({ key: `y${x > 0 ? 'r' : 'l'}${z > 0 ? 'f' : 'r'}`, at: [x, h / 2, z], size: [t, h, t] });
-    for (const y of [0, h]) edges.push({ key: `z${x > 0 ? 'r' : 'l'}${y ? 't' : 'b'}`, at: [x, y, 0], size: [t, t, dep] });
+    const joint = shared(x < 0 ? 'left' : 'right');
+    // A coluna da junta vem do módulo da esquerda.
+    if (joint && x < 0) continue;
+    for (const z of [-dep / 2, dep / 2]) if (!joint || z > 0) edges.push({ key: `y${x > 0 ? 'r' : 'l'}${z > 0 ? 'f' : 'r'}`, at: [x, h / 2, z], size: [t, h, t] });
+    if (!joint) for (const y of [0, h]) edges.push({ key: `z${x > 0 ? 'r' : 'l'}${y ? 't' : 'b'}`, at: [x, y, 0], size: [t, t, dep] });
   }
   for (const e of edges)
     out.push({ id: `${m.id}:frame-${e.key}`, moduleId: m.id, kind: 'frame', type: 'tube', materialId: id, color, position: point(e.at, m), size: e.size, rotation, bom: { unit: 'm', qty: Math.max(...e.size) / 1000 } });
@@ -242,12 +249,22 @@ export function handlePlacement(part: Pick<ModularPart, 'id' | 'size' | 'positio
     const len = Math.min(Math.max(w * 0.35, 96), 224);
     return { vertical: false, len, x: 0, y: h > 260 ? h / 2 - 90 : 0, z: t / 2 };
   }
-  // Porta: do lado oposto à dobradiça, que é o pivô da abertura.
+  if (m.type === 'flap') {
+    // Basculante: pega-se embaixo, no meio, para levantar.
+    if (type === 'groove' || type === 'edge') {
+      const len = type === 'groove' ? w : Math.max(120, Math.min(w * 0.4, 400));
+      return { vertical: false, len, x: 0, y: -h / 2 + (type === 'groove' ? 10 : 0), z: t / 2 };
+    }
+    const len = Math.min(Math.max(w * 0.35, 96), 224);
+    return { vertical: false, len, x: 0, y: -h / 2 + 45, z: t / 2 };
+  }
+  // Porta: do lado oposto à dobradiça, que é o pivô da abertura. Folha de
+  // correr: do lado de onde ela sai, para empurrar no sentido do trilho.
   const rot = part.rotation ?? 0;
   const dx = m.pivot[0] - part.position[0],
     dz = m.pivot[2] - part.position[2];
   const localX = dx * Math.cos(rot) - dz * Math.sin(rot);
-  const side = localX > 0 ? -1 : 1;
+  const side = m.type === 'slide' ? -m.direction : localX > 0 ? -1 : 1;
   if (type === 'groove' || type === 'edge') {
     const len = type === 'groove' ? h : Math.max(150, Math.min(h * 0.3, 500));
     return { vertical: true, len, x: side * (w / 2 - (type === 'groove' ? 10 : 0)), y: 0, z: t / 2 };
@@ -332,9 +349,55 @@ export function fittingsOf(d: Composition, parts: readonly ModularPart[] = gener
 }
 
 /**
+ * O desenho da superfície da frente, em chapas finas um milímetro à frente:
+ * o miolo rebaixado do shaker, as juntas do ripado e o vão do quadro com a
+ * cor do vidro, da tela ou da palhinha. A vista frontal e a isométrica do
+ * render_look e do PDF mostram o estilo da frente, não só o retângulo.
+ */
+function faceOverlays(part: ModularPart, parts: readonly ModularPart[]): ModularPart[] {
+  const face = part.face;
+  if (!face || face.kind === 'edge') return [];
+  const [w, h, t] = part.size;
+  const c = Math.cos(part.rotation),
+    s = Math.sin(part.rotation);
+  const at = (lx: number, ly: number): [number, number, number] => {
+    const lz = t / 2 + 0.6;
+    return [part.position[0] + lx * c + lz * s, part.position[1] + ly, part.position[2] - lx * s + lz * c];
+  };
+  const flat = (id: string, size: [number, number, number], position: [number, number, number], color: string): ModularPart => ({
+    id,
+    name: part.name,
+    kind: part.kind,
+    size,
+    position,
+    rotation: part.rotation,
+    c: size[1],
+    l: size[0],
+    thickness: size[2],
+    material: part.material,
+    color,
+    owners: part.owners,
+    edges: { c1: null, c2: null, l1: null, l2: null },
+    decal: true,
+  });
+  // Chapa perfurada (painel de ferramentas): um tom mais escuro no desenho.
+  if (face.kind === 'perforated') return [flat(`${part.id}:face`, [w - 8, h - 8, 1], at(0, 0), shade(part.color, 0.8))];
+  if (face.kind === 'slatted') {
+    const n = Math.max(1, Math.floor(w / face.pitch));
+    const pitch = w / n;
+    return Array.from({ length: n - 1 }, (_, i) => flat(`${part.id}:groove-${i}`, [3, h, 1], at(-w / 2 + pitch * (i + 1), 0), shade(part.color, 0.62)));
+  }
+  const f = Math.max(10, Math.min(face.frame, w / 2 - 10, h / 2 - 10));
+  const insert = face.kind === 'frame' ? parts.find((p) => p.id === `${part.id}:insert`) : undefined;
+  const color = insert ? (insert.category === 'glass' ? shade(insert.color, 0.86) : insert.color) : shade(part.color, 0.9);
+  return [flat(`${part.id}:face`, [w - 2 * f, h - 2 * f, 1], at(0, 0), color)];
+}
+
+/**
  * Peças para desenhar (miniatura, prancha, imagem que a IA confere, foto do
- * PDF): as de corte mais uma caixa por ferragem visível. Os pés não entram na
- * lista de corte, mas sem eles um rack de pés palito parece flutuar.
+ * PDF): as de corte mais uma caixa por ferragem visível e o desenho da
+ * superfície das frentes. Os pés não entram na lista de corte, mas sem eles
+ * um rack de pés palito parece flutuar.
  */
 export function drawingParts(d: Composition): ModularPart[] {
   const g = generateComposition(d, false);
@@ -355,5 +418,5 @@ export function drawingParts(d: Composition): ModularPart[] {
       owners: [f.moduleId],
       edges: { c1: null, c2: null, l1: null, l2: null },
     }));
-  return [...g.parts, ...extra];
+  return [...g.parts, ...g.parts.flatMap((p) => faceOverlays(p, g.parts)), ...extra];
 }

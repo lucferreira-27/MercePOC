@@ -89,6 +89,32 @@ Branch `feat/estilos-5-ia`.
 - Bench: group `estilos` with cases like "estante industrial", "aparador anos 60", "criado-mudo escandinavo", "cozinha rústica", "cômoda clássica", "rack minimalista", "mesa de centro japandi", "deixe este móvel industrial" and a held-out pair written before the first run. Run live with the default model and record fixtures.
 - `docs/STYLES.md`: how to add a style, a part (leg, handle, front face) and a material.
 
+## Reference check: the industrial rack from the user's photo
+
+The user sent a photo of an industrial TV rack as an acceptance target: black steel frame around the piece, two doors with expanded-metal mesh in black frames, an open niche with a shelf in the middle, light wood body and top, black bar pulls and square tube legs that continue the frame posts.
+
+- **Phase 2 (parts library):** built only with contract operations (the same `design_apply` ops the assistant uses) in `tests/reference-rack.test.ts`, and captured in the running app next to the photo. Gaps it exposed and that phase 2 closes: diamond (expanded-metal) mesh instead of a square wire grid, tube legs that line up with the steel outline, and an outline that keeps only the front posts between bays instead of crossing the top at every joint. Still missing: exposed (visible) hinges, a small accent.
+- **Phase 5 (assistant):** a bench case asks for it in words ("rack industrial de 1,6 m com estrutura de aço preto, portas de tela nas pontas, nicho aberto no meio com prateleira, madeira clara e pés de tubo") and checks the same features. With the photo saved as `bench/images/rack-industrial.jpg` (local, not versioned, like the other photo cases), a photo case also runs the copy-from-photo path.
+
+## Reference gallery (more photos from the user)
+
+The user sent eleven more photos (mostly steel-framed furniture, plus a staggered bookcase) as optional test targets. Each one becomes a reference build made only with contract operations (like the rack above), captured in the app and kept as a test, in the phase where its pieces exist. What each one needs, and where it lands:
+
+| Photo | What it shows | Pieces it needs | Phase |
+| --- | --- | --- | --- |
+| Sideboard with open shelf above | steel outline, mesh doors in steel frames, three wood drawers, open steel level with a wood top above | outline, steel-framed mesh doors, drawers; the open level above is an open steel frame | 2 (cabinet), 4 (open level) |
+| Workshop bench | steel-framed base with drawer stacks and an open niche, butcher-block top, black pegboard, steel-framed wall cabinet with LED | outline, drawers, solid top, pegboard wall panel, LED | 2 |
+| Garage wall | dark walnut framed doors, drawers, stone top, tall units with open shelves, LED, crown molding, wire pegboard | shaker fronts, cornice, LED, plinth, pegboard | 2 (the ceiling rack is out of scope) |
+| Loft kitchen in pine | every door and drawer in a black steel frame with a pine panel, black stone top, steel-framed open wall shelves | steel-framed fronts with a wood panel, Nero top, outline | 2 (open wall shelves in 4) |
+| Kitchen with open shelving | rustic wood fronts, butcher-block top, black pulls, wall shelves in steel frames with LED | shaker or slatted fronts, solid top, open wall frame | 2 (base), 4 (shelving) |
+| Bar wall with wine lattice | big steel grid with wood cubes, X lattice, wine diamond grid, mesh-door cabinets, wood counter | open steel frame with boxes inside, lattice infill | 4, partial (X lattice and the wine grid as infill are out of scope) |
+| Bar with wine grid | black framed doors (mesh band and panel), wood counter, wine fridge space, open shelves on steel frames | framed fronts, reserved space for the fridge, wine rack, open frame | 2 and 4 (ceiling-hung frames become wall-hung) |
+| Loft kitchen with dimensions | steel cages on 10 cm legs, drawers, mesh doors, oven space, open steel upper frame with wood flap boxes | outline and tube legs, mesh doors, flap doors, open frame with boxes inside | 2 and 4 (crate drawers out of scope) |
+| TV unit with steel towers | two open steel towers (395 × 1570 × 410, five levels), 1460 console with doors and niche, bridge shelf, 55" TV | open steel towers, framed console, wall shelf, TV in the room | 4 |
+| Staggered bookcase | walnut box with cubbies offset from column to column, open back, recessed base | columns with their own shelf heights (nested splits), no back, plinth | 2 (and a recipe variant in 4) |
+
+Two small, generic additions come out of this and go into phase 2: **steel-framed fronts** (a door frame in metal, priced as tube by the metre, with a glass, mesh, cane or wood panel) and a **pegboard** face for wall panels. Out of scope and said so: racks hung from the ceiling, crate drawers, X lattice infill, exposed hinges and appliances beyond a reserved space.
+
 ## Risks and how they are contained
 
 - **Part and prompt budgets.** Faces and slats are one part each (the face is geometry, not extra cut parts), so the 200 part limit holds; the catalog line is shortened and tested.

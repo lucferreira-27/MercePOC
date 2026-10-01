@@ -122,7 +122,8 @@ export type Face =
   | { kind: 'shaker'; frame: number }
   | { kind: 'slatted'; pitch: number }
   | { kind: 'frame'; frame: number }
-  | { kind: 'edge'; profile: 'rounded' | 'chamfer'; radius: number };
+  | { kind: 'edge'; profile: 'rounded' | 'chamfer'; radius: number }
+  | { kind: 'perforated'; pitch: number };
 export type Part = {
   rotation?: number;
   color?: string;
@@ -134,6 +135,13 @@ export type Part = {
   face?: Face;
   /** Puxador da frente (porta ou gaveta): tipo e acabamento. */
   handle?: { type: HandleType; materialId: MaterialId };
+  /**
+   * Giro em torno do eixo x da peça (rad), depois do giro vertical: só a
+   * basculante aberta tem. A caixa de colisão é a envolvente da peça girada.
+   */
+  tilt?: number;
+  /** Só desenho (o miolo do shaker, a junta do ripado): a cena 3D tem a forma de verdade. */
+  decal?: boolean;
   id: string;
   kind: PartKind;
   name: string;
