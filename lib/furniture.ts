@@ -38,6 +38,8 @@ export const materials = [
   { id: 'pine', name: 'Pinus', color: '#d6b37c', thickness: 18, finish: 'wood', category: 'sheet', price: 389 },
   { id: 'ash', name: 'Freixo', color: '#d4c09c', thickness: 18, finish: 'wood', category: 'sheet', price: 489 },
   { id: 'smoked', name: 'Carvalho defumado', color: '#4d3a2c', thickness: 18, finish: 'wood', category: 'sheet', price: 549 },
+  { id: 'terracotta', name: 'Terracota', color: '#b4694a', thickness: 18, finish: 'solid', category: 'sheet', price: 419 },
+  { id: 'sky', name: 'Azul claro', color: '#a9c3d0', thickness: 18, finish: 'solid', category: 'sheet', price: 419 },
   { id: 'oak-solid', name: 'Carvalho maciço', color: '#b88a56', thickness: 30, finish: 'wood', category: 'solid', price: 14500 },
   { id: 'walnut-solid', name: 'Nogueira maciça', color: '#694530', thickness: 30, finish: 'wood', category: 'solid', price: 19500 },
   { id: 'freijo-solid', name: 'Freijó maciço', color: '#a27040', thickness: 30, finish: 'wood', category: 'solid', price: 12500 },

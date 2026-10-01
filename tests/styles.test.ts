@@ -9,7 +9,7 @@ import { applyStyle, roleOf, STYLES, styleFrom } from '../lib/styles';
 
 /**
  * Estilos: todo ativo em todo estilo monta e valida no intervalo de medidas,
- * reestilizar guarda o envelope, os sete estilos são diferentes entre si e a
+ * reestilizar guarda o envelope, os estilos são diferentes entre si e a
  * operação do contrato (style.apply) vale para o projeto todo ou uma peça.
  */
 const sizes = (a: (typeof assets)[number]) => {
@@ -77,7 +77,7 @@ function fingerprint(d: Composition) {
   return [m.look?.legs, m.look?.handle, m.look?.front, m.materialId, front ?? m.materialId];
 }
 
-void test('os sete estilos são diferentes entre si em pelo menos dois traços, em três tipos de móvel', () => {
+void test('os estilos são diferentes entre si em pelo menos dois traços, em três tipos de móvel', () => {
   for (const id of ['aparador', 'criado-mudo', 'comoda']) {
     const prints = STYLE_IDS.map((style) => fingerprint(buildAsset(assetById(id)!, { style })));
     for (let i = 0; i < prints.length; i++)
@@ -193,7 +193,17 @@ void test('palavras da pessoa levam ao estilo', () => {
     ['estante industrial', 'industrial'],
     ['aparador anos 60', 'midcentury'],
     ['criado-mudo escandinavo', 'scandinavian'],
-    ['cozinha provençal', 'classic'],
+    ['cozinha provençal', 'provencal'],
+    ['cômoda clássica colonial', 'classic'],
+    ['quarto boho com rattan', 'boho'],
+    ['rack de freijó com palhinha', 'brazilian'],
+    ['aparador modernista brasileiro', 'brazilian'],
+    ['sala tropical', 'brazilian'],
+    ['bar art déco', 'artdeco'],
+    ['buffet glam preto e dourado', 'artdeco'],
+    ['criado-mudo francês romântico', 'provencal'],
+    ['armário de casa de praia', 'coastal'],
+    ['aparador estilo coastal', 'coastal'],
     ['cômoda rústica de fazenda', 'rustic'],
     ['rack japandi ripado', 'japandi'],
     ['guarda-roupa minimalista sem puxador', 'minimalist'],
