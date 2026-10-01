@@ -6,7 +6,7 @@ import { STYLE_IDS, TOP_OVERHANG_MAX, type StyleId } from '../lib/look';
 import { drawingParts } from '../lib/fittings';
 import { fitReport } from '../lib/room';
 import { canonical, describeHighlights, executeRequest, normalize } from '../lib/studio';
-import { applyStyle, roleLook, roleOf, STYLES, styleFrom } from '../lib/styles';
+import { applyStyle, roleLook, roleOf, searchStyles, STYLE_FAMILIES, STYLES, styleFrom } from '../lib/styles';
 import { tableSpec } from '../lib/tables';
 
 /**
@@ -269,4 +269,17 @@ void test('palavras da pessoa levam ao estilo', () => {
   for (const [text, style] of cases) assert.equal(styleFrom(text), style, text);
   assert.equal(styleFrom('estante de livros'), null);
   for (const s of Object.values(STYLES)) assert.equal(styleFrom(s.name), s.id);
+});
+
+void test('seletor de estilos: famílias, dica curta e busca pelas palavras da pessoa', () => {
+  for (const id of STYLE_IDS) {
+    assert.ok(STYLE_FAMILIES.some((f) => f.id === STYLES[id].family), id);
+    assert.ok(STYLES[id].hint.length <= 28, `${id}: dica com ${STYLES[id].hint.length} letras`);
+  }
+  for (const f of STYLE_FAMILIES) assert.ok(STYLE_IDS.some((id) => STYLES[id].family === f.id), f.id);
+  assert.equal(searchStyles('').length, STYLE_IDS.length);
+  assert.deepEqual(searchStyles('nórdico'), ['scandinavian']);
+  assert.ok(searchStyles('latao').includes('artdeco'));
+  assert.deepEqual(searchStyles('PRAIA'), ['coastal']);
+  assert.deepEqual(searchStyles('zzz'), []);
 });
