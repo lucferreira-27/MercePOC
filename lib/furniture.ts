@@ -97,6 +97,7 @@ export const defaults: Params = {
  * madeira maciça, vidro, metal ou MDF) que corre por cima de uma fileira,
  * `plinth` o rodapé ou a base aparente, `cornice` a moldura do topo e
  * `insert` o vidro, a tela ou a palhinha dentro do quadro de uma porta.
+ * `apron` o avental da mesa, a travessa entre os pés embaixo do tampo.
  */
 export type PartKind =
   | 'side'
@@ -111,8 +112,9 @@ export type PartKind =
   | 'slab'
   | 'plinth'
   | 'cornice'
-  | 'insert';
-export const PART_KINDS: PartKind[] = ['side', 'base', 'top', 'back', 'shelf', 'divider', 'door', 'drawer', 'panel', 'slab', 'plinth', 'cornice', 'insert'];
+  | 'insert'
+  | 'apron';
+export const PART_KINDS: PartKind[] = ['side', 'base', 'top', 'back', 'shelf', 'divider', 'door', 'drawer', 'panel', 'slab', 'plinth', 'cornice', 'insert', 'apron'];
 /**
  * Superfície da peça além da caixa lisa, para a cena e os desenhos: frente
  * com moldura (shaker), ripada, quadro vazado para vidro, tela ou palhinha, e

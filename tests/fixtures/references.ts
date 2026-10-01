@@ -139,6 +139,41 @@ export function estanteDesencontrada(): Composition {
   return b.d!;
 }
 
+/**
+ * Rack com torres de aço (a foto com medidas): duas torres abertas de 395 ×
+ * 1570 × 410 com cinco níveis, um console de 1460 com portas e nicho entre
+ * elas e uma prateleira de parede fazendo a ponte por cima da TV.
+ */
+export function torresAco(): Composition {
+  const b = new Builder('');
+  const tower = (key: string, name: string, x: number) =>
+    b.table(key, name, [395, 1570, 410], 'oak-solid', { position: [x, 0, 0], shelves: 4, look: { legs: 'frame', legMaterialId: 'steel-black', top: { materialId: 'oak-solid', thickness: 30, overhang: 0, edge: 'square' } } });
+  tower('t1', 'Torre esquerda', -(1460 / 2 + 395 / 2 + 10));
+  tower('t2', 'Torre direita', 1460 / 2 + 395 / 2 + 10);
+  const ids = b.row('c', ['Porta', 'Nicho', 'Porta 2'], [470, 538, 470], 450, 400, 'oak', { feet: 100, position: [-1460 / 2 + 235, 0, -5] });
+  look(b, ids, { ...steel, legs: 'tube', legMaterialId: 'steel-black' });
+  b.front(b.root(ids[0]), 'single', { hinge: 'left' });
+  b.front(b.root(ids[2]), 'single', { hinge: 'right' });
+  b.split(b.root(ids[1]), 'y', 180);
+  b.op({ kind: 'module.add', id: 'ponte', preset: 'ledge', name: 'Ponte' });
+  b.op({ kind: 'module.edit', id: 'ponte', width: 1460, height: 30, depth: 300, materialId: 'oak-solid', position: [0, 1400, -205 + 150] });
+  return b.d!;
+}
+
+/**
+ * O aparador industrial com o nível aberto em cima: a estrutura de aço sobe
+ * do tampo e segura uma prateleira de madeira, como na foto.
+ */
+export function aparadorNivelAberto(): Composition {
+  const d = aparadorIndustrial();
+  const b = new Builder('');
+  b.d = d;
+  const width = 560 + 420 + 420 - 2 * 18;
+  // A fileira começa no centro do primeiro módulo (x 0), 280 mm à direita da ponta.
+  b.table('n', 'Nível aberto', [width, 420, 450], 'walnut-solid', { position: [-280 + width / 2, 650 + 30, 0], look: { legs: 'frame', legMaterialId: 'steel-black', top: { materialId: 'walnut-solid', thickness: 30, overhang: 0, edge: 'square' } } });
+  return b.d!;
+}
+
 export const REFERENCES = {
   'rack-industrial': rackIndustrial,
   'aparador-industrial': aparadorIndustrial,
@@ -146,4 +181,6 @@ export const REFERENCES = {
   'cozinha-pinus': cozinhaPinus,
   garagem,
   'estante-desencontrada': estanteDesencontrada,
+  'torres-aco': torresAco,
+  'aparador-nivel-aberto': aparadorNivelAberto,
 } as const;

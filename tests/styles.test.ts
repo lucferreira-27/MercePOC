@@ -17,8 +17,8 @@ const sizes = (a: (typeof assets)[number]) => {
   const mid = (k: 'width' | 'height' | 'depth') => Math.round((min[k] + max[k]) / 2);
   return [d, min, max, { width: mid('width'), height: mid('height'), depth: mid('depth') }, { ...d, width: min.width + 137 }];
 };
-/** Do piso ao topo do módulo: pés, caixa, tampo e moldura. */
-const outer = (m: Module) => (m.feet ?? 0) + m.height + (m.look?.top?.thickness ?? 0) + (m.look?.cornice ? 58 : 0);
+/** Do piso ao topo do módulo: pés, caixa, tampo e moldura (a altura da mesa já é a do tampo). */
+const outer = (m: Module) => (m.kind === 'table' ? m.height : (m.feet ?? 0) + m.height + (m.look?.top?.thickness ?? 0) + (m.look?.cornice ? 58 : 0));
 const span = (d: Composition, axis: 0 | 1 | 2) => {
   const b = generateComposition(d).bounds;
   return b.max[axis] - b.min[axis];

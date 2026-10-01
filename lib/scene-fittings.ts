@@ -122,15 +122,52 @@ export function fittingShape(f: Fitting, mat: THREE.Material, disposables: Dispo
       // Colunas nas pontas e, numa fileira longa, as do meio.
       const columns = [-w / 2 + t / 2, ...(f.posts ?? []), w / 2 - t / 2];
       for (const x of columns) for (const z of [-d / 2 + t / 2, d / 2 - t / 2]) g.add(block([t, h, t], [x, 0, z], mat, disposables));
-      const rails = h >= 200 ? [top - t / 2, bottom + 60] : [top - t / 2];
+      // Mesa e estrutura aberta: um quadro embaixo de cada nível.
+      const rails = [top - t / 2, ...(f.levels ?? (h >= 200 ? [bottom + 60] : []))];
       for (const y of rails) {
         for (const z of [-d / 2 + t / 2, d / 2 - t / 2]) g.add(block([w - 2 * t, t, t], [0, y, z], mat, disposables));
         for (const x of columns) g.add(block([t, t, d - 2 * t], [x, y, 0], mat, disposables));
       }
       break;
     }
+    case 'turned': {
+      // Pé torneado: anéis e bulbo ao longo do eixo, afinando para o piso.
+      const profile: [number, number, number][] = [
+        [0, 0.12, 30],
+        [0.12, 0.16, 22],
+        [0.16, 0.2, 32],
+        [0.2, 0.55, 24],
+        [0.55, 0.62, 34],
+        [0.62, 0.92, 20],
+        [0.92, 1, 26],
+      ];
+      for (const [a0, a1, r] of profile) g.add(rod(v(0, top - a0 * h, 0), v(0, top - a1 * h, 0), r, r * 0.92, mat, disposables));
+      break;
+    }
+    case 'hook': {
+      // Gancho: haste que sai da parede e sobe na ponta, com bolinha.
+      g.add(rod(v(0, 6, -d / 2), v(0, 6, d / 2 - 12), 5, 5, mat, disposables));
+      g.add(rod(v(0, 0, d / 2 - 12), v(0, h / 2 - 6, d / 2 - 8), 5, 5, mat, disposables));
+      const ball = new THREE.SphereGeometry(8, 16, 12);
+      disposables.push(ball);
+      const tip = new THREE.Mesh(ball, mat);
+      tip.position.set(0, h / 2 - 6, d / 2 - 8);
+      g.add(tip);
+      break;
+    }
+    case 'trestle':
+      // Cavalete: duas colunas, a sapata no piso e a travessa embaixo do tampo.
+      for (const z of [-d / 2 + 60, d / 2 - 60]) g.add(block([60, h, 60], [0, 0, z], mat, disposables));
+      g.add(block([w, 60, d], [0, bottom + 30, 0], mat, disposables));
+      g.add(block([w, 60, d - 40], [0, top - 30, 0], mat, disposables));
+      break;
+    case 'wall':
+      // Suporte de parede em L: chapa na parede e braço embaixo do tampo.
+      g.add(block([w, h, 8], [0, 0, -d / 2 + 4], mat, disposables));
+      g.add(block([w, 8, d], [0, top - 4, 0], mat, disposables));
+      break;
     default:
-      // Tubo do contorno, fita de LED e o que vier: a caixa da peça.
+      // Tubo do contorno, fita de LED, travessa do cavalete: a caixa da peça.
       g.add(block([w, h, d], [0, 0, 0], mat, disposables));
   }
   return g;

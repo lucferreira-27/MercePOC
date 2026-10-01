@@ -67,6 +67,8 @@ export const HARDWARE = {
   'leg-plinth': { label: 'Sapata niveladora do rodapé', unit: 'un', price: 9 },
   'leg-skirt': { label: 'Sapata niveladora da base', unit: 'un', price: 9 },
   'leg-wall': { label: 'Suporte oculto de parede', unit: 'un', price: 48 },
+  'leg-trestle': { label: 'Cavalete (com a travessa)', unit: 'un', price: 240 },
+  hook: { label: 'Gancho de cabideiro', unit: 'un', price: 22 },
   'handle-knob': { label: 'Puxador botão', unit: 'un', price: 18 },
   'handle-cup': { label: 'Puxador concha', unit: 'un', price: 29 },
   'handle-edge': { label: 'Puxador perfil de borda', unit: 'un', price: 36 },
@@ -384,6 +386,8 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
     const qty = list.reduce((a, f) => a + f.bom.qty, 0);
     lines.push({ section: 'Ferragens', parts: [], price: { hardware: key }, label: HARDWARE[key].label, qty, unit: 'un', unitPrice: hw[key], total: qty * hw[key], note: `${LEGS[type].name}${list[0].materialId ? ` em ${materialOf(list[0].materialId).name.toLowerCase()}` : ''}` });
   }
+  const hooks = fittings.filter((f) => f.kind === 'hook').reduce((a, f) => a + f.bom.qty, 0);
+  if (hooks) lines.push({ section: 'Ferragens', parts: [], price: { hardware: 'hook' }, label: HARDWARE.hook.label, qty: hooks, unit: 'un', unitPrice: hw.hook, total: hooks * hw.hook });
   const led = r2(fittings.filter((f) => f.kind === 'led').reduce((a, f) => a + f.bom.qty, 0));
   if (led) lines.push({ section: 'Ferragens', parts: [], price: { hardware: 'led' }, label: HARDWARE.led.label, qty: led, unit: 'm', unitPrice: hw.led, total: led * hw.led });
   lines.push({

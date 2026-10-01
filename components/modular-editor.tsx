@@ -13,6 +13,7 @@ import {
   type Module,
 } from '@/lib/composition';
 import { FRONT_STYLES, FRONTS, framedFront, HANDLE_TYPES, HANDLES, type FrontStyle, type HandleType } from '@/lib/look';
+import { TABLE_LIMITS } from '@/lib/tables';
 
 /** Limites do formulário em português: o balão nativo chega em inglês. */
 const sizeHints = [
@@ -25,6 +26,12 @@ const panelHints = [
   'Largura: 200 a 2700 mm (o menor lado até 1800).',
   'Altura: 200 a 2700 mm (o menor lado até 1800).',
   'Espessura: 15 a 60 mm.',
+];
+/** Mesa: tampo de 300 a 2700 mm, de 250 a 2400 do piso, 250 a 1200 de fundo. */
+const tableHints = [
+  `Largura: ${TABLE_LIMITS.width[0]} a ${TABLE_LIMITS.width[1]} mm.`,
+  `Altura do tampo: ${TABLE_LIMITS.height[0]} a ${TABLE_LIMITS.height[1]} mm do piso.`,
+  `Profundidade: ${TABLE_LIMITS.depth[0]} a ${TABLE_LIMITS.depth[1]} mm.`,
 ];
 /** Prateleira de parede: tábua de até 2700 mm, 15 a 60 de espessura, 150 a 600 de fundo. */
 const ledgeHints = [
@@ -480,6 +487,33 @@ function ModularEditorPanel({
                         </button>
                       </div>
                     </div>
+                  ) : mod.kind === 'table' ? (
+                    <div className="tree-branch">
+                      <div className="tree-node">
+                        <span className="tree-dot" />
+                        <button
+                          className={'tree-item touch-target ' + (target === mod.id || target === `${mod.id}:slab` ? 'active' : '')}
+                          type="button"
+                          aria-label={`Mesa ${mod.name}`}
+                          onClick={() => onSelect([`${mod.id}:slab`])}
+                        >
+                          <span className="tree-thumb">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                              <rect x="3" y="7" width="18" height="3" rx="0.5" />
+                              <path d="M6 10v9M18 10v9" />
+                            </svg>
+                          </span>
+                          <span className="tree-text">
+                            <strong>Tampo e base</strong>
+                            <small>
+                              {mod.width} × {mod.depth} mm · tampo a {mod.height} mm
+                              {mod.shelves ? ` · ${mod.shelves} ${mod.shelves === 1 ? 'nível' : 'níveis'}` : ''}
+                              {mod.drawers ? ` · ${mod.drawers} ${mod.drawers === 1 ? 'gaveta' : 'gavetas'}` : ''}
+                            </small>
+                          </span>
+                        </button>
+                      </div>
+                    </div>
                   ) : (
                     tree(mod.root)
                   )}
@@ -548,6 +582,8 @@ function ModularEditorPanel({
             m.back +
             (m.feet ?? 0) +
             String(m.wall) +
+            (m.shelves ?? 0) +
+            (m.drawers ?? 0) +
             editAttempt
           }
           onSubmit={(e) => {
@@ -562,6 +598,7 @@ function ModularEditorPanel({
                 height: number(data, 'height'),
                 depth: number(data, 'depth'),
                 materialId: formText(data, 'material') as Module['materialId'],
+                ...(m.kind === 'table' ? { shelves: number(data, 'shelves'), drawers: number(data, 'drawers') } : {}),
                 ...(m.kind
                   ? {}
                   : {
@@ -599,15 +636,15 @@ function ModularEditorPanel({
           <div className="fields">
             {(['width', 'height', 'depth'] as const).map((k, i) => (
               <label key={k}>
-                {(m.kind === 'ledge' ? ['Largura', 'Espessura', 'Profundidade'] : ['Largura', 'Altura', m.kind === 'panel' ? 'Espessura' : 'Profundidade'])[i]} (mm)
+                {(m.kind === 'ledge' ? ['Largura', 'Espessura', 'Profundidade'] : m.kind === 'table' ? ['Largura', 'Altura do tampo', 'Profundidade'] : ['Largura', 'Altura', m.kind === 'panel' ? 'Espessura' : 'Profundidade'])[i]} (mm)
                 <input
                   type="number"
                   name={k}
                   defaultValue={m[k]}
-                  min={(m.kind === 'ledge' ? [200, 15, 150] : m.kind === 'panel' ? [200, 200, 15] : [200, 200, 200])[i]}
-                  max={(m.kind === 'ledge' ? [2700, 60, 600] : m.kind === 'panel' ? [2700, 2700, 60] : [1200, 2400, 800])[i]}
+                  min={(m.kind === 'ledge' ? [200, 15, 150] : m.kind === 'panel' ? [200, 200, 15] : m.kind === 'table' ? [300, 250, 250] : [200, 200, 200])[i]}
+                  max={(m.kind === 'ledge' ? [2700, 60, 600] : m.kind === 'panel' ? [2700, 2700, 60] : m.kind === 'table' ? [2700, 2400, 1200] : [1200, 2400, 800])[i]}
                   required
-                  {...limitHint((m.kind === 'ledge' ? ledgeHints : m.kind === 'panel' ? panelHints : sizeHints)[i], (message) =>
+                  {...limitHint((m.kind === 'ledge' ? ledgeHints : m.kind === 'panel' ? panelHints : m.kind === 'table' ? tableHints : sizeHints)[i], (message) =>
                     sayLimit('module', message),
                   )}
                 />
@@ -616,8 +653,20 @@ function ModularEditorPanel({
           </div>
           <div className="finish-field">
             <span>Acabamento</span>
-            <FinishPicker name="material" defaultValue={m.materialId} categories={m.kind === 'ledge' ? ['sheet', 'solid', 'glass'] : ['sheet']} />
+            <FinishPicker name="material" defaultValue={m.materialId} categories={m.kind === 'ledge' ? ['sheet', 'solid', 'glass'] : m.kind === 'table' ? ['sheet', 'solid'] : ['sheet']} />
           </div>
+          {m.kind === 'table' && (
+            <div className="fields two">
+              <label>
+                Níveis embaixo
+                <input type="number" name="shelves" min={0} max={TABLE_LIMITS.shelves} defaultValue={m.shelves ?? 0} title="Prateleiras embaixo do tampo, por igual" />
+              </label>
+              <label>
+                Gavetas no avental
+                <input type="number" name="drawers" min={0} max={TABLE_LIMITS.drawers} defaultValue={m.drawers ?? 0} title="Gavetas lado a lado embaixo do tampo" />
+              </label>
+            </div>
+          )}
           <label>
             Orientação
             <select name="rotation" defaultValue={m.rotation}>

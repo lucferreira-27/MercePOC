@@ -65,3 +65,23 @@ void test('estante desencontrada: sem fundo, base aparente e prateleiras em altu
   // Nenhuma prateleira da esquerda alinha com uma da direita: é o desencontro.
   assert.ok(left.every((y) => right.every((z) => Math.abs(y - z) > 40)), `${left.join(",")} | ${right.join(",")}`);
 });
+
+void test('torres de aço: duas estruturas abertas de cinco níveis, console entre elas e a ponte em cima', () => {
+  const d = REFERENCES['torres-aco']();
+  const p = parts(d);
+  assert.equal(d.modules.filter((m) => m.kind === 'table' && m.look?.legs === 'frame').length, 2);
+  // Cinco níveis por torre: o tampo e quatro prateleiras.
+  for (const id of ['t1', 't2']) assert.equal(p.filter((v) => v.owners.includes(id) && (v.kind === 'shelf' || v.kind === 'slab')).length, 5);
+  assert.ok(p.some((v) => v.id === 'ponte:ledge'));
+  assert.equal(fittingsOf(d).filter((f) => f.kind === 'stand').length, 2);
+});
+
+void test('aparador com nível aberto: a estrutura de aço sobe do tampo e segura a prateleira', () => {
+  const d = REFERENCES['aparador-nivel-aberto']();
+  const level = d.modules.find((m) => m.kind === 'table')!;
+  const top = parts(d).find((v) => v.kind === 'slab' && v.owners.includes('a1'))!;
+  assert.equal(level.position[1], top.position[1] + top.size[1] / 2);
+  // Centrado em cima do aparador, na largura dele.
+  assert.ok(Math.abs(level.position[0] - top.position[0]) < 1 && level.width === top.size[0]);
+  assert.ok(fittingsOf(d).some((f) => f.kind === 'stand' && f.moduleId === level.id));
+});

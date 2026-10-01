@@ -5,6 +5,7 @@ import { FinishPicker } from './finish-picker';
 import type { ModularOp, Module } from '@/lib/composition';
 import { categoryOf, type MaterialCategory, type MaterialId } from '@/lib/furniture';
 import { EDGE_PROFILES, FRONT_STYLES, FRONTS, HANDLE_TYPES, HANDLES, LEG_TYPES, LEGS, TOP_LIMITS, type FrontStyle, type HandleType, type LegType, type LookPatch } from '@/lib/look';
+import { DEFAULT_TABLE_BASE, TABLE_BASES, tableTop } from '@/lib/tables';
 
 const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 /** Altura de partida de cada base quando a pessoa troca o tipo. */
@@ -16,16 +17,20 @@ const TOP_CATEGORIES: MaterialCategory[] = ['sheet', 'solid', 'stone', 'glass', 
  * Acabamento do módulo: base, puxador, frente, tampo sobreposto,
  * moldura, contorno de aço, fundo de outra cor e LED. Aplica um `module.edit`
  * com o remendo do `look` (e a altura dos pés), pela mesma validação de
- * qualquer edição: a recusa aparece aqui, em frase.
+ * qualquer edição: a recusa aparece aqui, em frase. Mesa: base de mesa, tampo
+ * (sempre), puxador e frente das gavetas, sem o que é de caixa.
  */
 export function LookEditor({ module: m, busy, error, onApply }: { module: Module; busy: boolean; error: string; onApply: (op: ModularOp) => void }) {
   const look = m.look ?? {};
-  const box = !m.kind;
-  const [legs, setLegs] = useState<LegType | ''>(look.legs ?? (m.feet ? 'palito' : ''));
+  const table = m.kind === 'table';
+  // Puxador, base e frente de gaveta: caixa e mesa.
+  const box = !m.kind || table;
+  const tableTopNow = table ? tableTop(m) : null;
+  const [legs, setLegs] = useState<LegType | ''>(look.legs ?? (table ? DEFAULT_TABLE_BASE : m.feet ? 'palito' : ''));
   const [feet, setFeet] = useState(m.feet ?? 0);
   const [handle, setHandle] = useState<HandleType>(look.handle ?? 'bar');
   const [front, setFront] = useState<FrontStyle>(look.front ?? 'flat');
-  const [top, setTop] = useState(!!look.top);
+  const [top, setTop] = useState(!!look.top || table);
   const [frame, setFrame] = useState(!!look.frame);
   const [back, setBack] = useState(!!look.backMaterialId);
   const legSpec = legs ? LEGS[legs] : null;
@@ -42,7 +47,7 @@ export function LookEditor({ module: m, busy, error, onApply }: { module: Module
           return typeof v === 'string' && v ? v : null;
         };
         const num = (k: string) => Number(data.get(k));
-        const patch: LookPatch = { front, led: data.get('led') === 'on' || null };
+        const patch: LookPatch = { front, ...(table ? {} : { led: data.get('led') === 'on' || null }) };
         if (box) {
           patch.legs = legs || null;
           patch.legMaterialId = legs && legSpec?.materials ? (text('legMaterial') as MaterialId | null) : null;
@@ -57,13 +62,15 @@ export function LookEditor({ module: m, busy, error, onApply }: { module: Module
                 edge: (text('topEdge') ?? 'square') as (typeof EDGE_PROFILES)[number],
               }
             : null;
-          patch.cornice = data.get('cornice') === 'on' || null;
-          patch.frame = frame || null;
-          patch.frameMaterialId = frame ? (text('frameMaterial') as MaterialId | null) : null;
-          patch.backMaterialId = back ? (text('backMaterial') as MaterialId | null) : null;
+          if (!table) {
+            patch.cornice = data.get('cornice') === 'on' || null;
+            patch.frame = frame || null;
+            patch.frameMaterialId = frame ? (text('frameMaterial') as MaterialId | null) : null;
+            patch.backMaterialId = back ? (text('backMaterial') as MaterialId | null) : null;
+          }
         }
         if (patch.front === 'flat') patch.front = null;
-        onApply({ kind: 'module.edit', id: m.id, ...(box ? { feet: legs ? feet : 0 } : {}), look: patch });
+        onApply({ kind: 'module.edit', id: m.id, ...(box && !table ? { feet: legs ? feet : 0 } : {}), look: patch });
       }}
     >
       {box && (
@@ -80,15 +87,15 @@ export function LookEditor({ module: m, busy, error, onApply }: { module: Module
                   if (range && (feet < range[0] || feet > range[1])) setFeet(LEG_HEIGHT[next as LegType] ?? range[0]);
                 }}
               >
-                <option value="">Sem pés (no piso)</option>
-                {LEG_TYPES.filter((t) => LEGS[t].box).map((t) => (
+                {!table && <option value="">Sem pés (no piso)</option>}
+                {(table ? TABLE_BASES : LEG_TYPES.filter((t) => LEGS[t].box)).map((t) => (
                   <option key={t} value={t}>
                     {capital(LEGS[t].name)}
                   </option>
                 ))}
               </select>
             </label>
-            {legSpec?.box && (
+            {!table && legSpec?.box && (
               <label>
                 Altura da base (mm)
                 <input type="number" name="feet" min={legSpec.box[0]} max={legSpec.box[1]} step={5} value={feet} onChange={(e) => setFeet(Number(e.target.value))} title={`${legSpec.name}: ${legSpec.box[0]} a ${legSpec.box[1]} mm`} />
@@ -123,7 +130,7 @@ export function LookEditor({ module: m, busy, error, onApply }: { module: Module
       <label>
         Frente
         <select value={front} onChange={(e) => setFront(e.target.value as FrontStyle)}>
-          {FRONT_STYLES.filter((t) => (box ? !FRONTS[t].panelOnly : t === 'flat' || t === 'slatted' || t === 'perforated')).map((t) => (
+          {FRONT_STYLES.filter((t) => (table ? t === 'flat' || t === 'shaker' || t === 'slatted' : box ? !FRONTS[t].panelOnly : t === 'flat' || t === 'slatted' || t === 'perforated')).map((t) => (
             <option key={t} value={t}>
               {capital(FRONTS[t].name)}
             </option>
@@ -131,7 +138,7 @@ export function LookEditor({ module: m, busy, error, onApply }: { module: Module
         </select>
       </label>
       )}
-      {box && inserts && (
+      {box && !table && inserts && (
         <div className="finish-field">
           <span>Miolo da porta</span>
           <FinishPicker key={front} name="insertMaterial" defaultValue={look.insertMaterialId && inserts.includes(categoryOf(look.insertMaterialId)) ? look.insertMaterialId : FRONTS[front].insertDefault!} categories={[...inserts]} />
@@ -139,23 +146,27 @@ export function LookEditor({ module: m, busy, error, onApply }: { module: Module
       )}
       {box && (
         <>
-          <label className="check-label">
-            <input type="checkbox" checked={top} onChange={(e) => setTop(e.target.checked)} /> Tampo sobreposto
-          </label>
+          {table ? (
+            <span className="look-subtitle">Tampo</span>
+          ) : (
+            <label className="check-label">
+              <input type="checkbox" checked={top} onChange={(e) => setTop(e.target.checked)} /> Tampo sobreposto
+            </label>
+          )}
           {top && (
             <>
               <div className="finish-field">
                 <span>Material do tampo</span>
-                <FinishPicker name="topMaterial" defaultValue={look.top?.materialId ?? 'oak-solid'} categories={TOP_CATEGORIES} />
+                <FinishPicker name="topMaterial" defaultValue={look.top?.materialId ?? tableTopNow?.materialId ?? 'oak-solid'} categories={TOP_CATEGORIES} />
               </div>
               <div className="fields">
                 <label>
                   Espessura (mm)
-                  <input type="number" name="topThickness" min={3} max={60} defaultValue={look.top?.thickness ?? 30} title={`Chapa ${TOP_LIMITS.sheet.join('–')}, maciço ${TOP_LIMITS.solid.join('–')}, pedra ${TOP_LIMITS.stone.join('–')}, vidro ${TOP_LIMITS.glass.join('–')}, metal ${TOP_LIMITS.metal.join('–')} mm`} />
+                  <input type="number" name="topThickness" min={3} max={60} defaultValue={look.top?.thickness ?? tableTopNow?.thickness ?? 30} title={`Chapa ${TOP_LIMITS.sheet.join('–')}, maciço ${TOP_LIMITS.solid.join('–')}, pedra ${TOP_LIMITS.stone.join('–')}, vidro ${TOP_LIMITS.glass.join('–')}, metal ${TOP_LIMITS.metal.join('–')} mm`} />
                 </label>
                 <label>
-                  Avanço (mm)
-                  <input type="number" name="topOverhang" min={0} max={60} defaultValue={look.top?.overhang ?? 15} />
+                  {table ? 'Avanço sobre a base (mm)' : 'Avanço (mm)'}
+                  <input type="number" name="topOverhang" min={0} max={60} defaultValue={look.top?.overhang ?? tableTopNow?.overhang ?? 15} />
                 </label>
                 <label>
                   Borda
@@ -170,19 +181,23 @@ export function LookEditor({ module: m, busy, error, onApply }: { module: Module
               </div>
             </>
           )}
+          {!table && (
+            <>
           <label className="check-label">
             <input type="checkbox" name="cornice" defaultChecked={!!look.cornice} /> Moldura no topo
           </label>
           <label className="check-label">
             <input type="checkbox" checked={frame} onChange={(e) => setFrame(e.target.checked)} /> Contorno de aço
           </label>
-          {frame && (
+            </>
+          )}
+          {!table && frame && (
             <div className="finish-field">
               <span>Acabamento do contorno</span>
               <FinishPicker name="frameMaterial" defaultValue={look.frameMaterialId ?? 'steel-black'} categories={['metal']} />
             </div>
           )}
-          {m.back && (
+          {!table && m.back && (
             <>
               <label className="check-label">
                 <input type="checkbox" checked={back} onChange={(e) => setBack(e.target.checked)} /> Fundo em outro acabamento
@@ -197,9 +212,11 @@ export function LookEditor({ module: m, busy, error, onApply }: { module: Module
           )}
         </>
       )}
-      <label className="check-label">
-        <input type="checkbox" name="led" defaultChecked={!!look.led} /> Fita de LED
-      </label>
+      {!table && (
+        <label className="check-label">
+          <input type="checkbox" name="led" defaultChecked={!!look.led} /> Fita de LED
+        </label>
+      )}
       {error && (
         <p className="field-error" role="alert">
           {error}
