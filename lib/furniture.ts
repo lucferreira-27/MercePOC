@@ -122,7 +122,8 @@ export type Face =
   | { kind: 'shaker'; frame: number }
   | { kind: 'slatted'; pitch: number }
   | { kind: 'frame'; frame: number }
-  | { kind: 'edge'; profile: 'rounded' | 'chamfer'; radius: number };
+  | { kind: 'edge'; profile: 'rounded' | 'chamfer'; radius: number }
+  | { kind: 'perforated'; pitch: number };
 export type Part = {
   rotation?: number;
   color?: string;

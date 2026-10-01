@@ -113,7 +113,7 @@ import { OptionCards } from '@/components/option-cards';
 import type { OptionCard } from '@/lib/agent/types';
 import { cutPlan } from '@/lib/cutplan';
 import { entityIds, canonical, selectedPartIds } from '@/lib/studio';
-import { openingLimit, openingPose, SCHEMA_VERSION, type ModularPart } from '@/lib/composition';
+import { openAllGroups, openingLimit, openingPose, SCHEMA_VERSION, type ModularPart } from '@/lib/composition';
 import { drawingParts, fittingsOf } from '@/lib/fittings';
 import { emptyRoom, fitWallsToCeiling, roomChangeLabel, fitReport, fitSummary, freeSpot, MAIN_WALL, obstacleWord, OBSTACLE_LABEL, presetObstacle, presetWall, resizeMainWall, roomOffset, wallAt, wallWord, ROOM_LIMITS, type MainWallEdge, type Obstacle, type ObstacleKind, type Room, type Wall } from '@/lib/room';
 import { moduleBoxes } from '@/lib/move';
@@ -952,7 +952,7 @@ export default function Home() {
   /** Abre ou fecha todas as frentes de uma vez, respeitando as colisões. */
   function toggleAllFronts() {
     if (historyPreview !== null || !p) return;
-    const groups = [...new Set((p.parts as ModularPart[]).filter((v) => v.motion).map((v) => v.motion!.id))];
+    const groups = openAllGroups(p.parts as ModularPart[]);
     if (!groups.length) {
       setViewNotice('Este projeto não tem portas nem gavetas.');
       return;

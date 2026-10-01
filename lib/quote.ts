@@ -245,7 +245,10 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
   // Madeira maciça, pedra, vidro, palhinha e chapa de metal: pela medida, não
   // por chapa. Uma linha por material e espessura.
   const others = new Map<string, ModularPart[]>();
-  for (const p of parts) if (!isSheet(p)) others.set(p.material, [...(others.get(p.material) ?? []), p]);
+  // Porta de quadro de aço (serralheria): o quadro é tubo, cobrado por metro
+  // de perímetro, como a estrutura; o miolo segue como material.
+  const steelFrames = parts.filter((p) => p.category === 'metal' && p.face?.kind === 'frame');
+  for (const p of parts) if (!isSheet(p) && !steelFrames.includes(p)) others.set(p.material, [...(others.get(p.material) ?? []), p]);
   for (const [label, list] of others) {
     const id = list[0].materialId!;
     const cat = categoryOf(id);
@@ -278,6 +281,23 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
   const tubes = new Map<string, Fitting[]>();
   for (const f of fittings) if ((f.kind === 'stand' || f.kind === 'frame') && f.materialId) tubes.set(f.materialId, [...(tubes.get(f.materialId) ?? []), f]);
   let welded = 0;
+  const frameGroups = new Map<string, ModularPart[]>();
+  for (const p of steelFrames) frameGroups.set(p.materialId!, [...(frameGroups.get(p.materialId!) ?? []), p]);
+  for (const [id, list] of frameGroups) {
+    const metres = r2(list.reduce((a, p) => a + (2 * (p.c + p.l)) / 1000, 0) * (WASTE.metal ?? 1));
+    welded += metres;
+    lines.push({
+      section: 'Materiais',
+      parts: list.map((p) => p.id),
+      price: { sheet: id as MaterialId },
+      label: `Quadro das portas em ${materialOf(id).name.toLowerCase()} (tubo 20 × 20)`,
+      qty: metres,
+      unit: 'm',
+      unitPrice: prices.sheets[id as MaterialId],
+      total: metres * prices.sheets[id as MaterialId],
+      note: `${list.length} ${list.length === 1 ? 'porta' : 'portas'}, pelo perímetro, +10% de sobra`,
+    });
+  }
   for (const [id, list] of tubes) {
     const metres = r2(list.reduce((a, f) => a + f.bom.qty, 0) * (WASTE.metal ?? 1));
     welded += metres;
@@ -408,8 +428,11 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
       unitPrice: prices.labourPerFront,
       total: fronts * prices.labourPerFront,
     });
-  // Frente com moldura, ripada, de quadro ou com cava: usinagem por frente.
-  const machined = [...doors, ...drawers].filter((p) => p.face || p.handle?.type === 'groove' || p.handle?.type === 'cutout');
+  // Frente com moldura, ripada, de quadro ou com cava, e painel ripado ou
+  // perfurado: usinagem por peça. Quadro de aço é serralheria, não usinagem.
+  const machined = [...doors, ...drawers, ...parts.filter((p) => p.kind === 'panel')].filter(
+    (p) => (p.face && isSheet(p)) || p.handle?.type === 'groove' || p.handle?.type === 'cutout',
+  );
   if (machined.length)
     lines.push({
       section: 'Mão de obra',

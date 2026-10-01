@@ -30,7 +30,7 @@ export function LookEditor({ module: m, busy, error, onApply }: { module: Module
   const [back, setBack] = useState(!!look.backMaterialId);
   const legSpec = legs ? LEGS[legs] : null;
   const handleCats = HANDLES[handle].materials;
-  const insert = FRONTS[front].insert;
+  const inserts = FRONTS[front].inserts;
   return (
     <form
       className="look-editor"
@@ -48,7 +48,7 @@ export function LookEditor({ module: m, busy, error, onApply }: { module: Module
           patch.legMaterialId = legs && legSpec?.materials ? (text('legMaterial') as MaterialId | null) : null;
           patch.handle = handle === 'bar' ? null : handle;
           patch.handleMaterialId = handleCats ? (text('handleMaterial') as MaterialId | null) : null;
-          patch.insertMaterialId = insert ? (text('insertMaterial') as MaterialId | null) : null;
+          patch.insertMaterialId = inserts ? (text('insertMaterial') as MaterialId | null) : null;
           patch.top = top
             ? {
                 materialId: (text('topMaterial') ?? 'oak-solid') as MaterialId,
@@ -68,7 +68,7 @@ export function LookEditor({ module: m, busy, error, onApply }: { module: Module
     >
       {box && (
         <>
-          <div className="fields two">
+          <div className="look-base">
             <label>
               Base
               <select
@@ -123,7 +123,7 @@ export function LookEditor({ module: m, busy, error, onApply }: { module: Module
       <label>
         Frente
         <select value={front} onChange={(e) => setFront(e.target.value as FrontStyle)}>
-          {FRONT_STYLES.filter((t) => box || t === 'flat' || t === 'slatted').map((t) => (
+          {FRONT_STYLES.filter((t) => (box ? !FRONTS[t].panelOnly : t === 'flat' || t === 'slatted' || t === 'perforated')).map((t) => (
             <option key={t} value={t}>
               {capital(FRONTS[t].name)}
             </option>
@@ -131,10 +131,10 @@ export function LookEditor({ module: m, busy, error, onApply }: { module: Module
         </select>
       </label>
       )}
-      {box && insert && (
+      {box && inserts && (
         <div className="finish-field">
           <span>Miolo da porta</span>
-          <FinishPicker key={front} name="insertMaterial" defaultValue={look.insertMaterialId && categoryOf(look.insertMaterialId) === insert ? look.insertMaterialId : FRONTS[front].insertDefault!} categories={[insert]} />
+          <FinishPicker key={front} name="insertMaterial" defaultValue={look.insertMaterialId && inserts.includes(categoryOf(look.insertMaterialId)) ? look.insertMaterialId : FRONTS[front].insertDefault!} categories={[...inserts]} />
         </div>
       )}
       {box && (

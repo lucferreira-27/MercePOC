@@ -1161,7 +1161,7 @@ function FrontControls({
           <label>
             Estilo desta frente
             <select name="style" defaultValue={cell.front?.style ?? ''}>
-              <option value="">Igual ao módulo ({FRONTS[module.look?.front ?? 'flat'].name})</option>
+              <option value="">Igual ao módulo</option>
               {FRONT_STYLES.filter((v) => type !== 'drawers' || !framedFront(v)).map((v) => (
                 <option key={v} value={v}>
                   {capital(FRONTS[v].name)}
@@ -1172,7 +1172,7 @@ function FrontControls({
           <label>
             Puxador desta frente
             <select name="handle" defaultValue={cell.front?.handle ?? ''}>
-              <option value="">Igual ao módulo ({HANDLES[module.look?.handle ?? 'bar'].name})</option>
+              <option value="">Igual ao módulo</option>
               {HANDLE_TYPES.map((v) => (
                 <option key={v} value={v}>
                   {capital(HANDLES[v].name)}

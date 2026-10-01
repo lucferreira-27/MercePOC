@@ -4,7 +4,7 @@ import { handlePlacement } from './fittings';
 import type { HandleType } from './look';
 import { faceGeometry, faceKey } from './scene-faces';
 import { handleShape } from './scene-fittings';
-import { DIFF_GLOW, finishTexture, panelUV, SELECTION_GLOW, surfaceTexture } from './scene-materials';
+import { DIFF_GLOW, finishTexture, panelUV, perforatedTexture, SELECTION_GLOW, surfaceTexture } from './scene-materials';
 
 /**
  * Diff na cena: peças que entraram brilham em verde, as que mudaram em âmbar
@@ -269,7 +269,7 @@ export class FurnitureMotion {
     for (const part of parts) {
       // Moldura, ripado, quadro e borda: geometria na medida real, escala 1.
       const shape = faceKey(part.face, part.size);
-      const special = part.materialId ? surfaceTexture(part.materialId) : null;
+      const special = part.face?.kind === 'perforated' ? perforatedTexture(part.color ?? color) : part.materialId ? surfaceTexture(part.materialId) : null;
       const target: Pose = {
         position: visualPosition(
           part,

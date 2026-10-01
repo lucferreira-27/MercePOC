@@ -166,7 +166,32 @@ function rgb(hex: string) {
   return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
 }
 
-/** Pedra: fundo com nuvens leves e veios finos que atravessam a peça. */
+/**
+ * Ruído de valor que repete sem emenda: uma grade de `cells` × `cells` com
+ * valores sorteados, interpolada suave e dando a volta nas bordas.
+ */
+function tileNoise(random: () => number, cells: number) {
+  const grid = Array.from({ length: cells * cells }, () => random());
+  const at = (x: number, y: number) => grid[(((y % cells) + cells) % cells) * cells + (((x % cells) + cells) % cells)];
+  const smooth = (t: number) => t * t * (3 - 2 * t);
+  return (u: number, v: number) => {
+    const x = u * cells,
+      y = v * cells;
+    const x0 = Math.floor(x),
+      y0 = Math.floor(y);
+    const fx = smooth(x - x0),
+      fy = smooth(y - y0);
+    const a = at(x0, y0) + (at(x0 + 1, y0) - at(x0, y0)) * fx;
+    const b = at(x0, y0 + 1) + (at(x0 + 1, y0 + 1) - at(x0, y0 + 1)) * fx;
+    return a + (b - a) * fy;
+  };
+}
+
+/**
+ * Pedra: nuvens suaves e veios finos e irregulares, em diagonal, desenhados
+ * com turbulência (o seno de uma direção deformado por ruído fractal). Tudo
+ * repete sem emenda, então um tampo de 3 m não mostra costura.
+ */
 function stoneTexture(hex: string, seed: number) {
   const W = 1024,
     H = 512;
@@ -174,26 +199,26 @@ function stoneTexture(hex: string, seed: number) {
   const [r, g, b] = rgb(hex);
   const dark = r + g + b < 200;
   // Veio claro na pedra escura (Nero), escuro na clara (mármore, travertino).
-  const vein = dark ? [235, 233, 228] : [Math.max(0, r - 70), Math.max(0, g - 70), Math.max(0, b - 64)];
-  const lines = Array.from({ length: 7 }, () => ({ y: random(), a: random() * 0.5 + 0.15, f: 1 + Math.floor(random() * 3), p: random() * Math.PI * 2, w: 0.002 + random() * 0.004 }));
+  const vein = dark ? [228, 226, 220] : [Math.max(0, r - 85), Math.max(0, g - 85), Math.max(0, b - 78)];
+  const octaves = [4, 8, 16, 32].map((cells) => tileNoise(random, cells));
+  const fbm = (u: number, v: number) => octaves.reduce((a, n, i) => a + n(u, v) / 2 ** i, 0) / 1.875;
+  const cloud = tileNoise(random, 3);
+  const TAU = Math.PI * 2;
   const texture = canvasTexture(W, H, (data) => {
-    const TAU = Math.PI * 2;
     for (let y = 0; y < H; y++) {
-      const fy = y / H;
+      const v = y / H;
       for (let x = 0; x < W; x++) {
-        const fx = x / W;
-        const cloud = 0.04 * Math.sin(TAU * (fx * 3 + fy * 2) + lines[0].p) + 0.03 * Math.sin(TAU * (fx * 7 - fy * 5) + lines[1].p);
-        let v = 0;
-        for (const l of lines) {
-          const centre = l.y + 0.12 * Math.sin(TAU * fx * l.f + l.p) + 0.03 * Math.sin(TAU * fx * 9 + l.p * 2);
-          const d = Math.abs(((fy - centre + 1.5) % 1) - 0.5);
-          v = Math.max(v, l.a * Math.exp(-((d / l.w) ** 2)));
-        }
-        const k = 1 + cloud + (random() - 0.5) * 0.03;
+        const u = x / W;
+        const turb = fbm(u, v);
+        // Dois sistemas de veio: um principal, longo, e um fino que cruza.
+        const main = Math.pow(1 - Math.abs(Math.sin(TAU * (2 * u + v) + 7 * turb)), 26);
+        const fine = Math.pow(1 - Math.abs(Math.sin(TAU * (3 * u - 2 * v) + 9 * turb + 1.3)), 70) * 0.35;
+        const veinK = Math.min(1, main * 0.75 + fine);
+        const k = 0.94 + 0.1 * cloud(u, v) + (turb - 0.5) * 0.06;
         const i = (y * W + x) * 4;
-        data[i] = (r * k) * (1 - v) + vein[0] * v;
-        data[i + 1] = (g * k) * (1 - v) + vein[1] * v;
-        data[i + 2] = (b * k) * (1 - v) + vein[2] * v;
+        data[i] = Math.min(255, r * k) * (1 - veinK) + vein[0] * veinK;
+        data[i + 1] = Math.min(255, g * k) * (1 - veinK) + vein[1] * veinK;
+        data[i + 2] = Math.min(255, b * k) * (1 - veinK) + vein[2] * veinK;
         data[i + 3] = 255;
       }
     }
@@ -282,5 +307,37 @@ function ribbedTexture(hex: string) {
       }
   });
   if (texture) texture.userData = { roughness: 0.1, white: true };
+  return texture;
+}
+
+/**
+ * Chapa perfurada (painel de ferramentas): a cor do painel com furos de
+ * 6 mm a cada 25 mm, escuros como a sombra do furo. Mesma escala do resto.
+ */
+export function perforatedTexture(hex: string): THREE.Texture | null {
+  if (typeof document === 'undefined') return null;
+  const key = `perforated:${hex}`;
+  if (cache.has(key)) return cache.get(key)!;
+  const W = 1024,
+    H = 512;
+  const [r, g, b] = rgb(hex);
+  const cx = W / 56,
+    cy = H / 28;
+  const texture = canvasTexture(W, H, (data) => {
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        const u = (x % cx) / cx - 0.5,
+          v = (y % cy) / cy - 0.5;
+        const hole = Math.hypot(u, v) < 0.13;
+        const k = hole ? 0.18 : 1;
+        const i = (y * W + x) * 4;
+        data[i] = r * k;
+        data[i + 1] = g * k;
+        data[i + 2] = b * k;
+        data[i + 3] = 255;
+      }
+  });
+  if (texture) texture.userData = { roughness: 0.7, white: true };
+  cache.set(key, texture);
   return texture;
 }

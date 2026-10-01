@@ -33,6 +33,8 @@ export function faceGeometry(face: Face, size: readonly [number, number, number]
     const r = Math.max(0.5, Math.min(face.radius, h / 2 - 0.5, w / 2, t / 2));
     return mmUV(new RoundedBoxGeometry(w, h, t, face.profile === 'chamfer' ? 1 : 4, r));
   }
+  // Chapa perfurada: a caixa na medida real, e os furos vêm da textura.
+  if (face.kind === 'perforated') return mmUV(new THREE.BoxGeometry(w, h, t));
   let parts: THREE.BufferGeometry[];
   if (face.kind === 'slatted') {
     // Ripado: chapa de fundo e ripas de 8 mm na frente, verticais.

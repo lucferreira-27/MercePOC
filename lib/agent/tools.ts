@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { generateComposition, layout, openingLimit, type ModularPart } from '../composition';
+import { generateComposition, layout, openAllGroups, openingLimit, type ModularPart } from '../composition';
 import { planDataUrl } from '../plan-render';
 import { sceneDrawingParts } from '../scene-parts';
 import { cutPlan } from '../cutplan';
@@ -448,7 +448,8 @@ const frontsOpen = tool({
   run: (ctx, a) => {
     const parts = generateDesign(ctx.design).parts as ModularPart[];
     const inside = a.ids.length ? new Set(selectedPartIds(ctx.design, a.ids)) : null;
-    const groups = [...new Set(parts.filter((p) => p.motion && (!inside || inside.has(p.id) || a.ids.includes(p.motion.id))).map((p) => p.motion!.id))];
+    // Todas: a folha de correr de trás fica (abrir as duas só troca de lugar).
+    const groups = inside ? [...new Set(parts.filter((p) => p.motion && (inside.has(p.id) || a.ids.includes(p.motion.id))).map((p) => p.motion!.id))] : openAllGroups(parts);
     if (!groups.length) return fail('Nenhuma porta ou gaveta nesses ids.');
     ctx.fronts = { ids: a.ids.length ? a.ids : groups, open: a.abrir };
     const blocked = a.abrir ? groups.filter((g) => openingLimit(parts, g) < 0.98) : [];

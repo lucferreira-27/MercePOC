@@ -380,6 +380,8 @@ function faceOverlays(part: ModularPart, parts: readonly ModularPart[]): Modular
     edges: { c1: null, c2: null, l1: null, l2: null },
     decal: true,
   });
+  // Chapa perfurada (painel de ferramentas): um tom mais escuro no desenho.
+  if (face.kind === 'perforated') return [flat(`${part.id}:face`, [w - 8, h - 8, 1], at(0, 0), shade(part.color, 0.8))];
   if (face.kind === 'slatted') {
     const n = Math.max(1, Math.floor(w / face.pitch));
     const pitch = w / n;

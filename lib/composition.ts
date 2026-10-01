@@ -162,8 +162,18 @@ export type ModularPart = Part & {
     pivot: Vec;
     direction: number;
     travel: number;
+    /** Folha de correr: trilho da frente (0) ou de trás (1). */
+    track?: number;
   };
 };
+/**
+ * O que abre quando a pessoa abre todas as frentes: tudo, menos a folha de
+ * correr do trilho de trás. Abrindo as duas, elas só trocam de lugar e o
+ * armário continua fechado; a da frente corre por cima da de trás.
+ */
+export function openAllGroups(parts: readonly ModularPart[]) {
+  return [...new Set(parts.filter((p) => p.motion && !(p.motion.type === 'slide' && p.motion.track === 1)).map((p) => p.motion!.id))];
+}
 export type CellInfo = {
   id: string;
   moduleId: string;
@@ -323,8 +333,12 @@ export const compositionSchema = z
             walk(m.root, (c) => {
               const f = c.front;
               if (!f) return;
-              if (f.materialId && categoryOf(f.materialId) !== 'sheet')
-                fail('materialId', `${m.name}: frente em ${materialOf(f.materialId).name} não dá; a frente é de chapa (${sheetIds.join(', ')}). Vidro, tela e palhinha vão no miolo de uma porta (look.front glass, mesh ou cane).`);
+              // Frente de chapa; de aço só como quadro de porta (serralheria),
+              // com vidro, tela, palhinha ou almofada de madeira no miolo.
+              const cat = f.materialId ? categoryOf(f.materialId) : 'sheet';
+              const framed = f.type !== 'drawers' && framedFront(f.style ?? m.look?.front);
+              if (cat !== 'sheet' && !(cat === 'metal' && framed))
+                fail('materialId', `${m.name}: frente em ${materialOf(f.materialId!).name} não dá; a frente é de chapa (${sheetIds.join(', ')}). Aço só no quadro de uma porta de vidro, tela, palhinha ou almofada (look.front glass, mesh, cane ou framed); o miolo vai em insertMaterialId.`);
               if (f.type === 'drawers' && framedFront(f.style))
                 fail('style', `${m.name}: gaveta não leva ${FRONTS[f.style!].name}; use lisa, shaker ou ripada.`);
             });
@@ -813,13 +827,18 @@ export function runPoint(rotation: number, s: number, y: number, f: number): Vec
   const a = (rotation * Math.PI) / 180;
   return [s * Math.cos(a) + f * Math.sin(a), y, -s * Math.sin(a) + f * Math.cos(a)];
 }
-/** Caixa do módulo no mundo, com o tampo e a moldura que ele leva em cima. */
+/**
+ * Caixa do módulo no mundo, com o tampo e a moldura que ele leva em cima e o
+ * quanto eles podem avançar para os lados: dois vizinhos não avançam o
+ * tampo ou a moldura no mesmo vão entre eles.
+ */
 function outerBox(m: Module) {
   const a = (m.rotation * Math.PI) / 180,
     c = Math.abs(Math.cos(a)),
     sn = Math.abs(Math.sin(a));
-  const hx = (c * m.width + sn * m.depth) / 2,
-    hz = (sn * m.width + c * m.depth) / 2;
+  const reach = Math.max(m.look?.top?.overhang ?? 0, m.look?.cornice ? CORNICE.capReach : 0);
+  const hx = (c * m.width + sn * m.depth) / 2 + reach,
+    hz = (sn * m.width + c * m.depth) / 2 + reach;
   const y0 = m.position[1],
     y1 = boxTop(m) + (m.look?.top?.thickness ?? 0) + (m.look?.cornice ? CORNICE.fascia + CORNICE.cap : 0);
   return { min: [m.position[0] - hx, y0, m.position[2] - hz], max: [m.position[0] + hx, y1, m.position[2] + hz] };
@@ -854,8 +873,8 @@ function frontFace(style: FrontStyle, w: number, h: number): Face | undefined {
   if (framedFront(style)) return { kind: 'frame', frame };
   return undefined;
 }
-/** Espessura do miolo da porta de quadro: vidro 4, tela 2, palhinha 3 mm. */
-const INSERT_THICKNESS: Partial<Record<MaterialCategory, number>> = { glass: 4, metal: 2, fiber: 3 };
+/** Espessura do miolo da porta de quadro: vidro 4, tela 2, palhinha 3, almofada de madeira 15 mm. */
+const INSERT_THICKNESS: Partial<Record<MaterialCategory, number>> = { glass: 4, metal: 2, fiber: 3, sheet: 15, solid: 15 };
 export function generateComposition(input: Composition, validate = true) {
   const parsed = compositionSchema.safeParse({
     schemaVersion: SCHEMA_VERSION,
@@ -987,8 +1006,8 @@ export function generateComposition(input: Composition, validate = true) {
       ih = fh - 2 * face.frame + 16;
     if (iw < 60 || ih < 60)
       throw new Error(`${m.name}: frente de ${Math.round(fw)} × ${Math.round(fh)} mm é pequena demais para ${FRONTS[style].name} (o quadro leva ${face.frame} mm de cada lado).`);
-    const kind = FRONTS[style].insert === 'glass' ? 'Vidro' : FRONTS[style].insert === 'metal' ? 'Tela' : 'Palhinha';
-    add(m, `${id}:insert`, `${kind} ${label}`, [iw, ih, t], [center[0], center[1], center[2] - PROFILE.front / 2 + 6 + t / 2], t, 'insert', cellId, insert, motion);
+    // Miolo 3 mm atrás da face do quadro, dentro da espessura da porta.
+    add(m, `${id}:insert`, `${FRONTS[style].insertName} ${label}`, [iw, ih, t], [center[0], center[1], center[2] + PROFILE.front / 2 - 3 - t / 2], t, 'insert', cellId, insert, motion);
   }
   for (const m of d.modules.filter((v) => v.kind === 'panel'))
     add(
@@ -1002,7 +1021,7 @@ export function generateComposition(input: Composition, validate = true) {
       undefined,
       m.materialId,
       undefined,
-      m.look?.front === 'slatted' ? { face: { kind: 'slatted', pitch: 32 } } : {},
+      m.look?.front === 'slatted' ? { face: { kind: 'slatted', pitch: 32 } } : m.look?.front === 'perforated' ? { face: { kind: 'perforated', pitch: 25 } } : {},
     );
   // Prateleira de parede: uma tábua horizontal, com fita nos quatro lados.
   for (const m of d.modules.filter((v) => v.kind === 'ledge')) {
@@ -1188,7 +1207,7 @@ export function generateComposition(input: Composition, validate = true) {
           cz = frontZ - (back ? SLIDE_TRACK : 0);
         start += fw - SLIDE_OVERLAP;
         const face = frontFace(style, fw, fh);
-        const motion: ModularPart['motion'] = { id: `${f.id}:leaf-${i}`, type: 'slide', pivot: [0, 0, 0], direction: back || i === n - 1 ? -1 : 1, travel: fw - SLIDE_OVERLAP };
+        const motion: ModularPart['motion'] = { id: `${f.id}:leaf-${i}`, type: 'slide', pivot: [0, 0, 0], direction: back || i === n - 1 ? -1 : 1, travel: fw - SLIDE_OVERLAP, track: back ? 1 : 0 };
         add(m, `${f.id}:leaf-${i}`, `Folha de correr ${i + 1}`, [fw, fh, PROFILE.front], [cx, y + h / 2, cz], PROFILE.front, 'door', info.id, mat, motion, { ...(face ? { face } : {}), handle });
         insertOf(m, `${f.id}:leaf-${i}`, `da folha ${i + 1}`, [cx, y + h / 2, cz], [fw, fh], face, style, info.id, motion);
       });

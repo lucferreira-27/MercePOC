@@ -59,7 +59,7 @@ void test('validação: corpo, frente, pé, tampo e fundo com a categoria certa,
   fails(box('a', { look: { top: marble, cornice: true } }), /moldura no topo e tampo sobreposto não vão juntos/);
   fails(box('a', { back: false, look: { backMaterialId: 'sage' } }), /módulo sem fundo/);
   fails(box('a', { look: { front: 'glass', insertMaterialId: 'steel-black' } }), /frente de vidro com quadro leva vidro/);
-  fails({ ...preset('panel', 'p'), look: { legs: 'tube' } }, /painel de parede aceita só frente ripada ou lisa e LED/);
+  fails({ ...preset('panel', 'p'), look: { legs: 'tube' } }, /painel de parede aceita só superfície lisa, ripada ou perfurada e LED/);
   const drawer = box('a');
   drawer.root.front = { id: 'f', type: 'drawers', hinge: 'left', heights: [1, 1], style: 'glass' };
   fails(drawer, /gaveta não leva de vidro com quadro/);

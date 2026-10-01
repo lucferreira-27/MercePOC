@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyModularOp, generateComposition, openingLimit, openingPose, preset, PROFILE, SCHEMA_VERSION, SLIDE_TRACK, type Composition, type Module } from '../lib/composition';
+import { applyModularOp, generateComposition, openAllGroups, openingLimit, openingPose, preset, PROFILE, SCHEMA_VERSION, SLIDE_TRACK, type Composition, type Module } from '../lib/composition';
 import { fittingsOf, handlePlacement } from '../lib/fittings';
 import { DEFAULT_PRICES, quoteOf } from '../lib/quote';
 
@@ -87,4 +87,46 @@ void test('vidro na folha de correr e na basculante: o miolo acompanha', () => {
   const g = generateComposition(d);
   assert.equal(g.parts.filter((p) => p.kind === 'insert').length, 2);
   assert.equal(fittingsOf(d).filter((f) => f.kind === 'handle').length, 2);
+});
+
+void test('abrir todas: a folha de correr de trás fica, a da frente corre por cima', () => {
+  let d = one(box('w'));
+  d = applyModularOp(d, { kind: 'front.set', id: 'w:root', type: 'sliding', count: 2 });
+  d = applyModularOp(d, { kind: 'module.add', id: 'g', preset: 'drawers' });
+  const parts = generateComposition(d).parts;
+  const groups = openAllGroups(parts);
+  assert.ok(groups.some((g) => g.endsWith(':leaf-0')));
+  assert.ok(!groups.some((g) => g.endsWith(':leaf-1')));
+  assert.equal(groups.filter((g) => g.includes(':drawer-')).length, 3);
+});
+
+void test('porta de serralheria: quadro de aço com tela ou almofada de madeira, cobrado por metro de tubo', () => {
+  let d = one(box('a', { width: 800, height: 900, depth: 450, look: { front: 'framed', insertMaterialId: 'pine' } }));
+  d = applyModularOp(d, { kind: 'front.set', id: 'a:root', type: 'double', materialId: 'steel-black' });
+  const g = generateComposition(d);
+  const doors = g.parts.filter((p) => p.kind === 'door');
+  assert.deepEqual(doors.map((p) => p.category), ['metal', 'metal']);
+  const panels = g.parts.filter((p) => p.kind === 'insert');
+  // Almofada de pinus de 15 mm: chapa, entra no plano de corte, atrás da face do quadro.
+  assert.deepEqual(panels.map((p) => [p.materialId, p.thickness]), [['pine', 15], ['pine', 15]]);
+  assert.ok(panels[0].position[2] + panels[0].size[2] / 2 < doors[0].position[2] + doors[0].size[2] / 2);
+  const q = quoteOf(d, DEFAULT_PRICES);
+  const tube = q.lines.find((l) => l.label === 'Quadro das portas em aço preto (tubo 20 × 20)')!;
+  const perimeter = doors.reduce((a, p) => a + (2 * (p.c + p.l)) / 1000, 0);
+  assert.equal(tube.qty, Math.round(perimeter * 1.1 * 100) / 100);
+  assert.ok(q.lines.some((l) => l.label.startsWith('Serralheria')));
+  assert.ok(!q.lines.some((l) => l.label.startsWith('Usinagem')));
+  assert.ok(q.plan.groups.some((g) => g.material === 'Pinus' && g.thickness === 15));
+  // Aço só como quadro: porta lisa ou gaveta de aço não.
+  assert.throws(() => applyModularOp(one(box('b')), { kind: 'front.set', id: 'b:root', type: 'single', materialId: 'steel-black' }), /Aço só no quadro de uma porta/);
+  assert.throws(() => applyModularOp(one(box('c', { look: { front: 'mesh' } })), { kind: 'front.set', id: 'c:root', type: 'drawers', count: 2, materialId: 'steel-black' }), /Aço só no quadro de uma porta/);
+});
+
+void test('painel de ferramentas: chapa perfurada só em painel de parede, com usinagem', () => {
+  let d: Composition = { schemaVersion: SCHEMA_VERSION, profile: PROFILE, modules: [{ ...preset('panel', 'p'), materialId: 'black' }], connections: [] };
+  d = applyModularOp(d, { kind: 'module.edit', id: 'p', look: { front: 'perforated' } });
+  const panel = generateComposition(d).parts.find((p) => p.kind === 'panel')!;
+  assert.deepEqual(panel.face, { kind: 'perforated', pitch: 25 });
+  assert.equal(quoteOf(d, DEFAULT_PRICES).lines.find((l) => l.label.startsWith('Usinagem'))?.qty, 1);
+  assert.throws(() => generateComposition(one(box('a', { look: { front: 'perforated' } }))), /é só de painel de parede/);
 });
