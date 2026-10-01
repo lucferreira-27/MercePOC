@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { Check, GitBranch } from 'lucide-react';
-import { drawingParts } from '@/lib/composition';
+import { drawingParts } from '@/lib/fittings';
 import { canonical, type Design } from '@/lib/studio';
 import { money } from '@/lib/quote';
 import type { OptionCard } from '@/lib/agent/types';

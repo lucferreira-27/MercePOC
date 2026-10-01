@@ -14,7 +14,7 @@ import { planPng, planSvg } from '../lib/plan-render';
 const require = createRequire(import.meta.url);
 
 function parts() {
-  let d: Composition = { schemaVersion: 3, profile: PROFILE, modules: [preset('niche', 'a')], connections: [] };
+  let d: Composition = { schemaVersion: 4, profile: PROFILE, modules: [preset('niche', 'a')], connections: [] };
   for (const op of [
     { kind: 'module.edit', id: 'a', width: 1200, height: 2000, depth: 450 },
     { kind: 'cell.split', id: 'a:root', axis: 'y', gapMm: 700 },

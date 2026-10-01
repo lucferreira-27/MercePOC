@@ -22,7 +22,7 @@ import {
   entityIds,
 } from '../lib/studio';
 const base = (): Composition => ({
-  schemaVersion: 3,
+  schemaVersion: 4,
   profile: PROFILE,
   modules: [preset('niche', 'a')],
   connections: [],

@@ -1,4 +1,5 @@
-import { applyModularOp, drawingParts, type Composition, type ModularOp, type ModularPart } from './composition';
+import { applyModularOp, type Composition, type ModularOp, type ModularPart } from './composition';
+import { drawingParts } from './fittings';
 
 /**
  * Mover um móvel à mão, na cena: o conjunto que se move, o encaixe nas bordas

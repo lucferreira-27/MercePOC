@@ -43,6 +43,7 @@
   --chart-2: #b07a45;
   --chart-3: #5b7fa6;
   --chart-4: #9a8c78;
+  --chart-5: #8c6fa8;
   --radius: 10px;
   --chat-w: 372px;
   --insp-w: 360px;
@@ -99,6 +100,7 @@
   --chart-2: #d19a63;
   --chart-3: #7ea3cc;
   --chart-4: #a89c8a;
+  --chart-5: #b49ad0;
   color-scheme: dark;
 }
 @theme inline {
@@ -351,6 +353,31 @@ kbd {
     rgba(255, 255, 255, 0.08) 4px 5px,
     transparent 5px 7px
   );
+  background-color: var(--swatch);
+}
+/* Metal com reflexo, vidro translúcido, pedra com veio, palhinha trançada. */
+.swatch-dot.metal,
+.swatch-chip.metal {
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, transparent 38%, rgba(0, 0, 0, 0.18) 72%, rgba(255, 255, 255, 0.2) 100%);
+  background-color: var(--swatch);
+}
+.swatch-dot.glass,
+.swatch-chip.glass {
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0 18%, transparent 18% 60%, rgba(255, 255, 255, 0.35) 60% 66%, transparent 66%),
+    repeating-conic-gradient(rgba(0, 0, 0, 0.06) 0 25%, transparent 0 50%);
+  background-size: auto, 8px 8px;
+  background-color: color-mix(in srgb, var(--swatch) 75%, transparent);
+}
+.swatch-dot.stone,
+.swatch-chip.stone {
+  background-image: linear-gradient(115deg, transparent 30%, rgba(120, 120, 120, 0.35) 31%, transparent 33%),
+    linear-gradient(35deg, transparent 60%, rgba(120, 120, 120, 0.25) 61%, transparent 63%);
+  background-color: var(--swatch);
+}
+.swatch-dot.cane,
+.swatch-chip.cane {
+  background-image: repeating-linear-gradient(45deg, rgba(80, 55, 20, 0.35) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(-45deg, rgba(80, 55, 20, 0.35) 0 1px, transparent 1px 5px);
   background-color: var(--swatch);
 }
 

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeftToLine, ArrowRightToLine, FilePlus2, Search, X } from 'lucide-react';
 import { buildTemplate, templates } from '@/lib/templates';
 import { CATEGORY_LABEL, type AssetCategory } from '@/lib/assets';
-import { drawingParts } from '@/lib/composition';
+import { drawingParts } from '@/lib/fittings';
 import { PlanThumb } from './plan-thumb';
 
 type Filter = 'all' | AssetCategory;

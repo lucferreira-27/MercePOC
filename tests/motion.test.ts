@@ -118,7 +118,7 @@ void test('exploding one module does not drag its neighbours sideways', () => {
   // Dois módulos lado a lado: separar as peças de um não pode deslocar o
   // outro em bloco, que era o efeito de explodir em torno da origem.
   const d = applyModularOp(
-    { schemaVersion: 3, profile: PROFILE, modules: [preset('shelf', 'a')], connections: [] },
+    { schemaVersion: 4, profile: PROFILE, modules: [preset('shelf', 'a')], connections: [] },
     { kind: 'module.add', id: 'b', preset: 'shelf' },
   );
   const parts = generateComposition(d).parts;

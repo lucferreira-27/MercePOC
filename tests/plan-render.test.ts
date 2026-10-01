@@ -12,7 +12,7 @@ import { planView, planSvg } from '../lib/plan-render';
 
 function build(ops: ModularOp[]) {
   let d: Composition = {
-    schemaVersion: 3,
+    schemaVersion: 4,
     profile: PROFILE,
     modules: [preset('niche', 'a')],
     connections: [],

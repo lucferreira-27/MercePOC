@@ -18,6 +18,10 @@ const KIND_LABEL: Record<ModularPart['kind'], string> = {
   door: 'Portas',
   drawer: 'Gavetas',
   panel: 'Painéis',
+  slab: 'Tampos sobrepostos',
+  plinth: 'Rodapés e bases',
+  cornice: 'Molduras',
+  insert: 'Vidros, telas e palhinha',
 };
 const KIND_ORDER = Object.keys(KIND_LABEL) as ModularPart['kind'][];
 

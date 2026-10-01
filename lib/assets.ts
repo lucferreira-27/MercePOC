@@ -3,6 +3,7 @@ import {
   applyModularOp,
   generateComposition,
   preset,
+  SCHEMA_VERSION,
   PROFILE,
   type Composition,
   type ModularOp,
@@ -85,7 +86,7 @@ export class Builder {
       Object.assign(m, { name, width, height, depth, materialId, position: extra.position ?? [0, 0, 0] });
       if (extra.feet) m.feet = extra.feet;
       if (extra.wall) m.wall = true;
-      this.d = { schemaVersion: 3, profile: PROFILE, modules: [m], connections: [] };
+      this.d = { schemaVersion: SCHEMA_VERSION, profile: PROFILE, modules: [m], connections: [] };
       generateComposition(this.d);
       return id;
     }
@@ -110,7 +111,7 @@ export class Builder {
     if (!this.d) {
       const m = preset('panel', id);
       Object.assign(m, { name, width, height, depth: thickness, materialId, position });
-      this.d = { schemaVersion: 3, profile: PROFILE, modules: [m], connections: [] };
+      this.d = { schemaVersion: SCHEMA_VERSION, profile: PROFILE, modules: [m], connections: [] };
       return id;
     }
     this.op({ kind: 'module.add', id, preset: 'panel', name });
