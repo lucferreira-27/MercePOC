@@ -1,5 +1,6 @@
 import type { Composition } from './composition';
-import { assets, buildAsset, resolveInput, type Asset, type AssetCategory } from './assets';
+import { assets, buildAsset, introOf, resolveInput, type Asset, type AssetCategory } from './assets';
+import type { StyleId } from './look';
 import type { Room } from './room';
 
 /**
@@ -36,7 +37,15 @@ export function templateById(id: string) {
   return templates.find((t) => t.id === id);
 }
 
-/** Aplica o modelo no motor e devolve a composição validada. */
-export function buildTemplate(t: Template): Composition {
-  return buildAsset(t.asset);
+/** Aplica o modelo no motor (no estilo, se pedido) e devolve a composição validada. */
+export function buildTemplate(t: Template, style?: StyleId): Composition {
+  return buildAsset(t.asset, style ? { style } : {});
+}
+
+/** Boas-vindas e ambiente do modelo no estilo: as medidas mudam com a proporção. */
+export function templateStart(t: Template, style?: StyleId): { intro: string; room?: Room } {
+  if (!style) return { intro: t.intro, ...(t.room ? { room: t.room } : {}) };
+  const input = resolveInput(t.asset, { style });
+  const room = t.asset.room?.(input, input.width);
+  return { intro: introOf(t.asset, input), ...(room ? { room } : {}) };
 }

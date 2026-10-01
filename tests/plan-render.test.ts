@@ -87,3 +87,20 @@ void test('o SVG sai como uma imagem de duas vistas', () => {
   assert.match(svg, /^<svg [^>]*width="920" height="620"/);
   assert.equal(svg.match(/<rect[^>]*fill="#ffffff"/g)?.length, 2);
 });
+
+void test('isométrica pinta pelo plano que separa as peças: tampo comprido por cima, gaveta embaixo do tampo da caixa', async () => {
+  const { assetById, buildAsset } = await import('../lib/assets');
+  const { drawingParts } = await import('../lib/fittings');
+  const { paintOrder } = await import('../lib/plan-render');
+  // Tampo de mármore de 2,44 m sobre três balcões: o centro dele cai no do
+  // meio, e pelo centro o tampo da última caixa era pintado por cima.
+  const kitchen = drawingParts(buildAsset(assetById('cozinha')!, { style: 'midcentury' }));
+  const order = paintOrder(kitchen, 'iso').map((p) => p.id);
+  const slab = order.indexOf('b1:slab');
+  for (const id of ['b1:top', 'b2:top', 'b3:top']) assert.ok(order.indexOf(id) < slab, id);
+  // A caixa da gaveta de cima fica embaixo do tampo da caixa: pinta antes.
+  const sideboard = drawingParts(buildAsset(assetById('aparador')!, { style: 'scandinavian' }));
+  const iso = paintOrder(sideboard, 'iso').map((p) => p.id);
+  const top = iso.indexOf('a2:top');
+  for (const id of iso.filter((v) => /:drawer-\d+:(left|right|back|inner|bottom)$/.test(v))) assert.ok(iso.indexOf(id) < top, id);
+});
