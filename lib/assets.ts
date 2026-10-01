@@ -9,7 +9,7 @@ import {
   type ModularOp,
 } from './composition';
 import { materialIds, type MaterialId } from './furniture';
-import { STYLE_IDS, type StyleId } from './look';
+import { STYLE_IDS, type Look, type StyleId } from './look';
 import { TV_CLEARANCE_MM, type Room } from './room';
 import { applyStyle, STYLES, styleFeet, styleProportion } from './styles';
 
@@ -44,7 +44,7 @@ export type AssetInput = AssetSize & {
  * Papel principal do ativo para o estilo: decide a altura dos pés com que a
  * receita monta e a proporção do móvel novo (anos 60 baixo e comprido).
  */
-export type AssetRole = 'low' | 'counter' | 'tall' | 'wall' | 'panel';
+export type AssetRole = 'low' | 'counter' | 'tall' | 'wall' | 'panel' | 'table';
 export type Asset = {
   id: string;
   name: string;
@@ -64,6 +64,8 @@ export type Asset = {
   /** Ambiente de exemplo quando o projeto nasce deste ativo. */
   room?: (p: AssetInput, width: number) => Room;
   build: (b: Builder, p: AssetInput) => void;
+  /** Estilos que combinam com o móvel; ausente, todos. */
+  styles?: readonly StyleId[];
 };
 
 const P = PROFILE.panel;
@@ -116,16 +118,45 @@ export class Builder {
     });
     return id;
   }
-  panel(key: string, name: string, [width, height, thickness]: [number, number, number], materialId: MaterialId, position: [number, number, number]) {
+  panel(key: string, name: string, [width, height, thickness]: [number, number, number], materialId: MaterialId, position: [number, number, number], extra: { hooks?: number } = {}) {
     const id = this.id(key);
     if (!this.d) {
       const m = preset('panel', id);
-      Object.assign(m, { name, width, height, depth: thickness, materialId, position });
+      Object.assign(m, { name, width, height, depth: thickness, materialId, position, ...(extra.hooks ? { hooks: extra.hooks } : {}) });
       this.d = { schemaVersion: SCHEMA_VERSION, profile: PROFILE, modules: [m], connections: [] };
       return id;
     }
     this.op({ kind: 'module.add', id, preset: 'panel', name });
-    this.op({ kind: 'module.edit', id, width, height, depth: thickness, materialId, position });
+    this.op({ kind: 'module.edit', id, width, height, depth: thickness, materialId, position, ...(extra.hooks ? { hooks: extra.hooks } : {}) });
+    return id;
+  }
+  /**
+   * Mesa ou estrutura aberta: tampo de `width × depth` a `height` do piso,
+   * níveis embaixo e gavetas no avental (`lib/tables.ts`).
+   */
+  table(
+    key: string,
+    name: string,
+    [width, height, depth]: [number, number, number],
+    materialId: MaterialId,
+    extra: { position?: [number, number, number]; wall?: boolean; shelves?: number; drawers?: number; look?: Look } = {},
+  ) {
+    const id = this.id(key);
+    const fields = {
+      ...(extra.shelves ? { shelves: extra.shelves } : {}),
+      ...(extra.drawers ? { drawers: extra.drawers } : {}),
+      ...(extra.wall ? { wall: true } : {}),
+      ...(extra.look ? { look: extra.look } : {}),
+    };
+    if (!this.d) {
+      const m = preset('table', id);
+      Object.assign(m, { name, width, height, depth, materialId, position: extra.position ?? [0, 0, 0] }, fields);
+      this.d = { schemaVersion: SCHEMA_VERSION, profile: PROFILE, modules: [m], connections: [] };
+      generateComposition(this.d);
+      return id;
+    }
+    this.op({ kind: 'module.add', id, preset: 'table', name });
+    this.op({ kind: 'module.edit', id, width, height, depth, materialId, position: extra.position ?? [15000 + Math.random() * 1000, 0, 0], ...fields });
     return id;
   }
   beside(parent: string, child: string, shared = true, align: 'front' | 'back' = 'front') {
@@ -710,7 +741,302 @@ export const assets: Asset[] = [
       b.front(top, 'double', { materialId: p.front });
     },
   },
+  {
+    id: 'escrivaninha',
+    name: 'Escrivaninha',
+    category: 'escritorio',
+    role: 'table',
+    summary: 'Mesa de trabalho com gaveta embaixo do tampo',
+    keywords: ['escrivaninha', 'mesa de escritório', 'mesa de estudo', 'mesa de computador', 'home office'],
+    size: { default: { width: 1200, height: 750, depth: 600 }, min: { width: 800, height: 700, depth: 450 }, max: { width: 1800, height: 780, depth: 800 } },
+    body: 'oak',
+    front: 'oak',
+    intro: (p) =>
+      `Montei uma escrivaninha de ${cm(p.width)} × ${cm(p.depth)} cm com o tampo a ${cm(p.height)} cm do piso, em carvalho sobre pés cônicos, com ${p.width >= 1100 ? 'duas gavetas' : 'uma gaveta'} no avental. Peça outra base, um tampo maciço ou mais fundo para o monitor.`,
+    room: (_, width) => plainRoom(width),
+    build(b, p) {
+      b.table('m', 'Escrivaninha', [p.width, p.height, p.depth], p.body, { drawers: p.width >= 1100 ? 2 : 1, look: { legs: 'tapered', legMaterialId: 'oak-solid' } });
+    },
+  },
+  {
+    id: 'escrivaninha-suspensa',
+    name: 'Escrivaninha suspensa',
+    category: 'escritorio',
+    role: 'table',
+    summary: 'Tampo preso na parede com gaveta, sem pés no piso',
+    keywords: ['escrivaninha suspensa', 'mesa suspensa', 'mesa de parede', 'bancada de estudo'],
+    size: { default: { width: 1000, height: 750, depth: 450 }, min: { width: 600, height: 700, depth: 350 }, max: { width: 1600, height: 800, depth: 600 } },
+    body: 'walnut',
+    front: 'walnut',
+    intro: (p) =>
+      `Montei uma escrivaninha suspensa de ${cm(p.width)} × ${cm(p.depth)} cm presa na parede a ${cm(p.height)} cm do piso, com uma gaveta embaixo do tampo e o piso livre. Peça outra altura, outro acabamento ou um painel na parede.`,
+    room: (_, width) => plainRoom(width),
+    build(b, p) {
+      b.table('m', 'Escrivaninha suspensa', [p.width, p.height, p.depth], p.body, { wall: true, drawers: 1, look: { legs: 'wall' } });
+    },
+  },
+  {
+    id: 'console',
+    name: 'Console',
+    category: 'servico',
+    role: 'table',
+    summary: 'Mesa estreita de entrada ou de sala, com gaveta e nível embaixo',
+    keywords: ['console', 'aparador de entrada', 'mesa de hall', 'mesa estreita', 'buffet estreito'],
+    size: { default: { width: 1000, height: 800, depth: 350 }, min: { width: 600, height: 700, depth: 250 }, max: { width: 1800, height: 900, depth: 450 } },
+    body: 'freijo',
+    front: 'freijo',
+    intro: (p) =>
+      `Montei um console de ${cm(p.width)} × ${cm(p.height)} × ${cm(p.depth)} cm em freijó sobre pés quadrados, com gaveta no avental e um nível embaixo para cestos ou livros. Peça outra base, mais gavetas ou tampo de pedra.`,
+    room: (_, width) => plainRoom(width),
+    build(b, p) {
+      // Console raso (menos de 30 cm) fica sem gaveta: a caixa não teria fundo.
+      b.table('m', 'Console', [p.width, p.height, p.depth], p.body, { drawers: p.depth < 300 ? 0 : p.width >= 1300 ? 2 : 1, shelves: 1, look: { legs: 'block', legMaterialId: 'freijo-solid' } });
+    },
+  },
+  {
+    id: 'mesa-centro',
+    name: 'Mesa de centro',
+    category: 'sala',
+    role: 'table',
+    summary: 'Mesa baixa de sala, com nível embaixo para revistas',
+    keywords: ['mesa de centro', 'mesinha de centro', 'mesa de sala', 'centro'],
+    size: { default: { width: 1000, height: 420, depth: 550 }, min: { width: 500, height: 300, depth: 400 }, max: { width: 1400, height: 500, depth: 1000 } },
+    body: 'oak',
+    front: 'oak',
+    intro: (p) =>
+      `Montei uma mesa de centro de ${cm(p.width)} × ${cm(p.depth)} cm a ${cm(p.height)} cm do piso, em carvalho${p.height >= 420 ? ', com um nível embaixo para revistas' : ''}. Peça outra base, tampo de pedra ou vidro, ou outra medida.`,
+    room: (_, width) => plainRoom(width),
+    build(b, p) {
+      b.table('m', 'Mesa de centro', [p.width, p.height, p.depth], p.body, { shelves: p.height >= 420 ? 1 : 0, look: { legs: 'block', legMaterialId: 'oak-solid' } });
+    },
+  },
+  {
+    id: 'mesa-lateral',
+    name: 'Mesa lateral',
+    category: 'sala',
+    role: 'table',
+    summary: 'Mesinha de apoio ao lado do sofá ou da poltrona',
+    keywords: ['mesa lateral', 'mesa de apoio', 'mesinha', 'mesa de canto'],
+    size: { default: { width: 450, height: 550, depth: 450 }, min: { width: 300, height: 400, depth: 300 }, max: { width: 650, height: 700, depth: 650 } },
+    body: 'walnut',
+    front: 'walnut',
+    intro: (p) =>
+      `Montei uma mesa lateral de ${cm(p.width)} × ${cm(p.depth)} cm a ${cm(p.height)} cm do piso, em nogueira${p.height >= 420 ? ', com um nível embaixo' : ''}. Peça um par, outra base ou tampo redondo de borda boleada.`,
+    room: (_, width) => plainRoom(width, { widthMm: 2400, offsetMm: Math.round((2400 - width) / 2) }),
+    build(b, p) {
+      b.table('m', 'Mesa lateral', [p.width, p.height, p.depth], p.body, { shelves: p.height >= 420 ? 1 : 0, look: { legs: 'tapered', legMaterialId: 'walnut-solid' } });
+    },
+  },
+  {
+    id: 'mesa-jantar',
+    name: 'Mesa de jantar',
+    category: 'sala',
+    role: 'table',
+    summary: 'Mesa de jantar para quatro a oito lugares',
+    keywords: ['mesa de jantar', 'mesa de refeição', 'mesa de cozinha', 'mesa para 6'],
+    size: { default: { width: 1600, height: 760, depth: 900 }, min: { width: 800, height: 720, depth: 700 }, max: { width: 2700, height: 780, depth: 1200 } },
+    body: 'oak',
+    front: 'oak',
+    intro: (p) =>
+      `Montei uma mesa de jantar de ${cm(p.width)} × ${cm(p.depth)} cm a ${cm(p.height)} cm do piso, em carvalho sobre pés cônicos, para ${p.width >= 2000 ? 'oito' : p.width >= 1400 ? 'seis' : 'quatro'} lugares. Peça cavalete, estrutura de aço, tampo de pedra ou outra medida.`,
+    room: (_, width) => plainRoom(width),
+    build(b, p) {
+      b.table('m', 'Mesa de jantar', [p.width, p.height, p.depth], p.body, { look: { legs: 'tapered', legMaterialId: 'oak-solid', top: { materialId: 'oak-solid', thickness: 30, overhang: 40, edge: 'square' } } });
+    },
+  },
+  {
+    id: 'banco',
+    name: 'Banco',
+    category: 'servico',
+    role: 'table',
+    summary: 'Banco de entrada ou de pé de cama, com nível para sapatos',
+    keywords: ['banco', 'banco de entrada', 'banco pé de cama', 'banqueta', 'recamier'],
+    size: { default: { width: 1200, height: 450, depth: 380 }, min: { width: 600, height: 380, depth: 280 }, max: { width: 2000, height: 500, depth: 450 } },
+    body: 'oak',
+    front: 'oak',
+    intro: (p) =>
+      `Montei um banco de ${cm(p.width)} × ${cm(p.depth)} cm a ${cm(p.height)} cm do piso, em carvalho${p.height >= 420 ? ', com um nível embaixo para os sapatos' : ''}. Peça outro acabamento, outra base ou mais comprido.`,
+    room: (_, width) => plainRoom(width),
+    build(b, p) {
+      b.table('m', 'Banco', [p.width, p.height, p.depth], p.body, { shelves: p.height >= 420 ? 1 : 0, look: { legs: 'block', legMaterialId: 'oak-solid', top: { materialId: 'oak-solid', thickness: 40, overhang: 20, edge: 'square' } } });
+    },
+  },
+  {
+    id: 'estante-aberta',
+    name: 'Estante aberta de aço',
+    category: 'sala',
+    role: 'tall',
+    summary: 'Prateleiras sobre estrutura de aço, aberta dos quatro lados',
+    keywords: ['estante de aço', 'estante industrial', 'estante aberta', 'prateleira de ferro', 'torre'],
+    size: { default: { width: 1000, height: 1800, depth: 350 }, min: { width: 400, height: 1000, depth: 250 }, max: { width: 1600, height: 2400, depth: 500 } },
+    body: 'oak',
+    front: 'oak',
+    intro: (p) =>
+      `Montei uma estante aberta de ${cm(p.width)} × ${cm(p.height)} × ${cm(p.depth)} cm: estrutura de tubo de aço preto e ${levelsFor(p.height) + 1} níveis de carvalho maciço. Peça mais níveis, outra madeira ou duas torres lado a lado.`,
+    room: (_, width) => plainRoom(width),
+    styles: ['industrial', 'minimalist', 'scandinavian', 'japandi'],
+    build(b, p) {
+      b.table('m', 'Estante aberta', [p.width, p.height, p.depth], p.body, { shelves: levelsFor(p.height), look: { legs: 'frame', legMaterialId: 'steel-black', top: { materialId: 'oak-solid', thickness: 30, overhang: 0, edge: 'square' } } });
+    },
+  },
+  {
+    id: 'carrinho-bar',
+    name: 'Carrinho de bar',
+    category: 'sala',
+    role: 'table',
+    summary: 'Carrinho com rodízios e dois níveis para garrafas e copos',
+    keywords: ['carrinho de bar', 'bar móvel', 'carrinho', 'bar de rodinhas'],
+    size: { default: { width: 700, height: 850, depth: 420 }, min: { width: 500, height: 750, depth: 350 }, max: { width: 1000, height: 950, depth: 550 } },
+    body: 'walnut',
+    front: 'walnut',
+    intro: (p) =>
+      `Montei um carrinho de bar de ${cm(p.width)} × ${cm(p.height)} × ${cm(p.depth)} cm sobre rodízios com freio: estrutura de aço, tampo e dois níveis em nogueira. Peça vidro nos níveis, outra madeira ou mais largo.`,
+    room: (_, width) => plainRoom(width, { widthMm: 2400, offsetMm: Math.round((2400 - width) / 2) }),
+    build(b, p) {
+      b.table('m', 'Carrinho de bar', [p.width, p.height, p.depth], p.body, { shelves: 2, look: { legs: 'casters', top: { materialId: 'walnut-solid', thickness: 25, overhang: 10, edge: 'rounded' } } });
+    },
+  },
+  {
+    id: 'adega',
+    name: 'Adega',
+    category: 'sala',
+    role: 'tall',
+    summary: 'Grade de nichos para garrafas deitadas',
+    keywords: ['adega', 'adega de vinho', 'porta-vinho', 'garrafeiro', 'nichos de vinho'],
+    size: { default: { width: 600, height: 1100, depth: 350 }, min: { width: 400, height: 600, depth: 300 }, max: { width: 1000, height: 2000, depth: 450 } },
+    body: 'walnut',
+    front: 'walnut',
+    intro: (p) =>
+      `Montei uma adega de ${cm(p.width)} × ${cm(p.height)} × ${cm(p.depth)} cm em nogueira, com uma grade de nichos de uns 12 cm para as garrafas deitadas. Peça portas embaixo, outra madeira ou mais nichos.`,
+    room: (_, width) => plainRoom(width),
+    build(b, p) {
+      const id = b.box('w', 'Adega', [p.width, p.height, p.depth], p.body);
+      // Grade de nichos de ~12 cm, no máximo 32 por módulo.
+      const cols = clamp(Math.floor((inner(p.width) + P) / 130), 2, 6);
+      const rows = clamp(Math.floor((inner(p.height) + P) / 130), 2, Math.floor(32 / cols));
+      for (const col of b.stack(b.root(id), cols, inner(p.width), 'x')) b.stack(col, rows, inner(p.height));
+    },
+  },
+  {
+    id: 'penteadeira',
+    name: 'Penteadeira',
+    category: 'quarto',
+    role: 'table',
+    summary: 'Mesa de maquiagem com gavetas e tampo de vidro',
+    keywords: ['penteadeira', 'mesa de maquiagem', 'toucador', 'mesa de quarto'],
+    size: { default: { width: 1000, height: 760, depth: 450 }, min: { width: 700, height: 720, depth: 350 }, max: { width: 1400, height: 800, depth: 550 } },
+    body: 'white',
+    front: 'white',
+    intro: (p) =>
+      `Montei uma penteadeira de ${cm(p.width)} × ${cm(p.depth)} cm a ${cm(p.height)} cm do piso: corpo branco sobre pés cônicos, duas gavetas no avental e tampo de vidro incolor. Peça espelho na parede, outra cor ou três gavetas.`,
+    room: (_, width) => plainRoom(width, { widthMm: 2400, offsetMm: Math.round((2400 - width) / 2) }),
+    build(b, p) {
+      b.table('m', 'Penteadeira', [p.width, p.height, p.depth], p.body, { drawers: 2, look: { legs: 'tapered', legMaterialId: 'oak-solid', top: { materialId: 'glass-clear', thickness: 10, overhang: 20, edge: 'rounded' } } });
+    },
+  },
+  {
+    id: 'estante-tv',
+    name: 'Estante de TV com moldura',
+    category: 'sala',
+    role: 'tall',
+    summary: 'Nichos em volta da TV: torres nas laterais, ponte em cima e rack embaixo',
+    keywords: ['estante de tv', 'home theater', 'moldura de nichos', 'estante com vão para tv', 'home'],
+    size: { default: { width: 2400, height: 2000, depth: 400 }, min: { width: 1800, height: 1600, depth: 300 }, max: { width: 3300, height: 2400, depth: 450 } },
+    body: 'freijo',
+    front: 'graphite',
+    intro: (p) =>
+      `Montei uma estante de TV de ${cm(p.width)} × ${cm(p.height)} cm em freijó: torres de nichos nas laterais, uma ponte de nichos em cima e o rack com portas embaixo, formando a moldura da TV. Peça portas nas torres, outra cor ou mais larga.`,
+    room: (p, width) => tvRoom(width, 700, undefined, tvFor(p.width - 900)),
+    build(b, p) {
+      const towerW = 450,
+        rackH = 500,
+        bridgeH = 350;
+      const tower = (key: string, name: string, x: number) => {
+        const id = b.box(key, name, [towerW, p.height, p.depth], p.body, { position: [x, 0, 0] });
+        b.stack(b.root(id), Math.max(3, Math.round(inner(p.height) / 420)), inner(p.height));
+        return id;
+      };
+      const gap = p.width - 2 * towerW;
+      tower('1', 'Torre esquerda', -p.width / 2 + towerW / 2);
+      tower('2', 'Torre direita', p.width / 2 - towerW / 2);
+      // Rack entre as torres, no piso, em colunas de até 1,2 m.
+      const n = Math.ceil((gap + P) / 1200);
+      const widths = widthsOf(gap, n);
+      const rack = b.row('r', widths.map((_, i) => (n === 1 ? 'Rack' : `Rack ${i + 1}`)), widths, rackH, p.depth, p.body, { position: [-gap / 2 + widths[0] / 2, 0, 0] });
+      rack.forEach((id) => b.front(b.root(id), 'double', { materialId: p.front }));
+      // Ponte de nichos em cima, presa nas torres.
+      const bridge = b.row('p', widths.map((_, i) => (n === 1 ? 'Ponte' : `Ponte ${i + 1}`)), widths, bridgeH, p.depth, p.body, { position: [-gap / 2 + widths[0] / 2, p.height - bridgeH, 0], wall: true });
+      bridge.forEach((id, i) => b.stack(b.root(id), clamp(Math.round(widths[i] / 450), 1, 3), inner(widths[i]), 'x'));
+    },
+  },
+  {
+    id: 'entrada',
+    name: 'Entrada com banco e cabideiro',
+    category: 'servico',
+    role: 'table',
+    summary: 'Banco com nível para sapatos e painel de ganchos na parede',
+    keywords: ['entrada', 'hall de entrada', 'cabideiro', 'banco com ganchos', 'mudroom'],
+    size: { default: { width: 1200, height: 1800, depth: 380 }, min: { width: 700, height: 1500, depth: 300 }, max: { width: 2000, height: 2200, depth: 450 } },
+    body: 'oak',
+    front: 'oak',
+    intro: (p) =>
+      `Montei uma entrada de ${cm(p.width)} cm: banco de ${cm(p.depth)} cm de fundo com nível para sapatos e, na parede, um painel com ${hooksFor(p.width)} ganchos de cabideiro até ${cm(p.height)} cm do piso. Peça outra cor, mais ganchos ou uma prateleira em cima.`,
+    room: (_, width) => plainRoom(width),
+    build(b, p) {
+      // O painel começa logo acima do banco: os dois leem como uma peça só.
+      const benchH = 450,
+        panelBottom = 650;
+      b.table('b', 'Banco', [p.width, benchH, p.depth], p.body, { position: [0, 0, 0], shelves: 1, look: { legs: 'block', legMaterialId: 'oak-solid', top: { materialId: 'oak-solid', thickness: 40, overhang: 20, edge: 'square' } } });
+      b.panel('c', 'Painel de ganchos', [p.width, p.height - panelBottom, 20], p.body, [0, panelBottom, -p.depth / 2 + 10], { hooks: hooksFor(p.width) });
+    },
+  },
+  {
+    id: 'estante-desencontrada',
+    name: 'Estante de nichos desencontrados',
+    category: 'sala',
+    role: 'tall',
+    summary: 'Colunas com prateleiras em alturas diferentes, sem fundo, sobre base',
+    keywords: ['estante desencontrada', 'nichos desencontrados', 'estante vazada', 'estante divisória'],
+    size: { default: { width: 800, height: 1740, depth: 320 }, min: { width: 600, height: 1200, depth: 280 }, max: { width: 1200, height: 2400, depth: 400 } },
+    body: 'walnut',
+    front: 'walnut',
+    intro: (p) =>
+      `Montei uma estante de ${cm(p.width)} × ${cm(p.height)} × ${cm(p.depth)} cm em nogueira, sem fundo e sobre base aparente: as colunas têm prateleiras em alturas diferentes, como numa estante de nichos desencontrados. Peça mais colunas, outra madeira ou fundo.`,
+    room: (_, width) => plainRoom(width),
+    build(b, p) {
+      const id = b.box('e', 'Estante', [p.width, p.height - 60, p.depth], p.body, { feet: 60 });
+      b.op({ kind: 'module.edit', id, back: false, look: { legs: 'skirt' } });
+      const span = inner(p.height - 60);
+      const cols = clamp(Math.round(inner(p.width) / 380), 2, 4);
+      // Cada coluna com o seu passo: as prateleiras de uma caem no meio do vão da vizinha.
+      b.stack(b.root(id), cols, inner(p.width), 'x').forEach((col, i) => {
+        const n = clamp(Math.round(span / 420), 3, 6);
+        const step = Math.floor((span - (n - 1) * P) / n);
+        if (i % 2 === 0) b.stack(col, n, span);
+        else {
+          // Coluna desencontrada: meio vão embaixo, vãos inteiros no meio e o resto em cima.
+          let current = col;
+          const first = Math.floor(step / 2);
+          b.split(current, 'y', first);
+          current = `${current}:high`;
+          for (let k = 0; k < n - 1; k++) {
+            b.split(current, 'y', step);
+            current = `${current}:high`;
+          }
+        }
+      });
+    },
+  },
 ];
+
+/** Níveis da estante aberta embaixo do tampo: um a cada ~40 cm. */
+function levelsFor(height: number) {
+  return clamp(Math.round((height - 100) / 400), 2, 6) - 1;
+}
+/** Ganchos no painel da entrada: um a cada ~25 cm. */
+function hooksFor(width: number) {
+  return clamp(Math.round(width / 250), 2, 8);
+}
 
 export const ASSET_IDS = assets.map((a) => a.id) as [string, ...string[]];
 export function assetById(id: string) {
@@ -851,13 +1177,16 @@ export function applyAssetOp(d: Composition, raw: AssetOp): Composition {
   return merged;
 }
 
-/** Catálogo em uma linha por ativo, para o prompt da IA (bloco fixo). */
+/**
+ * Catálogo em uma linha por ativo, para o prompt da IA (bloco fixo). Linha
+ * curta, com a legenda das medidas em cima: trinta ativos cabem no orçamento
+ * de caracteres do prompt.
+ */
 export function assetCatalogForPrompt() {
-  return assets
-    .map((a) => {
-      const s = a.size;
-      const r = (k: keyof AssetSize) => `${s.min[k]}–${s.max[k]} (${s.default[k]})`;
-      return `- ${a.id}: ${a.name}. ${a.summary}. Largura ${r('width')}, altura ${r('height')}, profundidade ${r('depth')} mm${a.feet !== undefined ? `, pés ${a.feet} mm (0 tira)` : ''}. Pedidos como: ${a.keywords.slice(0, 4).join(', ')}.`;
-    })
-    .join('\n');
+  const lines = assets.map((a) => {
+    const s = a.size;
+    const r = (k: keyof AssetSize) => `${s.min[k]}–${s.max[k]}/${s.default[k]}`;
+    return `- ${a.id}: ${a.summary}. L ${r('width')} A ${r('height')} P ${r('depth')}${a.feet !== undefined ? ` pés ${a.feet}` : ''}. Ex.: ${a.keywords.slice(0, 3).join(', ')}`;
+  });
+  return ['Medidas em mm, mín–máx/padrão: L largura, A altura (mesa: do piso ao tampo), P profundidade; pés 0 tira.', ...lines].join('\n');
 }

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { generateComposition, setBoxHeight, settle, type Cell, type Composition, type Module } from './composition';
 import { categoryOf, materialOf, type MaterialId } from './furniture';
+import { DEFAULT_TABLE_BASE } from './tables';
 import {
   CORNICE,
   describeLook,
@@ -27,7 +28,7 @@ import {
  */
 
 /** O papel do módulo no móvel decide a base, o tampo e os detalhes. */
-export type StyleRole = 'low' | 'counter' | 'tall' | 'wall' | 'panel' | 'ledge';
+export type StyleRole = 'low' | 'counter' | 'tall' | 'wall' | 'table' | 'panel' | 'ledge';
 
 type Legs = { type: LegType; height: number; materialId?: MaterialId };
 /** Acabamento de um papel. `doorFrame`: quadro de aço das portas (frente de quadro). */
@@ -60,7 +61,7 @@ export type StyleDef = {
   palette: { body: MaterialId; front: MaterialId; panel: MaterialId; ledge: MaterialId; accent: MaterialId };
   /** O que vale para todo papel; cada papel sobrepõe o seu. */
   base: RoleLook;
-  roles: Record<'low' | 'counter' | 'tall' | 'wall', RoleLook>;
+  roles: Record<'low' | 'counter' | 'tall' | 'wall' | 'table', RoleLook>;
   panel: { front: 'flat' | 'slatted' };
   /** Proporção dos móveis novos (fator na altura e na largura padrão do ativo). */
   proportions?: { low?: { height?: number; width?: number }; tall?: { height?: number } };
@@ -85,6 +86,7 @@ export const STYLES: Record<StyleId, StyleDef> = {
       // Balcão de cozinha: porta lisa de madeira, tampo maciço de bancada.
       counter: { legs: { type: 'tube', height: 100, materialId: steel }, front: 'flat', insert: undefined, doorFrame: undefined, top: { materialId: 'oak-solid', thickness: 40, overhang: 20, edge: 'square' } },
       wall: { front: 'glass', insert: 'glass-smoked' },
+      table: { legs: { type: 'frame', height: 0, materialId: steel }, front: 'flat', top: { materialId: 'oak-solid', thickness: 40, overhang: 20, edge: 'square' } },
     },
     panel: { front: 'flat' },
   },
@@ -101,6 +103,7 @@ export const STYLES: Record<StyleId, StyleDef> = {
       tall: { legs: { type: 'splayed', height: 150, materialId: 'walnut-solid' }, back: 'petrol' },
       counter: { legs: { type: 'plinth', height: 100 }, top: { materialId: 'marble', thickness: 20, overhang: 20, edge: 'square' } },
       wall: {},
+      table: { legs: { type: 'splayed', height: 0, materialId: 'walnut-solid' }, top: { materialId: 'walnut-solid', thickness: 30, overhang: 30, edge: 'rounded' } },
     },
     panel: { front: 'slatted' },
     proportions: { low: { height: 0.9, width: 1.1 } },
@@ -118,6 +121,7 @@ export const STYLES: Record<StyleId, StyleDef> = {
       tall: { legs: { type: 'tapered', height: 100, materialId: 'ash-solid' }, back: 'sage' },
       counter: { legs: { type: 'plinth', height: 100 }, top: { materialId: 'ash-solid', thickness: 30, overhang: 20, edge: 'rounded' } },
       wall: {},
+      table: { legs: { type: 'tapered', height: 0, materialId: 'ash-solid' }, top: { materialId: 'ash-solid', thickness: 30, overhang: 30, edge: 'rounded' } },
     },
     panel: { front: 'flat' },
     airy: true,
@@ -135,6 +139,7 @@ export const STYLES: Record<StyleId, StyleDef> = {
       tall: { legs: { type: 'plinth', height: 80 }, led: true },
       counter: { legs: { type: 'plinth', height: 100 }, top: { materialId: 'marble', thickness: 20, overhang: 10, edge: 'square' } },
       wall: { handle: 'none', led: true },
+      table: { legs: { type: 'sled', height: 0, materialId: steel }, top: { materialId: 'graphite', thickness: 25, overhang: 30, edge: 'square' } },
     },
     panel: { front: 'flat' },
   },
@@ -151,6 +156,7 @@ export const STYLES: Record<StyleId, StyleDef> = {
       tall: { legs: { type: 'skirt', height: 100 } },
       counter: { legs: { type: 'skirt', height: 100 }, top: { materialId: 'pine-solid', thickness: 40, overhang: 20, edge: 'square' } },
       wall: {},
+      table: { legs: { type: 'trestle', height: 0, materialId: 'pine-solid' }, top: { materialId: 'pine-solid', thickness: 40, overhang: 40, edge: 'square' } },
     },
     panel: { front: 'slatted' },
   },
@@ -167,6 +173,7 @@ export const STYLES: Record<StyleId, StyleDef> = {
       tall: { legs: { type: 'skirt', height: 100 }, cornice: true },
       counter: { legs: { type: 'skirt', height: 100 }, top: { materialId: 'marble', thickness: 30, overhang: 20, edge: 'rounded' } },
       wall: { cornice: true },
+      table: { legs: { type: 'turned', height: 0, materialId: 'sand' }, top: { materialId: 'marble', thickness: 20, overhang: 30, edge: 'rounded' } },
     },
     panel: { front: 'flat' },
   },
@@ -183,6 +190,7 @@ export const STYLES: Record<StyleId, StyleDef> = {
       tall: { legs: { type: 'block', height: 60, materialId: 'smoked-solid' } },
       counter: { legs: { type: 'plinth', height: 100 }, top: { materialId: 'travertine', thickness: 20, overhang: 15, edge: 'square' } },
       wall: {},
+      table: { legs: { type: 'block', height: 0, materialId: 'smoked-solid' }, top: { materialId: 'ash-solid', thickness: 40, overhang: 25, edge: 'square' } },
     },
     panel: { front: 'slatted' },
     proportions: { low: { height: 0.85 }, tall: { height: 0.9 } },
@@ -191,7 +199,7 @@ export const STYLES: Record<StyleId, StyleDef> = {
 };
 
 /** O acabamento de um papel no estilo: o comum com o do papel por cima. */
-export function roleLook(style: StyleId, role: 'low' | 'counter' | 'tall' | 'wall'): RoleLook {
+export function roleLook(style: StyleId, role: 'low' | 'counter' | 'tall' | 'wall' | 'table'): RoleLook {
   const s = STYLES[style];
   return { ...s.base, ...s.roles[role] };
 }
@@ -204,6 +212,8 @@ export function styleFeet(style: StyleId, role: 'low' | 'counter' | 'tall') {
 const corniceHeight = CORNICE.fascia + CORNICE.cap;
 /** Do piso (ou da base do módulo suspenso) ao topo: pés, caixa, tampo e moldura. */
 function outer(m: Module) {
+  // Mesa: a altura já é a do tampo.
+  if (m.kind === 'table') return m.height;
   return (m.feet ?? 0) + m.height + (m.look?.top?.thickness ?? 0) + (m.look?.cornice ? corniceHeight : 0);
 }
 
@@ -217,6 +227,7 @@ function outer(m: Module) {
 export function roleOf(d: Composition, m: Module): StyleRole {
   if (m.kind === 'panel') return 'panel';
   if (m.kind === 'ledge') return 'ledge';
+  if (m.kind === 'table') return 'table';
   const onTop = d.connections.some((c) => c.side === 'top' && c.child === m.id);
   if (m.wall || (!onTop && m.position[1] > 1)) return 'wall';
   const top = m.position[1] + outer(m);
@@ -307,6 +318,11 @@ function restyleRow(d: Composition, s: StyleDef, ids: string[], opts: StyleOptio
     generateComposition(d);
     return;
   }
+  if (role === 'table') {
+    for (const m of mods) dressTable(m, s, opts);
+    generateComposition(d);
+    return;
+  }
   const plan = roleLook(s.id, role);
   const onTop = mods.some((m) => d.connections.some((c) => c.side === 'top' && c.child === m.id));
   const carries = mods.some((m) => d.connections.some((c) => c.side === 'top' && c.parent === m.id));
@@ -342,6 +358,33 @@ function restyleRow(d: Composition, s: StyleDef, ids: string[], opts: StyleOptio
     }
   }
   throw new Error(`${STYLES[s.id].name} em ${mods.map((m) => m.name).join(', ')}: ${failure?.message ?? 'não coube'}`);
+}
+
+/**
+ * Mesa no estilo: base, tampo, puxador e cores. A altura é a do tampo, então
+ * o envelope fica por construção. O que é função fica: rodízio (carrinho),
+ * suporte de parede, estrutura de aço com níveis (estante aberta) e tampo de
+ * vidro (penteadeira); nesses o estilo troca só o acabamento.
+ */
+function dressTable(m: Module, s: StyleDef, opts: StyleOptions) {
+  const plan = roleLook(s.id, 'table');
+  const current = m.look?.legs ?? DEFAULT_TABLE_BASE;
+  const keep = current === 'casters' || current === 'wall' || (current === 'frame' && (m.shelves ?? 0) >= 2);
+  const legs = keep ? current : (plan.legs?.type ?? current);
+  const legMaterial = plan.legs?.materialId;
+  const accepts = LEGS[legs].materials;
+  const glass = m.look?.top && categoryOf(m.look.top.materialId) === 'glass';
+  const front = plan.front && !framedFront(plan.front) && !FRONTS[plan.front].panelOnly ? plan.front : 'flat';
+  if (!opts.keepMaterials) m.materialId = opts.body && ['sheet', 'solid'].includes(categoryOf(opts.body)) ? opts.body : s.palette.body;
+  const handle = plan.handle ?? 'bar';
+  m.look = {
+    legs,
+    ...(legMaterial && accepts?.includes(categoryOf(legMaterial)) ? { legMaterialId: legMaterial } : keep && m.look?.legMaterialId ? { legMaterialId: m.look.legMaterialId } : {}),
+    handle,
+    ...(plan.handleMaterial && HANDLES[handle].materials ? { handleMaterialId: plan.handleMaterial } : {}),
+    front,
+    ...(glass ? { top: m.look!.top } : plan.top ? { top: plan.top } : {}),
+  };
 }
 
 /** Um módulo no estilo, numa das tentativas. */

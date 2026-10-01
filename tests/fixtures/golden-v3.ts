@@ -45,13 +45,16 @@ export function snapshotOf(input: unknown) {
   };
 }
 
+const V3_ASSETS = ['rack-tv', 'rack-suspenso', 'rack', 'estante', 'aparador', 'guarda-roupa', 'comoda', 'criado-mudo', 'cabeceira', 'cozinha', 'balcao-cozinha', 'aereo-cozinha', 'gabinete-banheiro', 'armario-escritorio', 'sapateira', 'armario-lavanderia'];
+
 /** Os projetos do retrato, com o nome de cada um. */
 export function goldenInputs(): { name: string; design: unknown }[] {
   const out: { name: string; design: unknown }[] = [];
   const dir = join(import.meta.dirname, '..', '..', 'bench', 'scenes');
   for (const f of readdirSync(dir).filter((v) => v.endsWith('.json')).sort())
     out.push({ name: `cena ${f}`, design: JSON.parse(readFileSync(join(dir, f), 'utf8')).design });
-  for (const a of assets)
+  // A biblioteca da v3: os móveis que vieram depois não têm retrato antigo.
+  for (const a of assets.filter((v) => V3_ASSETS.includes(v.id)))
     for (const [label, size] of [
       ['padrão', a.size.default],
       ['mínimo', a.size.min],

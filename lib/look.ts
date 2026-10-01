@@ -65,7 +65,7 @@ export const LEGS: Record<LegType, LegSpec> = {
   trestle: { name: 'cavalete', table: true, materials: ['sheet', 'solid', 'metal'], defaultMaterial: 'pine-solid' },
   plinth: { name: 'rodapé recuado', box: [50, 150], materials: ['sheet'], defaultMaterial: null },
   skirt: { name: 'base aparente', box: [50, 150], materials: ['sheet'], defaultMaterial: null },
-  casters: { name: 'rodízios', box: [50, 120], table: true, materials: null, defaultMaterial: null },
+  casters: { name: 'rodízios', box: [50, 120], table: true, materials: ['metal'], defaultMaterial: 'steel-black', metal: true },
   wall: { name: 'presa na parede', table: true, materials: null, defaultMaterial: null },
 };
 

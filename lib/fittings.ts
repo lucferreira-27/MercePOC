@@ -1,6 +1,7 @@
 import { generateComposition, isFlat, point, PROFILE, runPoint, runsOf, type Composition, type ModularPart, type Module } from './composition';
 import { materialOf, type MaterialId } from './furniture';
 import { LEGS, type HandleType, type LegType } from './look';
+import { CASTER_HEIGHT, tableSpec } from './tables';
 
 /**
  * Ferragens e estrutura: o que vem pronto ou é soldado, não cortado de chapa.
@@ -11,13 +12,13 @@ import { LEGS, type HandleType, type LegType } from './look';
  * ficam dentro da planta do módulo por construção.
  */
 type Vec = [number, number, number];
-export type FittingKind = 'leg' | 'stand' | 'frame' | 'led' | 'handle';
+export type FittingKind = 'leg' | 'stand' | 'frame' | 'led' | 'handle' | 'hook';
 export type Fitting = {
   id: string;
   moduleId: string;
   kind: FittingKind;
-  /** Tipo de pé ou de puxador; `tube` para estrutura e contorno. */
-  type: LegType | HandleType | 'tube' | 'strip';
+  /** Tipo de pé ou de puxador; `tube` para estrutura e contorno; `beam` a travessa do cavalete. */
+  type: LegType | HandleType | 'tube' | 'strip' | 'beam' | 'hook';
   materialId: MaterialId | null;
   color: string;
   /** Centro da caixa que contém a peça, no mundo (mm). */
@@ -30,6 +31,8 @@ export type Fitting = {
   splay?: [number, number];
   /** Estrutura de aço longa: colunas a mais, em x a partir do centro (mm). */
   posts?: number[];
+  /** Estrutura de aço da mesa: quadros a mais, em y a partir do centro (mm), embaixo de cada nível. */
+  levels?: number[];
   /** Peça que o puxador acompanha ao abrir. */
   attach?: string;
   /** Puxador: medidas no referencial da frente, para a cena prender nela. */
@@ -191,6 +194,81 @@ function legsOfBox(m: Module, out: Fitting[]) {
   }
 }
 
+/**
+ * Base da mesa (`lib/tables.ts`): pés nos cantos da projeção da base,
+ * estrutura de aço com um quadro embaixo de cada nível, trenó nas pontas,
+ * cavalete com travessa, rodízios embaixo da estrutura ou suportes de parede.
+ */
+function tableBase(m: Module, out: Fitting[]) {
+  const s = tableSpec(m);
+  const type = s.base;
+  const { id: materialId, color } = legColor(m, type);
+  const base = { moduleId: m.id, materialId, color, rotation: (m.rotation * Math.PI) / 180 } as const;
+  const at = (x: number, y: number, z: number) => point([x, y, z], m);
+  const { bw, bd, lh } = s;
+  if (type === 'frame' || type === 'casters') {
+    const y0 = type === 'casters' ? CASTER_HEIGHT : 0;
+    const h = lh - y0;
+    // Um quadro embaixo de cada nível (o tubo segura a prateleira) e, sem
+    // nível nenhum, um perto do piso para travar as colunas.
+    const levels = s.levels.length ? s.levels.map((y) => y - 10 - (y0 + h / 2)) : h >= 200 ? [-h / 2 + 60] : [];
+    const rails = 1 + levels.length;
+    out.push({ ...base, id: `${m.id}:stand`, kind: 'stand', type: 'frame', position: at(0, y0 + h / 2, 0), size: [bw, h, bd], levels, bom: { unit: 'm', qty: (4 * h + rails * (2 * bw + 2 * bd)) / 1000 } });
+    if (type === 'casters')
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz], i) =>
+        out.push({ ...base, materialId: null, id: `${m.id}:caster-${i}`, kind: 'leg', type: 'casters', position: at(sx * (bw / 2 - 25), CASTER_HEIGHT / 2, sz * (bd / 2 - 25)), size: [45, CASTER_HEIGHT, 60], bom: { unit: 'un', qty: 1 } }),
+      );
+    return;
+  }
+  if (type === 'sled') {
+    // U de tubo 40 × 20 em cada ponta, ao longo da profundidade.
+    for (const sx of [-1, 1])
+      out.push({ ...base, id: `${m.id}:sled-${sx < 0 ? 0 : 1}`, kind: 'stand', type: 'sled', position: at(sx * (bw / 2 - 10), lh / 2, 0), size: [20, lh, bd], bom: { unit: 'm', qty: (2 * lh + bd) / 1000 } });
+    return;
+  }
+  if (type === 'trestle') {
+    // Dois cavaletes nas pontas e a travessa entre eles, a um terço da altura.
+    for (const sx of [-1, 1])
+      out.push({ ...base, id: `${m.id}:trestle-${sx < 0 ? 0 : 1}`, kind: 'leg', type: 'trestle', position: at(sx * (bw / 2 - 40), lh / 2, 0), size: [80, lh, bd], bom: { unit: 'un', qty: 1 } });
+    out.push({ ...base, id: `${m.id}:beam`, kind: 'leg', type: 'beam', position: at(0, lh / 3, 0), size: [bw - 160, 70, 40], bom: { unit: 'un', qty: 0 } });
+    return;
+  }
+  if (type === 'wall') {
+    // Suportes de parede embaixo do tampo, perto das pontas.
+    for (const sx of [-1, 1])
+      out.push({ ...base, id: `${m.id}:bracket-${sx < 0 ? 0 : 1}`, kind: 'leg', type: 'wall', position: at(sx * (bw / 2 - 100), lh - 90, 0), size: [40, 180, bd - 20], bom: { unit: 'un', qty: 1 } });
+    return;
+  }
+  // Pés nos cantos: o inclinado abre para fora e o grampo corre no fundo.
+  const w = LEG_LAYOUT[type]?.w ?? 40;
+  const angle = (SPLAY_DEG * Math.PI) / 180;
+  const splay = type === 'splayed' ? Math.tan(angle) * lh : 0;
+  const hairpin = type === 'hairpin' ? Math.max(60, Math.min(150, bd / 2 - 60)) : 0;
+  [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz], i) =>
+    out.push({
+      ...base,
+      id: `${m.id}:foot-${i}`,
+      kind: 'leg',
+      type,
+      position: at(sx * (bw / 2 - s.legX / 2) + (sx * splay) / 2, lh / 2, sz * (bd / 2 - s.legZ / 2 - hairpin / 2) + (sz * splay) / 2),
+      size: [w + splay, lh, w + splay + hairpin],
+      ...(splay ? { splay: [sx * angle, sz * angle] as [number, number] } : {}),
+      bom: { unit: 'un', qty: 1 },
+    }),
+  );
+}
+
+/** Ganchos de cabideiro no painel: uma linha a 3/4 da altura, por igual na largura. */
+function hooksOf(m: Module, out: Fitting[]) {
+  const n = m.hooks ?? 0;
+  const id = m.look?.handleMaterialId ?? 'steel-black';
+  const color = materialOf(id).color;
+  for (let i = 0; i < n; i++) {
+    const x = -m.width / 2 + (m.width / n) * (i + 0.5);
+    out.push({ id: `${m.id}:hook-${i}`, moduleId: m.id, kind: 'hook', type: 'hook', materialId: id, color, rotation: (m.rotation * Math.PI) / 180, position: point([x, m.height * 0.75, m.depth / 2 + 35], m), size: [22, 60, 70], bom: { unit: 'un', qty: 1 } });
+  }
+}
+
 /** Contorno de tubo 20 × 20 nas arestas da caixa (industrial). Lateral dividida com o vizinho leva um só. */
 function frameOf(d: Composition, m: Module, out: Fitting[]) {
   if (!m.look?.frame || isFlat(m)) return;
@@ -339,6 +417,8 @@ function handlesOf(parts: readonly ModularPart[], out: Fitting[]) {
 export function fittingsOf(d: Composition, parts: readonly ModularPart[] = generateComposition(d, false).parts): Fitting[] {
   const out: Fitting[] = [];
   for (const m of d.modules) legsOfBox(m, out);
+  for (const m of d.modules) if (m.kind === 'table') tableBase(m, out);
+  for (const m of d.modules) if (m.kind === 'panel' && m.hooks) hooksOf(m, out);
   legsOfRows(d, out);
   for (const m of d.modules) {
     frameOf(d, m, out);
@@ -403,9 +483,9 @@ export function drawingParts(d: Composition): ModularPart[] {
   const g = generateComposition(d, false);
   const extra = fittingsOf(d, g.parts)
     .filter((f) => !f.hidden)
-    .flatMap((f) => legSegments(f).map((s, i, all): ModularPart => ({
+    .flatMap((f) => drawnBoxes(f).map((s, i, all): ModularPart => ({
       id: all.length > 1 ? `${f.id}:seg-${i}` : f.id,
-      name: f.kind === 'leg' ? 'Pé' : f.kind === 'handle' ? 'Puxador' : f.kind === 'led' ? 'LED' : 'Estrutura',
+      name: f.kind === 'leg' ? 'Pé' : f.kind === 'handle' ? 'Puxador' : f.kind === 'led' ? 'LED' : f.kind === 'hook' ? 'Gancho' : 'Estrutura',
       kind: 'side',
       size: s.size,
       position: s.position,
@@ -422,28 +502,43 @@ export function drawingParts(d: Composition): ModularPart[] {
 }
 
 /**
- * O desenho é feito de caixas: o pé inclinado e o cônico viram trechos
- * curtos que afinam ao longo do eixo de verdade, senão a caixa que contém o
- * pé inclinado aparecia como um bloco grosso e o anos 60 virava rústico.
+ * O desenho é feito de caixas: cada ferragem vira as caixas que ela tem de
+ * verdade. A estrutura de aço, o trenó, o cavalete e o suporte de parede são
+ * tubos e travessas (a caixa que os contém pintava um bloco cheio embaixo da
+ * mesa); o pé inclinado e o cônico viram trechos curtos que afinam ao longo do
+ * eixo de verdade, senão o anos 60 virava rústico.
  */
-function legSegments(f: Fitting): { position: Vec; size: Vec }[] {
+function drawnBoxes(f: Fitting): { position: Vec; size: Vec }[] {
+  const [w, h, d] = f.size;
+  const cos = Math.cos(f.rotation),
+    sin = Math.sin(f.rotation);
+  // Caixa no referencial da ferragem (x, y, z a partir do centro) para o mundo.
+  const box = (x: number, y: number, z: number, size: Vec) => ({ position: [f.position[0] + x * cos + z * sin, f.position[1] + y, f.position[2] - x * sin + z * cos] as Vec, size });
+  if (f.kind === 'stand' && f.type === 'frame') {
+    const t = 20;
+    const columns = [-w / 2 + t / 2, ...(f.posts ?? []), w / 2 - t / 2];
+    const rails = [h / 2 - t / 2, ...(f.levels ?? (h >= 200 ? [-h / 2 + 60] : []))];
+    return [
+      ...columns.flatMap((x) => [-d / 2 + t / 2, d / 2 - t / 2].map((z) => box(x, 0, z, [t, h, t]))),
+      ...rails.flatMap((y) => [
+        ...[-d / 2 + t / 2, d / 2 - t / 2].map((z) => box(0, y, z, [w - 2 * t, t, t])),
+        ...columns.map((x) => box(x, y, 0, [t, t, d - 2 * t])),
+      ]),
+    ];
+  }
+  if (f.kind === 'stand' && f.type === 'sled') return [box(0, 0, -d / 2 + 10, [w, h, 20]), box(0, 0, d / 2 - 10, [w, h, 20]), box(0, -h / 2 + 10, 0, [w, 20, d])];
+  if (f.type === 'trestle')
+    return [box(0, 0, -d / 2 + 60, [60, h, 60]), box(0, 0, d / 2 - 60, [60, h, 60]), box(0, -h / 2 + 30, 0, [w, 60, d]), box(0, h / 2 - 30, 0, [w, 60, d - 40])];
+  if (f.type === 'wall') return [box(0, 0, -d / 2 + 4, [w, h, 8]), box(0, h / 2 - 4, 0, [w, 8, d])];
   if (f.kind !== 'leg' || (f.type !== 'splayed' && f.type !== 'tapered')) return [{ position: f.position, size: f.size }];
-  const h = f.size[1];
   const [ax, az] = f.splay ?? [0, 0];
   const ox = Math.tan(ax) * h,
     oz = Math.tan(az) * h;
   const [top, tip] = f.type === 'splayed' ? [38, 20] : [40, 26];
   const n = f.type === 'splayed' ? 8 : 4;
-  const cos = Math.cos(f.rotation),
-    sin = Math.sin(f.rotation);
   return Array.from({ length: n }, (_, k) => {
     const t = (k + 0.5) / n;
-    const lx = -ox / 2 + ox * t,
-      lz = -oz / 2 + oz * t;
-    const w = top + (tip - top) * t;
-    return {
-      position: [f.position[0] + lx * cos + lz * sin, f.position[1] + h / 2 - h * t, f.position[2] - lx * sin + lz * cos] as Vec,
-      size: [w, h / n + 0.5, w] as Vec,
-    };
+    const side = top + (tip - top) * t;
+    return box(-ox / 2 + ox * t, h / 2 - h * t, -oz / 2 + oz * t, [side, h / n + 0.5, side]);
   });
 }

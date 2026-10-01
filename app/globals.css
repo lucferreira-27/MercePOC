@@ -3428,6 +3428,12 @@ svg.tp-time {
   overflow-x: auto;
   scrollbar-width: none;
 }
+/* Título de grupo dentro do acabamento (o tampo da mesa). */
+.look-subtitle {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--ink-2);
+}
 /* Estilo e acabamento: o tipo de base por extenso e a altura ao lado, estreita. */
 .look-base {
   display: grid;

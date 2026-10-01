@@ -78,6 +78,8 @@ export function TemplateGallery({
   const shown = previews.filter(
     ({ t }) =>
       (filter === 'all' || t.category === filter) &&
+      // Num estilo, só os móveis que combinam com ele (a estante de aço não vira clássica).
+      (!style || !t.asset.styles || t.asset.styles.includes(style)) &&
       (!q || norm([t.name, t.summary, ...t.asset.keywords].join(' ')).includes(q)),
   );
   const count = (f: Filter) => (f === 'all' ? templates.length : templates.filter((t) => t.category === f).length);
