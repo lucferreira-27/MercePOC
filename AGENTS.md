@@ -20,8 +20,15 @@ Checklist per change:
 
 ## Branches and production
 
-- `dev` is the development branch. Work, test and commit on `dev` in
-  `G:\MercePOC`. Feature PRs target `dev`, not `main`.
+- `dev` is the development branch. Commit straight to `dev` and push it.
+  Don't create feature branches or open PRs unless the user asks for one:
+  side branches get forgotten and their work never reaches the app.
+- If the session runs in a worktree on its own branch (the desktop app makes
+  these under `.claude/worktrees/`), it still lands on `dev`. Before
+  finishing, rebase onto `origin/dev`, run the checks, and
+  `git push origin HEAD:dev`. Then fast-forward the `G:\MercePOC` checkout
+  with `git -C G:/MercePOC pull --ff-only`. Never leave committed work only
+  on the side branch.
 - `main` is production. It only moves through a `dev` → `main` merge once the
   changes are tested and ready. Never commit or push directly to `main`
   (the private repo has no branch protection, so nothing else enforces this).
@@ -35,6 +42,8 @@ Checklist per change:
   other. `Start-Merce.ps1` reuses whatever server already answers on 4310.
 
 ## Pull requests
+
+Only when the user asks for one (see above). Then:
 
 - Every PR includes at least one screenshot relevant to the feature, taken
   from the running app (the same captures used for UI verification). For a
