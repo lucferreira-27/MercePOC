@@ -1,7 +1,7 @@
 import { generateComposition, isFlat, point, PROFILE, runPoint, runsOf, type Composition, type ModularPart, type Module } from './composition';
 import { materialOf, type MaterialId } from './furniture';
 import { LEGS, type HandleType, type LegType } from './look';
-import { CASTER_HEIGHT, tableSpec } from './tables';
+import { CASTER_HEIGHT, SPLAY_DEG, tableSpec } from './tables';
 
 /**
  * Ferragens e estrutura: o que vem pronto ou é soldado, não cortado de chapa.
@@ -74,8 +74,7 @@ const LEG_LAYOUT: Partial<Record<LegType, { x: number; z: number; w: number; d?:
   pipe: { x: 45, z: 45, w: 34 },
   casters: { x: 50, z: 50, w: 45, d: 60 },
 };
-/** Abertura do pé inclinado (anos 60), em graus, para fora nos dois eixos. */
-export const SPLAY_DEG = 9;
+export { SPLAY_DEG } from './tables';
 
 /**
  * Maior vão entre apoios de uma fileira sobre pés. Um aparador de 1,8 m fica
@@ -535,8 +534,8 @@ function drawnBoxes(f: Fitting): { position: Vec; size: Vec }[] {
       box(0, 0, d / 2 - 60, [60, h, 60]),
       box(0, -h / 2 + 30, 0, [w, 60, d]),
       box(0, h / 2 - 30, 0, [w, 60, d - 40]),
-      // Travessão entre as colunas, na altura da longarina (1/3 do piso).
-      box(0, h / 3 - h / 2, 0, [60, 70, d - 240]),
+      // Travessão entre as colunas, na altura da longarina (1/3 do piso), entrando nelas.
+      box(0, h / 3 - h / 2, 0, [60, 70, d - 120]),
     ];
   if (f.type === 'wall') return [box(0, 0, -d / 2 + 4, [w, h, 8]), box(0, h / 2 - 4, 0, [w, 8, d])];
   if (f.kind !== 'leg' || (f.type !== 'splayed' && f.type !== 'tapered')) return [{ position: f.position, size: f.size }];

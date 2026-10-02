@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { floatingParts } from '../structure';
 import { generateComposition, layout, openAllGroups, openingLimit, type ModularPart } from '../composition';
 import { planDataUrl } from '../plan-render';
 import { sceneDrawingParts } from '../scene-parts';
@@ -166,7 +167,7 @@ const designApply = tool({
     if (JSON.stringify(r.design) === JSON.stringify(before)) return ok('Sem efeito: o projeto já estava assim.', 'Nada a mudar');
     ctx.setDesign(r.design, a.ops as ShelfOp[]);
     const changes = describeDesignChanges(before, r.design);
-    const fit = fitNote(ctx, before, r.design, roomBefore) + sheetNote(ctx, before, r.design);
+    const fit = fitNote(ctx, before, r.design, roomBefore) + sheetNote(ctx, before, r.design) + floatNote(r.design);
     const had = namedIds(before);
     const fresh = [...namedIds(r.design)].filter((id) => !had.has(id));
     const titles = describeHighlights(before, r.design, a.ops as ShelfOp[]).map((h) => h.title);
@@ -251,7 +252,7 @@ const rowBuild = tool({
     const short = built < a.largura - 1 ? ` Montado: ${built} mm dos ${a.largura} mm pedidos (o resto não coube). Na resposta, diga ${built} mm, não ${a.largura} mm.` : '';
     const fronts = a.frente && a.frente !== 'none' ? `Frentes: ${a.frente === 'drawers' ? `${a.gavetas ?? 3} gavetas` : a.frente === 'double' ? 'porta dupla' : 'porta simples'} em cada módulo.` : 'Sem frentes: para pôr, front.set em cada "<id>:root".';
     return ok(
-      `Fileira "${a.nome}" montada no lugar certo (encostada na parede, fora dos obstáculos): não mova nem refaça. ${parts.join('; ')}. ${fronts}${gone.length ? ` Pulado: ${gone.join('; ')}.` : ''}${short} Medidas gerais: ${mm(r.design)}.${room ? ` ${fitSummary(r.design, room)}.` : ''}`,
+      `Fileira "${a.nome}" montada no lugar certo (encostada na parede, fora dos obstáculos): não mova nem refaça. ${parts.join('; ')}. ${fronts}${gone.length ? ` Pulado: ${gone.join('; ')}.` : ''}${short} Medidas gerais: ${mm(r.design)}.${room ? ` ${fitSummary(r.design, room)}.` : ''}${floatNote(r.design)}`,
       `${a.nome}: ${count} ${count === 1 ? 'módulo' : 'módulos'}${gone.length ? `, desviando de ${plan.skipped.map((v) => v.why).join(', ')}` : ''}`,
     );
   },
@@ -275,7 +276,7 @@ function applyPlanned(ctx: AgentContext, ops: ShelfOp[], room: Room | undefined,
   const had = namedIds(before);
   const fresh = [...namedIds(r.design)].filter((id) => !had.has(id));
   return ok(
-    `${head} ${changes.length ? `${changes.join('. ')}. ` : ''}Medidas gerais: ${mm(r.design)}.${fresh.length ? ` Ids novos: ${fresh.slice(0, 40).join(', ')}.` : ''}${fitNote(ctx, before, r.design, roomBefore)}${sheetNote(ctx, before, r.design)}`,
+    `${head} ${changes.length ? `${changes.join('. ')}. ` : ''}Medidas gerais: ${mm(r.design)}.${fresh.length ? ` Ids novos: ${fresh.slice(0, 40).join(', ')}.` : ''}${fitNote(ctx, before, r.design, roomBefore)}${sheetNote(ctx, before, r.design)}${floatNote(r.design)}`,
     label,
   );
 }
@@ -295,6 +296,21 @@ function withProjectStyle(before: Design, ops: ShelfOp[], keepMaterials: boolean
   if (!fresh.length) return ops;
   const styled: ShelfOp[] = [...ops, { kind: 'style.apply', style: before.style, ids: fresh, ...(keepMaterials ? { keepMaterials: true } : {}) }];
   return executeRequest(before, styled).ok ? styled : ops;
+}
+
+/**
+ * Peça solta no ar depois da mudança (nada a liga ao piso, à parede ou à
+ * estrutura): a IA fica sabendo e corrige antes de responder.
+ */
+function floatNote(d: Design) {
+  try {
+    const loose = floatingParts(canonical(d));
+    if (!loose.length) return '';
+    const names = [...new Set(loose.map((f) => f.name))].slice(0, 4);
+    return ` Atenção: peça solta no ar, sem apoio no piso, na parede nem em outra peça: ${names.join(', ')}. Encoste, apoie ou prenda na parede (wall) antes de terminar.`;
+  } catch {
+    return '';
+  }
 }
 
 /** Parede presa antes de mexer: sem âncora ela acompanharia o lado esquerdo do móvel. */

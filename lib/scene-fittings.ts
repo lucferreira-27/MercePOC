@@ -163,7 +163,7 @@ export function fittingShape(f: Fitting, mat: THREE.Material, disposables: Dispo
       for (const z of [-d / 2 + 60, d / 2 - 60]) g.add(block([60, h, 60], [0, 0, z], mat, disposables));
       g.add(block([w, 60, d], [0, bottom + 30, 0], mat, disposables));
       g.add(block([w, 60, d - 40], [0, top - 30, 0], mat, disposables));
-      g.add(block([60, 70, d - 240], [0, TRESTLE_RAIL_Y * h, 0], mat, disposables));
+      g.add(block([60, 70, d - 120], [0, TRESTLE_RAIL_Y * h, 0], mat, disposables));
       break;
     case 'wall':
       // Suporte de parede em L: chapa na parede e braço embaixo do tampo.

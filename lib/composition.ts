@@ -953,9 +953,11 @@ function tableParts(m: Module): TablePart[] {
       out.push({ id: `${m.id}:apron-${name}`, name: name === 'left' ? 'Avental esquerdo' : 'Avental direito', size: [r, s.apron, side], center: [sx * fx, y, 0], thickness: r, kind: 'apron', material: m.materialId as MaterialId });
   }
   // Níveis: entre os pés (ou dentro da estrutura), na largura e no fundo da base.
-  s.levels.forEach((y, i) =>
-    out.push({ id: `${m.id}:level-${i}`, name: `Nível ${i + 1}`, size: [innerW - 4, s.shelfT, innerD - 4], center: [0, y + s.shelfT / 2, 0], thickness: s.shelfT, kind: 'shelf', material: m.materialId as MaterialId, around: true }),
-  );
+  s.levels.forEach((y, i) => {
+    // Pé inclinado: o nível vai até o meio do pé na altura dele, senão fica solto entre os pés.
+    const reach = 2 * s.levelReach(y);
+    out.push({ id: `${m.id}:level-${i}`, name: `Nível ${i + 1}`, size: [innerW - 4 + reach, s.shelfT, innerD - 4 + reach], center: [0, y + s.shelfT / 2, 0], thickness: s.shelfT, kind: 'shelf', material: m.materialId as MaterialId, around: true });
+  });
   // Gavetas no avental: frente no plano do avental, caixa atrás, corrediça.
   const n = m.drawers ?? 0;
   if (n) {

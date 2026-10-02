@@ -21,6 +21,8 @@ export const APRON = { drawer: 130, rail: 80 } as const;
 const WOOD_LEGS: readonly LegType[] = ['tapered', 'splayed', 'block', 'turned'];
 /** Seção do pé de mesa (mm). */
 const LEG_SECTION: Partial<Record<LegType, number>> = { tapered: 45, splayed: 40, block: 60, turned: 70, hairpin: 12, tube: 40, pipe: 34 };
+/** Abertura do pé inclinado (anos 60), em graus, para fora nos dois eixos. */
+export const SPLAY_DEG = 9;
 /** Altura do rodízio (mm): a estrutura começa em cima dele. */
 export const CASTER_HEIGHT = 70;
 
@@ -57,6 +59,11 @@ export type TableSpec = {
   shelfT: number;
   /** Face de baixo de cada prateleira, do piso. */
   levels: number[];
+  /**
+   * Quanto o nível cresce para cada lado na altura dele: o pé inclinado se
+   * afasta descendo, e o nível vai até o meio do pé para ficar preso nele.
+   */
+  levelReach: (y: number) => number;
   /** Largura de cada frente de gaveta. */
   drawerW: number;
   /** Pé no canto mais largo que o avental: os lados do avental vão de pé a pé. */
@@ -107,7 +114,9 @@ export function tableSpec(m: TableModule): TableSpec {
   const cornerLegs = legX >= 10 + rail && legZ >= 10 + rail;
   const drawerInset = cornerLegs ? legX : 10 + rail;
   const drawerW = drawers ? (bw - 2 * drawerInset - (drawers - 1) * 4) / drawers : 0;
-  return { base, top, bw, bd, lh, legX, legZ, apron, rail, shelfT, levels, drawerW, cornerLegs, drawerInset };
+  const splay = base === 'splayed' ? Math.tan((SPLAY_DEG * Math.PI) / 180) : 0;
+  const levelReach = (y: number) => (splay ? Math.round(splay * (lh - y) + legX / 2) : 0);
+  return { base, top, bw, bd, lh, legX, legZ, apron, rail, shelfT, levels, levelReach, drawerW, cornerLegs, drawerInset };
 }
 
 const cat: Record<MaterialCategory, string> = { sheet: 'chapa', solid: 'madeira maciça', metal: 'metal', glass: 'vidro', stone: 'pedra', fiber: 'palhinha' };

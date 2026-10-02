@@ -6,6 +6,7 @@ import { STYLE_IDS, TOP_OVERHANG_MAX, type StyleId } from '../lib/look';
 import { fitReport } from '../lib/room';
 import { canonical, describeHighlights, executeRequest, normalize } from '../lib/studio';
 import { applyStyle, roleOf, STYLES, styleFrom } from '../lib/styles';
+import { tableSpec } from '../lib/tables';
 
 /**
  * Estilos: todo ativo em todo estilo monta e valida no intervalo de medidas,
@@ -30,9 +31,14 @@ for (const style of STYLE_IDS)
       for (const s of sizes(a)) {
         const d = buildAsset(a, { ...s, style });
         assert.equal(d.style, style);
-        // Largura pedida, mais o avanço do tampo nas pontas quando o estilo põe tampo.
+        // Largura pedida, mais o avanço do tampo nas pontas quando o estilo põe
+        // tampo, e o nível de mesa que vai até o pé inclinado, aberto perto do piso.
         const width = span(d, 0);
-        assert.ok(width >= s.width - 1 && width <= s.width + 2 * TOP_OVERHANG_MAX + 1, `${a.id} ${style} ${JSON.stringify(s)}: largura ${width}`);
+        const splay = Math.max(0, ...d.modules.filter((m) => m.kind === 'table').map((m) => {
+          const t = tableSpec(m);
+          return t.levels.length ? 2 * t.levelReach(t.levels[0]) : 0;
+        }));
+        assert.ok(width >= s.width - 1 && width <= s.width + 2 * TOP_OVERHANG_MAX + splay + 1, `${a.id} ${style} ${JSON.stringify(s)}: largura ${width}`);
         // Nenhuma caixa no piso passa da altura pedida, com pé, tampo e moldura.
         for (const m of d.modules)
           if (!m.kind && !m.wall) assert.ok(outer(m) <= s.height + 1, `${a.id} ${style}: ${m.name} com ${outer(m)} mm`);
