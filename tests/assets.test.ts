@@ -43,7 +43,7 @@ void test('medida fora do intervalo do ativo é recusada com o limite', () => {
 });
 
 const base = (): Composition => ({
-  schemaVersion: 3,
+  schemaVersion: 4,
   profile: PROFILE,
   modules: [{ ...preset('niche', 'a'), width: 800, height: 1800, depth: 350 }],
   connections: [],

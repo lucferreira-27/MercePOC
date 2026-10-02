@@ -1,0 +1,295 @@
+{
+ "id": "sty-03",
+ "at": "2026-10-01T23:32:26.668Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Um criado-mudo escandinavo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_plpeDsIlHgo5h18dbuZIWJ3T",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Trocar a estante pelo criado-mudo escandinavo\",\"Enquadrar o móvel para conferir o resultado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls",
+    "reasoning": "**Planning furniture placement**\n\nI need to use the asset.add placement replace for the initial project setup. The style is Scandinavian, and I want to confirm the dimensions are default. Am I planning for larger furniture? I think I’m replacing the starter with known pieces, as the plan suggests something larger. So, I might call the plan and then execute the asset.add. \n\nShould I keep the color the same? Finally, I may want to show a render after changing the furniture to visualize it better."
+   }
+  },
+  {
+   "key": "4|Pedido: Um criado-mudo escandinavo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_LZyNgmB3bE52gWiVqw6sT8ww",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"asset.add\",\"asset\":\"criado-mudo\",\"width\":500,\"height\":550,\"depth\":400,\"materialId\":\"oak\",\"frontMaterialId\":\"oak\",\"style\":\"scandinavian\",\"placement\":\"replace\"}],\"rotulo\":\"Criado-mudo escandinavo\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Um criado-mudo escandinavo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_UwY15Rh3nfeXZY60HRvSUouY",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Um criado-mudo escandinavo",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_9GdG36ltbChODhzdpUD7UUCK",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Troquei a estante por um criado-mudo escandinavo em carvalho, com 50 × 55 × 40 cm.\",\"sugestoes\":[\"Experimente outro acabamento\",\"Ajuste as medidas do criado-mudo\",\"Veja o orçamento detalhado\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.93,
+      "probabilities": {
+       "edit": 0,
+       "options": 0,
+       "studio": 0,
+       "build": 0.95,
+       "ask": 0.05,
+       "view": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.85
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.02
+     }
+    },
+    "usage": {
+     "input_tokens": 1313,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.26
+     }
+    },
+    "usage": {
+     "input_tokens": 416,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.01
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.21
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.96
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.25
+     }
+    },
+    "usage": {
+     "input_tokens": 507,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

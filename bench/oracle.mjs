@@ -54,6 +54,11 @@ export function moduleBoxes(design) {
   }
   // Pés: o módulo chega ao piso.
   for (const m of design.modules) if (m.feet && boxes.has(m.id)) boxes.get(m.id).minY = m.position[1];
+  // Pés e base de mesa são ferragens: a caixa do módulo desce até o piso dele.
+  for (const m of canonical(design).modules) {
+    const b = boxes.get(m.id);
+    if (b && (m.feet || (m.kind === 'table' && !m.wall))) b.minY = Math.min(b.minY, m.position[1]);
+  }
   return { boxes, bounds: g.bounds };
 }
 
@@ -178,7 +183,7 @@ export function checkComposition(o) {
   for (const m of added) {
     const b = boxes.get(m.id);
     if (!b) continue;
-    if (m.kind === 'ledge') functional++;
+    if (m.kind === 'ledge' || m.kind === 'table') functional++;
     else if (m.kind !== 'panel') {
       const leaves = g.cells.filter((c) => c.moduleId === m.id && !c.node.split);
       if (leaves.some((c) => c.node.front || (c.size[0] >= 100 && c.size[1] >= 100))) functional++;
@@ -257,14 +262,17 @@ export function offWall(design, room) {
   const { boxes } = moduleBoxes(design);
   const z = wallPlane(design, room);
   const onTop = new Set(design.connections.filter((c) => c.side === 'top').map((c) => c.child));
-  return design.modules.filter((m) => !onTop.has(m.id) && Math.abs(boxes.get(m.id).minZ - z) > EPS).map((m) => m.name);
+  // Mesa no piso (jantar, centro, banco) fica no ambiente, longe da parede, de propósito.
+  return design.modules
+    .filter((m) => !(m.kind === 'table' && !m.wall) && !onTop.has(m.id) && Math.abs(boxes.get(m.id).minZ - z) > EPS)
+    .map((m) => m.name);
 }
 
 /** Vãos maiores que `tol` entre módulos de piso vizinhos (ordenados em x). */
 export function floorGaps(design, tol = 5) {
   const { boxes } = moduleBoxes(design);
   const floor = design.modules
-    .filter((m) => boxes.get(m.id).minY <= 5)
+    .filter((m) => m.kind !== 'table' && boxes.get(m.id).minY <= 5)
     .map((m) => ({ name: m.name, ...boxes.get(m.id) }))
     .sort((a, b) => a.minX - b.minX);
   const out = [];

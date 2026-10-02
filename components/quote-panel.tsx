@@ -1,16 +1,24 @@
 'use client';
 import { useState } from 'react';
 import { Check, ChevronDown, Copy, Crosshair, Minus, Plus, RotateCcw } from 'lucide-react';
-import { materials } from '@/lib/furniture';
-import { DEFAULT_PRICES, money, type PriceRef, type Prices, type Quote, type QuoteLine, type QuoteSection } from '@/lib/quote';
+import { CATEGORY_INFO, materials, type MaterialCategory } from '@/lib/furniture';
+import { DEFAULT_PRICES, HARDWARE, HARDWARE_KEYS, money, quantity, type HardwareKey, type PriceRef, type Prices, type Quote, type QuoteLine, type QuoteSection } from '@/lib/quote';
 
 const SECTION_TONE: Record<QuoteSection, string> = {
   Chapas: 'var(--chart-1)',
   'Fita de borda': 'var(--chart-2)',
+  Materiais: 'var(--chart-5)',
   Ferragens: 'var(--chart-3)',
   'Mão de obra': 'var(--chart-4)',
 };
-const ORDER: QuoteSection[] = ['Chapas', 'Fita de borda', 'Ferragens', 'Mão de obra'];
+const ORDER: QuoteSection[] = ['Chapas', 'Fita de borda', 'Materiais', 'Ferragens', 'Mão de obra'];
+const CATEGORIES: MaterialCategory[] = ['sheet', 'solid', 'stone', 'glass', 'metal', 'fiber'];
+/** Ferragens da tabela, em grupos: pés e bases, puxadores, o resto. */
+const HARDWARE_GROUPS: { label: string; keys: HardwareKey[] }[] = [
+  { label: 'Pés e bases (unidade)', keys: HARDWARE_KEYS.filter((k) => k.startsWith('leg-')) },
+  { label: 'Puxadores (unidade)', keys: HARDWARE_KEYS.filter((k) => k.startsWith('handle-')) },
+  { label: 'LED, usinagem e serralheria', keys: HARDWARE_KEYS.filter((k) => !k.startsWith('leg-') && !k.startsWith('handle-')) },
+];
 
 /** Texto do orçamento para colar numa mensagem ao cliente. */
 export function quoteText(name: string, q: Quote) {
@@ -19,7 +27,7 @@ export function quoteText(name: string, q: Quote) {
     const items = q.lines.filter((l) => l.section === section);
     if (!items.length) continue;
     lines.push('', `${section}: ${money(items.reduce((a, l) => a + l.total, 0))}`);
-    for (const l of items) lines.push(`  ${l.label}: ${l.qty} ${l.unit} × ${money(l.unitPrice)} = ${money(l.total)}`);
+    for (const l of items) lines.push(`  ${l.label}: ${quantity(l.qty)} ${l.unit} × ${money(l.unitPrice)} = ${money(l.total)}`);
   }
   lines.push(
     '',
@@ -63,12 +71,14 @@ export function QuotePanel({
   const setRef = (ref: PriceRef, v: number) =>
     'sheet' in ref
       ? onPrices({ ...prices, sheets: { ...prices.sheets, [ref.sheet]: v } })
-      : onPrices({ ...prices, [ref.key]: v });
+      : 'hardware' in ref
+        ? onPrices({ ...prices, hardware: { ...prices.hardware, [ref.hardware]: v } })
+        : onPrices({ ...prices, [ref.key]: v });
   const custom = JSON.stringify(prices) !== JSON.stringify(DEFAULT_PRICES);
   const sectionTotal = q.sections.reduce((a, s) => a + s.total, 0) || 1;
   const delta = previous ? Math.round((q.total - previous.total) * 100) / 100 : 0;
   const margin = (v: number) => set('margin', Math.max(0, Math.min(300, Math.round(v))));
-  const priceField = (key: Exclude<keyof Prices, 'sheets' | 'handles'>, label: string, suffix = 'R$', step = 0.5) => (
+  const priceField = (key: Exclude<keyof Prices, 'sheets' | 'handles' | 'hardware'>, label: string, suffix = 'R$', step = 0.5) => (
     <label className="price-field" key={key}>
       <span>{label}</span>
       <span className="price-input">
@@ -221,49 +231,82 @@ export function QuotePanel({
         <summary>Tabela de preços completa</summary>
         <p className="hint">
           Valores em reais, salvos neste navegador e usados em todos os projetos. Chapas de 15 e 6 mm saem da chapa 18
-          do mesmo acabamento pelo fator.
+          do mesmo acabamento pelo fator; madeira maciça por m³, pedra, vidro e palhinha por m², metal por metro de tubo.
         </p>
-        <div className="section-label">Chapa 18 mm · 2750 × 1840</div>
-        <div className="price-grid">
-          {materials.map((m) => (
-            <label className="price-field" key={m.id}>
-              <span>
-                <i
-                  className={'swatch-dot' + (m.finish === 'wood' ? ' wood' : '')}
-                  style={{ '--swatch': m.color } as React.CSSProperties}
-                />
-                {m.name}
-              </span>
-              <span className="price-input">
-                <em>R$</em>
-                <input
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={prices.sheets[m.id]}
-                  onChange={(e) => {
-                    const v = num(e.target.value);
-                    if (v !== null) onPrices({ ...prices, sheets: { ...prices.sheets, [m.id]: v } });
-                  }}
-                />
-              </span>
-            </label>
-          ))}
-          {priceField('factor15', 'Fator chapa 15 mm', '×', 0.01)}
-          {priceField('factor6', 'Fator chapa 6 mm', '×', 0.01)}
-        </div>
+        {CATEGORIES.map((cat) => (
+          <div key={cat}>
+            <div className="section-label">
+              {CATEGORY_INFO[cat].label} · {CATEGORY_INFO[cat].price}
+            </div>
+            <div className="price-grid">
+              {materials
+                .filter((m) => m.category === cat)
+                .map((m) => (
+                  <label className="price-field" key={m.id}>
+                    <span>
+                      <i
+                        className={'swatch-dot' + (m.finish === 'wood' ? ' wood' : '') + (m.category !== 'sheet' ? ` ${m.finish}` : '')}
+                        style={{ '--swatch': m.color } as React.CSSProperties}
+                      />
+                      {m.name}
+                    </span>
+                    <span className="price-input">
+                      <em>R$</em>
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={prices.sheets[m.id]}
+                        onChange={(e) => {
+                          const v = num(e.target.value);
+                          if (v !== null) onPrices({ ...prices, sheets: { ...prices.sheets, [m.id]: v } });
+                        }}
+                      />
+                    </span>
+                  </label>
+                ))}
+              {cat === 'sheet' && priceField('factor15', 'Fator chapa 15 mm', '×', 0.01)}
+              {cat === 'sheet' && priceField('factor6', 'Fator chapa 6 mm', '×', 0.01)}
+            </div>
+          </div>
+        ))}
         <div className="section-label">Ferragens e fita</div>
         <div className="price-grid">
           {priceField('edgePerM', 'Fita de borda (m)')}
           {priceField('hinge', 'Dobradiça')}
           {priceField('slidePair', 'Corrediça (par)')}
-          {priceField('handle', 'Puxador')}
+          {priceField('handle', 'Puxador barra')}
           {priceField('moduleKit', 'Kit por módulo')}
         </div>
         <label className="check-label">
           <input type="checkbox" checked={prices.handles} onChange={(e) => set('handles', e.target.checked)} />
           Frentes com puxador
         </label>
+        {HARDWARE_GROUPS.map((g) => (
+          <div key={g.label}>
+            <div className="section-label">{g.label}</div>
+            <div className="price-grid">
+              {g.keys.map((k) => (
+                <label className="price-field" key={k}>
+                  <span>{HARDWARE[k].label}</span>
+                  <span className="price-input">
+                    <em>{HARDWARE[k].unit === '×' ? '×' : 'R$'}</em>
+                    <input
+                      type="number"
+                      min={0}
+                      step={HARDWARE[k].unit === '×' ? 1 : 0.5}
+                      value={prices.hardware[k]}
+                      onChange={(e) => {
+                        const v = num(e.target.value);
+                        if (v !== null) onPrices({ ...prices, hardware: { ...prices.hardware, [k]: v } });
+                      }}
+                    />
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
         <div className="section-label">Mão de obra</div>
         <div className="price-grid">
           {priceField('labourPerPart', 'Corte e fita (peça)')}
@@ -296,7 +339,7 @@ function Line({
       <div className="quote-line-main">
         <strong>{l.label}</strong>
         <span className="quote-calc">
-          {l.qty} {l.unit} ×{' '}
+          {quantity(l.qty)} {l.unit} ×{' '}
           {l.price ? (
             <span className="inline-price">
               <em>R$</em>

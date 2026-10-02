@@ -7,7 +7,7 @@ import { DEFAULT_DRAG_MODE, constrainDrag, lockedAxes, moveGroup, moveOp, module
 const pair = (): Composition => {
   const a = { ...preset('niche', 'a'), width: 600, height: 500, depth: 400 };
   const b = { ...preset('niche', 'b'), width: 600, height: 500, depth: 400, position: [1000, 0, 0] as [number, number, number] };
-  return { schemaVersion: 3, profile: PROFILE, modules: [a, b], connections: [] };
+  return { schemaVersion: 4, profile: PROFILE, modules: [a, b], connections: [] };
 };
 
 void test('módulo conectado move o conjunto: a raiz e tudo preso nela', () => {

@@ -33,8 +33,15 @@ export async function withFallback<T>(model: ModelKey, run: (m: ModelKey) => Pro
     return run(alt);
   }
 }
-/** Nome de cada acabamento: "nogueira" no pedido vira materialId walnut. */
-export const FINISHES = materials.map((m) => `${m.id}=${m.name}`).join(', ');
+/**
+ * Nome de cada acabamento de chapa (corpo, frentes, fundo): "nogueira" no
+ * pedido vira materialId walnut. Maciço, metal, vidro, pedra e palhinha vão
+ * em tampo, pés, puxador e miolo de porta, que o prompt apresenta à parte.
+ */
+export const FINISHES = materials
+  .filter((m) => m.category === 'sheet')
+  .map((m) => `${m.id}=${m.name}`)
+  .join(', ');
 /**
  * Tetos por chamada ao provedor.
  *

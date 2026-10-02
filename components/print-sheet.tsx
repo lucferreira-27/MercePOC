@@ -3,7 +3,7 @@ import { memo } from 'react';
 import type { ModularPart } from '@/lib/composition';
 import type { Part } from '@/lib/furniture';
 import { planView } from '@/lib/plan-geometry';
-import { money, type Quote } from '@/lib/quote';
+import { money, quantity, type Quote } from '@/lib/quote';
 import { CutSheetDrawing, mmText, pieceTone, shortName } from './cut-sheet-drawing';
 import { PlanThumb } from './plan-thumb';
 
@@ -119,7 +119,7 @@ function PrintSheetView({
           <h1>{name}</h1>
           <p>
             {cm(size[0])} × {cm(size[1])} × {cm(size[2])} cm <small>(L × A × P)</small> · {moduleCount}{' '}
-            {moduleCount === 1 ? 'módulo' : 'módulos'} · {parts.length} peças
+            {moduleCount === 1 ? 'módulo' : 'módulos'} · {parts.length} {parts.length === 1 ? 'peça' : 'peças'}
           </p>
         </div>
         <figure className="pr-hero">
@@ -190,7 +190,7 @@ function PrintSheetView({
                   <tr key={l.section + l.label}>
                     <td>{l.label}</td>
                     <td className="num">
-                      {l.qty} {l.unit}
+                      {quantity(l.qty)} {l.unit}
                     </td>
                     <td className="num">{money(l.unitPrice)}</td>
                     <td className="num">{money(l.total)}</td>

@@ -29,7 +29,10 @@ for (const t of templates)
     const d = buildTemplate(t);
     const g = generateComposition(d);
     assert.ok(d.modules.length >= 1);
-    assert.ok(g.parts.length >= 6);
+    // Caixa tem ao menos seis chapas; mesa, ao menos o tampo.
+    for (const m of d.modules)
+      if (m.kind === 'table') assert.ok(g.parts.some((p) => p.id === `${m.id}:slab`), `${m.name}: tampo`);
+    if (!d.modules.some((m) => m.kind === 'table')) assert.ok(g.parts.length >= 6);
     for (const p of g.parts) {
       assert.ok(Number.isInteger(p.c * 10), `${p.name}: C em décimo de mm`);
       assert.ok(p.c > 0 && p.l > 0);

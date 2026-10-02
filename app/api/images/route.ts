@@ -1,4 +1,4 @@
-import { saveImage, imageBytes, MAX_IMAGE_BYTES } from '@/lib/images';
+import { saveImage, imageFile, MAX_IMAGE_BYTES } from '@/lib/images';
 import { sameOrigin } from '@/lib/utils';
 export async function POST(req: Request) {
   try {
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
 }
 export async function GET(req: Request) {
   try {
-    const bytes = await imageBytes(new URL(req.url).searchParams.get('id') || '');
-    return new Response(new Uint8Array(bytes), { headers: { 'Content-Type': 'image/webp', 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'private, max-age=86400' } });
+    const image = await imageFile(new URL(req.url).searchParams.get('id') || '');
+    return new Response(new Uint8Array(image.bytes), { headers: { 'Content-Type': image.type, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'private, max-age=86400' } });
   } catch { return new Response('Imagem não encontrada.', { status: 404 }); }
 }

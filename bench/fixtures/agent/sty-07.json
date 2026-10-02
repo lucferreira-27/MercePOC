@@ -1,0 +1,312 @@
+{
+ "id": "sty-07",
+ "at": "2026-10-01T23:32:46.998Z",
+ "model": "luna",
+ "replies": [
+  {
+   "key": "2|Pedido: Mesa de centro japandi",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_pZ827qxmcn10jKrBo8s5jSwM",
+      "type": "function",
+      "function": {
+       "name": "plan",
+       "arguments": "{\"passos\":[\"Trocar a estante inicial por uma mesa de centro Japandi\",\"Enquadrar a nova mesa para conferir a composição\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls",
+    "reasoning": "**Planning furniture replacement**\n\nI need to respond about replacing furniture with a new piece that matches the Japandi style, specifically a coffee table. I should call for a plan and then use the asset.add function. The dimensions might need to be specified, as we should consider typical defaults. It seems I should specifically request for \"Mesa de centro Japandi\" and ensure the placement is aligned with that style. It feels like I need to plan and execute this carefully!"
+   }
+  },
+  {
+   "key": "4|Pedido: Mesa de centro japandi",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_ni9SZQVpoD1ULkv7A6ZBbH3z",
+      "type": "function",
+      "function": {
+       "name": "design_apply",
+       "arguments": "{\"ops\":[{\"kind\":\"asset.add\",\"asset\":\"mesa-centro\",\"style\":\"japandi\",\"placement\":\"replace\"}],\"rotulo\":\"Mesa de centro Japandi\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "6|Pedido: Mesa de centro japandi",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_iEE7w0nGOun94jtfS24ru6yC",
+      "type": "function",
+      "function": {
+       "name": "view_camera",
+       "arguments": "{\"vista\":\"perspective\"}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "8|Pedido: Mesa de centro japandi",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_5HCP1hai88XEUOzbtZYAWYH7",
+      "type": "function",
+      "function": {
+       "name": "view_frame",
+       "arguments": "{}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  },
+  {
+   "key": "10|Pedido: Mesa de centro japandi",
+   "reply": {
+    "content": "",
+    "calls": [
+     {
+      "id": "call_5u1jA6fof0QWTkIgC4YFGgJK",
+      "type": "function",
+      "function": {
+       "name": "finish",
+       "arguments": "{\"mensagem\":\"Troquei a estante inicial por uma mesa de centro Japandi de 100 × 42 × 55 cm e enquadrei o móvel na cena.\",\"sugestoes\":[\"Confira o acabamento e os pés\",\"Veja o orçamento detalhado\",\"Exporte o desenho em PDF\"]}"
+      }
+     }
+    ],
+    "finish": "tool_calls"
+   }
+  }
+ ],
+ "jev": [
+  {
+   "asked": "d_aba_ambiente,d_aba_corte,d_aba_orcamento,d_aba_pecas,d_aba_versoes,d_abrir_frentes,d_cotas_esconder,d_cotas_mostrar,d_csv_corte,d_csv_pecas,d_desfazer,d_enquadrar,d_explodir,d_fechar_frentes,d_foto,d_json,d_juntar,d_pdf,d_refazer,d_vista_frente,d_vista_lado,d_vista_perspectiva,d_vista_topo,g_alvo,g_config,g_criar,g_movel,g_pergunta,intent,multi,vague",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "intent": {
+      "type": "choice",
+      "choice": "build",
+      "confidence": 0.89,
+      "probabilities": {
+       "options": 0,
+       "ask": 0.07,
+       "edit": 0,
+       "build": 0.92,
+       "view": 0.01,
+       "studio": 0
+      }
+     },
+     "multi": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "vague": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "g_movel": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "g_criar": {
+      "type": "noul",
+      "noul": 0.79
+     },
+     "g_config": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "g_pergunta": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "g_alvo": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "d_vista_frente": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "d_vista_lado": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_vista_topo": {
+      "type": "noul",
+      "noul": 0.16
+     },
+     "d_vista_perspectiva": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "d_enquadrar": {
+      "type": "noul",
+      "noul": 0.17
+     },
+     "d_abrir_frentes": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_fechar_frentes": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_explodir": {
+      "type": "noul",
+      "noul": 0.07
+     },
+     "d_juntar": {
+      "type": "noul",
+      "noul": 0.12
+     },
+     "d_cotas_mostrar": {
+      "type": "noul",
+      "noul": 0.08
+     },
+     "d_cotas_esconder": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_aba_orcamento": {
+      "type": "noul",
+      "noul": 0.14
+     },
+     "d_aba_corte": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_aba_pecas": {
+      "type": "noul",
+      "noul": 0.18
+     },
+     "d_aba_versoes": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_aba_ambiente": {
+      "type": "noul",
+      "noul": 0.06
+     },
+     "d_desfazer": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "d_refazer": {
+      "type": "noul",
+      "noul": 0.03
+     },
+     "d_pdf": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_foto": {
+      "type": "noul",
+      "noul": 0.09
+     },
+     "d_csv_pecas": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_csv_corte": {
+      "type": "noul",
+      "noul": 0.04
+     },
+     "d_json": {
+      "type": "noul",
+      "noul": 0.06
+     }
+    },
+    "usage": {
+     "input_tokens": 1310,
+     "output_tokens": 638
+    }
+   }
+  },
+  {
+   "asked": "abrir,aereos,arquivo,gavetas,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.11
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.05
+     },
+     "aereos": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "gavetas": {
+      "type": "noul",
+      "noul": 0.1
+     }
+    },
+    "usage": {
+     "input_tokens": 413,
+     "output_tokens": 90
+    }
+   }
+  },
+  {
+   "asked": "abrir,arquivo,material,movel,renomear,versao,vista",
+   "body": {
+    "model": "jev-1.13.0",
+    "answers": {
+     "arquivo": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "vista": {
+      "type": "noul",
+      "noul": 0.1
+     },
+     "abrir": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "renomear": {
+      "type": "noul",
+      "noul": 0.02
+     },
+     "versao": {
+      "type": "noul",
+      "noul": 0.31
+     },
+     "movel": {
+      "type": "noul",
+      "noul": 0.96
+     },
+     "material": {
+      "type": "noul",
+      "noul": 0.07
+     }
+    },
+    "usage": {
+     "input_tokens": 512,
+     "output_tokens": 123
+    }
+   }
+  }
+ ]
+}

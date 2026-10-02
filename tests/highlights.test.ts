@@ -33,7 +33,7 @@ const nicho = (): Composition => {
   m.width = 800;
   m.height = 1800;
   m.depth = 350;
-  return { schemaVersion: 3, profile: PROFILE, modules: [m], connections: [] };
+  return { schemaVersion: 4, profile: PROFILE, modules: [m], connections: [] };
 };
 const design = (c: Composition) => normalize(c);
 /** Roda o lote e devolve os cartões derivados do resultado. */

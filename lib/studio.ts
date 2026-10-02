@@ -10,11 +10,15 @@ import {
   layout,
   migrateComposition,
   modularOpSchema,
+  SCHEMA_VERSION,
   settle,
   type Composition,
+  type CompositionV3,
   type ModularOp,
 } from './composition';
+import { describeLook, lookChanges } from './look';
 import { applyAssetOp, assetById, assetOpSchema, type AssetOp } from './assets';
+import { applyStyleOp, STYLES, styleOpSchema, type StyleOp } from './styles';
 export type Design = Composition & {
   width: number;
   height: number;
@@ -22,22 +26,27 @@ export type Design = Composition & {
   materialId: old.Design['materialId'];
   shelves: old.Shelf[];
 };
-export type ShelfOp = old.ShelfOp | ModularOp | AssetOp;
-export function canonical(input: Composition): Composition {
+export type ShelfOp = old.ShelfOp | ModularOp | AssetOp | StyleOp;
+/**
+ * O projeto como é gravado: só os campos do contrato, na versão atual. Uma
+ * composição v3 (projeto antigo, cena de teste) sai v4 com a mesma geometria.
+ */
+export function canonical(input: Composition | CompositionV3): Composition {
   return compositionSchema.parse(
     JSON.parse(
       JSON.stringify({
-        schemaVersion: 3,
+        schemaVersion: SCHEMA_VERSION,
         profile: input.profile,
         modules: input.modules,
         connections: input.connections,
+        ...('style' in input && input.style ? { style: input.style } : {}),
       }),
     ),
   );
 }
-export function normalize(input: Composition | old.Design): Design {
+export function normalize(input: Composition | CompositionV3 | old.Design): Design {
   const d =
-    input.schemaVersion === 3 ? canonical(input) : migrateComposition(input);
+    input.schemaVersion === SCHEMA_VERSION || input.schemaVersion === 3 ? canonical(input) : migrateComposition(input);
   settle(d);
   const g = generateComposition(d);
   const m = d.modules[0];
@@ -61,13 +70,14 @@ export const opSchema = z.union([
   old.opSchema,
   modularOpSchema,
   assetOpSchema,
+  styleOpSchema,
 ]) as z.ZodType<ShelfOp>;
 export function isDesign(v: unknown): v is Design {
   return (
     !!v &&
     typeof v === 'object' &&
     'schemaVersion' in v &&
-    [2, 3].includes(Number(v.schemaVersion))
+    [2, 3, SCHEMA_VERSION].includes(Number(v.schemaVersion))
   );
 }
 export function migrateParams(v: Params) {
@@ -168,6 +178,7 @@ export function selectedPartIds(d: Design, selected: readonly string[]) {
 export function applyOp(input: Design, op: ShelfOp): Design {
   const d = canonical(input);
   if (op.kind === 'asset.add') return normalize(applyAssetOp(d, op));
+  if (op.kind === 'style.apply') return normalize(applyStyleOp(d, op));
   if (
     op.kind.includes('.') ||
     op.kind === 'connect' ||
@@ -256,6 +267,7 @@ export function applyOp(input: Design, op: ShelfOp): Design {
  */
 export function applyStep(pending: Composition, op: ShelfOp): Composition {
   if (op.kind === 'asset.add') return applyAssetOp(pending, op);
+  if (op.kind === 'style.apply') return applyStyleOp(pending, op);
   if (op.kind.includes('.') || op.kind === 'connect' || op.kind === 'disconnect')
     return applyModularOp(pending, op as ModularOp, false);
   return canonical(applyOp(normalize(pending), op));
@@ -306,6 +318,15 @@ const MODULE_FIELD: Record<
 const SIDE_LABEL = { left: 'à esquerda', right: 'à direita', top: 'em cima' } as const;
 const HINGE_LABEL = { left: 'dobradiça à esquerda', right: 'dobradiça à direita' } as const;
 const ALIGN_LABEL = { front: 'alinhado pela frente', back: 'alinhado pelos fundos' } as const;
+/** A frente como quem desenha fala: "3 gavetas", "porta de correr de 2 folhas". */
+function frontWord(type: string, count: number | undefined, none: string) {
+  if (type === 'drawers') return `${count ?? 3} gavetas`;
+  if (type === 'double') return 'porta dupla';
+  if (type === 'single') return 'porta';
+  if (type === 'sliding') return `porta de correr de ${count ?? 2} folhas`;
+  if (type === 'flap') return 'porta basculante';
+  return none;
+}
 /** Nome do material para as etapas: o relatório mostra o nome, não o id. */
 function materialName(id: string) {
   return materials.find((m) => m.id === id)?.name ?? id;
@@ -352,6 +373,10 @@ export function describeHighlights(
     for (const op of lote) {
       if (op.kind === 'asset.add') {
         for (const m of after.modules) if (!before.modules.some((b) => b.id === m.id)) ids.add(m.id);
+        continue;
+      }
+      if (op.kind === 'style.apply') {
+        for (const m of restyled(after)) ids.add(m.id);
         continue;
       }
       for (const key of ['id', 'newId', 'child', 'parent'] as const) {
@@ -403,6 +428,8 @@ export function describeHighlights(
       .map((c) => {
         const front = c.node.front!;
         if (front.type === 'drawers') return `${front.heights.length} gavetas`;
+        if (front.type === 'sliding') return `porta de correr de ${front.heights.length} folhas`;
+        if (front.type === 'flap') return 'porta basculante';
         return front.type === 'double' ? 'porta dupla' : 'porta simples';
       });
     const open = cells.filter((c) => !c.node.front && !c.node.split).length;
@@ -437,6 +464,12 @@ export function describeHighlights(
       offset: conn.offset,
     };
   };
+  /** Módulos que o estilo vestiu: os que mudaram de material, base ou acabamento. */
+  const restyled = (d: Design) =>
+    d.modules.filter((m) => {
+      const b = before.modules.find((v) => v.id === m.id);
+      return !!b && JSON.stringify(b) !== JSON.stringify(m);
+    });
   const out: ChangeHighlight[] = [];
   const novos = after.modules.filter((m) => !before.modules.some((b) => b.id === m.id));
   const addedIds = new Set(novos.map((m) => m.id));
@@ -457,7 +490,8 @@ export function describeHighlights(
           .map((p) => p.position[1] + p.size[1] / 2);
         const largura = xs.length ? Math.max(...xs) - Math.min(...xs) : 0;
         const altura = ys.length ? Math.max(...ys) : 0;
-        const nome = assetById(op.asset)?.name ?? 'Móvel';
+        const estilo = op.style ?? (op.placement === 'replace' ? undefined : before.style);
+        const nome = `${assetById(op.asset)?.name ?? 'Móvel'}${estilo ? ` ${STYLES[estilo].label}` : ''}`;
         out.push({
           tool: op.kind,
           title: op.placement === 'replace' ? `${nome} no lugar do projeto` : `${nome} adicionado ${op.placement === 'left' ? 'à esquerda' : 'à direita'}`,
@@ -467,6 +501,29 @@ export function describeHighlights(
             { label: 'Altura', value: mm(altura) },
           ],
           facts: novosDoAtivo.slice(0, 6).map((m) => ({ label: m.name, value: dims(m) })),
+        });
+        break;
+      }
+      case 'style.apply': {
+        const s = STYLES[op.style];
+        const vestidos = restyled(after);
+        const first = vestidos.find((m) => !m.kind) ?? vestidos[0];
+        const g = generateComposition(canonical(after));
+        const h = g.bounds.max[1];
+        // O que o módulo ganhou de fato: frente de tela, vidro ou palhinha só
+        // aparece em porta; num módulo só de gavetas a frente fica com moldura.
+        const doors = (m: Design['modules'][number]) => layout(canonical(after)).cells.some((c) => c.moduleId === m.id && c.node.front && c.node.front.type !== 'drawers');
+        const seen = first ? describeLook(doors(first) || !first.look?.front || !['glass', 'mesh', 'cane', 'framed'].includes(first.look.front) ? first : { ...first, look: { ...first.look, front: 'shaker', insertMaterialId: undefined } }) : [];
+        out.push({
+          tool: op.kind,
+          title: op.ids ? `Estilo ${s.label} em ${vestidos.map((m) => m.name).slice(0, 3).join(', ')}${vestidos.length > 3 ? '…' : ''}` : `Estilo ${s.label} no projeto`,
+          summary: `${vestidos.length} ${vestidos.length === 1 ? 'módulo vestido' : 'módulos vestidos'} no estilo ${s.label}${op.keepMaterials ? ', com os materiais de antes' : ''}${seen.length ? `: ${seen.join(', ')}` : ''}; as medidas por fora não mudaram.`,
+          sign: '~',
+          measures: [{ label: 'Altura', value: mm(h) }],
+          facts: [
+            ...(first ? [{ label: 'Corpo', value: materialName(first.materialId) }] : []),
+            ...seen.map((v) => ({ label: 'Acabamento', value: v })),
+          ].slice(0, 6),
         });
         break;
       }
@@ -523,6 +580,7 @@ export function describeHighlights(
           mudancas.push(`orientação em ${edited.rotation}°`);
         if (edited.back !== previous.back)
           mudancas.push(edited.back ? 'ganhou fundo sobreposto' : 'ficou sem fundo');
+        mudancas.push(...lookChanges(previous, edited));
         out.push({
           tool: op.kind,
           title: `${edited.name} ajustado`,
@@ -636,14 +694,7 @@ export function describeHighlights(
         break;
       case 'front.set': {
         const alvo = cellsAfter.find((c) => c.id === op.id)?.node.front;
-        const frente =
-          op.type === 'drawers'
-            ? `${op.count ?? 3} gavetas`
-            : op.type === 'double'
-              ? 'porta dupla'
-              : op.type === 'single'
-                ? 'porta'
-                : 'vão aberto';
+        const frente = frontWord(op.type, op.count, 'vão aberto');
         const frenteTxt = `${frente[0].toUpperCase()}${frente.slice(1)}`;
         const titulo =
           op.type === 'none'
@@ -668,14 +719,7 @@ export function describeHighlights(
             )
             .map((frenteOp) => ({
             label: cellLabel(frenteOp.id),
-            value:
-              frenteOp.type === 'drawers'
-                ? `${frenteOp.count ?? 3} gavetas`
-                : frenteOp.type === 'double'
-                  ? 'porta dupla'
-                  : frenteOp.type === 'single'
-                    ? 'porta'
-                    : 'aberto',
+            value: frontWord(frenteOp.type, frenteOp.count, 'aberto'),
           })),
           ...(op.hinge ? { facts: [{ label: 'Abertura', value: HINGE_LABEL[op.hinge] }] } : {}),
           ...(alvo?.materialId
@@ -852,6 +896,7 @@ export function describeDesignChanges(before: Design, after: Design) {
       );
     if (!!m.wall !== !!b.wall)
       out.push(`${m.name}: ${m.wall ? 'suspenso, preso na parede' : 'apoiado no piso'}`);
+    for (const line of lookChanges(b, m)) out.push(`${m.name}: ${line}`);
     if (JSON.stringify(m.position) !== JSON.stringify(b.position) && !onlyMount)
       out.push(`"${m.name}": posição ajustada`);
     if (JSON.stringify(m.root) !== JSON.stringify(b.root))
@@ -862,6 +907,8 @@ export function describeDesignChanges(before: Design, after: Design) {
       out.push(`Módulo "${m.name}" removido`);
   if (JSON.stringify(before.connections) !== JSON.stringify(after.connections))
     out.push('Conexões entre os módulos ajustadas');
+  if ((before.style ?? null) !== (after.style ?? null))
+    out.push(after.style ? `Estilo do projeto: ${after.style}` : 'Projeto sem estilo marcado');
   return out;
 }
 export const describeChanges = describeDesignChanges;

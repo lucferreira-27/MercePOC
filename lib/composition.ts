@@ -1,6 +1,31 @@
 import { z } from 'zod';
-import { defaults, materials, materialIds, type Part, type MaterialId } from './furniture';
+import { categoryOf, defaults, materials, materialIds, materialOf, sheetIds, type Face, type MaterialCategory, type Part, type MaterialId } from './furniture';
 import * as legacy from './design';
+import {
+  CORNICE,
+  DEFAULT_HANDLE_MATERIAL,
+  FRONT_STYLES,
+  FRONTS,
+  framedFront,
+  HANDLE_TYPES,
+  LEGS,
+  lookIssues,
+  lookPatchSchema,
+  lookSchema,
+  patchLook,
+  PLINTH_RECESS,
+  STYLE_IDS,
+  type FrontStyle,
+  type HandleType,
+  type Look,
+  type LookPatch,
+  type StyleId,
+  type TopSpec,
+} from './look';
+import { TABLE_LIMITS, tableIssues, tableSpec } from './tables';
+
+/** Versão do projeto gravado. A v4 somou estilo e acabamento (`look`); v2 e v3 migram na leitura. */
+export const SCHEMA_VERSION = 4;
 
 export const PROFILE = {
   version: 1,
@@ -14,12 +39,26 @@ export const PROFILE = {
   rearSpace: 20,
 } as const;
 type Vec = [number, number, number];
+/** Porta de correr: folhas em dois trilhos, o de trás recuado isto (mm). */
+export const SLIDE_TRACK = PROFILE.front + 4;
+/** Folhas de correr vizinhas se sobrepõem isto (mm), para fechar sem fresta. */
+export const SLIDE_OVERLAP = 30;
+/** Basculante: altura da folha (mm); acima disso o pistão não segura. */
+export const FLAP_HEIGHT = [150, 700] as const;
 export type Front = {
   id: string;
-  type: 'single' | 'double' | 'drawers';
+  /**
+   * Porta de giro (uma ou duas folhas), gavetas, porta de correr (folhas =
+   * `heights.length`, em dois trilhos) ou basculante (abre para cima).
+   */
+  type: 'single' | 'double' | 'drawers' | 'sliding' | 'flap';
   hinge: 'left' | 'right';
   materialId?: MaterialId;
   heights: number[];
+  /** Estilo desta frente, no lugar do estilo do módulo (`look.front`). */
+  style?: FrontStyle;
+  /** Puxador desta frente, no lugar do puxador do módulo (`look.handle`). */
+  handle?: HandleType;
 };
 export type Cell = {
   id: string;
@@ -50,7 +89,13 @@ export type Module = {
    * uma tábua horizontal presa na parede ou num painel; `height` é a
    * espessura e `depth` o quanto ela avança. Ausente, o módulo é uma caixa.
    */
-  kind?: 'panel' | 'ledge';
+  kind?: 'panel' | 'ledge' | 'table';
+  /** Mesa: níveis embaixo do tampo (prateleiras da mesa de centro, da estante aberta). */
+  shelves?: number;
+  /** Mesa: gavetas no avental, lado a lado. */
+  drawers?: number;
+  /** Painel de parede: ganchos de cabideiro numa linha, por igual na largura. */
+  hooks?: number;
   /** Pés: altura em mm que levanta a caixa do piso (0 ou ausente, sem pés). */
   feet?: number;
   /** Suspenso de propósito, preso na parede (aéreo, rack suspenso). */
@@ -62,6 +107,12 @@ export type Module = {
    * devolve o móvel à parede ou reajusta.
    */
   mountedOn?: { panel: string; by: number };
+  /**
+   * Acabamento além do material: base (pés, rodapé, estrutura), puxador,
+   * estilo da frente, tampo sobreposto e detalhes (moldura, contorno de aço,
+   * fundo de outra cor, LED). Ausente, o módulo é como na v3. Ver `lib/look.ts`.
+   */
+  look?: Look;
 };
 export type Connection = {
   id: string;
@@ -73,17 +124,34 @@ export type Connection = {
   offset: number;
 };
 export type Composition = {
-  schemaVersion: 3;
+  schemaVersion: typeof SCHEMA_VERSION;
   profile: typeof PROFILE;
   modules: Module[];
   connections: Connection[];
+  /**
+   * Estilo escolhido para o projeto: só rótulo (tela, IA, peças novas). O
+   * desenho vem do `look` de cada módulo, então mudar a definição de um estilo
+   * não mexe em projeto salvo.
+   */
+  style?: StyleId;
 };
+/** Projeto gravado antes da v4: mesma forma, sem estilo nem acabamento. */
+export type CompositionV3 = Omit<Composition, 'schemaVersion' | 'style'> & { schemaVersion: 3 };
+/** Ganchos de cabideiro num painel de parede, no máximo. */
+export const HOOKS_MAX = 16;
 /** Limites do painel de parede: cabe numa chapa de 2750 × 1840 mm. */
 export const PANEL_LIMITS = { long: 2700, short: 1800, thickness: [15, 60], feet: [0, 300] } as const;
 /** Prateleira de parede: tábua de até 2700 mm (uma chapa), 15 a 60 de espessura, 150 a 600 de profundidade. */
 export const LEDGE_LIMITS = { long: 2700, thickness: [15, 60], depth: [150, 600] } as const;
 /** Módulo sem caixa (painel ou prateleira de parede): sem compartimentos, frentes, pés nem conexões. */
 export const isFlat = (m: Pick<Module, 'kind'>) => m.kind === 'panel' || m.kind === 'ledge';
+/** Caixa com compartimentos e frentes: nem painel, nem prateleira de parede, nem mesa. */
+export const isBox = (m: Pick<Module, 'kind'>) => !m.kind;
+/** O que o módulo é, numa palavra com artigo, para as recusas. */
+export const kindWord = (m: Pick<Module, 'kind'>) =>
+  m.kind === 'ledge' ? 'uma prateleira de parede' : m.kind === 'panel' ? 'um painel de parede' : m.kind === 'table' ? 'uma mesa (ou estrutura aberta)' : 'uma caixa';
+/** Base do módulo: sem tipo, pés de caixa são o pé palito da v3. */
+export const legsOf = (m: Pick<Module, 'look'>) => m.look?.legs ?? 'palito';
 export type Foot = {
   moduleId: string;
   /** Centro do pé no mundo, em mm. */
@@ -97,14 +165,29 @@ export type ModularPart = Part & {
   cellId?: string;
   color: string;
   rotation: number;
+  /**
+   * Como a frente abre: porta gira no eixo vertical da dobradiça, gaveta
+   * corre para a frente, porta de correr corre de lado no trilho dela
+   * (`direction` no x do módulo) e basculante gira no eixo da aresta de cima.
+   */
   motion?: {
     id: string;
-    type: 'door' | 'drawer';
+    type: 'door' | 'drawer' | 'slide' | 'flap';
     pivot: Vec;
     direction: number;
     travel: number;
+    /** Folha de correr: trilho da frente (0) ou de trás (1). */
+    track?: number;
   };
 };
+/**
+ * O que abre quando a pessoa abre todas as frentes: tudo, menos a folha de
+ * correr do trilho de trás. Abrindo as duas, elas só trocam de lugar e o
+ * armário continua fechado; a da frente corre por cima da de trás.
+ */
+export function openAllGroups(parts: readonly ModularPart[]) {
+  return [...new Set(parts.filter((p) => p.motion && !(p.motion.type === 'slide' && p.motion.track === 1)).map((p) => p.motion!.id))];
+}
 export type CellInfo = {
   id: string;
   moduleId: string;
@@ -164,6 +247,17 @@ export function validationMessage(error: z.ZodError) {
     y: 'Posição Y entre 0 e 20000 mm.',
     z: 'Posição Z entre -20000 e 20000 mm.',
     materialId: `Acabamento inválido: use ${materialIds.join(', ')}.`,
+    legMaterialId: `Acabamento do pé inválido: use ${materialIds.join(', ')}.`,
+    handleMaterialId: `Acabamento do puxador inválido: use ${materialIds.join(', ')}.`,
+    insertMaterialId: `Miolo da frente inválido: use ${materialIds.join(', ')}.`,
+    frameMaterialId: `Acabamento da estrutura inválido: use ${materialIds.join(', ')}.`,
+    backMaterialId: `Acabamento do fundo inválido: use ${materialIds.join(', ')}.`,
+    legs: `Base: use ${Object.keys(LEGS).join(', ')}.`,
+    handle: `Puxador: use ${HANDLE_TYPES.join(', ')}.`,
+    style: `Estilo: use ${STYLE_IDS.join(', ')} (frente: ${FRONT_STYLES.join(', ')}).`,
+    edge: 'Borda do tampo: square, rounded ou chamfer.',
+    thickness: 'Espessura do tampo: de 3 a 60 mm, conforme o material.',
+    overhang: 'Avanço do tampo: de 0 a 60 mm.',
     back: 'Fundo só aceita ligado ou desligado.',
     preset: 'Preset inválido: use shelf, niche, rack, drawers, panel ou ledge.',
     presets: 'Preset inválido: use shelf, niche, rack, drawers, panel ou ledge.',
@@ -178,10 +272,12 @@ export function validationMessage(error: z.ZodError) {
 const frontSchema: z.ZodType<Front> = z
   .object({
     id: mid,
-    type: z.enum(['single', 'double', 'drawers']),
+    type: z.enum(['single', 'double', 'drawers', 'sliding', 'flap']),
     hinge: z.enum(['left', 'right']),
     materialId: material.optional(),
     heights: z.array(z.number().positive()).min(1).max(6),
+    style: z.enum(FRONT_STYLES).optional(),
+    handle: z.enum(HANDLE_TYPES).optional(),
   })
   .strict();
 const cellSchema: z.ZodType<Cell> = z.lazy(() =>
@@ -204,7 +300,8 @@ const cellSchema: z.ZodType<Cell> = z.lazy(() =>
 );
 export const compositionSchema = z
   .object({
-    schemaVersion: z.literal(3),
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    style: z.enum(STYLE_IDS).optional(),
     profile: z
       .object({ version: z.literal(1) })
       .loose()
@@ -219,7 +316,7 @@ export const compositionSchema = z
             // A espessura da prateleira de parede mora na altura: o piso de 200
             // mm da caixa e do painel é conferido por tipo, logo abaixo.
             height: z.number().min(LEDGE_LIMITS.thickness[0]).max(PANEL_LIMITS.long),
-            depth: z.number().min(PANEL_LIMITS.thickness[0]).max(800),
+            depth: z.number().min(PANEL_LIMITS.thickness[0]).max(TABLE_LIMITS.depth[1]),
             materialId: material,
             back: z.boolean(),
             position: z.tuple([
@@ -235,15 +332,37 @@ export const compositionSchema = z
             ]),
             root: cellSchema,
             legacyIds: z.boolean().optional(),
-            kind: z.enum(['panel', 'ledge']).optional(),
+            kind: z.enum(['panel', 'ledge', 'table']).optional(),
+            shelves: z.number().int().min(0).max(TABLE_LIMITS.shelves).optional(),
+            drawers: z.number().int().min(0).max(TABLE_LIMITS.drawers).optional(),
+            hooks: z.number().int().min(0).max(HOOKS_MAX).optional(),
             feet: z.number().min(0).max(PANEL_LIMITS.feet[1]).optional(),
             wall: z.boolean().optional(),
             mountedOn: z.object({ panel: mid, by: z.number().int().min(1).max(PANEL_LIMITS.thickness[1]) }).strict().optional(),
+            look: lookSchema.optional(),
           })
           .strict()
           .superRefine((m, ctx) => {
             const fail = (path: string, message: string) =>
               ctx.addIssue({ code: 'custom', path: [path], message });
+            for (const issue of m.kind === 'table' ? tableIssues(m) : lookIssues(m)) fail(issue.path, issue.message);
+            if (m.hooks && m.kind !== 'panel') fail('hooks', `${m.name}: gancho de cabideiro vai em painel de parede.`);
+            if (m.kind === 'panel' && m.hooks && m.width / m.hooks < 80) fail('hooks', `${m.name}: ${m.hooks} ganchos não cabem em ${Math.round(m.width)} mm (8 cm entre eles).`);
+            if (m.kind !== 'table' && (m.shelves !== undefined || m.drawers !== undefined))
+              fail('shelves', `${m.name}: níveis e gavetas do avental são de mesa; numa caixa, divida o compartimento (cell.split) e ponha a frente (front.set).`);
+            // Frentes: chapa de MDF; vidro, tela e palhinha só em porta.
+            walk(m.root, (c) => {
+              const f = c.front;
+              if (!f) return;
+              // Frente de chapa; de aço só como quadro de porta (serralheria),
+              // com vidro, tela, palhinha ou almofada de madeira no miolo.
+              const cat = f.materialId ? categoryOf(f.materialId) : 'sheet';
+              const framed = f.type !== 'drawers' && framedFront(f.style ?? m.look?.front);
+              if (cat !== 'sheet' && !(cat === 'metal' && framed))
+                fail('materialId', `${m.name}: frente em ${materialOf(f.materialId!).name} não dá; a frente é de chapa (${sheetIds.join(', ')}). Aço só no quadro de uma porta de vidro, tela, palhinha ou almofada (look.front glass, mesh, cane ou framed); o miolo vai em insertMaterialId.`);
+              if (f.type === 'drawers' && framedFront(f.style))
+                fail('style', `${m.name}: gaveta não leva ${FRONTS[f.style!].name}; use lisa, shaker ou ripada.`);
+            });
             if (m.kind === 'panel') {
               if (m.depth > PANEL_LIMITS.thickness[1])
                 fail('depth', `${m.name}: painel de parede com 15 a 60 mm de espessura.`);
@@ -261,7 +380,11 @@ export const compositionSchema = z
               if (m.root.split || m.root.front)
                 fail('root', `${m.name}: prateleira de parede não tem compartimentos nem frentes.`);
               if (m.feet) fail('feet', `${m.name}: prateleira de parede não leva pés.`);
+            } else if (m.kind === 'table') {
+              if (m.root.split || m.root.front)
+                fail('root', `${m.name}: mesa não tem compartimentos; os níveis e as gavetas vão em shelves e drawers.`);
             } else {
+              if (m.depth > 800) fail('depth', 'Profundidade: 200 a 800 mm.');
               if (m.width > 1200) fail('width', 'Largura: 200 a 1200 mm.');
               if (m.height > 2400 || m.height < 200) fail('height', 'Altura: 200 a 2400 mm.');
               if (m.depth < 200) fail('depth', 'Profundidade: 200 a 800 mm.');
@@ -291,7 +414,7 @@ export const compositionSchema = z
 function uid(prefix: string) {
   return prefix + '-' + crypto.randomUUID().slice(0, 12);
 }
-function point(p: Vec, m: Module): Vec {
+export function point(p: Vec, m: Module): Vec {
   const a = (m.rotation * Math.PI) / 180;
   return [
     m.position[0] + p[0] * Math.cos(a) + p[2] * Math.sin(a),
@@ -325,10 +448,16 @@ function wholeParts(space: number, weights: number[]): number[] {
   parts[last] += space - parts.reduce((a, b) => a + b, 0);
   return parts;
 }
+/**
+ * v3 → v4: mesma geometria, sem estilo nem acabamento. Os campos novos são
+ * opcionais, então a migração só troca a versão; o teste de migração confere
+ * peças, desenho e orçamento contra o retrato da v3.
+ */
 export function migrateComposition(
-  input: legacy.Design | Composition,
+  input: legacy.Design | CompositionV3 | Composition,
 ): Composition {
-  if (input.schemaVersion === 3) return compositionSchema.parse(input);
+  if (input.schemaVersion === SCHEMA_VERSION) return compositionSchema.parse(input);
+  if (input.schemaVersion === 3) return compositionSchema.parse({ ...input, schemaVersion: SCHEMA_VERSION });
   const d = input;
   const shelves = legacy.sortedShelves(d);
   function tree(i: number, start: number): Cell {
@@ -355,7 +484,7 @@ export function migrateComposition(
     };
   }
   return {
-    schemaVersion: 3,
+    schemaVersion: SCHEMA_VERSION,
     profile: PROFILE,
     modules: [
       {
@@ -375,7 +504,7 @@ export function migrateComposition(
     connections: [],
   };
 }
-export type PresetId = 'shelf' | 'niche' | 'rack' | 'drawers' | 'panel' | 'ledge';
+export type PresetId = 'shelf' | 'niche' | 'rack' | 'drawers' | 'panel' | 'ledge' | 'table';
 export function preset(type: PresetId, id = uid('module')): Module {
   const base = migrateComposition(legacy.migrateParams(defaults)).modules[0];
   base.id = id;
@@ -388,6 +517,14 @@ export function preset(type: PresetId, id = uid('module')): Module {
     base.width = 1800;
     base.height = 1200;
     base.depth = 25;
+    base.back = false;
+  } else if (type === 'table') {
+    // Mesa: tampo de 1200 × 600 a 75 cm do piso, sobre pés quadrados.
+    base.kind = 'table';
+    base.name = 'Mesa';
+    base.width = 1200;
+    base.height = 750;
+    base.depth = 600;
     base.back = false;
   } else if (type === 'ledge') {
     // Prateleira de parede: tábua de 25 mm presa na parede, 25 cm de fundo.
@@ -456,8 +593,12 @@ function cellBy(d: Composition, id: string) {
         result = { m, c };
     });
   if (!result) throw new Error(`Compartimento ${id} não encontrado.`);
-  if (isFlat(result.m))
-    throw new Error(`${result.m.name} é ${result.m.kind === 'ledge' ? 'uma prateleira de parede' : 'um painel de parede'}: não tem compartimentos nem frentes.`);
+  if (!isBox(result.m))
+    throw new Error(
+      result.m.kind === 'table'
+        ? `${result.m.name} é ${kindWord(result.m)}: níveis e gavetas vão em module.edit {shelves, drawers}.`
+        : `${result.m.name} é ${kindWord(result.m)}: não tem compartimentos nem frentes.`,
+    );
   return result;
 }
 function sharedSides(d: Composition, m: Module) {
@@ -498,6 +639,10 @@ export function settle(d: Composition, enforce = true) {
           differences.push('acabamento diferente');
         if ((m.feet ?? 0) !== (child.feet ?? 0))
           differences.push(`pés de ${m.feet ?? 0} × ${child.feet ?? 0} mm`);
+        else if (m.feet && legsOf(m) !== legsOf(child))
+          differences.push(`base ${LEGS[legsOf(m)].name} × ${LEGS[legsOf(child)].name}`);
+        if (c.side === 'top' && m.look?.top)
+          differences.push(`${m.name} tem tampo sobreposto (sem painel para dividir)`);
         if (m.depth !== child.depth)
           differences.push(
             `profundidade ${m.depth} × ${child.depth} mm em ${m.name} e ${child.name}`,
@@ -521,8 +666,11 @@ export function settle(d: Composition, enforce = true) {
           ? 0
           : (c.side === 'right' ? 1 : -1) *
             ((m.width + w) / 2 - (c.shared ? 18 : 0) + c.offset);
+      if (c.side === 'top' && m.look?.cornice && enforce)
+        throw new Error(`${m.name} tem moldura no topo: nada vai em cima dela. Tire a moldura (look.cornice) ou ponha ${child.name} em outro lugar.`);
+      // Em cima de um tampo sobreposto, o filho apoia no tampo.
       const y =
-        c.side === 'top' ? m.height - (c.shared ? 18 : 0) + c.offset : 0;
+        c.side === 'top' ? m.height - (c.shared ? 18 : 0) + c.offset + (m.look?.top && !c.shared ? m.look.top.thickness : 0) : 0;
       const dz =
         c.align === 'front' ? (m.depth - dep) / 2 : -(m.depth - dep) / 2;
       child.position = point([dx, y, dz], m);
@@ -540,13 +688,15 @@ export function settle(d: Composition, enforce = true) {
 }
 export function layout(d: Composition) {
   const cells: CellInfo[] = [];
-  const panels: { m: Module; c: Cell; origin: Vec; size: Vec }[] = [];
+  /** `behind`: a frente que cobre a divisão (porta de correr pede mais recuo). */
+  const panels: { m: Module; c: Cell; origin: Vec; size: Vec; behind?: Front['type'] }[] = [];
   for (const m of d.modules) {
-    if (isFlat(m)) continue;
+    if (!isBox(m)) continue;
     const depth = m.depth - (m.back ? PROFILE.back : 0);
     let order = 0;
-    // `covered`: uma porta de um vão acima já cobre este (prateleiras atrás da porta).
-    function visit(c: Cell, origin: Vec, size: Vec, covered = false) {
+    // `cover`: a porta de um vão acima que já cobre este (prateleiras atrás da porta).
+    function visit(c: Cell, origin: Vec, size: Vec, cover?: Front['type']) {
+      const covered = !!cover;
       cells.push({
         id: c.id,
         moduleId: m.id,
@@ -581,15 +731,15 @@ export function layout(d: Composition) {
         psize[axis] = PROFILE.panel;
         const pos: Vec = [...origin];
         pos[axis] += length;
-        panels.push({ m, c, origin: pos, size: psize });
+        panels.push({ m, c, origin: pos, size: psize, ...(cover ?? c.front?.type ? { behind: cover ?? c.front!.type } : {}) });
         const low: Vec = [...size];
         low[axis] = length;
         const high: Vec = [...size];
         high[axis] = size[axis] - length - PROFILE.panel;
         const upper: Vec = [...origin];
         upper[axis] += length + PROFILE.panel;
-        visit(c.split.children[0], origin, low, covered || !!c.front);
-        visit(c.split.children[1], upper, high, covered || !!c.front);
+        visit(c.split.children[0], origin, low, cover ?? c.front?.type);
+        visit(c.split.children[1], upper, high, cover ?? c.front?.type);
       }
     }
     visit(
@@ -604,7 +754,19 @@ export function layout(d: Composition) {
   }
   return { cells, panels };
 }
-function bounds(p: ModularPart) {
+/**
+ * Medida da caixa de colisão: a da peça, ou a envolvente no plano y-z quando
+ * ela está girada no eixo x (basculante aberta). Conservadora, mas exata nas
+ * pontas do movimento.
+ */
+function sized(p: ModularPart): ModularPart {
+  if (!p.tilt) return p;
+  const c = Math.abs(Math.cos(p.tilt)),
+    s = Math.abs(Math.sin(p.tilt));
+  return { ...p, tilt: 0, size: [p.size[0], c * p.size[1] + s * p.size[2], s * p.size[1] + c * p.size[2]] };
+}
+function bounds(input: ModularPart) {
+  const p = sized(input);
   const a = p.rotation;
   const x =
     Math.abs(Math.cos(a)) * p.size[0] + Math.abs(Math.sin(a)) * p.size[2];
@@ -623,7 +785,9 @@ function bounds(p: ModularPart) {
     ],
   };
 }
-function collide(a: ModularPart, b: ModularPart) {
+function collide(rawA: ModularPart, rawB: ModularPart) {
+  const a = sized(rawA),
+    b = sized(rawB);
   const aa = bounds(a),
     bb = bounds(b);
   if (
@@ -653,12 +817,195 @@ function collide(a: ModularPart, b: ModularPart) {
   }
   return true;
 }
+/**
+ * Fileira que divide um tampo ou uma moldura: módulos lado a lado (ligados
+ * pela lateral, sem afastamento), com a mesma rotação, o mesmo topo, a mesma
+ * profundidade e as frentes alinhadas. Medidas no referencial da fileira: `s`
+ * ao longo dela, `f` da parede para a frente, `top` no mundo.
+ */
+export type Run = { ids: string[]; rotation: number; s0: number; s1: number; back: number; front: number; top: number };
+/** Topo da caixa no mundo: piso do módulo, pés e altura. */
+const boxTop = (m: Module) => m.position[1] + (m.feet ?? 0) + m.height;
+export function runsOf(d: Composition, key: (m: Module) => string | null): Run[] {
+  const picked = d.modules.filter((m) => isBox(m) && key(m) !== null);
+  const parent = new Map(picked.map((m) => [m.id, m.id]));
+  const find = (id: string): string => (parent.get(id) === id ? id : find(parent.get(id)!));
+  const near = (a: number, b: number) => Math.abs(a - b) < 1;
+  for (const c of d.connections) {
+    if (c.side === 'top' || c.offset !== 0) continue;
+    const a = picked.find((m) => m.id === c.parent),
+      b = picked.find((m) => m.id === c.child);
+    if (!a || !b || key(a) !== key(b) || a.rotation !== b.rotation || a.depth !== b.depth || !near(boxTop(a), boxTop(b))) continue;
+    const { front } = axes(a.rotation);
+    if (!near(front(a.position), front(b.position))) continue;
+    parent.set(find(b.id), find(a.id));
+  }
+  const groups = new Map<string, Module[]>();
+  for (const m of picked) groups.set(find(m.id), [...(groups.get(find(m.id)) ?? []), m]);
+  return [...groups.values()].map((members) => {
+    const { side, front } = axes(members[0].rotation);
+    const spans = members.map((m) => ({ m, s: side(m.position), f: front(m.position) })).sort((a, b) => a.s - b.s);
+    // Ponta num painel compartilhado com quem não está na fileira: a peça
+    // para no meio do painel e encontra a do vizinho sem sobrepor.
+    const half = (m: Module, s: 'left' | 'right') => (sharedSides(d, m).has(s) ? PROFILE.panel / 2 : 0);
+    return {
+      ids: spans.map((v) => v.m.id),
+      rotation: members[0].rotation,
+      s0: Math.min(...spans.map((v) => v.s - v.m.width / 2)) + half(spans[0].m, 'left'),
+      s1: Math.max(...spans.map((v) => v.s + v.m.width / 2)) - half(spans.at(-1)!.m, 'right'),
+      back: Math.min(...spans.map((v) => v.f - v.m.depth / 2)),
+      front: Math.max(...spans.map((v) => v.f + v.m.depth / 2)),
+      top: boxTop(members[0]),
+    };
+  });
+}
+/** Ponto do referencial de uma fileira (s ao longo, f para a frente) no mundo. */
+export function runPoint(rotation: number, s: number, y: number, f: number): Vec {
+  const a = (rotation * Math.PI) / 180;
+  return [s * Math.cos(a) + f * Math.sin(a), y, -s * Math.sin(a) + f * Math.cos(a)];
+}
+/**
+ * Caixa do módulo no mundo, com o tampo e a moldura que ele leva em cima e o
+ * quanto eles podem avançar para os lados: dois vizinhos não avançam o
+ * tampo ou a moldura no mesmo vão entre eles.
+ */
+function outerBox(m: Module) {
+  const a = (m.rotation * Math.PI) / 180,
+    c = Math.abs(Math.cos(a)),
+    sn = Math.abs(Math.sin(a));
+  const reach = Math.max(m.look?.top?.overhang ?? 0, m.look?.cornice ? CORNICE.capReach : 0);
+  const hx = (c * m.width + sn * m.depth) / 2 + reach,
+    hz = (sn * m.width + c * m.depth) / 2 + reach;
+  const y0 = m.position[1],
+    y1 = boxTop(m) + (m.look?.top?.thickness ?? 0) + (m.look?.cornice ? CORNICE.fascia + CORNICE.cap : 0);
+  return { min: [m.position[0] - hx, y0, m.position[2] - hz], max: [m.position[0] + hx, y1, m.position[2] + hz] };
+}
+/**
+ * Avanço livre na ponta da fileira: a peça passa do lado da caixa só se nada
+ * ocupa aquele espaço (vizinho mais alto, outro tampo). Senão para rente.
+ */
+function freeReach(d: Composition, run: Run, end: 's0' | 's1', reach: number, y0: number, y1: number) {
+  if (!reach) return 0;
+  const s = end === 's0' ? [run.s0 - reach, run.s0] : [run.s1, run.s1 + reach];
+  const corners = [s[0], s[1]].flatMap((sv) => [run.back, run.front + reach].map((fv) => runPoint(run.rotation, sv, 0, fv)));
+  const min = [Math.min(...corners.map((p) => p[0])), y0, Math.min(...corners.map((p) => p[2]))],
+    max = [Math.max(...corners.map((p) => p[0])), y1, Math.max(...corners.map((p) => p[2]))];
+  const blocked = d.modules.some((m) => {
+    if (run.ids.includes(m.id)) return false;
+    const b = outerBox(m);
+    return [0, 1, 2].every((i) => Math.min(max[i], b.max[i]) - Math.max(min[i], b.min[i]) > 0.5);
+  });
+  return blocked ? 0 : reach;
+}
+/** Estilo que a frente mostra: o dela, senão o do módulo; gaveta não leva miolo. */
+export function frontStyleOf(m: Module, f: Front, drawer: boolean): FrontStyle {
+  const s = f.style ?? m.look?.front ?? 'flat';
+  return drawer && framedFront(s) ? 'shaker' : s;
+}
+/** Superfície da frente para a cena e o desenho; lisa não tem. */
+function frontFace(style: FrontStyle, w: number, h: number): Face | undefined {
+  const frame = Math.round(Math.min(65, Math.max(35, Math.min(w, h) * 0.12)));
+  if (style === 'shaker') return { kind: 'shaker', frame };
+  if (style === 'slatted') return { kind: 'slatted', pitch: 32 };
+  if (framedFront(style)) return { kind: 'frame', frame };
+  return undefined;
+}
+/** Peça da mesa antes de virar peça do projeto: medidas no referencial do módulo. */
+type TablePart = {
+  id: string;
+  name: string;
+  size: Vec;
+  center: Vec;
+  thickness: number;
+  kind: Part['kind'];
+  material: MaterialId;
+  motion?: ModularPart['motion'];
+  extra?: Pick<ModularPart, 'face' | 'handle'>;
+  /** Tábua à vista nos quatro lados (tampo, prateleira): fita em volta. */
+  around?: boolean;
+};
+/**
+ * Peças de corte da mesa (`lib/tables.ts` faz a conta): tampo, avental entre
+ * os pés, níveis embaixo e gavetas no avental, com caixa e puxador como as da
+ * caixa. Pés, estrutura, cavalete, rodízios e suportes são ferragens.
+ */
+function tableParts(m: Module): TablePart[] {
+  const s = tableSpec(m);
+  const out: TablePart[] = [];
+  const t = s.top.thickness;
+  const face: Face | undefined = s.top.edge === 'square' ? undefined : { kind: 'edge', profile: s.top.edge, radius: Math.min(t / 2, 10) };
+  out.push({ id: `${m.id}:slab`, name: 'Tampo', size: [m.width, t, m.depth], center: [0, s.lh + t / 2, 0], thickness: t, kind: 'slab', material: s.top.materialId, ...(face ? { extra: { face } } : {}), around: true });
+  const innerD = s.bd - 2 * s.legZ;
+  const r = s.rail;
+  if (s.apron) {
+    const y = s.lh - s.apron / 2;
+    // Avental 10 mm para dentro da base. Entre pés (de canto), cada lado vai
+    // de um pé ao outro; sem pé no canto (parede, trenó, cavalete, estrutura
+    // fina), a frente e o fundo correm inteiros e as laterais entram entre eles.
+    const sides = s.cornerLegs ? 10 : s.apronSides,
+      ends = s.apronEnds;
+    const fz = s.bd / 2 - sides - r / 2;
+    // Pé fino (grampo, cano) é mais estreito que o avental: frente e fundo
+    // param nas laterais do avental, senão se cruzam no canto.
+    const long = s.cornerLegs ? s.bw - 2 * Math.max(s.legX, ends + r) : s.bw - 2 * ends;
+    if (!m.drawers) out.push({ id: `${m.id}:apron-front`, name: 'Avental da frente', size: [long, s.apron, r], center: [0, y, fz], thickness: r, kind: 'apron', material: m.materialId as MaterialId });
+    out.push({ id: `${m.id}:apron-back`, name: 'Avental do fundo', size: [long, s.apron, r], center: [0, y, -fz], thickness: r, kind: 'apron', material: m.materialId as MaterialId });
+    const fx = s.bw / 2 - ends - r / 2;
+    // Com gavetas não há avental da frente: a lateral vai até a frente, senão a ponta dela fica no ar.
+    const open = m.drawers && !s.cornerLegs ? r : 0;
+    const side = (s.cornerLegs ? innerD : s.bd - 2 * sides - 2 * r) + open;
+    if (s.sideAprons)
+      for (const [name, sx] of [['left', -1], ['right', 1]] as const)
+        out.push({ id: `${m.id}:apron-${name}`, name: name === 'left' ? 'Avental esquerdo' : 'Avental direito', size: [r, s.apron, side], center: [sx * fx, y, open / 2], thickness: r, kind: 'apron', material: m.materialId as MaterialId });
+  }
+  // Níveis: entre os pés (ou dentro da estrutura), na largura e no fundo da base.
+  s.levels.forEach((y, i) => {
+    // Pé inclinado: o nível vai até o meio do pé na altura dele, senão fica solto entre os pés.
+    const reach = 2 * s.levelReach(y);
+    out.push({ id: `${m.id}:level-${i}`, name: `Nível ${i + 1}`, size: [s.levelW + reach, s.shelfT, s.levelD + reach], center: [0, y + s.shelfT / 2, 0], thickness: s.shelfT, kind: 'shelf', material: m.materialId as MaterialId, around: true });
+  });
+  // Gavetas no avental: frente no plano do avental, caixa atrás, corrediça.
+  const n = m.drawers ?? 0;
+  if (n) {
+    const style = frontStyleOf(m, { id: '', type: 'drawers', hinge: 'left', heights: [1] }, true);
+    const handle: NonNullable<ModularPart['handle']> = { type: m.look?.handle ?? 'bar', materialId: m.look?.handleMaterialId ?? DEFAULT_HANDLE_MATERIAL };
+    const inset = s.cornerLegs ? 10 : s.apronSides;
+    const fh = s.apron - 2 * PROFILE.reveal,
+      fz = s.bd / 2 - inset - PROFILE.front / 2;
+    // Da face de trás da frente até o avental do fundo, com a folga da
+    // corrediça: os pés ficam nos cantos e não encurtam a caixa.
+    const boxD = s.bd - 2 * inset - PROFILE.front - r - PROFILE.rearSpace;
+    const bw = s.drawerW - 2 * PROFILE.slideSpace,
+      bh = fh - PROFILE.drawerBottom - 24;
+    if (boxD < 150 || bh < 40) throw new Error(`${m.name}: avental raso demais para a caixa da gaveta.`);
+    const zone = s.bw - 2 * s.drawerInset;
+    for (let i = 0; i < n; i++) {
+      const x = -zone / 2 + s.drawerW / 2 + i * (s.drawerW + 4);
+      const group = `${m.id}:drawer-${i}`;
+      const motion: ModularPart['motion'] = { id: group, type: 'drawer', pivot: [0, 0, 0], direction: 1, travel: boxD * 0.7 };
+      const f = frontFace(style, s.drawerW, fh);
+      out.push({ id: `${group}:front`, name: `Frente gaveta ${i + 1}`, size: [s.drawerW, fh, PROFILE.front], center: [x, s.lh - s.apron / 2, fz], thickness: PROFILE.front, kind: 'drawer', material: m.materialId as MaterialId, motion, extra: { ...(f ? { face: f } : {}), handle } });
+      const bz = fz - PROFILE.front / 2 - boxD / 2,
+        by = s.lh - s.apron + PROFILE.reveal + PROFILE.drawerBottom + bh / 2;
+      for (const [side, dx] of [['left', -bw / 2 + PROFILE.drawer / 2], ['right', bw / 2 - PROFILE.drawer / 2]] as const)
+        out.push({ id: `${group}:${side}`, name: `Lateral gaveta ${i + 1}`, size: [PROFILE.drawer, bh, boxD], center: [x + dx, by, bz], thickness: PROFILE.drawer, kind: 'drawer', material: m.materialId as MaterialId, motion });
+      out.push({ id: `${group}:back`, name: `Caixa gaveta ${i + 1}`, size: [bw - 2 * PROFILE.drawer, bh, PROFILE.drawer], center: [x, by, bz - boxD / 2 + PROFILE.drawer / 2], thickness: PROFILE.drawer, kind: 'drawer', material: m.materialId as MaterialId, motion });
+      out.push({ id: `${group}:bottom`, name: `Fundo gaveta ${i + 1}`, size: [bw, PROFILE.drawerBottom, boxD], center: [x, by - bh / 2 - PROFILE.drawerBottom / 2, bz], thickness: PROFILE.drawerBottom, kind: 'drawer', material: m.materialId as MaterialId, motion });
+    }
+  }
+  return out;
+}
+/** Maior peça de fileira numa chapa (2750 de chapa menos o refilo). */
+const SHEET_RUN = 2700;
+/** Espessura do miolo da porta de quadro: vidro 4, tela 2, palhinha 3, almofada de madeira 15 mm. */
+const INSERT_THICKNESS: Partial<Record<MaterialCategory, number>> = { glass: 4, metal: 2, fiber: 3, sheet: 15, solid: 15 };
 export function generateComposition(input: Composition, validate = true) {
   const parsed = compositionSchema.safeParse({
-    schemaVersion: 3,
+    schemaVersion: SCHEMA_VERSION,
     profile: input.profile,
     modules: input.modules,
     connections: input.connections,
+    ...(input.style ? { style: input.style } : {}),
   });
   // O validador fala JSON; a pessoa (e a IA no reparo) recebe a frase.
   if (!parsed.success) throw new Error(validationMessage(parsed.error));
@@ -683,6 +1030,7 @@ export function generateComposition(input: Composition, validate = true) {
       throw new Error('Limite de 32 compartimentos por módulo.');
   }
   const parts: ModularPart[] = [];
+  const band = (mat: { name: string }) => `${mat.name} 0.4`;
   function add(
     m: Module,
     id: string,
@@ -694,6 +1042,7 @@ export function generateComposition(input: Composition, validate = true) {
     cellId?: string,
     mat: MaterialId = m.materialId,
     motion?: ModularPart['motion'],
+    extra: Pick<ModularPart, 'face' | 'handle'> = {},
   ) {
     const color = materials.find((v) => v.id === mat)!;
     // C/L follow the panel's local plane, independent of placement or opening.
@@ -703,14 +1052,19 @@ export function generateComposition(input: Composition, validate = true) {
     const side =
       ['side', 'divider'].includes(kind) ||
       (kind === 'drawer' && /:left$|:right$/.test(id));
-    // Painel de parede: o lado maior corre no comprimento da chapa.
-    const dims = kind === 'panel'
+    // Painel de parede: o lado maior corre no comprimento da chapa. Tampo e
+    // avental de mesa: tábua simples, o maior lado no C e o do meio no L.
+    const plank = kind === 'slab' || kind === 'apron' ? [...size].sort((a, b) => b - a) : null;
+    const dims = plank
+      ? [plank[0], plank[1]]
+      : kind === 'panel'
       ? [Math.max(size[0], size[1]), Math.min(size[0], size[1])]
       : horizontal
         ? [size[0], size[2]]
         : side
           ? [size[1], size[2]]
           : [size[1], size[0]];
+    const sheet = color.category === 'sheet';
     parts.push({
       id,
       name:
@@ -723,18 +1077,76 @@ export function generateComposition(input: Composition, validate = true) {
       thickness,
       kind,
       material: `${color.name} ${thickness}`,
+      materialId: color.id,
+      category: color.category,
       color: color.color,
       owners: [m.id],
       cellId,
       edges: {
-        c1: kind === 'back' ? null : `${color.name} 0.4`,
+        // Fita só em chapa: vidro, pedra, metal e palhinha não levam.
+        c1: kind === 'back' || !sheet ? null : band(color),
         // O painel fica à vista nos quatro lados.
-        c2: kind === 'panel' ? `${color.name} 0.4` : null,
-        l1: kind === 'panel' ? `${color.name} 0.4` : null,
-        l2: kind === 'panel' ? `${color.name} 0.4` : null,
+        c2: kind === 'panel' ? band(color) : null,
+        l1: kind === 'panel' ? band(color) : null,
+        l2: kind === 'panel' ? band(color) : null,
       },
       motion: motion ? { ...motion, pivot: point(motion.pivot, m) } : undefined,
+      ...(extra.face ? { face: extra.face } : {}),
+      ...(extra.handle ? { handle: extra.handle } : {}),
     });
+  }
+  /**
+   * Peça de fileira que pode passar do comprimento de uma chapa (2750 mm):
+   * em chapa, sai em pedaços iguais emendados, como a marcenaria faz numa
+   * moldura de 3,6 m. Maciço, pedra e o resto seguem inteiros (vêm por medida).
+   */
+  function addLongRun(run: Run, id: string, name: string, s0: number, s1: number, y0: number, y1: number, f0: number, f1: number, kind: Part['kind'], mat: MaterialId, edges: (keyof ModularPart['edges'])[], face?: Face) {
+    const n = materialOf(mat).category === 'sheet' ? Math.ceil((s1 - s0) / SHEET_RUN) : 1;
+    if (n <= 1) return addRun(run, id, name, s0, s1, y0, y1, f0, f1, kind, mat, edges, face);
+    const step = (s1 - s0) / n;
+    for (let k = 0; k < n; k++) addRun(run, `${id}-${k}`, `${name} ${k + 1}/${n}`, s0 + k * step, s0 + (k + 1) * step, y0, y1, f0, f1, kind, mat, edges, face);
+  }
+  /** Peça de uma fileira inteira, no referencial dela (tampo, moldura). */
+  function addRun(run: Run, id: string, name: string, s0: number, s1: number, y0: number, y1: number, f0: number, f1: number, kind: Part['kind'], mat: MaterialId, edges: (keyof ModularPart['edges'])[], face?: Face) {
+    const color = materialOf(mat);
+    const first = moduleBy(d, run.ids[0]),
+      last = moduleBy(d, run.ids.at(-1)!);
+    const size: Vec = [s1 - s0, y1 - y0, f1 - f0];
+    // Tábua simples: a menor medida é a espessura, a maior corre no C (veio).
+    const [thin, mid, long] = [...size].sort((a, b) => a - b);
+    parts.push({
+      id,
+      name: run.ids.length === 1 ? `${first.name} / ${name}` : `${name} (${first.name} a ${last.name})`,
+      size,
+      position: runPoint(run.rotation, (s0 + s1) / 2, (y0 + y1) / 2, (f0 + f1) / 2),
+      rotation: (run.rotation * Math.PI) / 180,
+      c: long,
+      l: mid,
+      thickness: thin,
+      kind,
+      material: `${color.name} ${Math.round(thin * 100) / 100}`,
+      materialId: color.id,
+      category: color.category,
+      color: color.color,
+      owners: [...run.ids],
+      edges: Object.fromEntries((['c1', 'c2', 'l1', 'l2'] as const).map((k) => [k, color.category === 'sheet' && edges.includes(k) ? band(color) : null])) as ModularPart['edges'],
+      ...(face ? { face } : {}),
+    });
+  }
+  /**
+   * Porta de quadro: o miolo (vidro, tela ou palhinha) entra no rebaixo do
+   * quadro, 8 mm de cada lado, e abre junto com a porta (mesmo movimento).
+   */
+  function insertOf(m: Module, id: string, label: string, center: Vec, [fw, fh]: [number, number], face: Face | undefined, style: FrontStyle, cellId: string, motion: ModularPart['motion']) {
+    if (face?.kind !== 'frame') return;
+    const insert = m.look?.insertMaterialId ?? FRONTS[style].insertDefault!;
+    const t = INSERT_THICKNESS[categoryOf(insert)] ?? 4;
+    const iw = fw - 2 * face.frame + 16,
+      ih = fh - 2 * face.frame + 16;
+    if (iw < 60 || ih < 60)
+      throw new Error(`${m.name}: frente de ${Math.round(fw)} × ${Math.round(fh)} mm é pequena demais para ${FRONTS[style].name} (o quadro leva ${face.frame} mm de cada lado).`);
+    // Miolo 3 mm atrás da face do quadro, dentro da espessura da porta.
+    add(m, `${id}:insert`, `${FRONTS[style].insertName} ${label}`, [iw, ih, t], [center[0], center[1], center[2] + PROFILE.front / 2 - 3 - t / 2], t, 'insert', cellId, insert, motion);
   }
   for (const m of d.modules.filter((v) => v.kind === 'panel'))
     add(
@@ -745,15 +1157,28 @@ export function generateComposition(input: Composition, validate = true) {
       [0, m.height / 2, 0],
       m.depth,
       'panel',
+      undefined,
+      m.materialId,
+      undefined,
+      m.look?.front === 'slatted' ? { face: { kind: 'slatted', pitch: 32 } } : m.look?.front === 'perforated' ? { face: { kind: 'perforated', pitch: 25 } } : {},
     );
   // Prateleira de parede: uma tábua horizontal, com fita nos quatro lados.
   for (const m of d.modules.filter((v) => v.kind === 'ledge')) {
     add(m, `${m.id}:ledge`, 'Prateleira de parede', [m.width, m.height, m.depth], [0, m.height / 2, 0], m.height, 'shelf');
     const board = parts[parts.length - 1];
-    const band = board.edges.c1;
-    board.edges = { c1: band, c2: band, l1: band, l2: band };
+    const b = board.edges.c1;
+    board.edges = { c1: b, c2: b, l1: b, l2: b };
   }
-  for (const m of d.modules.filter((v) => !isFlat(v))) {
+  for (const m of d.modules.filter((v) => v.kind === 'table'))
+    for (const p of tableParts(m)) {
+      add(m, p.id, p.name, p.size, p.center, p.thickness, p.kind, undefined, p.material, p.motion, p.extra ?? {});
+      const piece = parts[parts.length - 1];
+      if (p.around) {
+        const b = piece.edges.c1;
+        piece.edges = { c1: b, c2: b, l1: b, l2: b };
+      }
+    }
+  for (const m of d.modules.filter((v) => isBox(v))) {
     const s = sharedSides(d, m);
     const w = m.width,
       h = m.height,
@@ -811,10 +1236,32 @@ export function generateComposition(input: Composition, validate = true) {
         [(l - r) / 2, b + (h - b - t) / 2, -m.depth / 2 + 3],
         PROFILE.back,
         'back',
+        undefined,
+        m.look?.backMaterialId ?? m.materialId,
       );
     }
+    // Rodapé recuado ou base aparente: chapa embaixo da caixa, na altura dos
+    // pés. Numa fileira de painel compartilhado cada módulo leva o seu trecho,
+    // que encosta no do vizinho; a lateral da base aparente só vai na ponta.
+    const legs = m.look?.legs;
+    if (m.feet && (legs === 'plinth' || legs === 'skirt')) {
+      const mat = m.look?.legMaterialId ?? m.materialId;
+      const f = m.feet;
+      const inL = s.has('left') ? PROFILE.panel / 2 : 0,
+        inR = s.has('right') ? PROFILE.panel / 2 : 0;
+      const recess = legs === 'plinth' ? PLINTH_RECESS : 0;
+      // O rodapé recuado fica meio painel para dentro nas duas pontas; a base
+      // aparente vai rente, menos onde encontra o vizinho.
+      const x0 = legs === 'plinth' ? -w / 2 + PROFILE.panel / 2 : -w / 2 + inL,
+        x1 = legs === 'plinth' ? w / 2 - PROFILE.panel / 2 : w / 2 - inR;
+      add(m, id('plinth'), legs === 'plinth' ? 'Rodapé' : 'Base frontal', [x1 - x0, f, PROFILE.panel], [(x0 + x1) / 2, -f / 2, m.depth / 2 - recess - PROFILE.panel / 2], PROFILE.panel, 'plinth', undefined, mat);
+      if (legs === 'skirt')
+        for (const [sideKey, sx] of [['left', -1], ['right', 1]] as const)
+          if (!s.has(sideKey))
+            add(m, id(`plinth-${sideKey}`), sideKey === 'left' ? 'Base lateral esquerda' : 'Base lateral direita', [PROFILE.panel, f, m.depth - PROFILE.panel], [sx * (w / 2 - PROFILE.panel / 2), -f / 2, -PROFILE.panel / 2], PROFILE.panel, 'plinth', undefined, mat);
+    }
   }
-  for (const { m, c, origin, size } of panels) {
+  for (const { m, c, origin, size, behind } of panels) {
     const actual: Vec = [...size],
       pos: Vec = origin.map((v, i) => v + size[i] / 2) as Vec;
     if (c.split!.legacyShelf) {
@@ -822,8 +1269,10 @@ export function generateComposition(input: Composition, validate = true) {
       actual[2] -= 10;
       pos[2] += 5;
     } else {
-      actual[2] -= PROFILE.front + PROFILE.reveal;
-      pos[2] -= (PROFILE.front + PROFILE.reveal) / 2;
+      // Atrás de porta de correr, a divisão recua também o trilho de trás.
+      const recess = PROFILE.front + PROFILE.reveal + (behind === 'sliding' ? SLIDE_TRACK : 0);
+      actual[2] -= recess;
+      pos[2] -= recess / 2;
     }
     add(
       m,
@@ -843,8 +1292,10 @@ export function generateComposition(input: Composition, validate = true) {
       [w, h, dep] = info.size;
     const mat = f.materialId ?? m.materialId;
     const frontZ = z + dep - PROFILE.front / 2;
+    const handle: NonNullable<ModularPart['handle']> = { type: f.handle ?? m.look?.handle ?? 'bar', materialId: m.look?.handleMaterialId ?? DEFAULT_HANDLE_MATERIAL };
     if (f.type === 'single' || f.type === 'double') {
       const count = f.type === 'double' ? 2 : 1;
+      const style = frontStyleOf(m, f, false);
       // Portas dividem a largura livre em milímetro inteiro: a última da
       // direita fica com a sobra, como as colunas de uma divisão.
       const widths = wholeParts(
@@ -854,33 +1305,79 @@ export function generateComposition(input: Composition, validate = true) {
       let start = x + PROFILE.reveal;
       for (let i = 0; i < count; i++) {
         const fw = widths[i],
+          fh = h - 2 * PROFILE.reveal,
           left = count === 2 ? i === 0 : f.hinge === 'left',
           cx = start + fw / 2;
         start += fw + PROFILE.reveal;
+        const face = frontFace(style, fw, fh);
+        const motion: ModularPart['motion'] = {
+          id: `${f.id}:door-${i}`,
+          type: 'door',
+          pivot: [
+            cx + (left ? -fw / 2 : fw / 2),
+            y + h / 2,
+            frontZ + PROFILE.front / 2,
+          ],
+          direction: left ? -1 : 1,
+          travel: (95 * Math.PI) / 180,
+        };
         add(
           m,
           `${f.id}:door-${i}`,
           `Porta ${i + 1}`,
-          [fw, h - 2 * PROFILE.reveal, PROFILE.front],
+          [fw, fh, PROFILE.front],
           [cx, y + h / 2, frontZ],
           PROFILE.front,
           'door',
           info.id,
           mat,
-          {
-            id: `${f.id}:door-${i}`,
-            type: 'door',
-            pivot: [
-              cx + (left ? -fw / 2 : fw / 2),
-              y + h / 2,
-              frontZ + PROFILE.front / 2,
-            ],
-            direction: left ? -1 : 1,
-            travel: (95 * Math.PI) / 180,
-          },
+          motion,
+          { ...(face ? { face } : {}), handle },
         );
+        insertOf(m, `${f.id}:door-${i}`, `da porta ${i + 1}`, [cx, y + h / 2, frontZ], [fw, fh], face, style, info.id, motion);
       }
+    } else if (f.type === 'sliding') {
+      // Porta de correr: folhas em dois trilhos, alternando frente e trás,
+      // que se sobrepõem 30 mm. A da frente corre por cima da vizinha da
+      // direita; a de trás (e a última da frente) corre para a esquerda.
+      const style = frontStyleOf(m, f, false);
+      const n = f.heights.length;
+      const fh = h - 2 * PROFILE.reveal;
+      if (n < 2 || n > 4) throw new Error(`${m.name}: porta de correr com 2 a 4 folhas.`);
+      const widths = wholeParts(w - 2 * PROFILE.reveal + (n - 1) * SLIDE_OVERLAP, Array(n).fill(1));
+      if (widths.some((v) => v < 250))
+        throw new Error(`${m.name}: ${n} folhas de correr num vão de ${Math.round(w)} mm deixam folha com menos de 250 mm; use menos folhas.`);
+      if (fh < 300) throw new Error(`${m.name}: porta de correr pede pelo menos 300 mm de altura.`);
+      let start = x + PROFILE.reveal;
+      widths.forEach((fw, i) => {
+        const back = i % 2 === 1;
+        const cx = start + fw / 2,
+          cz = frontZ - (back ? SLIDE_TRACK : 0);
+        start += fw - SLIDE_OVERLAP;
+        const face = frontFace(style, fw, fh);
+        const motion: ModularPart['motion'] = { id: `${f.id}:leaf-${i}`, type: 'slide', pivot: [0, 0, 0], direction: back || i === n - 1 ? -1 : 1, travel: fw - SLIDE_OVERLAP, track: back ? 1 : 0 };
+        add(m, `${f.id}:leaf-${i}`, `Folha de correr ${i + 1}`, [fw, fh, PROFILE.front], [cx, y + h / 2, cz], PROFILE.front, 'door', info.id, mat, motion, { ...(face ? { face } : {}), handle });
+        insertOf(m, `${f.id}:leaf-${i}`, `da folha ${i + 1}`, [cx, y + h / 2, cz], [fw, fh], face, style, info.id, motion);
+      });
+    } else if (f.type === 'flap') {
+      // Basculante: uma folha que gira na aresta de cima e sobe, com pistão.
+      const style = frontStyleOf(m, f, false);
+      const fw = w - 2 * PROFILE.reveal,
+        fh = h - 2 * PROFILE.reveal;
+      if (fh < FLAP_HEIGHT[0] || fh > FLAP_HEIGHT[1])
+        throw new Error(`${m.name}: porta basculante com ${FLAP_HEIGHT[0]} a ${FLAP_HEIGHT[1]} mm de altura (o vão dá ${Math.round(fh)} mm); divida o vão ou use porta de giro.`);
+      const face = frontFace(style, fw, fh);
+      const motion: ModularPart['motion'] = {
+        id: `${f.id}:flap`,
+        type: 'flap',
+        pivot: [x + w / 2, y + h - PROFILE.reveal, frontZ + PROFILE.front / 2],
+        direction: 1,
+        travel: (100 * Math.PI) / 180,
+      };
+      add(m, `${f.id}:flap`, 'Porta basculante', [fw, fh, PROFILE.front], [x + w / 2, y + h / 2, frontZ], PROFILE.front, 'door', info.id, mat, motion, { ...(face ? { face } : {}), handle });
+      insertOf(m, `${f.id}:flap`, 'da basculante', [x + w / 2, y + h / 2, frontZ], [fw, fh], face, style, info.id, motion);
     } else {
+      const style = frontStyleOf(m, f, true);
       const available =
         h - 2 * PROFILE.reveal - (f.heights.length - 1) * PROFILE.reveal;
       // Frentes de gaveta em milímetro inteiro, de baixo para cima: cada uma
@@ -910,6 +1407,7 @@ export function generateComposition(input: Composition, validate = true) {
             travel: bd * 0.7,
           };
         const frontCenter = bottom + fh / 2;
+        const face = frontFace(style, w - 2 * PROFILE.reveal, fh);
         add(
           m,
           `${group}:front`,
@@ -921,6 +1419,7 @@ export function generateComposition(input: Composition, validate = true) {
           info.id,
           mat,
           motion,
+          { ...(face ? { face } : {}), handle },
         );
         const bz = z + PROFILE.rearSpace + bd / 2,
           by = bottom + PROFILE.drawerBottom + bh / 2;
@@ -972,6 +1471,35 @@ export function generateComposition(input: Composition, validate = true) {
       }
     }
   }
+  // Tampo sobreposto: uma peça por fileira que divide o mesmo tampo, apoiada
+  // em cima das caixas, com avanço na frente e nas pontas livres.
+  const topKey = (m: Module) => (m.look?.top ? JSON.stringify(m.look.top) : null);
+  for (const run of runsOf(d, topKey)) {
+    const spec = moduleBy(d, run.ids[0]).look!.top as TopSpec;
+    const y0 = run.top,
+      y1 = run.top + spec.thickness;
+    const left = freeReach(d, run, 's0', spec.overhang, y0, y1),
+      right = freeReach(d, run, 's1', spec.overhang, y0, y1);
+    const face: Face | undefined = spec.edge === 'square' ? undefined : { kind: 'edge', profile: spec.edge, radius: Math.min(spec.thickness / 2, 10) };
+    addLongRun(run, `${run.ids[0]}:slab`, 'Tampo sobreposto', run.s0 - left, run.s1 + right, y0, y1, run.back, run.front + spec.overhang, 'slab', spec.materialId, ['c1', 'l1', 'l2'], face);
+  }
+  // Moldura do topo: faixa em pé na frente (e nas pontas livres) e capa por
+  // cima avançando mais, como uma cimalha. Uma por fileira.
+  for (const run of runsOf(d, (m) => (m.look?.cornice ? m.materialId : null))) {
+    const mat = moduleBy(d, run.ids[0]).materialId;
+    const y0 = run.top,
+      y1 = y0 + CORNICE.fascia,
+      y2 = y1 + CORNICE.cap;
+    const reachL = freeReach(d, run, 's0', CORNICE.capReach, y0, y2),
+      reachR = freeReach(d, run, 's1', CORNICE.capReach, y0, y2);
+    const fL = reachL ? CORNICE.fasciaReach : 0,
+      fR = reachR ? CORNICE.fasciaReach : 0;
+    const P = PROFILE.panel;
+    addLongRun(run, `${run.ids[0]}:cornice`, 'Moldura frontal', run.s0 - fL, run.s1 + fR, y0, y1, run.front + CORNICE.fasciaReach - P, run.front + CORNICE.fasciaReach, 'cornice', mat, ['c1']);
+    if (fL) addRun(run, `${run.ids[0]}:cornice-left`, 'Moldura lateral esquerda', run.s0 - fL, run.s0 - fL + P, y0, y1, run.back, run.front + CORNICE.fasciaReach - P, 'cornice', mat, ['c1']);
+    if (fR) addRun(run, `${run.ids[0]}:cornice-right`, 'Moldura lateral direita', run.s1 + fR - P, run.s1 + fR, y0, y1, run.back, run.front + CORNICE.fasciaReach - P, 'cornice', mat, ['c1']);
+    addLongRun(run, `${run.ids[0]}:cornice-cap`, 'Capa da moldura', run.s0 - reachL, run.s1 + reachR, y1, y2, run.back, run.front + CORNICE.capReach, 'cornice', mat, ['c1', 'l1', 'l2']);
+  }
   for (const c of d.connections.filter((c) => c.shared)) {
     const parent = moduleBy(d, c.parent),
       child = moduleBy(d, c.child);
@@ -1021,16 +1549,20 @@ export function generateComposition(input: Composition, validate = true) {
       }
   if (validate)
     for (let i = 0; i < parts.length; i++)
-      for (let j = i + 1; j < parts.length; j++)
+      for (let j = i + 1; j < parts.length; j++) {
+        // Peças que abrem juntas (a porta e o vidro dela, a frente e a caixa
+        // da gaveta) são montadas pelo próprio gerador, uma dentro da outra.
+        if (parts[i].motion && parts[i].motion!.id === parts[j].motion?.id) continue;
         if (collide(parts[i], parts[j]))
           throw new Error(
             `Interpenetração: ${parts[i].name} e ${parts[j].name}.`,
           );
+      }
   const boxes = parts.map(bounds);
   const min = [0, 1, 2].map((i) => Math.min(...boxes.map((b) => b.min[i]))),
     max = [0, 1, 2].map((i) => Math.max(...boxes.map((b) => b.max[i])));
   // Os pés chegam ao piso: o conjunto começa na posição do módulo.
-  for (const m of d.modules) if (m.feet) min[1] = Math.min(min[1], m.position[1]);
+  for (const m of d.modules) if (m.feet || m.kind === 'table') min[1] = Math.min(min[1], m.position[1]);
   return {
     parts,
     cells,
@@ -1050,6 +1582,9 @@ export function generateComposition(input: Composition, validate = true) {
       ...d.modules
         .filter((m) => m.position[1] > 0 && !isFlat(m) && !m.wall)
         .map((m) => `${m.name}: revisar apoio e fixação do módulo elevado.`),
+      ...(d.modules.some((m) => m.look?.top && categoryOf(m.look.top.materialId) === 'stone')
+        ? ['Tampo de pedra: medir no local depois do móvel instalado; a marmoraria corta e dá o acabamento da borda.']
+        : []),
     ],
   };
 }
@@ -1059,7 +1594,7 @@ export const modularOpSchema = z.union(
     z.object({
       kind: z.literal('module.add'),
       id: mid.optional(),
-      preset: z.enum(['shelf', 'niche', 'rack', 'drawers', 'panel', 'ledge']),
+      preset: z.enum(['shelf', 'niche', 'rack', 'drawers', 'panel', 'ledge', 'table']),
       name: z.string().min(1).max(80).optional(),
     }),
     z.object({
@@ -1070,7 +1605,10 @@ export const modularOpSchema = z.union(
       // espessura. O limite de cada tipo é conferido no módulo.
       width: z.number().min(200).max(PANEL_LIMITS.long).optional(),
       height: z.number().min(LEDGE_LIMITS.thickness[0]).max(PANEL_LIMITS.long).optional(),
-      depth: z.number().min(PANEL_LIMITS.thickness[0]).max(800).optional(),
+      depth: z.number().min(PANEL_LIMITS.thickness[0]).max(TABLE_LIMITS.depth[1]).optional(),
+      shelves: z.number().int().min(0).max(TABLE_LIMITS.shelves).optional(),
+      drawers: z.number().int().min(0).max(TABLE_LIMITS.drawers).optional(),
+      hooks: z.number().int().min(0).max(HOOKS_MAX).optional(),
       materialId: material.optional(),
       back: z.boolean().optional(),
       feet: z.number().min(0).max(PANEL_LIMITS.feet[1]).optional(),
@@ -1079,6 +1617,7 @@ export const modularOpSchema = z.union(
         .union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)])
         .optional(),
       position: z.tuple([z.number(), z.number(), z.number()]).optional(),
+      look: lookPatchSchema.optional(),
     }),
     z.object({
       kind: z.literal('module.duplicate'),
@@ -1112,10 +1651,12 @@ export const modularOpSchema = z.union(
     z.object({
       kind: z.literal('front.set'),
       id: mid,
-      type: z.enum(['single', 'double', 'drawers', 'none']),
+      type: z.enum(['single', 'double', 'drawers', 'sliding', 'flap', 'none']),
       hinge: z.enum(['left', 'right']).optional(),
       count: z.number().int().min(1).max(6).optional(),
       materialId: material.optional(),
+      style: z.enum(FRONT_STYLES).nullable().optional(),
+      handle: z.enum(HANDLE_TYPES).nullable().optional(),
     }),
     z.object({
       kind: z.literal('drawer.height'),
@@ -1146,6 +1687,13 @@ export type ModularOp =
       wall?: boolean;
       rotation?: Module['rotation'];
       position?: Vec;
+      /** Mesa: níveis embaixo do tampo e gavetas no avental. */
+      shelves?: number;
+      drawers?: number;
+      /** Painel de parede: ganchos de cabideiro. */
+      hooks?: number;
+      /** Acabamento: cada campo substitui o atual; `null` tira. */
+      look?: LookPatch;
     }
   | { kind: 'module.duplicate'; id: string; newId?: string }
   | { kind: 'module.remove'; id: string }
@@ -1169,6 +1717,9 @@ export type ModularOp =
       hinge?: 'left' | 'right';
       count?: number;
       materialId?: MaterialId;
+      /** Estilo e puxador só desta frente; `null` volta ao do módulo. */
+      style?: FrontStyle | null;
+      handle?: HandleType | null;
     }
   | { kind: 'drawer.height'; id: string; index: number; height: number };
 function resizeCells(node: Cell, oldSize: number[], newSize: number[]) {
@@ -1199,6 +1750,15 @@ function resizeCells(node: Cell, oldSize: number[], newSize: number[]) {
     next[axis] = i ? newSize[axis] - PROFILE.panel - low : low;
     resizeCells(child, prev, next);
   });
+}
+/**
+ * Altura nova da caixa com os vãos redimensionados na proporção, como no
+ * `module.edit`. Serve a quem troca a base ou o tampo e guarda o envelope
+ * (o estilo): a caixa cede o que o pé, o tampo ou a moldura ganham.
+ */
+export function setBoxHeight(m: Module, height: number) {
+  if (isBox(m)) resizeCells(m.root, [m.width - 36, m.height - 36], [m.width - 36, height - 36]);
+  m.height = height;
 }
 /** Eixo da frente (z local) e lateral (x local) de uma rotação, no plano xz do mundo. */
 function axes(rotation: number) {
@@ -1330,10 +1890,11 @@ export function applyModularOp(
   if (!parsed.success) throw new Error(validationMessage(parsed.error));
   const op = parsed.data as ModularOp,
     d: Composition = structuredClone({
-      schemaVersion: 3,
+      schemaVersion: SCHEMA_VERSION,
       profile: input.profile,
       modules: input.modules,
       connections: input.connections,
+      ...(input.style ? { style: input.style } : {}),
     });
   settle(d, validate);
   // A operação trabalha na linha da parede; quem fica preso em painel é
@@ -1378,9 +1939,18 @@ export function applyModularOp(
       if (Math.abs(front(patch.position) - (front(m.position) + mount.by)) <= 1)
         patch.position = [patch.position[0] - mount.by * step[0], patch.position[1], patch.position[2] - mount.by * step[1]];
     }
+    const { look: lookPatch, ...rest } = patch;
     // Pés numa fileira de painéis compartilhados valem para a fileira toda:
-    // metade com pés e metade sem é uma lateral que não fecha.
-    if (op.feet !== undefined) {
+    // metade com pés e metade sem é uma lateral que não fecha. O tipo de base
+    // (palito, rodapé, estrutura) vai junto, pela mesma razão.
+    // Sem pés (feet 0) a base sai junto, a não ser que o pedido diga outra.
+    const base: LookPatch | null =
+      op.feet === 0 && lookPatch?.legs === undefined
+        ? { legs: null, legMaterialId: null }
+        : lookPatch && (lookPatch.legs !== undefined || lookPatch.legMaterialId !== undefined)
+          ? { ...(lookPatch.legs !== undefined ? { legs: lookPatch.legs } : {}), ...(lookPatch.legMaterialId !== undefined ? { legMaterialId: lookPatch.legMaterialId } : {}) }
+          : null;
+    if (op.feet !== undefined || base) {
       const row = new Set([m.id]);
       for (let grew = true; grew; ) {
         grew = false;
@@ -1391,15 +1961,28 @@ export function applyModularOp(
               grew = true;
             }
       }
-      for (const other of d.modules) if (row.has(other.id) && other.id !== m.id) other.feet = op.feet;
+      for (const other of d.modules)
+        if (row.has(other.id) && other.id !== m.id) {
+          if (op.feet !== undefined) other.feet = op.feet;
+          if (base) {
+            other.look = patchLook(other.look, base);
+            if (!other.look) delete other.look;
+          }
+        }
     }
-    if (!isFlat(m))
+    if (isBox(m))
       resizeCells(
         m.root,
         [m.width - 36, m.height - 36],
         [(op.width ?? m.width) - 36, (op.height ?? m.height) - 36],
       );
-    Object.assign(m, patch);
+    Object.assign(m, rest);
+    // Zero é ausente: o projeto gravado não guarda nível, gaveta ou gancho que não existe.
+    for (const k of ['shelves', 'drawers', 'hooks'] as const) if (m[k] === 0) delete m[k];
+    if (lookPatch || base) {
+      m.look = patchLook(m.look, { ...base, ...lookPatch });
+      if (!m.look) delete m.look;
+    }
   } else if (op.kind === 'module.remove') {
     if (d.modules.length === 1) throw new Error('Mantenha ao menos um módulo.');
     moduleBy(d, op.id);
@@ -1417,10 +2000,8 @@ export function applyModularOp(
     if (reference.id === attached.id)
       throw new Error('Um módulo não pode ser conectado a si mesmo.');
     for (const m of [reference, attached])
-      if (isFlat(m))
-        throw new Error(
-          `${m.name} é ${m.kind === 'ledge' ? 'uma prateleira de parede' : 'um painel de parede'} e não se conecta: posicione com module.edit {position}.`,
-        );
+      if (!isBox(m))
+        throw new Error(`${m.name} é ${kindWord(m)} e não se conecta: posicione com module.edit {position}.`);
     if (op.side === 'top' && attached.feet)
       throw new Error(`${attached.name} vai em cima de outro módulo: tire os pés (feet 0) antes.`);
     if (op.shared) {
@@ -1437,6 +2018,11 @@ export function applyModularOp(
           ? { width: reference.width }
           : { height: reference.height }),
       });
+      // Lado a lado, a base é a mesma (rodapé, estrutura ou pé).
+      if (op.side !== 'top') {
+        attached.look = patchLook(attached.look, { legs: reference.look?.legs ?? null, legMaterialId: reference.look?.legMaterialId ?? null });
+        if (!attached.look) delete attached.look;
+      }
       resizeCells(
         attached.root,
         [before[0] - 36, before[1] - 36],
@@ -1536,6 +2122,8 @@ export function applyModularOp(
           });
           if (inner) throw new Error('Tire as frentes de dentro deste vão antes de pôr uma porta que cobre o vão inteiro.');
         }
+        const style = op.style === null ? undefined : (op.style ?? c.front?.style),
+          handle = op.handle === null ? undefined : (op.handle ?? c.front?.handle);
         c.front = {
           id: c.front?.id ?? uid('front'),
           type: op.type,
@@ -1545,8 +2133,11 @@ export function applyModularOp(
             c.front?.type === op.type &&
             (!op.count || op.count === c.front.heights.length)
               ? c.front.heights
-              : Array(op.type === 'drawers' ? (op.count ?? 3) : 1).fill(1),
+              : Array(op.type === 'drawers' ? (op.count ?? 3) : op.type === 'sliding' ? (op.count ?? 2) : 1).fill(1),
+          ...(style ? { style } : {}),
+          ...(handle ? { handle } : {}),
         };
+        if (!c.front.materialId) delete c.front.materialId;
       }
     } else if (op.kind === 'drawer.height') {
       const f = c.front;
@@ -1587,7 +2178,7 @@ export function feetOf(d: Composition): Foot[] {
   const out: Foot[] = [];
   for (const m of d.modules) {
     const h = m.feet ?? 0;
-    if (!h || isFlat(m)) continue;
+    if (!h || !isBox(m)) continue;
     const x = m.width / 2 - 50,
       z = m.depth / 2 - 40;
     for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
@@ -1602,38 +2193,33 @@ export function feetOf(d: Composition): Foot[] {
   }
   return out;
 }
-/**
- * Peças para desenhar (miniatura, prancha, imagem que a IA confere): as de
- * corte mais um bloco fino por pé. Os pés não entram na lista de corte, mas
- * sem eles um rack de pés palito parece flutuar no desenho.
- */
-export function drawingParts(d: Composition): ModularPart[] {
-  const g = generateComposition(d, false);
-  const legs = feetOf(d).map((f, i): ModularPart => {
-    const m = d.modules.find((v) => v.id === f.moduleId)!;
-    const color = materials.find((v) => v.id === m.materialId)!;
-    const w = f.radius[0] * 2;
-    return {
-      id: `${f.moduleId}:foot-${i}`,
-      name: 'Pé',
-      kind: 'side',
-      size: [w, f.height, w],
-      position: f.position,
-      rotation: 0,
-      c: f.height,
-      l: w,
-      thickness: w,
-      material: color.name,
-      color: color.color,
-      owners: [f.moduleId],
-      edges: { c1: null, c2: null, l1: null, l2: null },
-    };
-  });
-  return [...g.parts, ...legs];
-}
 export function openingPose(part: ModularPart, fraction: number): ModularPart {
   if (!part.motion) return part;
   const m = part.motion;
+  if (m.type === 'slide') {
+    // Corre no trilho, ao longo do x do módulo.
+    const dist = m.direction * m.travel * fraction;
+    return {
+      ...part,
+      position: [part.position[0] + Math.cos(part.rotation) * dist, part.position[1], part.position[2] - Math.sin(part.rotation) * dist],
+    };
+  }
+  if (m.type === 'flap') {
+    // Gira na aresta de cima: a borda de baixo vem para a frente e sobe.
+    const angle = -m.direction * m.travel * fraction;
+    const front = [Math.sin(part.rotation), Math.cos(part.rotation)];
+    const dy = part.position[1] - m.pivot[1],
+      dz = (part.position[0] - m.pivot[0]) * front[0] + (part.position[2] - m.pivot[2]) * front[1];
+    const y = dy * Math.cos(angle) - dz * Math.sin(angle),
+      z = dy * Math.sin(angle) + dz * Math.cos(angle);
+    // O deslocamento lateral (ao longo do x do módulo) fica como estava.
+    const lateral = [part.position[0] - m.pivot[0] - dz * front[0], part.position[2] - m.pivot[2] - dz * front[1]];
+    return {
+      ...part,
+      position: [m.pivot[0] + lateral[0] + z * front[0], m.pivot[1] + y, m.pivot[2] + lateral[1] + z * front[1]],
+      tilt: angle,
+    };
+  }
   if (m.type === 'drawer') {
     const dist = m.travel * fraction;
     return {
@@ -1675,7 +2261,7 @@ export function openingLimit(
     ...moving.map((p) =>
       Math.ceil(
         (p.motion!.travel *
-          (p.motion!.type === 'door' ? Math.hypot(p.size[0], p.size[2]) : 1)) /
+          (p.motion!.type === 'door' ? Math.hypot(p.size[0], p.size[2]) : p.motion!.type === 'flap' ? Math.hypot(p.size[1], p.size[2]) : 1)) /
           2,
       ),
     ),

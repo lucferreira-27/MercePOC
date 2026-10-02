@@ -1,5 +1,4 @@
-import { appendFileSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { pruneTraces, traceSink } from '#platform';
 
 /**
  * Registro completo de um pedido ao assistente, uma linha JSON por evento:
@@ -9,12 +8,13 @@ import { join } from 'node:path';
  * conversa guarda só os rótulos das etapas; sem isto, "por que a IA desfez?"
  * não tinha resposta depois do fato.
  *
- * Fica em `<MERCE_DATA_DIR ou data>/logs/<dia>/<hora>-<requestId>.jsonl`, fora
- * do git. MERCE_TRACE=off desliga. Pastas de dias com mais de
- * MERCE_TRACE_DAYS (padrão 30) são apagadas uma vez por processo.
+ * No Node fica em `<MERCE_DATA_DIR ou data>/logs/<dia>/<hora>-<requestId>.jsonl`,
+ * fora do git. Na Cloudflare vai para o SQLite do Durable Object e sai por
+ * `/api/traces`. MERCE_TRACE=off desliga. Registros de dias com mais de
+ * MERCE_TRACE_DAYS (padrão 30) são apagados uma vez por processo.
  */
 export type Trace = {
-  /** Arquivo do registro; null quando desligado. */
+  /** Onde ler o registro; null quando desligado. */
   file: string | null;
   write: (event: string, data?: Record<string, unknown>) => void;
 };
@@ -23,18 +23,12 @@ export const NO_TRACE: Trace = { file: null, write: () => {} };
 
 let pruned = false;
 
-function logsDir() {
-  return join(process.env.MERCE_DATA_DIR || join(process.cwd(), 'data'), 'logs');
-}
-
-function prune(dir: string) {
+function prune() {
   if (pruned) return;
   pruned = true;
   const days = Number(process.env.MERCE_TRACE_DAYS) || 30;
-  const oldest = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
   try {
-    for (const name of readdirSync(dir))
-      if (/^\d{4}-\d{2}-\d{2}$/.test(name) && name < oldest) rmSync(join(dir, name), { recursive: true, force: true });
+    pruneTraces(new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10));
   } catch {}
 }
 
@@ -52,23 +46,21 @@ export function openTrace(requestId: string, meta: Record<string, unknown> = {})
   if (process.env.MERCE_TRACE === 'off') return NO_TRACE;
   const started = Date.now();
   const now = new Date(started);
-  const dir = join(logsDir(), now.toISOString().slice(0, 10));
   const safe = requestId.replace(/[^\w-]/g, '').slice(0, 64) || 'pedido';
-  const file = join(dir, `${now.toISOString().slice(11, 19).replaceAll(':', '')}-${safe}.jsonl`);
+  let sink;
   try {
-    mkdirSync(dir, { recursive: true });
-    prune(logsDir());
+    sink = traceSink(`${now.toISOString().slice(0, 10)}/${now.toISOString().slice(11, 19).replaceAll(':', '')}-${safe}`);
+    prune();
   } catch {
     return NO_TRACE;
   }
+  if (!sink) return NO_TRACE;
+  const out = sink;
   let broken = false;
   const write = (event: string, data: Record<string, unknown> = {}) => {
     if (broken) return;
     try {
-      // Síncrono de propósito: a linha fica no disco mesmo se o processo cair
-      // logo depois, que é justamente quando o registro importa.
-      appendFileSync(
-        file,
+      out.append(
         `${JSON.stringify({ at: new Date().toISOString(), ms: Date.now() - started, event, ...(stripImages(data) as object) })}\n`,
       );
     } catch {
@@ -77,5 +69,5 @@ export function openTrace(requestId: string, meta: Record<string, unknown> = {})
     }
   };
   write('trace.open', { requestId, ...meta });
-  return { file, write };
+  return { file: out.file, write };
 }

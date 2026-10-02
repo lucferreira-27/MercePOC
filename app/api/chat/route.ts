@@ -13,7 +13,7 @@ import {
   type ShelfOp,
 } from '@/lib/studio';
 import { canonical, entityIds } from '@/lib/studio';
-import { drawingParts } from '@/lib/composition';
+import { drawingParts } from '@/lib/fittings';
 import {
   type Progress,
   type TextPreview,
@@ -23,7 +23,7 @@ import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
 import { getImage, imageDataUrl, saveImage, type ImageRef } from '@/lib/images';
 import { planDataUrl, planPng } from '@/lib/plan-render';
-import { mergePrices, money, quote } from '@/lib/quote';
+import { mergePrices, money, quoteOf } from '@/lib/quote';
 import { runAgentTurn, type TurnDiagnostics } from '@/lib/agent/turn';
 import { openTrace } from '@/lib/trace';
 import { UI_TABS, VIEW_MODES, type AgentEvent } from '@/lib/agent/types';
@@ -38,7 +38,6 @@ import {
   type ProviderUsage,
   type TurnUsage,
 } from '@/lib/models';
-import type { ModularPart } from '@/lib/composition';
 import type { Design } from '@/lib/studio';
 
 /**
@@ -47,7 +46,7 @@ import type { Design } from '@/lib/studio';
  */
 function quoteSummary(design: Design, prices: unknown) {
   try {
-    const q = quote(generateDesign(design).parts as ModularPart[], design.modules.length, mergePrices(prices));
+    const q = quoteOf(canonical(design), mergePrices(prices));
     const sheets = q.plan.groups
       .map((g) => `${g.sheets}× ${g.material} ${g.thickness} mm (${Math.round(g.efficiency * 100)}% aproveitada)`)
       .join('; ');

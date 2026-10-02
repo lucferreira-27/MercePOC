@@ -17,6 +17,7 @@ import { type Progress, type TextPreview } from '@/lib/progress';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { flushSync } from 'react-dom';
 import { renderPrintShot } from '@/lib/print-render';
+import { shrinkImage } from '@/lib/shrink-image';
 import {
   ArrowDown,
   ArrowUp,
@@ -111,8 +112,12 @@ import { PartsPanel } from '@/components/parts-panel';
 import { OptionCards } from '@/components/option-cards';
 import type { OptionCard } from '@/lib/agent/types';
 import { cutPlan } from '@/lib/cutplan';
-import { entityIds, canonical, selectedPartIds } from '@/lib/studio';
-import { drawingParts, openingLimit, openingPose, type ModularPart } from '@/lib/composition';
+import { entityIds, canonical, normalize, selectedPartIds } from '@/lib/studio';
+import { StylePicker, type StyleScope } from '@/components/style-picker';
+import { applyStyle, STYLES } from '@/lib/styles';
+import type { StyleId } from '@/lib/look';
+import { openAllGroups, openingLimit, openingPose, SCHEMA_VERSION, type ModularPart } from '@/lib/composition';
+import { drawingParts, fittingsOf } from '@/lib/fittings';
 import { emptyRoom, fitWallsToCeiling, roomChangeLabel, fitReport, fitSummary, freeSpot, MAIN_WALL, obstacleWord, OBSTACLE_LABEL, presetObstacle, presetWall, resizeMainWall, roomOffset, wallAt, wallWord, ROOM_LIMITS, type MainWallEdge, type Obstacle, type ObstacleKind, type Room, type Wall } from '@/lib/room';
 import { moduleBoxes } from '@/lib/move';
 import { DEFAULT_PRICES, mergePrices, money, quote as buildQuote, type Prices } from '@/lib/quote';
@@ -381,6 +386,10 @@ export default function Home() {
     [placingWall, setPlacingWall] = useState<{ wall: Wall; base: Room } | null>(null),
     // Ambiente com o campo que a pessoa está digitando, antes de gravar.
     [roomPreview, setRoomPreview] = useState<Room | null>(null),
+    /** Prévia do estilo no painel: o projeto vestido, ainda não gravado. */
+    [stylePreview, setStylePreview] = useState<{ style: StyleId; ids?: string[]; design: Design; version: number; changed: number } | null>(null),
+    [styleScope, setStyleScope] = useState<StyleScope>('project'),
+    [styleError, setStyleError] = useState(''),
     // Aviso curto na cena com "Desfazer": tirar um obstáculo é um clique só.
     [stageToast, setStageToast] = useState<{ text: string; version: number } | null>(null),
     /**
@@ -848,7 +857,9 @@ export default function Home() {
   );
   /** Revendo uma versão que não é a atual, ou no meio da reprodução: só olhar. */
   const reviewLocked = !!reviewData && (!!review?.playing || !reviewData.current);
-  const visualParams = agentDraft?.params ?? reviewFrame?.design ?? p?.revisions[historyPreview ?? p.cursor].params;
+  // A prévia do estilo só vale para a versão em que nasceu: qualquer edição a apaga.
+  const styleShown = stylePreview && p && stylePreview.version === p.version && historyPreview === null ? stylePreview : null;
+  const visualParams = agentDraft?.params ?? reviewFrame?.design ?? styleShown?.design ?? p?.revisions[historyPreview ?? p.cursor].params;
   const visualBounds = useMemo(() => (visualParams ? designOf(visualParams).bounds : null), [visualParams]);
   const visualSize = useMemo(
     () => (visualBounds ? ([0, 1, 2].map((i) => visualBounds.max[i] - visualBounds.min[i]) as [number, number, number]) : null),
@@ -890,9 +901,10 @@ export default function Home() {
     if (!p) return [];
     if (agentDraft) return designOf(agentDraft.params).parts;
     if (reviewFrame) return designOf(reviewFrame.design).parts;
+    if (styleShown) return designOf(styleShown.design).parts;
     const rev = p.revisions[historyPreview ?? p.cursor];
     return historyPreview === null || historyPreview === p.cursor ? p.parts : designOf(rev.params).parts;
-  }, [p, historyPreview, reviewFrame, agentDraft]);
+  }, [p, historyPreview, reviewFrame, agentDraft, styleShown]);
   // Diff na cena contra o antes do turno: cresce quadro a quadro na reprodução.
   const sceneDiff = useMemo(() => {
     if (!visualParams) return null;
@@ -923,7 +935,7 @@ export default function Home() {
   // Orçamento e plano de corte sempre da versão exibida: arrastar a linha do
   // tempo mostra quanto cada versão custava.
   const quote = useMemo(
-    () => (visualParams ? buildQuote(visualParts as ModularPart[], visualParams.modules.length, prices) : null),
+    () => (visualParams ? buildQuote(visualParts as ModularPart[], visualParams.modules.length, prices, fittingsOf(canonical(visualParams), visualParts as ModularPart[])) : null),
     [visualParts, visualParams, prices],
   );
   // Quanto custava a versão anterior à exibida: a mudança mais recente em reais.
@@ -932,7 +944,7 @@ export default function Home() {
   const previousQuote = useMemo(() => {
     if (!previousRevision) return null;
     const d = designOf(previousRevision.params);
-    return { version: shownIndex, total: buildQuote(d.parts as ModularPart[], previousRevision.params.modules.length, prices).total };
+    return { version: shownIndex, total: buildQuote(d.parts as ModularPart[], previousRevision.params.modules.length, prices, fittingsOf(canonical(previousRevision.params), d.parts as ModularPart[])).total };
   }, [previousRevision, shownIndex, prices]);
   // Números do plano de corte do projeto gravado (a lista de peças é dele).
   const savedParts = p?.parts;
@@ -950,7 +962,7 @@ export default function Home() {
   /** Abre ou fecha todas as frentes de uma vez, respeitando as colisões. */
   function toggleAllFronts() {
     if (historyPreview !== null || !p) return;
-    const groups = [...new Set((p.parts as ModularPart[]).filter((v) => v.motion).map((v) => v.motion!.id))];
+    const groups = openAllGroups(p.parts as ModularPart[]);
     if (!groups.length) {
       setViewNotice('Este projeto não tem portas nem gavetas.');
       return;
@@ -1226,6 +1238,18 @@ export default function Home() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [review]);
+  // Prévia de uma peça só vale para ela: trocou a seleção, a prévia sai.
+  useEffect(() => {
+    setStylePreview((v) => (v?.ids ? null : v));
+  }, [selected]);
+  useEffect(() => {
+    if (!styleShown) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setStylePreview(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [styleShown]);
   useEffect(() => {
     if (!scrubbing) return;
     const onKey = (e: KeyboardEvent) => {
@@ -1309,23 +1333,48 @@ export default function Home() {
     setGalleryMode(mode);
     setGalleryOpen(true);
   }
+  /**
+   * Prévia do estilo: o motor veste o projeto (ou a peça selecionada) aqui
+   * mesmo, sem gravar; a cena, a lista e o orçamento mostram o resultado.
+   */
+  function previewStyle(style: StyleId, ids?: string[]) {
+    if (!p) return;
+    try {
+      const current = p.revisions[p.cursor].params;
+      const design = normalize(applyStyle(canonical(current), style, ids ? { ids } : {}));
+      // Quantos módulos mudam: a peça leva junto a fileira de painel compartilhado.
+      const changed = design.modules.filter((m) => JSON.stringify(m) !== JSON.stringify(current.modules.find((v) => v.id === m.id))).length;
+      setStylePreview({ style, ...(ids ? { ids } : {}), design, version: p.version, changed });
+      setStyleError('');
+    } catch (e) {
+      setStylePreview(null);
+      setStyleError(friendlyError(e));
+    }
+  }
+  async function applyStylePreview() {
+    if (!styleShown) return;
+    const { style, ids } = styleShown;
+    // A prévia fica na cena até a versão nova chegar: sem piscar o antes.
+    await applyOps([{ kind: 'style.apply', style, ...(ids ? { ids } : {}) }], `Estilo ${STYLES[style].label}${ids ? '' : ' no projeto'}`);
+    setStylePreview(null);
+  }
   /** Soma um móvel da biblioteca ao projeto, pelo mesmo contrato do chat. */
-  async function addFromLibrary(asset: string, placement: 'left' | 'right') {
+  async function addFromLibrary(asset: string, placement: 'left' | 'right', style?: StyleId) {
     const name = templates.find((t) => t.id === asset)?.name ?? 'móvel';
     try {
-      await applyOps([{ kind: 'asset.add', asset, placement }], `Biblioteca: ${name}`);
+      await applyOps([{ kind: 'asset.add', asset, placement, ...(style ? { style } : {}) }], `Biblioteca: ${name}${style ? ` ${STYLES[style].label}` : ''}`);
       setGalleryOpen(false);
       setFrameRequest((v) => v + 1);
     } catch {
       // O aviso geral já mostrou o motivo; a biblioteca fica aberta.
     }
   }
-  async function createFromTemplate(template: string) {
+  async function createFromTemplate(template: string, style?: StyleId) {
     if (busy) return;
     setBusy(true);
     setError('');
     try {
-      const created = await api<State>('/api/projects', { action: 'template', template });
+      const created = await api<State>('/api/projects', { action: 'template', template, ...(style ? { style } : {}) });
       setGalleryOpen(false);
       accept(created);
       setSelected([]);
@@ -1740,7 +1789,7 @@ export default function Home() {
     setUploading(true);
     try {
       if (file.size > 10 * 1024 * 1024) throw new Error('A imagem deve ter até 10 MB.');
-      const body = new FormData(); body.append('image', file);
+      const body = new FormData(); body.append('image', await shrinkImage(file));
       const response = await fetch('/api/images', { method: 'POST', body });
       const result = await response.json() as ImageRef & { error?: string };
       if (!response.ok) throw new Error(result.error || 'Não foi possível anexar a imagem.');
@@ -2077,7 +2126,7 @@ export default function Home() {
   const preparePrint = useEvent(() => {
     if (!params || shotFor.current === printDrawing) return;
     shotFor.current = printDrawing;
-    const shot = renderPrintShot(printDrawing, params);
+    const shot = renderPrintShot(printDrawing, params, undefined, fittingsOf(params));
     flushSync(() => setPrintShot(shot));
   });
   function printProject() {
@@ -2098,7 +2147,7 @@ export default function Home() {
       JSON.stringify(
         {
           ...p,
-          schemaVersion: 3,
+          schemaVersion: SCHEMA_VERSION,
           params: canonical(p.params),
           revisions: p.revisions.map((r) => ({ ...r, params: canonical(r.params) })),
           // Medidas gerais fora das revisões: quem lê o arquivo
@@ -2377,6 +2426,38 @@ export default function Home() {
   const onEditorOp = useEvent(op);
   const onEditorOps = useEvent(applyOps);
   const onEditorLibrary = useEvent(() => openGallery('add'));
+  const onStylePreview = useEvent(previewStyle);
+  const onStyleApply = useEvent(() => void applyStylePreview());
+  const projectStyle = p?.params.style;
+  const styleLocked = busyLook || historyPreview !== null || reviewLocked;
+  /** Estilo no topo do painel do projeto: a peça vem do editor (o módulo selecionado). */
+  const styleRow = useCallback(
+    (piece: { id: string; name: string } | null) => {
+      const ids = (scope: StyleScope) => (scope === 'piece' && piece ? [piece.id] : undefined);
+      return (
+        <StylePicker
+          current={projectStyle}
+          piece={piece?.name ?? null}
+          scope={piece ? styleScope : 'project'}
+          onScope={(next) => {
+            setStyleScope(next);
+            if (styleShown) onStylePreview(styleShown.style, ids(next));
+          }}
+          preview={styleShown?.style ?? null}
+          changed={styleShown?.changed ?? 0}
+          error={styleError}
+          busy={styleLocked}
+          onPreview={(style) => onStylePreview(style, ids(styleScope))}
+          onApply={onStyleApply}
+          onCancel={() => {
+            setStylePreview(null);
+            setStyleError('');
+          }}
+        />
+      );
+    },
+    [projectStyle, styleScope, styleShown, styleError, styleLocked, onStylePreview, onStyleApply],
+  );
   const onEditorOpen = useEvent(toggleOpening);
   const conversationUsage = useMemo(() => p?.messages.map((m) => m.usage) ?? [], [p?.messages]);
   // A frase da IA vale para os próximos passos; depois de três etapas já
@@ -2779,7 +2860,7 @@ export default function Home() {
               />
               <p className="proj-meta">
                 {visualSize ? `${metres(visualSize[0])} × ${metres(visualSize[1])} × ${metres(visualSize[2])} m · ` : ''}
-                {p.params.modules.length} {p.params.modules.length === 1 ? 'módulo' : 'módulos'} · {p.parts.length} peças
+                {p.params.modules.length} {p.params.modules.length === 1 ? 'módulo' : 'módulos'} · {p.parts.length} {p.parts.length === 1 ? 'peça' : 'peças'}
                 {quote ? ` · ${money(quote.total)}` : ''}
               </p>
               <p className="proj-meta">
@@ -2910,7 +2991,8 @@ export default function Home() {
                   onOp={onEditorOp}
                   onOps={onEditorOps}
                   onLibrary={onEditorLibrary}
-                  busy={busyLook || historyPreview !== null || reviewLocked}
+                  styleRow={styleRow}
+                  busy={busyLook || historyPreview !== null || reviewLocked || !!styleShown}
                   onOpen={onEditorOpen}
                   opened={opened}
                 />
@@ -3948,7 +4030,7 @@ export default function Home() {
                   <i />
                   {visualParams!.modules.length} {visualParams!.modules.length === 1 ? 'módulo' : 'módulos'}
                   <i />
-                  {visualParts.length} peças
+                  {visualParts.length} {visualParts.length === 1 ? 'peça' : 'peças'}
                   {quote && (
                     <>
                       <i />
@@ -4465,8 +4547,9 @@ export default function Home() {
         busy={busyLook}
         onClose={() => setGalleryOpen(false)}
         onBlank={() => void createProject()}
-        onPick={(id) => void createFromTemplate(id)}
-        onAdd={(id, placement) => void addFromLibrary(id, placement)}
+        projectStyle={p?.params.style}
+        onPick={(id, style) => void createFromTemplate(id, style)}
+        onAdd={(id, placement, style) => void addFromLibrary(id, placement, style)}
       />
       {p && quote && visualSize && (
         <PrintSheet

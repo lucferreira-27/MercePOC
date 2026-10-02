@@ -1,4 +1,5 @@
-import { applyModularOp, drawingParts, type Composition, type ModularOp, type ModularPart } from './composition';
+import { applyModularOp, type Composition, type ModularOp, type ModularPart } from './composition';
+import { drawingParts } from './fittings';
 
 /**
  * Mover um móvel à mão, na cena: o conjunto que se move, o encaixe nas bordas
@@ -110,7 +111,7 @@ function merge(boxes: Box[]): Box | null {
 
 /** Caixa de cada módulo no mundo, pelas peças de desenho (com os pés). */
 export function moduleBoxes(d: Composition) {
-  const parts = drawingParts(d);
+  const parts = drawingParts(d).filter((p) => !p.decal);
   const boxes = new Map<string, Box>();
   for (const m of d.modules) {
     const box = merge(parts.filter((p) => p.owners[0] === m.id).map(partBox));

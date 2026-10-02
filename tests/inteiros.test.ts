@@ -22,7 +22,7 @@ function cabinet(id: string, width: number, height: number): Composition {
   m.height = height;
   m.depth = 350;
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     profile: PROFILE,
     modules: [m],
     connections: [],

@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import type { Part } from './furniture';
 import { FurnitureMotion } from './furniture-motion';
+import type { Fitting } from './fittings';
+import { buildFittings } from './scene-fittings';
 
 /** Tamanho da foto do PDF: a largura útil do A4 em ~250 dpi, na proporção do quadro. */
 export const PRINT_SHOT = { width: 1920, height: 1100 } as const;
@@ -78,6 +80,7 @@ export function renderPrintShot(
   parts: readonly Part[],
   params: Parameters<FurnitureMotion['update']>[1],
   size: { width: number; height: number } = PRINT_SHOT,
+  fittings: readonly Fitting[] = [],
 ): string | null {
   if (typeof document === 'undefined' || !parts.length) return null;
   let renderer: THREE.WebGLRenderer;
@@ -100,9 +103,17 @@ export function renderPrintShot(
     scene.environmentIntensity = 0.6;
     scene.add(new THREE.HemisphereLight(0xfffaf2, 0xcabfae, 0.95));
     const motion = new FurnitureMotion(scene);
-    motion.update([...parts], params, false, [], 0, true, 0);
+    // Ferragens com a forma de verdade (pé inclinado, estrutura de aço), não
+    // a caixa que o desenho usa: a caixa delas sai das peças.
+    const fitted = new Set(fittings.map((f) => f.id));
+    motion.update(parts.filter((p) => !fitted.has(p.id) && !p.decal), params, false, [], 0, true, 0);
     const box = new THREE.Box3();
     for (const e of motion.entries.values()) box.expandByObject(e.mesh);
+    if (fittings.length) {
+      const hardware = buildFittings(fittings.filter((f) => !f.hidden && f.kind !== 'handle'));
+      scene.add(hardware.group);
+      box.expandByObject(hardware.group);
+    }
     const center = box.getCenter(new THREE.Vector3());
     const extent = box.getSize(new THREE.Vector3());
     const reach = Math.max(extent.x, extent.y, extent.z) * 0.9 + 600;

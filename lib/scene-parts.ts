@@ -1,4 +1,5 @@
-import { drawingParts, generateComposition, type ModularPart } from './composition';
+import { generateComposition, type ModularPart } from './composition';
+import { drawingParts } from './fittings';
 import { canonical, type Design } from './studio';
 import { tvPlacements, wallAt, type ObstacleKind, type Room } from './room';
 

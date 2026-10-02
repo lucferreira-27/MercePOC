@@ -1,4 +1,5 @@
-import { drawingParts, type ModularPart } from './composition';
+import { type ModularPart } from './composition';
+import { drawingParts } from './fittings';
 import type { ChangeHighlight } from './progress';
 import { applyStep, canonical, normalize, type Design, type ShelfOp } from './studio';
 import type { Composition } from './composition';
