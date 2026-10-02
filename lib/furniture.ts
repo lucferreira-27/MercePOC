@@ -146,6 +146,13 @@ export type Part = {
   tilt?: number;
   /** Só desenho (o miolo do shaker, a junta do ripado): a cena 3D tem a forma de verdade. */
   decal?: boolean;
+  /**
+   * Só desenho: peça inclinada e afinando (pé inclinado e cônico). `slant` é
+   * quanto a base anda em relação ao topo (x e z locais, mm) e `taper` a
+   * largura da base sobre a do topo. A caixa de `size` é a do topo.
+   */
+  slant?: [number, number];
+  taper?: number;
   id: string;
   kind: PartKind;
   name: string;

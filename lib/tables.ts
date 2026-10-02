@@ -116,7 +116,8 @@ export function tableSpec(m: TableModule): TableSpec {
     shelfT = Math.min(Math.max(thickness, 18), 30);
   // Níveis por igual entre o piso (com folga para limpar) e o avental.
   const n = m.shelves ?? 0;
-  const floor = base === 'casters' ? CASTER_HEIGHT + 40 : base === 'frame' ? 100 : 150;
+  // Cavalete: o nível apoia no travessão, que fica acima da sapata (60 mm) com folga.
+  const floor = base === 'casters' ? CASTER_HEIGHT + 40 : base === 'frame' ? 100 : base === 'trestle' ? 190 : 150;
   const ceiling = lh - apron;
   const step = n ? (ceiling - floor) / n : 0;
   const levels = Array.from({ length: n }, (_, i) => Math.round(floor + i * step));

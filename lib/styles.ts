@@ -210,7 +210,7 @@ export const STYLES: Record<StyleId, StyleDef> = {
       tall: { legs: { type: 'tapered', height: 100, materialId: 'oak-solid' }, back: 'terracotta' },
       counter: { legs: { type: 'plinth', height: 100 }, top: { materialId: 'oak-solid', thickness: 30, overhang: 20, edge: 'rounded' } },
       wall: {},
-      table: { legs: { type: 'block', height: 0, materialId: 'oak-solid' }, top: { materialId: 'oak-solid', thickness: 40, overhang: 30, edge: 'rounded' } },
+      table: { legs: { type: 'tapered', height: 0, materialId: 'oak-solid' }, top: { materialId: 'oak-solid', thickness: 30, overhang: 30, edge: 'rounded' } },
     },
     panel: { front: 'flat' },
     airy: true,
@@ -242,7 +242,8 @@ export const STYLES: Record<StyleId, StyleDef> = {
       tall: { legs: { type: 'palito', height: 150, materialId: 'freijo-solid' } },
       counter: { legs: { type: 'plinth', height: 100 }, top: { materialId: 'freijo-solid', thickness: 30, overhang: 20, edge: 'square' } },
       wall: {},
-      table: { legs: { type: 'splayed', height: 0, materialId: 'freijo-solid' }, top: { materialId: 'freijo-solid', thickness: 30, overhang: 30, edge: 'rounded' } },
+      // Mesa de madeira maciça robusta (Zanine, Sergio Rodrigues): pé quadrado, tampo grosso boleado; não confunde com o anos 60.
+      table: { legs: { type: 'block', height: 0, materialId: 'freijo-solid' }, top: { materialId: 'freijo-solid', thickness: 40, overhang: 40, edge: 'rounded' } },
     },
     panel: { front: 'slatted' },
     proportions: { low: { height: 0.9, width: 1.1 } },

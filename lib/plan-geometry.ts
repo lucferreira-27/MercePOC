@@ -61,12 +61,15 @@ export function cornersOf(part: ModularPart): Vec3[] {
   const sin = Math.sin(a);
   const [w, h, d] = part.size;
   const [px, py, pz] = part.position;
+  const [ox, oz] = part.slant ?? [0, 0];
   const out: Vec3[] = [];
   for (const sx of [-1, 1])
     for (const sy of [-1, 1])
       for (const sz of [-1, 1]) {
-        const x = (sx * w) / 2;
-        const z = (sz * d) / 2;
+        // Pé inclinado e cônico: a base anda `slant` e afina `taper`.
+        const k = sy < 0 ? (part.taper ?? 1) : 1;
+        const x = (sx * w * k) / 2 + (sy < 0 ? ox / 2 : -ox / 2);
+        const z = (sz * d * k) / 2 + (sy < 0 ? oz / 2 : -oz / 2);
         out.push([
           px + x * cos + z * sin,
           py + (sy * h) / 2,

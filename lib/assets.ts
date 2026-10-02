@@ -601,7 +601,7 @@ export const assets: Asset[] = [
     name: 'Balcão de cozinha',
     category: 'cozinha',
     role: 'counter',
-    summary: 'Gabinete de pia ou balcão com gaveteiro',
+    summary: 'Gabinete de pia ou balcão com gaveteiro; o tampo vem com o estilo',
     keywords: ['balcão', 'gabinete de pia', 'pia', 'cozinha', 'bancada'],
     size: { default: { width: 1800, height: 850, depth: 580 }, min: { width: 800, height: 750, depth: 450 }, max: { width: 3600, height: 950, depth: 650 } },
     body: 'white',

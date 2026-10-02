@@ -20,7 +20,10 @@ type Box = { min: number[]; max: number[] };
 function worldBox(p: ModularPart): Box {
   const c = Math.cos(p.rotation ?? 0),
     s = Math.sin(p.rotation ?? 0);
-  const [w, , d] = p.size;
+  // Pé inclinado: a caixa cobre do encaixe à ponta no piso.
+  const [ox, oz] = p.slant ?? [0, 0];
+  const w = p.size[0] + Math.abs(ox),
+    d = p.size[2] + Math.abs(oz);
   // Giro só em torno de y: a caixa do mundo cobre os quatro cantos no plano.
   const hx = Math.abs((w / 2) * c) + Math.abs((d / 2) * s),
     hz = Math.abs((w / 2) * s) + Math.abs((d / 2) * c);
@@ -98,7 +101,9 @@ export function structureIssues(d: Composition): StructureIssue[] {
   for (const group of groups) {
     const moving = g.parts.filter((p) => p.motion?.id === group);
     const own = new Set(fittings.filter((f) => f.kind === 'handle' && moving.some((p) => p.id === f.attach)).map((f) => f.id));
-    const obstacles = [...g.parts.filter((p) => p.motion?.id !== group), ...fit.filter((f) => !own.has(f.id) && source(f)?.kind !== 'led')];
+    // Cava e recorte são usinados na frente: não saem dela, não batem em nada.
+    const flush = (f: ModularPart) => { const v = source(f); return v?.kind === 'led' || v?.type === 'groove' || v?.type === 'cutout'; };
+    const obstacles = [...g.parts.filter((p) => p.motion?.id !== group), ...fit.filter((f) => !own.has(f.id) && !flush(f))];
     for (const fr of [0.5, 1]) {
       const hit = moving.flatMap((p) => obstacles.filter((q) => overlap(boxOfPart(openingPose(p, fr)), boxOfPart(q)) > 1).map((q) => `${p.name} bate em ${q.name}`));
       if (hit.length) {

@@ -159,7 +159,9 @@ function legsOfRows(d: Composition, out: Fitting[]) {
     const hairpin = type === 'hairpin' ? Math.max(60, Math.min(150, depth / 2 - 60)) : 0;
     const s0 = run.s0 + lay.x,
       s1 = run.s1 - lay.x;
-    const along: { s: number; out: number }[] = [{ s: s0, out: -1 }, ...supports(s0, s1, joints).map((v) => ({ s: v, out: 0 })), { s: s1, out: 1 }];
+    // Pé de tubo do contorno de aço: um embaixo de cada coluna, nas juntas também.
+    const middle = type === 'tube' && first.look?.frame ? joints : supports(s0, s1, joints);
+    const along: { s: number; out: number }[] = [{ s: s0, out: -1 }, ...middle.map((v) => ({ s: v, out: 0 })), { s: s1, out: 1 }];
     let i = 0;
     for (const a of along)
       for (const sz of [-1, 1]) {
@@ -414,7 +416,8 @@ function handlesOf(parts: readonly ModularPart[], out: Fitting[]) {
     // Cava e recorte são usinados na frente: cor escura da sombra, sem metal.
     const machined = type === 'groove' || type === 'cutout';
     const size = handleSize(type, spec.vertical, spec.len);
-    const lz = spec.z + size[2] / 2 - (machined ? 1.5 : 0);
+    // Usinado: 0,6 mm à frente da face, para o desenho pintar o recorte por cima da frente.
+    const lz = spec.z + size[2] / 2 + (machined ? 0.6 : 0);
     const c = Math.cos(p.rotation),
       s = Math.sin(p.rotation);
     const color = type === 'strap' ? '#6b4a32' : machined ? '#2a2724' : materialOf(p.handle.materialId).color;
@@ -515,6 +518,7 @@ export function drawingParts(d: Composition): ModularPart[] {
       c: s.size[1],
       l: s.size[0],
       thickness: s.size[2],
+      ...(s.slant ? { slant: s.slant, taper: s.taper } : {}),
       material: f.materialId ? materialOf(f.materialId).name : f.kind,
       color: f.color,
       owners: [f.moduleId],
@@ -530,7 +534,7 @@ export function drawingParts(d: Composition): ModularPart[] {
  * mesa); o pé inclinado e o cônico viram trechos curtos que afinam ao longo do
  * eixo de verdade, senão o anos 60 virava rústico.
  */
-function drawnBoxes(f: Fitting): { position: Vec; size: Vec }[] {
+function drawnBoxes(f: Fitting): { position: Vec; size: Vec; slant?: [number, number]; taper?: number }[] {
   const [w, h, d] = f.size;
   const cos = Math.cos(f.rotation),
     sin = Math.sin(f.rotation);
@@ -560,14 +564,8 @@ function drawnBoxes(f: Fitting): { position: Vec; size: Vec }[] {
     ];
 
   if (f.kind !== 'leg' || (f.type !== 'splayed' && f.type !== 'tapered')) return [{ position: f.position, size: f.size }];
+  // Uma peça só, inclinada e afinando: em trechos o pé virava uma escada.
   const [ax, az] = f.splay ?? [0, 0];
-  const ox = Math.tan(ax) * h,
-    oz = Math.tan(az) * h;
   const [top, tip] = f.type === 'splayed' ? [38, 20] : [40, 26];
-  const n = f.type === 'splayed' ? 8 : 4;
-  return Array.from({ length: n }, (_, k) => {
-    const t = (k + 0.5) / n;
-    const side = top + (tip - top) * t;
-    return box(-ox / 2 + ox * t, h / 2 - h * t, -oz / 2 + oz * t, [side, h / n + 0.5, side]);
-  });
+  return [{ position: f.position, size: [top, h, top] as Vec, slant: [Math.tan(ax) * h, Math.tan(az) * h] as [number, number], taper: tip / top }];
 }

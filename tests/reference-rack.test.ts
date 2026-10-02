@@ -58,10 +58,11 @@ void test('rack industrial da foto de referência: o estúdio monta pelo contrat
   const frame = fit.filter((f) => f.kind === 'frame');
   assert.equal(frame.length, 9 + 5 + 8);
   const legs = fit.filter((f) => f.kind === 'leg');
-  assert.equal(legs.length, 4);
-  // Cada pé de tubo continua uma coluna do contorno: mesmo x e z, rente à quina.
+  // Quatro nas quinas e dois em cada junta (frente e fundo): cada coluna do contorno desce até o piso.
+  assert.equal(legs.length, 4 + 2 * 2);
+  // Cada pé de tubo da frente continua uma coluna do contorno: mesmo x e z.
   const columns = frame.filter((f) => f.size[1] > f.size[0]);
-  for (const leg of legs)
+  for (const leg of legs.filter((f) => f.position[2] > 0))
     assert.ok(columns.some((c) => Math.abs(c.position[0] - leg.position[0]) < 0.5 && Math.abs(c.position[2] - leg.position[2]) < 0.5), `pé em ${leg.position.map(Math.round).join(',')}`);
   const xs = legs.map((f) => Math.round(f.position[0]));
   assert.equal(Math.min(...xs), Math.round(g.bounds.min[0]) + 10);
