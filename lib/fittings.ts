@@ -1,7 +1,8 @@
 import { generateComposition, isFlat, layout, point, PROFILE, runPoint, runsOf, type Composition, type ModularPart, type Module } from './composition';
+import { standOut } from './color';
 import { materialOf, type MaterialId } from './furniture';
 import { LEGS, type HandleType, type LegType } from './look';
-import { CASTER_HEIGHT, SPLAY_DEG, tableSpec } from './tables';
+import { CASTER_HEIGHT, LEG_SECTION, SPLAY_DEG, tableSpec } from './tables';
 
 /**
  * Ferragens e estrutura: o que vem pronto ou é soldado, não cortado de chapa.
@@ -251,7 +252,8 @@ function tableBase(m: Module, out: Fitting[]) {
     return;
   }
   // Pés nos cantos: o inclinado abre para fora e o grampo corre no fundo.
-  const w = LEG_LAYOUT[type]?.w ?? 40;
+  // A seção do pé de mesa é a que o avental e o nível usam: desenhado mais fino, sobrava fresta.
+  const w = LEG_SECTION[type] ?? LEG_LAYOUT[type]?.w ?? 40;
   const angle = (SPLAY_DEG * Math.PI) / 180;
   const splay = type === 'splayed' ? Math.tan(angle) * lh : 0;
   const hairpin = type === 'hairpin' ? Math.max(60, Math.min(150, bd / 2 - 60)) : 0;
@@ -272,7 +274,8 @@ function tableBase(m: Module, out: Fitting[]) {
 /** Ganchos de cabideiro no painel: uma linha a 3/4 da altura, por igual na largura. */
 function hooksOf(m: Module, out: Fitting[]) {
   const n = m.hooks ?? 0;
-  const id = m.look?.handleMaterialId ?? 'steel-black';
+  // Gancho da cor do painel some (preto em preto): troca pelo metal que aparece.
+  const id = standOut(m.look?.handleMaterialId ?? 'steel-black', materialOf(m.materialId).color);
   const color = materialOf(id).color;
   for (let i = 0; i < n; i++) {
     const x = -m.width / 2 + (m.width / n) * (i + 0.5);
@@ -421,13 +424,15 @@ function handlesOf(parts: readonly ModularPart[], out: Fitting[]) {
     const lz = spec.z + size[2] / 2 + (machined ? 0.6 : 0);
     const c = Math.cos(p.rotation),
       s = Math.sin(p.rotation);
-    const color = type === 'strap' ? '#6b4a32' : machined ? '#2a2724' : materialOf(p.handle.materialId).color;
+    // Puxador de metal da cor da frente some (barra preta em frente preta): troca pelo metal que aparece.
+    const metal = machined || type === 'strap' ? null : standOut(p.handle.materialId, p.color);
+    const color = type === 'strap' ? '#6b4a32' : machined ? '#2a2724' : materialOf(metal!).color;
     out.push({
       id: `${p.id}:handle`,
       moduleId: owner,
       kind: 'handle',
       type,
-      materialId: machined || type === 'strap' ? null : p.handle.materialId,
+      materialId: metal,
       color,
       position: [p.position[0] + spec.x * c + lz * s, p.position[1] + spec.y, p.position[2] - spec.x * s + lz * c],
       size,
@@ -554,6 +559,10 @@ function drawnBoxes(f: Fitting): { position: Vec; size: Vec; slant?: [number, nu
     ];
   }
   if (f.kind === 'stand' && f.type === 'sled') return [box(0, 0, -d / 2 + 10, [w, h, 20]), box(0, 0, d / 2 - 10, [w, h, 20]), box(0, -h / 2 + 10, 0, [w, 20, d])];
+  if (f.type === 'casters') {
+    const r = Math.min(h * 0.38, 32);
+    return [box(0, h / 2 - 3, 0, [w, 6, d]), box(0, h / 2 - 6 - (h - 6 - 2 * r) / 2, 0, [10, h - 6 - 2 * r, 24]), box(0, -h / 2 + r, 0, [24, 2 * r, 2 * r])];
+  }
   if (f.type === 'trestle')
     return [
       box(0, 0, -d / 2 + 60, [60, h, 60]),
@@ -567,6 +576,8 @@ function drawnBoxes(f: Fitting): { position: Vec; size: Vec; slant?: [number, nu
   if (f.kind !== 'leg' || (f.type !== 'splayed' && f.type !== 'tapered')) return [{ position: f.position, size: f.size }];
   // Uma peça só, inclinada e afinando: em trechos o pé virava uma escada.
   const [ax, az] = f.splay ?? [0, 0];
-  const [top, tip] = f.type === 'splayed' ? [38, 20] : [40, 26];
-  return [{ position: f.position, size: [top, h, top] as Vec, slant: [Math.tan(ax) * h, Math.tan(az) * h] as [number, number], taper: tip / top }];
+  // O topo do pé é a seção que o avental e o nível usam (a caixa sem a abertura); com seção fixa sobrava fresta.
+  const slant: [number, number] = [Math.tan(ax) * h, Math.tan(az) * h];
+  const top = f.size[0] - Math.abs(slant[0]);
+  return [{ position: f.position, size: [top, h, top] as Vec, slant, taper: f.type === 'splayed' ? 20 / 38 : 26 / 40 }];
 }

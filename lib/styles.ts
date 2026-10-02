@@ -210,7 +210,8 @@ export const STYLES: Record<StyleId, StyleDef> = {
       tall: { legs: { type: 'tapered', height: 100, materialId: 'oak-solid' }, back: 'terracotta' },
       counter: { legs: { type: 'plinth', height: 100 }, top: { materialId: 'oak-solid', thickness: 30, overhang: 20, edge: 'rounded' } },
       wall: {},
-      table: { legs: { type: 'tapered', height: 0, materialId: 'oak-solid' }, top: { materialId: 'oak-solid', thickness: 30, overhang: 30, edge: 'rounded' } },
+      // Madeira robusta e natural: tampo grosso e largo sobre pé cônico (o escandinavo é fino e justo).
+      table: { legs: { type: 'tapered', height: 0, materialId: 'oak-solid' }, top: { materialId: 'oak-solid', thickness: 50, overhang: 50, edge: 'rounded' } },
     },
     panel: { front: 'flat' },
     airy: true,
@@ -300,6 +301,23 @@ export const STYLES: Record<StyleId, StyleDef> = {
     },
     panel: { front: 'slatted' },
   },
+};
+
+/** O aço de cada estilo, para a base de metal que a mesa mantém (estrutura, rodízios). */
+const STYLE_METAL: Record<string, MaterialId> = {
+  industrial: 'steel-black',
+  midcentury: 'brass',
+  scandinavian: 'steel-brushed',
+  minimalist: 'steel-black',
+  rustic: 'steel-black',
+  classic: 'brass',
+  japandi: 'steel-black',
+  boho: 'bronze',
+  brazilian: 'bronze',
+  artdeco: 'brass',
+  provencal: 'bronze',
+  // Latão náutico: com aço escovado o praiano saía igual ao escandinavo.
+  coastal: 'brass',
 };
 
 /** O acabamento de um papel no estilo: o comum com o do papel por cima. */
@@ -486,8 +504,10 @@ function dressTable(m: Module, s: StyleDef, opts: StyleOptions, keepBase = false
   const current = m.look?.legs ?? DEFAULT_TABLE_BASE;
   const keep = keepBase || current === 'casters' || current === 'wall' || (current === 'frame' && (m.shelves ?? 0) >= 1);
   const legs = keep ? current : (plan.legs?.type ?? current);
-  const legMaterial = plan.legs?.materialId;
   const accepts = LEGS[legs].materials;
+  // Base de aço que fica (estante aberta, carrinho): o aço é o do estilo, não
+  // o preto de sempre; senão escandinavo, praiano e clássico saíam iguais.
+  const legMaterial = keep && accepts?.includes('metal') && !accepts.includes(categoryOf(plan.legs?.materialId ?? 'oak')) ? STYLE_METAL[s.id] : plan.legs?.materialId;
   const glass = m.look?.top && categoryOf(m.look.top.materialId) === 'glass';
   const front = plan.front && !framedFront(plan.front) && !FRONTS[plan.front].panelOnly ? plan.front : 'flat';
   if (!opts.keepMaterials) m.materialId = opts.body && ['sheet', 'solid'].includes(categoryOf(opts.body)) ? opts.body : s.palette.body;

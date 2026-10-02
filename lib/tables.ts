@@ -20,7 +20,8 @@ export const DEFAULT_TABLE_BASE: LegType = 'block';
 export const APRON = { drawer: 130, rail: 80 } as const;
 const WOOD_LEGS: readonly LegType[] = ['tapered', 'splayed', 'block', 'turned'];
 /** Seção do pé de mesa (mm). */
-const LEG_SECTION: Partial<Record<LegType, number>> = { tapered: 45, splayed: 40, block: 60, turned: 70, hairpin: 12, tube: 40, pipe: 34 };
+/** Seção do pé de mesa (mm): a mesma no lugar do pé, no avental e no desenho. */
+export const LEG_SECTION: Partial<Record<LegType, number>> = { tapered: 45, splayed: 40, block: 60, turned: 70, hairpin: 12, tube: 40, pipe: 34 };
 /** Abertura do pé inclinado (anos 60), em graus, para fora nos dois eixos. */
 export const SPLAY_DEG = 9;
 /** Altura do rodízio (mm): a estrutura começa em cima dele. */
@@ -177,6 +178,7 @@ export function tableIssues(m: TableModule): { path: string; message: string }[]
     const spec = HANDLES[look.handle ?? 'bar'];
     if (spec.materials && !spec.materials.includes(categoryOf(look.handleMaterialId))) fail('handleMaterialId', `${spec.name} em ${spec.materials.map((v) => cat[v]).join(' ou ')}.`);
   }
+  if (base === 'trestle' && m.width < 700) fail('legs', 'cavalete pede mesa de 70 cm ou mais de largura; numa mesinha os dois cavaletes se encostam.');
   if (base === 'wall' && !m.wall) fail('wall', 'mesa presa na parede pede wall: true.');
   if (base !== 'wall' && m.wall) fail('wall', 'mesa no piso não é suspensa: use a base wall para prender na parede.');
   const top = tableTop(m);

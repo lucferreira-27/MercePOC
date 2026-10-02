@@ -951,10 +951,12 @@ function tableParts(m: Module): TablePart[] {
     if (!m.drawers) out.push({ id: `${m.id}:apron-front`, name: 'Avental da frente', size: [long, s.apron, r], center: [0, y, fz], thickness: r, kind: 'apron', material: m.materialId as MaterialId });
     out.push({ id: `${m.id}:apron-back`, name: 'Avental do fundo', size: [long, s.apron, r], center: [0, y, -fz], thickness: r, kind: 'apron', material: m.materialId as MaterialId });
     const fx = s.bw / 2 - ends - r / 2;
-    const side = s.cornerLegs ? innerD : s.bd - 2 * sides - 2 * r;
+    // Com gavetas não há avental da frente: a lateral vai até a frente, senão a ponta dela fica no ar.
+    const open = m.drawers && !s.cornerLegs ? r : 0;
+    const side = (s.cornerLegs ? innerD : s.bd - 2 * sides - 2 * r) + open;
     if (s.sideAprons)
       for (const [name, sx] of [['left', -1], ['right', 1]] as const)
-        out.push({ id: `${m.id}:apron-${name}`, name: name === 'left' ? 'Avental esquerdo' : 'Avental direito', size: [r, s.apron, side], center: [sx * fx, y, 0], thickness: r, kind: 'apron', material: m.materialId as MaterialId });
+        out.push({ id: `${m.id}:apron-${name}`, name: name === 'left' ? 'Avental esquerdo' : 'Avental direito', size: [r, s.apron, side], center: [sx * fx, y, open / 2], thickness: r, kind: 'apron', material: m.materialId as MaterialId });
   }
   // Níveis: entre os pés (ou dentro da estrutura), na largura e no fundo da base.
   s.levels.forEach((y, i) => {

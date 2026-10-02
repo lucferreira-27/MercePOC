@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { applyAssetOp, assetById, assets, buildAsset, resolveInput } from '../lib/assets';
 import { generateComposition, preset, PROFILE, SCHEMA_VERSION, type Composition, type Module } from '../lib/composition';
 import { STYLE_IDS, TOP_OVERHANG_MAX, type StyleId } from '../lib/look';
+import { drawingParts } from '../lib/fittings';
 import { fitReport } from '../lib/room';
 import { canonical, describeHighlights, executeRequest, normalize } from '../lib/studio';
 import { applyStyle, roleOf, STYLES, styleFrom } from '../lib/styles';
@@ -91,6 +92,37 @@ void test('os estilos são diferentes entre si em pelo menos dois traços, em tr
         const differ = prints[i].filter((v, k) => v !== prints[j][k]).length;
         assert.ok(differ >= 2, `${id}: ${STYLE_IDS[i]} × ${STYLE_IDS[j]} só diferem em ${differ}`);
       }
+  }
+});
+
+/** O desenho inteiro de um móvel (peça, medida, inclinação e, se pedido, cor), para comparar estilos. */
+const drawingPrint = (d: Composition, color: boolean) =>
+  drawingParts(d)
+    .map((p) => `${p.kind}:${p.size.map(Math.round).join('x')}:${p.slant ? 'inclinado' : ''}:${color ? p.color : ''}`)
+    .sort()
+    .join('|');
+
+void test('nenhum móvel da biblioteca sai igual em dois estilos (nem igual ao sem estilo)', () => {
+  // A estante aberta e o carrinho saíam idênticos no escandinavo e no praiano: o teste de cima só olhava três caixas.
+  for (const a of assets) {
+    const seen = new Map<string, string>();
+    for (const style of [undefined, ...STYLE_IDS]) {
+      const k = drawingPrint(buildAsset(a, style ? { style } : {}), true);
+      assert.ok(!seen.has(k), `${a.id}: ${style ?? 'sem estilo'} desenha igual a ${seen.get(k)}`);
+      seen.set(k, style ?? 'sem estilo');
+    }
+  }
+});
+
+void test('cada estilo tem a sua mesa: a forma (pé, tampo, borda) não se repete, não só a cor', () => {
+  // A mesa anos 60 e a brasileira, depois a escandinava e a boho, só mudavam a madeira.
+  for (const id of ['mesa-jantar', 'mesa-centro', 'mesa-lateral', 'banco', 'console', 'escrivaninha', 'penteadeira']) {
+    const seen = new Map<string, string>();
+    for (const style of STYLE_IDS) {
+      const k = drawingPrint(buildAsset(assetById(id)!, { style }), false);
+      assert.ok(!seen.has(k), `${id}: ${style} tem a mesma forma de ${seen.get(k)}`);
+      seen.set(k, style);
+    }
   }
 });
 

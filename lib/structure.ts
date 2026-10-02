@@ -1,4 +1,5 @@
 import { generateComposition, isFlat, openingPose, type Composition, type ModularPart } from './composition';
+import { deltaE, MIN_DELTA_E } from './color';
 import { cutPlan } from './cutplan';
 import { drawingParts, fittingsOf } from './fittings';
 
@@ -69,7 +70,24 @@ const boxOfPart = (p: Pick<ModularPart, 'position' | 'size' | 'rotation'>) => wo
 /** Quanto duas caixas se cruzam (o menor dos três eixos); negativo, não se tocam. */
 const overlap = (a: Box, b: Box) => Math.min(...[0, 1, 2].map((i) => Math.min(a.max[i], b.max[i]) - Math.max(a.min[i], b.min[i])));
 
-export type StructureIssue = { kind: 'solta' | 'atravessa' | 'nao-abre' | 'puxador' | 'corte'; message: string };
+export type StructureIssue = { kind: 'solta' | 'atravessa' | 'cruza' | 'escondida' | 'contraste' | 'apoio' | 'nao-abre' | 'puxador' | 'corte'; message: string };
+
+/**
+ * Junta de verdade (canto soldado, travessa entrando no pé): a parte comum
+ * fica na ponta de pelo menos uma das peças. Peça atravessando o meio da
+ * outra, ou um pé dentro do outro, não é junta.
+ */
+function joint(a: Box, b: Box) {
+  const o: Box = { min: [0, 1, 2].map((i) => Math.max(a.min[i], b.min[i])), max: [0, 1, 2].map((i) => Math.min(a.max[i], b.max[i])) };
+  const atEnd = (x: Box) => {
+    const span = [0, 1, 2].map((i) => x.max[i] - x.min[i]);
+    const ax = span.indexOf(Math.max(...span));
+    const cross = Math.max(...span.filter((_, i) => i !== ax));
+    return span[ax] > 2 * cross && (o.max[ax] <= x.min[ax] + cross + 1 || o.min[ax] >= x.max[ax] - cross - 1);
+  };
+  return atEnd(a) || atEnd(b);
+}
+const inside = (a: Box, b: Box) => [0, 1, 2].every((i) => a.min[i] >= b.min[i] - 0.5 && a.max[i] <= b.max[i] + 0.5);
 
 /**
  * O que a colisão de peças de corte não vê, numa lista de frases: peça solta,
@@ -79,10 +97,10 @@ export type StructureIssue = { kind: 'solta' | 'atravessa' | 'nao-abre' | 'puxad
  * chapa. Fica de fora, de propósito: o contorno de aço rente às faces, que
  * toma o canto da caixa, e o pé inclinado entrando no nível que ele segura.
  */
-export function structureIssues(d: Composition): StructureIssue[] {
+export function structureIssues(d: Composition, all: readonly ModularPart[] = drawingParts(d)): StructureIssue[] {
   const out: StructureIssue[] = [];
   const g = generateComposition(d);
-  const drawn = drawingParts(d).filter((p) => !p.decal);
+  const drawn = all.filter((p) => !p.decal);
   const cut = new Set(g.parts.map((p) => p.id));
   const fit = drawn.filter((p) => !cut.has(p.id));
   const fittings = fittingsOf(d, g.parts);
@@ -100,6 +118,45 @@ export function structureIssues(d: Composition): StructureIssue[] {
       if ((src?.kind === 'leg' || src?.kind === 'stand') && p.kind === 'shelf' && p.id.includes(':level-') && p.owners.includes(src.moduleId)) continue;
       const k = overlap(fb, boxOfPart(p));
       if (k > 3) out.push({ kind: 'atravessa', message: `${f.name} (${src?.type ?? ''}) atravessa ${p.name} em ${Math.round(k)} mm` });
+    }
+  }
+  // Ferragem contra ferragem: pé dentro de pé, cavalete no outro, tubo cruzando o que não é a junta dele.
+  const fb = fit.map(boxOfPart);
+  const fsrc = fit.map(source);
+  for (let i = 0; i < fit.length; i++)
+    for (let j = i + 1; j < fit.length; j++) {
+      const [a, b] = [fsrc[i], fsrc[j]];
+      if (!a || !b || a === b) continue;
+      const k = overlap(fb[i], fb[j]);
+      if (k > 3 && !joint(fb[i], fb[j])) out.push({ kind: 'cruza', message: `${fit[i].name} (${a.type}) cruza ${fit[j].name} (${b.type}) em ${Math.round(k)} mm` });
+    }
+  // Peça que some: ferragem inteira dentro de uma peça de corte não aparece no desenho nem na cena.
+  const cb = g.parts.map(boxOfPart);
+  for (let i = 0; i < fit.length; i++) {
+    const host = g.parts.findIndex((_, j) => inside(fb[i], cb[j]));
+    if (host >= 0) out.push({ kind: 'escondida', message: `${fit[i].name} (${fsrc[i]?.type ?? ''}) some dentro de ${g.parts[host].name}` });
+  }
+  // Gancho e puxador da mesma cor da peça: não se vê (gancho preto em painel preto).
+  for (let i = 0; i < fit.length; i++) {
+    const v = fsrc[i];
+    // A cava e o recorte são sombra usinada na frente, não metal: ficam de fora.
+    if ((v?.kind !== 'handle' && v?.kind !== 'hook') || v.type === 'groove' || v.type === 'cutout') continue;
+    const on = v.attach ? g.parts.find((p) => p.id === v.attach) : g.parts.find((p, j) => p.owners.includes(v.moduleId) && gap(fb[i], cb[j]) <= TOUCH);
+    if (on && deltaE(fit[i].color, on.color) < MIN_DELTA_E) out.push({ kind: 'contraste', message: `${fit[i].name} (${v.type}) some na cor de ${on.name}` });
+  }
+  // Avental e travessa: as duas pontas encostam num pé, no cavalete ou no quadro; ponta no ar é peça mal medida.
+  // O canto de avental com avental é junta de verdade (respiga, cavilha): também segura.
+  const holds = [...fit.flatMap((f, i) => (fsrc[i]?.kind === 'leg' || fsrc[i]?.kind === 'stand' || fsrc[i]?.kind === 'frame' ? [fb[i]] : [])), ...g.parts.flatMap((p, j) => (p.kind === 'apron' ? [cb[j]] : []))];
+  for (const p of g.parts) {
+    if (p.kind !== 'apron') continue;
+    const m = d.modules.find((v) => p.owners.includes(v.id));
+    if (!m || m.wall) continue;
+    const b = cb[g.parts.indexOf(p)];
+    const ax = b.max[0] - b.min[0] >= b.max[2] - b.min[2] ? 0 : 2;
+    for (const end of [b.min[ax], b.max[ax]]) {
+      const tip: Box = { min: [...b.min], max: [...b.max] };
+      tip.min[ax] = tip.max[ax] = end;
+      if (!holds.some((h) => h !== b && gap(tip, h) <= TOUCH)) out.push({ kind: 'apoio', message: `${p.name} tem uma ponta no ar, sem pé nem quadro` });
     }
   }
   const groups = [...new Set(g.parts.filter((p) => p.motion).map((p) => p.motion!.id))];

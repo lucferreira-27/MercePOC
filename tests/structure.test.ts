@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import { assets, buildAsset } from '../lib/assets';
 import { preset, PROFILE, SCHEMA_VERSION, type Composition, type Module } from '../lib/composition';
 import { drawingParts } from '../lib/fittings';
+import { materialOf } from '../lib/furniture';
 import { LEG_TYPES, LEGS, STYLE_IDS } from '../lib/look';
+import { deltaE, MIN_DELTA_E, standOut } from '../lib/color';
 import { floatingParts, structureIssues } from '../lib/structure';
 import { REFERENCES } from './fixtures/references';
 
@@ -14,6 +16,7 @@ import { REFERENCES } from './fixtures/references';
  * um travessão 30 mm curto passava em todos os testes.
  */
 const one = (m: Module): Composition => ({ schemaVersion: SCHEMA_VERSION, profile: PROFILE, modules: [m], connections: [] });
+const materialOfColor = (id: string) => materialOf(id).color;
 const said = (list: ReturnType<typeof structureIssues>) => list.map((f) => f.message).slice(0, 4).join(' | ');
 
 void test('a conferência acha a peça solta no ar', () => {
@@ -58,4 +61,37 @@ void test('a conferência acha a porta que bate no vizinho ao abrir', () => {
   // A 60 cm, abre inteira.
   const far: Composition = { ...close, modules: [a, { ...b, position: [0, 0, 1000] }] };
   assert.deepEqual(structureIssues(far).filter((v) => v.kind === 'nao-abre'), []);
+});
+
+void test('a conferência acha ferragem cruzando ferragem, mas aceita a junta', () => {
+  // Um pé desenhado em cima do outro: cada um dentro do outro, não é junta.
+  const t: Module = { ...preset('table', 't'), materialId: 'oak-solid', look: { legs: 'tapered' } };
+  const drawn = drawingParts(one(t));
+  const [a, b] = drawn.filter((p) => p.id.includes(':foot-'));
+  const stacked = drawn.map((p) => (p === b ? { ...p, position: a.position } : p));
+  assert.deepEqual(structureIssues(one(t), drawn), []);
+  assert.ok(structureIssues(one(t), stacked).some((v) => v.kind === 'cruza'), said(structureIssues(one(t), stacked)));
+  // Cavalete com longarina e estrutura de tubo soldada: a parte comum fica na ponta, é junta.
+  for (const legs of ['trestle', 'frame'] as const) assert.deepEqual(structureIssues(one({ ...t, look: { legs } })).filter((v) => v.kind === 'cruza'), []);
+});
+
+void test('gancho e puxador nunca somem na cor da peça: o metal troca pelo que aparece', () => {
+  // Gancho preto em painel preto, barra preta em frente de aço preto: os dois sumiam no desenho.
+  for (const on of ['#27292b', '#2a2b2d', '#ecece6', '#c7a14b', '#b9bfc5'])
+    for (const id of ['steel-black', 'steel-brushed', 'brass'] as const) assert.ok(deltaE(materialOfColor(standOut(id, on)), on) >= MIN_DELTA_E, `${id} em ${on}`);
+  assert.equal(standOut('brass', '#27292b'), 'brass');
+  assert.notEqual(standOut('steel-black', '#27292b'), 'steel-black');
+  const entry = buildAsset(assets.find((a) => a.id === 'entrada')!, { style: 'minimalist' });
+  assert.deepEqual(structureIssues(entry).filter((v) => v.kind === 'contraste'), []);
+});
+
+void test('a conferência acha o puxador afundado na frente (some do desenho)', () => {
+  // O puxador usinado ficava 1,5 mm dentro da frente e não aparecia na vista.
+  const d = buildAsset(assets.find((a) => a.id === 'escrivaninha')!, { style: 'minimalist' });
+  const drawn = drawingParts(d);
+  const h = drawn.find((p) => p.id.endsWith(':handle'))!;
+  const front = drawn.find((p) => h.id.startsWith(p.id))!;
+  const sunk = drawn.map((p) => (p === h ? { ...p, position: front.position } : p));
+  assert.deepEqual(structureIssues(d, drawn), []);
+  assert.ok(structureIssues(d, sunk).some((v) => v.kind === 'escondida'), said(structureIssues(d, sunk)));
 });
