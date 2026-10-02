@@ -41,7 +41,7 @@ void test('cada base vira as ferragens dela, com preço', () => {
   assert.deepEqual(kinds({ legs: 'sled' }), ['stand:sled', 'stand:sled']);
   assert.deepEqual(kinds({ legs: 'trestle' }), ['leg:trestle', 'leg:trestle', 'leg:beam']);
   assert.deepEqual(kinds({ legs: 'casters' }, { shelves: 2 }), ['stand:frame', 'leg:casters', 'leg:casters', 'leg:casters', 'leg:casters']);
-  assert.deepEqual(kinds({ legs: 'wall' }, { wall: true }), ['leg:wall', 'leg:wall']);
+  assert.deepEqual(kinds({ legs: 'wall' }, { wall: true }), ['leg:wall']);
   // Estrutura de aço: um quadro embaixo de cada nível, cobrado por metro de tubo.
   const shelf = one(table({ look: { legs: 'frame' }, shelves: 3, height: 1500, depth: 400, width: 1000 }));
   const stand = fittingsOf(shelf).find((f) => f.kind === 'stand')!;

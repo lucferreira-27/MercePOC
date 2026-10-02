@@ -240,10 +240,11 @@ function tableBase(m: Module, out: Fitting[]) {
   }
   if (type === 'wall') {
     // Suportes de parede embaixo do tampo, perto das pontas.
-    // Em L, embaixo do avental (e das gavetas), não através delas.
-    const top = lh - s.apron;
-    for (const sx of [-1, 1])
-      out.push({ ...base, id: `${m.id}:bracket-${sx < 0 ? 0 : 1}`, kind: 'leg', type: 'wall', position: at(sx * (bw / 2 - 100), top - 90, 0), size: [40, 180, bd - 20], bom: { unit: 'un', qty: 1 } });
+    // Suporte oculto: o trilho preso na parede, embaixo do tampo e atrás do
+    // avental (no vão entre o avental e a parede), que segura a mesa. Não
+    // aparece de frente nem cruza as gavetas. Conta como dois suportes.
+    const h = Math.max(s.apron, 80);
+    out.push({ ...base, id: `${m.id}:bracket`, kind: 'leg', type: 'wall', position: at(0, lh - h / 2, -m.depth / 2 + 10), size: [bw - 40, h, 20], bom: { unit: 'un', qty: 2 } });
     return;
   }
   // Pés nos cantos: o inclinado abre para fora e o grampo corre no fundo.
@@ -557,7 +558,7 @@ function drawnBoxes(f: Fitting): { position: Vec; size: Vec }[] {
       // Travessão entre as colunas, na altura da longarina ou do nível, entrando nelas.
       box(0, f.levels?.[0] ?? h / 3 - h / 2, 0, [60, 70, d - 120]),
     ];
-  if (f.type === 'wall') return [box(0, 0, -d / 2 + 4, [w, h, 8]), box(0, h / 2 - 4, 0, [w, 8, d])];
+
   if (f.kind !== 'leg' || (f.type !== 'splayed' && f.type !== 'tapered')) return [{ position: f.position, size: f.size }];
   const [ax, az] = f.splay ?? [0, 0];
   const ox = Math.tan(ax) * h,

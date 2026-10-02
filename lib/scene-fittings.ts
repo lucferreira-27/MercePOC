@@ -165,11 +165,6 @@ export function fittingShape(f: Fitting, mat: THREE.Material, disposables: Dispo
       g.add(block([w, 60, d - 40], [0, top - 30, 0], mat, disposables));
       g.add(block([60, 70, d - 120], [0, f.levels?.[0] ?? TRESTLE_RAIL_Y * h, 0], mat, disposables));
       break;
-    case 'wall':
-      // Suporte de parede em L: chapa na parede e braço embaixo do tampo.
-      g.add(block([w, h, 8], [0, 0, -d / 2 + 4], mat, disposables));
-      g.add(block([w, 8, d], [0, top - 4, 0], mat, disposables));
-      break;
     default:
       // Tubo do contorno, fita de LED, travessa do cavalete: a caixa da peça.
       g.add(block([w, h, d], [0, 0, 0], mat, disposables));
