@@ -32,10 +32,15 @@ Checklist per change:
 - `main` is production. It only moves through a `dev` → `main` merge once the
   changes are tested and ready. Never commit or push directly to `main`
   (the private repo has no branch protection, so nothing else enforces this).
-- There is no hosted deployment or CI. Production runs locally from a
-  separate worktree at `G:\MercePOC-prod` that always stays on `main`, with
-  its own `node_modules`, `dist/` and a copy of `.env`.
-- To release: merge `dev` into `main`, then in `G:\MercePOC-prod` run
+- GitHub Actions (`.github/workflows/deploy.yml`) checks every push to `dev`
+  and `main`, and deploys `main` to Cloudflare
+  (https://merce.lucferreira14.workers.dev). Keep `npm test`, lint and
+  `tsc` green, since a red check blocks the deploy. See `docs/cloudflare.md`.
+- Local production runs from a separate worktree at `G:\MercePOC-prod` that
+  always stays on `main`, with its own `node_modules`, `dist/` and a copy of
+  `.env`.
+- To release: merge `dev` into `main` and push (the cloud updates by
+  itself), then in `G:\MercePOC-prod` run
   `git pull`, `npm install` (if dependencies changed) and `npm run build`,
   and restart the server there with `Start-Merce.ps1`.
 - Both folders serve on port 4310, so stop one server before starting the

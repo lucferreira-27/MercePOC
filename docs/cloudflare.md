@@ -43,8 +43,23 @@ navegador ──► Worker (worker/index.ts)
 | `npm run cf:preview` | Monta e roda o Worker na máquina, em http://127.0.0.1:4311 (sem senha, lê o `.env`). |
 | `npm run cf:logs` | Mostra ao vivo os logs do Worker publicado. |
 
-Depois de mudar código, `npm run cf:deploy` publica a versão nova. Projetos e
-fotos ficam: moram no Durable Object, não no pacote.
+Projetos e fotos ficam a cada deploy: moram no Durable Object, não no pacote.
+
+## Deploy automático
+
+O GitHub Actions (`.github/workflows/deploy.yml`) publica sozinho:
+
+- **Push no `dev`:** roda lint, tipos e testes. Nada é publicado.
+- **Push no `main`:** roda o mesmo e, se passar, `npm run cf:deploy`, depois
+  confere que `/login` responde 200. O selo no README e o ambiente
+  `production` na lateral do repositório mostram o último resultado.
+- **Na mão:** aba Actions → Cloudflare → *Run workflow*. Ou, da máquina,
+  `npm run cf:deploy` como antes.
+
+O workflow precisa do segredo `CLOUDFLARE_API_TOKEN` no repositório (token
+criado no painel da Cloudflare com o modelo *Edit Cloudflare Workers*). As
+chaves da IA e a senha do app não passam pelo GitHub: continuam nos segredos
+do Worker (`npm run cf:secrets`) e valem para todo deploy.
 
 ## Limites do plano gratuito
 
