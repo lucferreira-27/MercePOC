@@ -1,5 +1,7 @@
 # Merce
 
+[![Cloudflare](https://github.com/lucferreira-27/MercePOC/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/lucferreira-27/MercePOC/actions/workflows/deploy.yml) · publicado em **[merce.lucferreira14.workers.dev](https://merce.lucferreira14.workers.dev)**
+
 Estúdio local de móveis planejados com painéis retos. Você descreve o móvel na conversa, parte de um modelo pronto ou monta no editor, e o estúdio devolve o desenho em 3D no seu ambiente, o orçamento, o plano de corte e as exportações para a marcenaria. Chat, editor, cena 3D, histórico, orçamento e corte leem a mesma composição (schema v3), então tudo acompanha cada versão.
 
 ![Estúdio com um painel de TV e rack suspenso: conversa à esquerda com o bloco de edição da IA, cena 3D com cotas e folgas no centro, painel do projeto à direita](docs/readme/estudio.png)

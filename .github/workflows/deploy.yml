@@ -1,0 +1,54 @@
+# Confere o app a cada push no dev e no main; no main, publica na Cloudflare.
+# Veja docs/cloudflare.md.
+name: Cloudflare
+
+on:
+  push:
+    branches: [dev, main]
+  workflow_dispatch:
+
+# Um deploy por vez; um push novo no dev cancela a conferência anterior, mas
+# um deploy do main em andamento termina antes do próximo começar.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  check:
+    name: Testes, lint e tipos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npm test
+
+  deploy:
+    name: Publicar na Cloudflare
+    needs: check
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://merce.lucferreira14.workers.dev
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Montar e publicar
+        run: npm run cf:deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: Conferir o site publicado
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' https://merce.lucferreira14.workers.dev/login)
+          echo "/login respondeu $code"
+          test "$code" = 200
