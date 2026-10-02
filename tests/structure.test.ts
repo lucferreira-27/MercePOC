@@ -4,7 +4,7 @@ import { assets, buildAsset } from '../lib/assets';
 import { preset, PROFILE, SCHEMA_VERSION, type Composition, type Module } from '../lib/composition';
 import { drawingParts } from '../lib/fittings';
 import { LEG_TYPES, LEGS, STYLE_IDS } from '../lib/look';
-import { floatingParts } from '../lib/structure';
+import { floatingParts, structureIssues } from '../lib/structure';
 import { REFERENCES } from './fixtures/references';
 
 /**
@@ -14,7 +14,7 @@ import { REFERENCES } from './fixtures/references';
  * um travessão 30 mm curto passava em todos os testes.
  */
 const one = (m: Module): Composition => ({ schemaVersion: SCHEMA_VERSION, profile: PROFILE, modules: [m], connections: [] });
-const show = (list: ReturnType<typeof floatingParts>) => list.map((f) => f.id).slice(0, 6).join(', ');
+const said = (list: ReturnType<typeof structureIssues>) => list.map((f) => f.message).slice(0, 4).join(' | ');
 
 void test('a conferência acha a peça solta no ar', () => {
   const d = buildAsset(assets.find((a) => a.id === 'mesa-jantar')!, { style: 'rustic' });
@@ -26,25 +26,36 @@ void test('a conferência acha a peça solta no ar', () => {
 });
 
 for (const style of [undefined, ...STYLE_IDS])
-  void test(`nada flutua: todo móvel da biblioteca ${style ? `no estilo ${style}` : 'sem estilo'}, nas medidas de ponta`, () => {
+  void test(`nada flutua, atravessa ou trava: todo móvel da biblioteca ${style ? `no estilo ${style}` : 'sem estilo'}, nas medidas de ponta`, () => {
     for (const a of assets)
       for (const s of [a.size.default, a.size.min, a.size.max]) {
         const d = buildAsset(a, { ...s, ...(style ? { style } : {}) });
-        assert.deepEqual(show(floatingParts(d)), '', `${a.id} ${JSON.stringify(s)}`);
+        assert.equal(said(structureIssues(d)), '', `${a.id} ${JSON.stringify(s)}`);
       }
   });
 
-void test('nada flutua: toda base de mesa e de caixa, com níveis e gavetas, e as referências', () => {
+void test('nada flutua, atravessa ou trava: toda base de mesa e de caixa, com níveis e gavetas, e as referências', () => {
   for (const legs of LEG_TYPES) {
     if (LEGS[legs].table)
       for (const extra of [{}, { shelves: 2 }, { drawers: 2 }, { shelves: 1, drawers: 1 }]) {
         const m: Module = { ...preset('table', 't'), materialId: 'oak-solid', ...(legs === 'wall' ? { wall: true } : {}), ...(legs === 'wall' ? { drawers: (extra as { drawers?: number }).drawers } : extra), look: { legs } };
-        assert.deepEqual(show(floatingParts(one(m))), '', `mesa ${legs} ${JSON.stringify(extra)}`);
+        assert.equal(said(structureIssues(one(m))), '', `mesa ${legs} ${JSON.stringify(extra)}`);
       }
     if (LEGS[legs].box) {
       const m: Module = { ...preset('drawers', 'b'), feet: LEGS[legs].box![0] + 20, look: { legs } };
-      assert.deepEqual(show(floatingParts(one(m))), '', `caixa ${legs}`);
+      assert.equal(said(structureIssues(one(m))), '', `caixa ${legs}`);
     }
   }
-  for (const [name, build] of Object.entries(REFERENCES)) assert.deepEqual(show(floatingParts(build())), '', name);
+  for (const [name, build] of Object.entries(REFERENCES)) assert.equal(said(structureIssues(build())), '', name);
+});
+
+void test('a conferência acha a porta que bate no vizinho ao abrir', () => {
+  // Outro móvel 20 mm na frente da porta: a folha, girando, entra nele.
+  const a: Module = { ...preset('niche', 'a'), width: 500, height: 700, depth: 400, root: { id: 'a:root', front: { id: 'fa', type: 'single', hinge: 'right', heights: [1] } } };
+  const b: Module = { ...preset('niche', 'b'), width: 500, height: 700, depth: 400, position: [0, 0, 420] };
+  const close: Composition = { schemaVersion: SCHEMA_VERSION, profile: PROFILE, modules: [a, b], connections: [] };
+  assert.ok(structureIssues(close).some((v) => v.kind === 'nao-abre'), JSON.stringify(structureIssues(close)));
+  // A 60 cm, abre inteira.
+  const far: Composition = { ...close, modules: [a, { ...b, position: [0, 0, 1000] }] };
+  assert.deepEqual(structureIssues(far).filter((v) => v.kind === 'nao-abre'), []);
 });

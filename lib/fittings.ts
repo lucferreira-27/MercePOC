@@ -1,4 +1,4 @@
-import { generateComposition, isFlat, point, PROFILE, runPoint, runsOf, type Composition, type ModularPart, type Module } from './composition';
+import { generateComposition, isFlat, layout, point, PROFILE, runPoint, runsOf, type Composition, type ModularPart, type Module } from './composition';
 import { materialOf, type MaterialId } from './furniture';
 import { LEGS, type HandleType, type LegType } from './look';
 import { CASTER_HEIGHT, SPLAY_DEG, tableSpec } from './tables';
@@ -152,7 +152,7 @@ function legsOfRows(d: Composition, out: Fitting[]) {
     }
     // Caixa com contorno de aço: o pé de tubo é a coluna do contorno que
     // desce até o piso, na mesma seção e no mesmo lugar (a aresta da caixa).
-    const lay = type === 'tube' && first.look?.frame ? { x: 0, z: 0, w: 20 } : (LEG_LAYOUT[type] ?? LEG_LAYOUT.palito!);
+    const lay = type === 'tube' && first.look?.frame ? { x: 10, z: 10, w: 20 } : (LEG_LAYOUT[type] ?? LEG_LAYOUT.palito!);
     const angle = (SPLAY_DEG * Math.PI) / 180;
     const splay = type === 'splayed' ? Math.tan(angle) * h : 0;
     // Pé grampo: o V corre na profundidade, mais estreito em móvel raso.
@@ -227,17 +227,23 @@ function tableBase(m: Module, out: Fitting[]) {
     return;
   }
   if (type === 'trestle') {
-    // Dois cavaletes nas pontas e a travessa entre eles, a um terço da altura.
+    // Dois cavaletes em H nas pontas. O travessão de cada um fica a 1/3 do
+    // piso e recebe a longarina; com nível, fica embaixo do nível, que segura
+    // os cavaletes no lugar da longarina.
+    const railY = s.levels.length ? s.levels[0] - 35 : lh / 3;
     for (const sx of [-1, 1])
-      out.push({ ...base, id: `${m.id}:trestle-${sx < 0 ? 0 : 1}`, kind: 'leg', type: 'trestle', position: at(sx * (bw / 2 - 40), lh / 2, 0), size: [80, lh, bd], bom: { unit: 'un', qty: 1 } });
+      out.push({ ...base, id: `${m.id}:trestle-${sx < 0 ? 0 : 1}`, kind: 'leg', type: 'trestle', position: at(sx * (bw / 2 - 40), lh / 2, 0), size: [80, lh, bd], levels: [railY - lh / 2], bom: { unit: 'un', qty: 1 } });
+    if (s.levels.length) return;
     // Longarina a 1/3 do piso, entrando até o meio do travessão de cada cavalete.
-    out.push({ ...base, id: `${m.id}:beam`, kind: 'leg', type: 'beam', position: at(0, lh / 3, 0), size: [bw - 80, 70, 40], bom: { unit: 'un', qty: 0 } });
+    out.push({ ...base, id: `${m.id}:beam`, kind: 'leg', type: 'beam', position: at(0, railY, 0), size: [bw - 80, 70, 40], bom: { unit: 'un', qty: 0 } });
     return;
   }
   if (type === 'wall') {
     // Suportes de parede embaixo do tampo, perto das pontas.
+    // Em L, embaixo do avental (e das gavetas), não através delas.
+    const top = lh - s.apron;
     for (const sx of [-1, 1])
-      out.push({ ...base, id: `${m.id}:bracket-${sx < 0 ? 0 : 1}`, kind: 'leg', type: 'wall', position: at(sx * (bw / 2 - 100), lh - 90, 0), size: [40, 180, bd - 20], bom: { unit: 'un', qty: 1 } });
+      out.push({ ...base, id: `${m.id}:bracket-${sx < 0 ? 0 : 1}`, kind: 'leg', type: 'wall', position: at(sx * (bw / 2 - 100), top - 90, 0), size: [40, 180, bd - 20], bom: { unit: 'un', qty: 1 } });
     return;
   }
   // Pés nos cantos: o inclinado abre para fora e o grampo corre no fundo.
@@ -284,30 +290,44 @@ function frameOf(d: Composition, m: Module, out: Fitting[]) {
   // só a coluna da frente (entre os vãos), sem cruzar o tampo nem o fundo.
   const shared = (side: 'left' | 'right') =>
     d.connections.some((c) => c.shared && c.side !== 'top' && ((c.parent === m.id && c.side === side) || (c.child === m.id && c.side !== side)));
+  // O tubo fica rente às faces da caixa, dentro do contorno dela: não sobe no
+  // tampo, não desce nos pés e não avança sobre as frentes (que ficam dentro
+  // do quadro, como na serralheria). Na junta, a coluna fica no meio do
+  // painel dividido, entre as frentes dos dois vãos.
+  const i = t / 2;
   const edges: { key: string; at: Vec; size: Vec }[] = [];
-  for (const y of [0, h])
-    for (const z of [-dep / 2, dep / 2]) edges.push({ key: `x${y ? 't' : 'b'}${z > 0 ? 'f' : 'r'}`, at: [0, y, z], size: [w, t, t] });
-  for (const x of [-w / 2, w / 2]) {
+  for (const y of [i, h - i])
+    for (const z of [-dep / 2 + i, dep / 2 - i]) edges.push({ key: `x${y > h / 2 ? 't' : 'b'}${z > 0 ? 'f' : 'r'}`, at: [0, y, z], size: [w, t, t] });
+  for (const x of [-w / 2 + i, w / 2 - i]) {
     const joint = shared(x < 0 ? 'left' : 'right');
     // A coluna da junta vem do módulo da esquerda.
     if (joint && x < 0) continue;
-    for (const z of [-dep / 2, dep / 2]) if (!joint || z > 0) edges.push({ key: `y${x > 0 ? 'r' : 'l'}${z > 0 ? 'f' : 'r'}`, at: [x, h / 2, z], size: [t, h, t] });
-    if (!joint) for (const y of [0, h]) edges.push({ key: `z${x > 0 ? 'r' : 'l'}${y ? 't' : 'b'}`, at: [x, y, 0], size: [t, t, dep] });
+    const px = joint ? w / 2 - PROFILE.panel / 2 : x;
+    for (const z of [-dep / 2 + i, dep / 2 - i]) if (!joint || z > 0) edges.push({ key: `y${x > 0 ? 'r' : 'l'}${z > 0 ? 'f' : 'r'}`, at: [px, h / 2, z], size: [t, h, t] });
+    if (!joint) for (const y of [i, h - i]) edges.push({ key: `z${x > 0 ? 'r' : 'l'}${y > h / 2 ? 't' : 'b'}`, at: [x, y, 0], size: [t, t, dep - 2 * t] });
   }
   for (const e of edges)
     out.push({ id: `${m.id}:frame-${e.key}`, moduleId: m.id, kind: 'frame', type: 'tube', materialId: id, color, position: point(e.at, m), size: e.size, rotation, bom: { unit: 'm', qty: Math.max(...e.size) / 1000 } });
 }
 
 /** Fita de LED: sob o tampo de dentro da caixa, sob a prateleira de parede, no alto do painel. */
-function ledOf(m: Module, out: Fitting[]) {
+function ledOf(d: Composition, m: Module, out: Fitting[]) {
   if (!m.look?.led) return;
   const rotation = (m.rotation * Math.PI) / 180;
   const P = PROFILE.panel;
   const strip = (len: number, at: Vec) =>
     out.push({ id: `${m.id}:led`, moduleId: m.id, kind: 'led', type: 'strip', materialId: null, color: '#fff3d6', position: point(at, m), size: [len, 6, 12], rotation, bom: { unit: 'm', qty: len / 1000 } });
-  if (m.kind === 'ledge') strip(m.width - 40, [0, -3, m.depth / 2 - 30]);
-  else if (m.kind === 'panel') strip(m.width - 120, [0, m.height - 40, m.depth / 2 + 3]);
-  else strip(m.width - 2 * P - 20, [0, m.height - P - 3, m.depth / 2 - PROFILE.front - 30]);
+  if (m.kind === 'ledge') return strip(m.width - 40, [0, -3, m.depth / 2 - 30]);
+  if (m.kind === 'panel') return strip(m.width - 120, [0, m.height - 40, m.depth / 2 + 3]);
+  // Caixa: um trecho em cada vão que encosta no tampo, entre as divisórias.
+  const top = m.height - P;
+  const cols = layout(d).cells.filter((c) => c.moduleId === m.id && !c.node.split && Math.abs(c.origin[1] + c.size[1] - top) < 1);
+  const spans = cols.length ? cols.map((c) => [c.origin[0], c.size[0]] as const) : [[-m.width / 2 + P, m.width - 2 * P] as const];
+  spans.forEach(([x0, w], k) => {
+    const len = w - 20;
+    if (len < 60) return;
+    out.push({ id: spans.length === 1 ? `${m.id}:led` : `${m.id}:led-${k}`, moduleId: m.id, kind: 'led', type: 'strip', materialId: null, color: '#fff3d6', position: point([x0 + w / 2, top - 3, m.depth / 2 - PROFILE.front - 30], m), size: [len, 6, 12], rotation, bom: { unit: 'm', qty: len / 1000 } });
+  });
 }
 
 /**
@@ -323,7 +343,7 @@ export function handlePlacement(part: Pick<ModularPart, 'id' | 'size' | 'positio
     if (!part.id.endsWith(':front')) return null;
     if (type === 'groove' || type === 'edge') {
       const len = type === 'groove' ? w : Math.max(120, Math.min(w * 0.4, 400));
-      return { vertical: false, len, x: 0, y: h / 2 - (type === 'groove' ? 10 : 0), z: t / 2 };
+      return { vertical: false, len, x: 0, y: h / 2 - 10, z: t / 2 };
     }
     const len = Math.min(Math.max(w * 0.35, 96), 224);
     return { vertical: false, len, x: 0, y: h > 260 ? h / 2 - 90 : 0, z: t / 2 };
@@ -332,7 +352,7 @@ export function handlePlacement(part: Pick<ModularPart, 'id' | 'size' | 'positio
     // Basculante: pega-se embaixo, no meio, para levantar.
     if (type === 'groove' || type === 'edge') {
       const len = type === 'groove' ? w : Math.max(120, Math.min(w * 0.4, 400));
-      return { vertical: false, len, x: 0, y: -h / 2 + (type === 'groove' ? 10 : 0), z: t / 2 };
+      return { vertical: false, len, x: 0, y: -h / 2 + 10, z: t / 2 };
     }
     const len = Math.min(Math.max(w * 0.35, 96), 224);
     return { vertical: false, len, x: 0, y: -h / 2 + 45, z: t / 2 };
@@ -346,7 +366,7 @@ export function handlePlacement(part: Pick<ModularPart, 'id' | 'size' | 'positio
   const side = m.type === 'slide' ? -m.direction : localX > 0 ? -1 : 1;
   if (type === 'groove' || type === 'edge') {
     const len = type === 'groove' ? h : Math.max(150, Math.min(h * 0.3, 500));
-    return { vertical: true, len, x: side * (w / 2 - (type === 'groove' ? 10 : 0)), y: 0, z: t / 2 };
+    return { vertical: true, len, x: side * (w / 2 - 10), y: 0, z: t / 2 };
   }
   const len = Math.min(Math.max(h * 0.22, 96), 192);
   const bottom = part.position[1] - h / 2;
@@ -423,7 +443,7 @@ export function fittingsOf(d: Composition, parts: readonly ModularPart[] = gener
   legsOfRows(d, out);
   for (const m of d.modules) {
     frameOf(d, m, out);
-    ledOf(m, out);
+    ledOf(d, m, out);
   }
   handlesOf(parts, out);
   return out;
@@ -534,8 +554,8 @@ function drawnBoxes(f: Fitting): { position: Vec; size: Vec }[] {
       box(0, 0, d / 2 - 60, [60, h, 60]),
       box(0, -h / 2 + 30, 0, [w, 60, d]),
       box(0, h / 2 - 30, 0, [w, 60, d - 40]),
-      // Travessão entre as colunas, na altura da longarina (1/3 do piso), entrando nelas.
-      box(0, h / 3 - h / 2, 0, [60, 70, d - 120]),
+      // Travessão entre as colunas, na altura da longarina ou do nível, entrando nelas.
+      box(0, f.levels?.[0] ?? h / 3 - h / 2, 0, [60, 70, d - 120]),
     ];
   if (f.type === 'wall') return [box(0, 0, -d / 2 + 4, [w, h, 8]), box(0, h / 2 - 4, 0, [w, 8, d])];
   if (f.kind !== 'leg' || (f.type !== 'splayed' && f.type !== 'tapered')) return [{ position: f.position, size: f.size }];

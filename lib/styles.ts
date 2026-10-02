@@ -422,9 +422,20 @@ function restyleRow(d: Composition, s: StyleDef, ids: string[], opts: StyleOptio
     return;
   }
   if (role === 'table') {
-    for (const m of mods) dressTable(m, s, opts);
-    generateComposition(d);
-    return;
+    // Base do estilo; se a mesa não comporta (cavalete num console raso, gavetas
+    // que não cabem entre os cavaletes), fica a base que ela tinha e o estilo
+    // muda o resto (tampo, cores, puxador).
+    const before = structuredClone(mods);
+    for (const keepBase of [false, true]) {
+      mods.forEach((m, i) => Object.assign(m, structuredClone(before[i])));
+      for (const m of mods) dressTable(m, s, opts, keepBase);
+      try {
+        generateComposition(d);
+        return;
+      } catch (e) {
+        if (keepBase) throw e;
+      }
+    }
   }
   const plan = roleLook(s.id, role);
   const onTop = mods.some((m) => d.connections.some((c) => c.side === 'top' && c.child === m.id));
@@ -469,10 +480,10 @@ function restyleRow(d: Composition, s: StyleDef, ids: string[], opts: StyleOptio
  * suporte de parede, estrutura de aço com níveis (estante aberta) e tampo de
  * vidro (penteadeira); nesses o estilo troca só o acabamento.
  */
-function dressTable(m: Module, s: StyleDef, opts: StyleOptions) {
+function dressTable(m: Module, s: StyleDef, opts: StyleOptions, keepBase = false) {
   const plan = roleLook(s.id, 'table');
   const current = m.look?.legs ?? DEFAULT_TABLE_BASE;
-  const keep = current === 'casters' || current === 'wall' || (current === 'frame' && (m.shelves ?? 0) >= 2);
+  const keep = keepBase || current === 'casters' || current === 'wall' || (current === 'frame' && (m.shelves ?? 0) >= 1);
   const legs = keep ? current : (plan.legs?.type ?? current);
   const legMaterial = plan.legs?.materialId;
   const accepts = LEGS[legs].materials;

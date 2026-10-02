@@ -59,9 +59,13 @@ void test('rack industrial da foto de referência: o estúdio monta pelo contrat
   assert.equal(frame.length, 9 + 5 + 8);
   const legs = fit.filter((f) => f.kind === 'leg');
   assert.equal(legs.length, 4);
+  // Cada pé de tubo continua uma coluna do contorno: mesmo x e z, rente à quina.
+  const columns = frame.filter((f) => f.size[1] > f.size[0]);
+  for (const leg of legs)
+    assert.ok(columns.some((c) => Math.abs(c.position[0] - leg.position[0]) < 0.5 && Math.abs(c.position[2] - leg.position[2]) < 0.5), `pé em ${leg.position.map(Math.round).join(',')}`);
   const xs = legs.map((f) => Math.round(f.position[0]));
-  assert.equal(Math.min(...xs), Math.round(g.bounds.min[0]));
-  assert.equal(Math.max(...xs), Math.round(g.bounds.max[0]));
+  assert.equal(Math.min(...xs), Math.round(g.bounds.min[0]) + 10);
+  assert.equal(Math.max(...xs), Math.round(g.bounds.max[0]) - 10);
   // Orçamento com a tela, o tubo do contorno e a serralheria.
   const q = quoteOf(d, DEFAULT_PRICES);
   for (const label of ['Aço preto 2 mm', 'Estrutura em aço preto (tubo 20 × 20)', 'Pé de tubo de aço', 'Serralheria (corte, solda e pintura)'])

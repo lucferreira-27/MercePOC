@@ -1,5 +1,6 @@
-import { isFlat, type Composition, type ModularPart } from './composition';
-import { drawingParts } from './fittings';
+import { generateComposition, isFlat, openingPose, type Composition, type ModularPart } from './composition';
+import { cutPlan } from './cutplan';
+import { drawingParts, fittingsOf } from './fittings';
 
 /**
  * Nada pode flutuar: toda peça desenhada (peça de corte ou ferragem: pé,
@@ -54,4 +55,68 @@ export function floatingParts(d: Composition, drawn: readonly ModularPart[] = dr
       }
   }
   return parts.flatMap((p, i) => (held[i] ? [] : [{ id: p.id, name: p.name, module: p.owners[0] ?? '' }]));
+}
+
+/** Caixa no mundo de uma peça girada só em y (o mesmo `worldBox` de cima, para quem importa). */
+const boxOfPart = (p: Pick<ModularPart, 'position' | 'size' | 'rotation'>) => worldBox(p as ModularPart);
+/** Quanto duas caixas se cruzam (o menor dos três eixos); negativo, não se tocam. */
+const overlap = (a: Box, b: Box) => Math.min(...[0, 1, 2].map((i) => Math.min(a.max[i], b.max[i]) - Math.max(a.min[i], b.min[i])));
+
+export type StructureIssue = { kind: 'solta' | 'atravessa' | 'nao-abre' | 'puxador' | 'corte'; message: string };
+
+/**
+ * O que a colisão de peças de corte não vê, numa lista de frases: peça solta,
+ * ferragem (pé, estrutura, cavalete, suporte, LED) atravessando peça de
+ * corte, frente que não abre inteira porque bate numa peça ou ferragem,
+ * puxador saindo da frente ou cruzando outro e peça de chapa maior que a
+ * chapa. Fica de fora, de propósito: o contorno de aço rente às faces, que
+ * toma o canto da caixa, e o pé inclinado entrando no nível que ele segura.
+ */
+export function structureIssues(d: Composition): StructureIssue[] {
+  const out: StructureIssue[] = [];
+  const g = generateComposition(d);
+  const drawn = drawingParts(d).filter((p) => !p.decal);
+  const cut = new Set(g.parts.map((p) => p.id));
+  const fit = drawn.filter((p) => !cut.has(p.id));
+  const fittings = fittingsOf(d, g.parts);
+  const framed = new Set(d.modules.filter((m) => m.look?.frame).map((m) => m.id));
+  const source = (p: ModularPart) => fittings.find((v) => p.id === v.id || p.id.startsWith(`${v.id}:seg-`));
+  for (const f of floatingParts(d, drawn)) out.push({ kind: 'solta', message: `${f.name} solta no ar` });
+  for (const f of fit) {
+    const src = source(f);
+    const fb = boxOfPart(f);
+    for (const p of g.parts) {
+      if (src?.attach === p.id) continue;
+      // O contorno toma o canto das caixas com contorno (a dele e a vizinha na junta).
+      if (src?.kind === 'frame' && framed.has(p.owners[0]) && ['side', 'top', 'base', 'back', 'divider', 'shelf', 'slab', 'panel'].includes(p.kind)) continue;
+      if (src?.type === 'splayed' && p.kind === 'shelf') continue;
+      const k = overlap(fb, boxOfPart(p));
+      if (k > 3) out.push({ kind: 'atravessa', message: `${f.name} (${src?.type ?? ''}) atravessa ${p.name} em ${Math.round(k)} mm` });
+    }
+  }
+  const groups = [...new Set(g.parts.filter((p) => p.motion).map((p) => p.motion!.id))];
+  for (const group of groups) {
+    const moving = g.parts.filter((p) => p.motion?.id === group);
+    const own = new Set(fittings.filter((f) => f.kind === 'handle' && moving.some((p) => p.id === f.attach)).map((f) => f.id));
+    const obstacles = [...g.parts.filter((p) => p.motion?.id !== group), ...fit.filter((f) => !own.has(f.id) && source(f)?.kind !== 'led')];
+    for (const fr of [0.5, 1]) {
+      const hit = moving.flatMap((p) => obstacles.filter((q) => overlap(boxOfPart(openingPose(p, fr)), boxOfPart(q)) > 1).map((q) => `${p.name} bate em ${q.name}`));
+      if (hit.length) {
+        out.push({ kind: 'nao-abre', message: `${hit[0]} abrindo ${Math.round(fr * 100)}%` });
+        break;
+      }
+    }
+  }
+  const hs = fittings.filter((f) => f.kind === 'handle' && !f.hidden);
+  for (const h of hs) {
+    const front = g.parts.find((p) => p.id === h.attach);
+    if (!front || !h.local) continue;
+    const half = h.local.vertical ? front.size[1] / 2 : front.size[0] / 2;
+    const along = h.local.vertical ? h.local.y : h.local.x;
+    const across = h.local.vertical ? front.size[0] / 2 - Math.abs(h.local.x) : front.size[1] / 2 - Math.abs(h.local.y);
+    if (Math.abs(along) + h.local.len / 2 > half + 1 || across < -1) out.push({ kind: 'puxador', message: `puxador ${h.type} sai de ${front.name}` });
+  }
+  for (let i = 0; i < hs.length; i++) for (let j = i + 1; j < hs.length; j++) if (overlap(boxOfPart(hs[i]), boxOfPart(hs[j])) > 0) out.push({ kind: 'puxador', message: `puxadores ${hs[i].type} se cruzam` });
+  for (const o of cutPlan(g.parts).oversize) out.push({ kind: 'corte', message: `${o.name} (${o.c} × ${o.l}) não cabe numa chapa` });
+  return out;
 }

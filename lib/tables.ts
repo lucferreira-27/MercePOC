@@ -66,10 +66,21 @@ export type TableSpec = {
   levelReach: (y: number) => number;
   /** Largura de cada frente de gaveta. */
   drawerW: number;
-  /** Pé no canto mais largo que o avental: os lados do avental vão de pé a pé. */
+  /** Pé no canto: os lados do avental vão de pé a pé. */
   cornerLegs: boolean;
   /** Recuo da faixa das gavetas a partir da ponta da base. */
   drawerInset: number;
+  /**
+   * Onde o avental fica sem pé no canto: recuo nas pontas (x) e na frente e
+   * no fundo (z), por fora do que a base ocupa (tubo da estrutura, trenó,
+   * cavalete). O cavalete faz a lateral: sem avental lateral.
+   */
+  apronEnds: number;
+  apronSides: number;
+  sideAprons: boolean;
+  /** Largura e fundo dos níveis: entre os pés, dentro da estrutura, entre as colunas do cavalete. */
+  levelW: number;
+  levelD: number;
 };
 
 /** Tampo da mesa: o escolhido ou, sem ele, uma chapa grossa no material do corpo. */
@@ -109,14 +120,21 @@ export function tableSpec(m: TableModule): TableSpec {
   const ceiling = lh - apron;
   const step = n ? (ceiling - floor) / n : 0;
   const levels = Array.from({ length: n }, (_, i) => Math.round(floor + i * step));
-  // Sem pé no canto que separe os lados do avental, as gavetas ficam entre
-  // as laterais do avental (10 mm de recuo e a espessura).
-  const cornerLegs = legX >= 10 + rail && legZ >= 10 + rail;
-  const drawerInset = cornerLegs ? legX : 10 + rail;
+  // Pé no canto: avental e gavetas entre os pés. Sem pé no canto, o avental
+  // fica por dentro do que a base ocupa nas bordas (tubo de 20 da estrutura
+  // e do trenó, cavalete de 80), senão atravessava o aço ou a madeira dela.
+  const cornerLegs = section !== undefined;
+  const apronEnds = base === 'trestle' ? 80 : base === 'sled' || base === 'frame' || base === 'casters' ? 20 : 10;
+  const apronSides = base === 'frame' || base === 'casters' ? 20 : 10;
+  const sideAprons = base !== 'trestle';
+  const drawerInset = cornerLegs ? Math.max(legX, 10 + rail) : apronEnds + (sideAprons ? rail : 0);
   const drawerW = drawers ? (bw - 2 * drawerInset - (drawers - 1) * 4) / drawers : 0;
   const splay = base === 'splayed' ? Math.tan((SPLAY_DEG * Math.PI) / 180) : 0;
   const levelReach = (y: number) => (splay ? Math.round(splay * (lh - y) + legX / 2) : 0);
-  return { base, top, bw, bd, lh, legX, legZ, apron, rail, shelfT, levels, levelReach, drawerW, cornerLegs, drawerInset };
+  // Cavalete: o nível apoia nos travessões (até o meio de cada cavalete), entre as colunas da frente e do fundo.
+  const levelW = base === 'trestle' ? bw - 84 : bw - 2 * legX - 4;
+  const levelD = base === 'trestle' ? bd - 184 : bd - 2 * legZ - 4;
+  return { base, top, bw, bd, lh, legX, legZ, apron, rail, shelfT, levels, levelReach, drawerW, cornerLegs, drawerInset, apronEnds, apronSides, sideAprons, levelW, levelD };
 }
 
 const cat: Record<MaterialCategory, string> = { sheet: 'chapa', solid: 'madeira maciça', metal: 'metal', glass: 'vidro', stone: 'pedra', fiber: 'palhinha' };
@@ -170,6 +188,8 @@ export function tableIssues(m: TableModule): { path: string; message: string }[]
   if (drawers && s.bd - 2 * 10 - 18 - s.rail - 20 < 150)
     fail('drawers', `gaveta pede ${Math.ceil(150 + 58 + s.rail + 2 * s.top.overhang)} mm de fundo na mesa (a caixa fica com menos de 15 cm).`);
   if (shelves && base === 'wall') fail('shelves', 'mesa presa na parede não leva nível embaixo.');
+  if (shelves && (s.levelW < 150 || s.levelD < 80))
+    fail('shelves', `${LEGS[base].name} não deixa lugar para nível nessa medida (${Math.round(s.levelW)} × ${Math.round(s.levelD)} mm entre a base); tire o nível ou aumente a mesa.`);
   if (shelves) {
     const gap = shelves > 1 ? s.levels[1] - s.levels[0] : s.lh - s.apron - s.levels[0];
     if (gap < 140) fail('shelves', `${shelves} níveis não cabem: o vão ficaria com ${Math.round(gap)} mm (mínimo 140).`);
