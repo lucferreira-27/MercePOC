@@ -179,6 +179,20 @@ textarea:focus {
   outline: none;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
 }
+/* Campo dentro de uma pílula (busca): a pílula desenha a borda e o anel de foco, o campo não. */
+.style-search input,
+.style-search input:hover,
+.style-search input:focus,
+.gallery-search input,
+.gallery-search input:hover,
+.gallery-search input:focus {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+  box-shadow: none;
+}
 input[type='checkbox'],
 input[type='radio'] {
   accent-color: var(--accent);
@@ -3398,11 +3412,8 @@ svg.tp-time {
 .style-search input {
   flex: 1;
   min-width: 0;
-  border: 0;
-  background: transparent;
   font-size: 13px;
   color: var(--ink);
-  outline: none;
 }
 .style-search:focus-within {
   border-color: var(--accent-line);
@@ -5897,11 +5908,8 @@ button.wall-summary:hover:not(:disabled) {
 .gallery-search input {
   flex: 1;
   min-width: 0;
-  border: 0;
-  background: transparent;
   font-size: 13px;
   color: var(--ink);
-  outline: none;
 }
 .gallery-search:focus-within {
   border-color: var(--accent-line);
