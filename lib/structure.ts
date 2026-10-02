@@ -97,7 +97,8 @@ const inside = (a: Box, b: Box) => [0, 1, 2].every((i) => a.min[i] >= b.min[i] -
  * puxador saindo da frente ou cruzando outro e peça de chapa maior que a
  * chapa, e o desenho com peça de trás pintada por cima da da frente
  * (conferido pelo raio do olho). Fica de fora, de propósito: o contorno de aço rente às faces, que
- * toma o canto da caixa, e o pé inclinado entrando no nível que ele segura.
+ * toma o canto da caixa, e o pé inclinado contra o nível (a caixa dele cobre
+ * a inclinação inteira).
  */
 export function structureIssues(d: Composition, all: readonly ModularPart[] = drawingParts(d)): StructureIssue[] {
   const out: StructureIssue[] = [];
@@ -116,8 +117,9 @@ export function structureIssues(d: Composition, all: readonly ModularPart[] = dr
       if (src?.attach === p.id) continue;
       // O contorno toma o canto das caixas com contorno (a dele e a vizinha na junta).
       if (src?.kind === 'frame' && framed.has(p.owners[0]) && ['side', 'top', 'base', 'back', 'divider', 'shelf', 'slab', 'panel'].includes(p.kind)) continue;
-      // O nível da mesa entra nos pés e no quadro que o seguram (entalhado, apoiado).
-      if ((src?.kind === 'leg' || src?.kind === 'stand') && p.kind === 'shelf' && p.id.includes(':level-') && p.owners.includes(src.moduleId)) continue;
+      // Pé inclinado não é caixa: a caixa dele cobre a inclinação inteira e
+      // cruza o nível que encosta nele na altura dele. Só para esse par.
+      if (f.slant && p.kind === 'shelf' && p.owners.includes(src?.moduleId ?? '')) continue;
       const k = overlap(fb, boxOfPart(p));
       if (k > 3) out.push({ kind: 'atravessa', message: `${f.name} (${src?.type ?? ''}) atravessa ${p.name} em ${Math.round(k)} mm` });
     }
@@ -131,6 +133,21 @@ export function structureIssues(d: Composition, all: readonly ModularPart[] = dr
       if (!a || !b || a === b) continue;
       const k = overlap(fb[i], fb[j]);
       if (k > 3 && !joint(fb[i], fb[j])) out.push({ kind: 'cruza', message: `${fit[i].name} (${a.type}) cruza ${fit[j].name} (${b.type}) em ${Math.round(k)} mm` });
+    }
+  // Pé dobrado: dois pés de módulos vizinhos lado a lado na junta (cada caixa
+  // com os seus) em vez de um pé que as duas dividem.
+  for (let i = 0; i < fit.length; i++)
+    for (let j = i + 1; j < fit.length; j++) {
+      const [a, b] = [fsrc[i], fsrc[j]];
+      if (a?.kind !== 'leg' || b?.kind !== 'leg' || a.moduleId === b.moduleId || a.type !== b.type || a.type === 'wall') continue;
+      // Só caixas ligadas com o mesmo pé e a mesma profundidade (um móvel só,
+      // como o balcão da cozinha) dividem o pé. Torre ao lado do rack, mais
+      // rasa ou noutra altura de pé, fica nos seus pés.
+      const [ma, mb] = [d.modules.find((m) => m.id === a.moduleId), d.modules.find((m) => m.id === b.moduleId)];
+      if (!ma || !mb || ma.feet !== mb.feet || ma.depth !== mb.depth) continue;
+      if (!d.connections.some((c) => (c.parent === a.moduleId && c.child === b.moduleId) || (c.parent === b.moduleId && c.child === a.moduleId))) continue;
+      const g2 = gap(fb[i], fb[j]);
+      if (g2 >= -3 && g2 < 150) out.push({ kind: 'cruza', message: `${fit[i].name} e ${fit[j].name} dobrados lado a lado na junta` });
     }
   // Peça que some: ferragem inteira dentro de uma peça de corte não aparece no desenho nem na cena.
   const cb = g.parts.map(boxOfPart);
@@ -187,8 +204,10 @@ export function structureIssues(d: Composition, all: readonly ModularPart[] = dr
   }
   for (let i = 0; i < hs.length; i++) for (let j = i + 1; j < hs.length; j++) if (overlap(boxOfPart(hs[i]), boxOfPart(hs[j])) > 0) out.push({ kind: 'puxador', message: `puxadores ${hs[i].type} se cruzam` });
   // O desenho conferido contra o raio do olho: peça de trás pintada por cima da da frente.
+  const linked = (x: string, y: string) => x === y || d.connections.some((c) => (c.parent === x && c.child === y) || (c.parent === y && c.child === x));
+  const together = (a: ModularPart, b: ModularPart) => a.owners.some((x) => b.owners.some((y) => linked(x, y)));
   for (const view of ['front', 'iso'] as const)
-    for (const f of drawingFaults(drawn, view)) if (f.samples >= 2) out.push({ kind: 'desenho', message: `no desenho ${view === 'iso' ? 'isométrico' : 'frontal'}, ${f.over.name} aparece por cima de ${f.hidden.name}` });
+    for (const f of drawingFaults(drawn, view, 12, undefined, together)) if (f.samples >= 2) out.push({ kind: 'desenho', message: `no desenho ${view === 'iso' ? 'isométrico' : 'frontal'}, ${f.over.name} aparece por cima de ${f.hidden.name}` });
   for (const o of cutPlan(g.parts).oversize) out.push({ kind: 'corte', message: `${o.name} (${o.c} × ${o.l}) não cabe numa chapa` });
   return out;
 }

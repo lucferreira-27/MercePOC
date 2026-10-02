@@ -124,3 +124,12 @@ void test('toda faixa de pé anunciada monta nas duas pontas (o pé quadrado diz
     }
   }
 });
+
+void test('a conferência do desenho acha a coluna do cavalete atravessando a sapata (aparecia na frente dela)', () => {
+  const d = buildAsset(assets.find((a) => a.id === 'mesa-centro')!, { style: 'rustic' });
+  const drawn = drawingParts(d);
+  assert.deepEqual(structureIssues(d, drawn).filter((v) => v.kind === 'desenho'), []);
+  // Como era: a coluna do piso ao tampo, por dentro da sapata e do chapéu.
+  const through = drawn.map((p) => (/:trestle-1:seg-[01]$/.test(p.id) ? { ...p, size: [p.size[0], p.size[1] + 120, p.size[2]] as [number, number, number] } : p));
+  assert.ok(structureIssues(d, through).some((v) => v.kind === 'desenho'), said(structureIssues(d, through)));
+});

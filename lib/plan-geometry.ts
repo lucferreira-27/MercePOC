@@ -379,7 +379,14 @@ export type DrawingFault = { hidden: ModularPart; over: ModularPart; samples: nu
  * venha de ciclo, de caixa que se cruza ou de erro na ordem. Pé inclinado,
  * que não é caixa, fica de fora.
  */
-export function drawingFaults(parts: readonly ModularPart[], view: ViewKind, step = 12, paint: (parts: ModularPart[]) => ModularPart[] = (v) => paintOrder(v, view)): DrawingFault[] {
+export function drawingFaults(
+  parts: readonly ModularPart[],
+  view: ViewKind,
+  step = 12,
+  paint: (parts: ModularPart[]) => ModularPart[] = (v) => paintOrder(v, view),
+  /** As duas peças são do mesmo móvel ou de módulos ligados (a junta do contorno de aço). */
+  joined?: (a: ModularPart, b: ModularPart) => boolean,
+): DrawingFault[] {
   const solid = parts.filter((p) => !p.slant && p.size.every((v) => v > 0));
   const ordered = paint(solid);
   const rank = new Map(ordered.map((p, i) => [p, i]));
@@ -391,7 +398,6 @@ export function drawingFaults(parts: readonly ModularPart[], view: ViewKind, ste
   const [u0, u1] = [Math.min(...box.map((q) => q[0])), Math.max(...box.map((q) => q[0]))];
   const [v0, v1] = [Math.min(...box.map((q) => q[1])), Math.max(...box.map((q) => q[1]))];
   const bounds = hulls.map((h) => [Math.min(...h.map((q) => q[0])), Math.min(...h.map((q) => q[1])), Math.max(...h.map((q) => q[0])), Math.max(...h.map((q) => q[1]))]);
-  const world: Bounds[] = solid.map((p) => { const c = cornersOf(p); return { min: [0, 1, 2].map((i) => Math.min(...c.map((q) => q[i]))), max: [0, 1, 2].map((i) => Math.max(...c.map((q) => q[i]))) }; });
   const faults = new Map<string, DrawingFault>();
   for (let u = u0 + step / 2; u < u1; u += step)
     for (let v = v0 + step / 2; v < v1; v += step) {
@@ -407,10 +413,16 @@ export function drawingFaults(parts: readonly ModularPart[], view: ViewKind, ste
       if (top < 0 || near < 0 || top === near) continue;
       // Só conta se a peça pintada por cima está mesmo atrás (não é face encostada).
       if (rayExit(solid[top], o, d) > best - 1) continue;
-      // Caixas que se cruzam de propósito (vidro na porta, nível entalhado no pé,
-      // contorno rente às faces) não têm uma de trás: fica de fora.
-      const [a, c] = [world[top], world[near]];
-      if ([0, 1, 2].every((i) => Math.min(a.max[i], c.max[i]) - Math.max(a.min[i], c.min[i]) > 0.5)) continue;
+      // Caixa dentro de caixa é erro de desenho (a coluna do cavalete atravessando
+      // a sapata aparecia na frente dela) e conta. Só o miolo da porta (vidro,
+      // palhinha, tela) fica de fora: ele vai dentro do quadro de propósito e é
+      // pintado por cima da folha.
+      if (solid[top].kind === 'insert' && solid[top].id.startsWith(`${solid[near].id}:`)) continue;
+      // O contorno de aço rente às faces toma o canto da caixa (simplificação
+      // do modelo: na peça real a chapa para entre os tubos). Tubo contra a
+      // caixa dele, a vizinha da junta e outro tubo ficam de fora; o resto conta.
+      const tube = (p: ModularPart) => /:frame-/.test(p.id);
+      if ((tube(solid[top]) || tube(solid[near])) && (joined?.(solid[top], solid[near]) ?? solid[top].owners.some((o) => solid[near].owners.includes(o)))) continue;
       const k = `${solid[top].id}|${solid[near].id}`;
       const f = faults.get(k) ?? { hidden: solid[near], over: solid[top], samples: 0 };
       f.samples++;

@@ -106,13 +106,14 @@ void test('painel de parede com ganchos de cabideiro, cobrados por unidade', () 
   assert.throws(() => generateComposition(one({ ...preset('niche', 'b'), hooks: 2 })), /gancho de cabideiro vai em painel/);
 });
 
-void test('cavalete: a longarina entra no travessão de cada cavalete, nada flutua', () => {
+void test('cavalete: a longarina encosta no travessão de cada cavalete, sem atravessar (o desenho não pinta caixa dentro de caixa)', () => {
   const drawn = drawingParts(one(table({ width: 1800, depth: 900, look: { legs: 'trestle' } })));
   const box = (p: (typeof drawn)[number]) => ({ min: p.position.map((v, i) => v - p.size[i] / 2), max: p.position.map((v, i) => v + p.size[i] / 2) });
   const beam = box(drawn.find((p) => p.id === 'm:beam')!);
   for (const t of ['m:trestle-0', 'm:trestle-1']) {
     const pieces = drawn.filter((p) => p.id.startsWith(`${t}:seg-`)).map(box);
-    const touches = pieces.some((b) => [0, 1, 2].every((i) => Math.min(beam.max[i], b.max[i]) - Math.max(beam.min[i], b.min[i]) > 1));
-    assert.ok(touches, `${t}: a longarina não encosta em peça nenhuma do cavalete`);
+    const depth = (b: { min: number[]; max: number[] }) => Math.min(...[0, 1, 2].map((i) => Math.min(beam.max[i], b.max[i]) - Math.max(beam.min[i], b.min[i])));
+    assert.ok(pieces.some((b) => Math.abs(depth(b)) <= 1), `${t}: a longarina não encosta em peça nenhuma do cavalete`);
+    assert.ok(pieces.every((b) => depth(b) <= 0.5), `${t}: a longarina atravessa o cavalete`);
   }
 });

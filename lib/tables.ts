@@ -125,27 +125,29 @@ export function tableSpec(m: TableModule): TableSpec {
   // fica por dentro do que a base ocupa nas bordas (tubo de 20 da estrutura
   // e do trenó, cavalete de 80), senão atravessava o aço ou a madeira dela.
   const cornerLegs = section !== undefined;
-  const apronEnds = base === 'trestle' ? 80 : base === 'sled' || base === 'frame' || base === 'casters' ? 20 : 10;
+  // Pé grampo: o V corre rente à borda, o avental lateral fica por dentro das hastes.
+  const apronEnds = base === 'trestle' ? 80 : base === 'sled' || base === 'frame' || base === 'casters' ? 20 : base === 'hairpin' ? (section ?? 10) : 10;
   const apronSides = base === 'frame' || base === 'casters' ? 20 : 10;
   const sideAprons = base !== 'trestle';
-  const drawerInset = cornerLegs ? Math.max(legX, 10 + rail) : apronEnds + (sideAprons ? rail : 0);
+  const drawerInset = cornerLegs ? Math.max(legX, apronEnds + rail) : apronEnds + (sideAprons ? rail : 0);
   const drawerW = drawers ? (bw - 2 * drawerInset - (drawers - 1) * 4) / drawers : 0;
   const splay = base === 'splayed' ? Math.tan((SPLAY_DEG * Math.PI) / 180) : 0;
   const levelReach = (y: number) => (splay ? Math.round(splay * (lh - y)) : 0);
   // Cavalete: o nível vai de um cavalete ao outro, encostado nas colunas, e
   // faz o papel da longarina; não entra no cavalete (virava uma escada de tábuas).
-  // O nível entra no que o segura, como na marcenaria: até o meio dos pés
-  // (entalhado em volta deles), até o meio do tubo da estrutura e do trenó
-  // (apoiado no quadro), 1 mm dentro das colunas do cavalete (60 mm no meio dos 80 dele). Parando antes,
-  // ficava solto no ar a 2 mm dos pés.
+  // O nível encosta no que o segura, sem entrar: caixa dentro de caixa o
+  // desenho não pinta certo (o canto do nível saía por cima do pé da frente).
+  // Pé de canto: entre as faces de dentro dos pés. Estrutura: entre as
+  // colunas, apoiado nos travessões da frente e do fundo. Trenó: entre as
+  // alças. Cavalete: entre as colunas.
   const [levelW, levelD] = cornerLegs
-    ? [bw - legX, bd - legZ]
+    ? [bw - 2 * legX, bd - 2 * legZ]
     : base === 'frame' || base === 'casters'
-      ? [bw - 20, bd - 20]
+      ? [bw - 40, bd - 20]
       : base === 'sled'
-        ? [bw - 20, bd - 4]
+        ? [bw - 40, bd - 4]
         : base === 'trestle'
-          ? [bw - 2 * (legX - 10) + 2, bd - 4]
+          ? [bw - 2 * (legX - 10), bd - 4]
           : [bw - 2 * legX - 4, bd - 2 * legZ - 4];
   return { base, top, bw, bd, lh, legX, legZ, apron, rail, shelfT, levels, levelReach, drawerW, cornerLegs, drawerInset, apronEnds, apronSides, sideAprons, levelW, levelD };
 }

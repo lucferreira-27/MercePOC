@@ -97,29 +97,21 @@ function supports(from: number, to: number, joints: number[]) {
   });
 }
 
-/** Pé palito da v3 (pés sem tipo escolhido): quatro por caixa, como era, e fora do orçamento. */
-function legacyFeet(m: Module, out: Fitting[]) {
-  const h = m.feet ?? 0;
-  const { id: materialId, color } = legColor(m, 'palito');
-  const lay = LEG_LAYOUT.palito!;
-  const x = m.width / 2 - lay.x,
-    z = m.depth / 2 - lay.z;
-  [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz], i) => {
-    const top = point([sx * x, 0, sz * z], m);
-    out.push({ id: `${m.id}:foot-${i}`, moduleId: m.id, kind: 'leg', type: 'palito', materialId, color, rotation: (m.rotation * Math.PI) / 180, position: [top[0], m.position[1] + h / 2, top[2]], size: [lay.w, h, lay.w], bom: { unit: 'un', qty: 0 } });
-  });
-}
-
 /**
  * Pés escolhidos (estilo, editor, IA): por fileira, não por módulo. Módulos
  * lado a lado com a mesma base dividem os pés das pontas e os apoios do meio;
  * a base trenó e a estrutura de aço correm a fileira inteira.
  */
 function legsOfRows(d: Composition, out: Fitting[]) {
-  const key = (m: Module) => (m.feet && m.look?.legs && m.look.legs !== 'plinth' && m.look.legs !== 'skirt' ? `${m.look.legs}|${m.feet}|${m.look.legMaterialId ?? ''}` : null);
+  // Pé sem tipo escolhido (palito da v3) também vai por fileira: caixa a caixa,
+  // dois pés ficavam lado a lado em cada junta do balcão e do rack.
+  const legType = (m: Module) => m.look?.legs ?? 'palito';
+  const key = (m: Module) => (m.feet && !isFlat(m) && legType(m) !== 'plinth' && legType(m) !== 'skirt' ? `${legType(m)}|${m.feet}|${m.look?.legMaterialId ?? ''}|${m.look?.legs ? '' : 'v3'}` : null);
   for (const run of runsOf(d, key)) {
     const first = d.modules.find((m) => m.id === run.ids[0])!;
-    const type = first.look!.legs!;
+    const type = legType(first);
+    // O palito da v3 fica fora do orçamento, como era.
+    const qty = first.look?.legs ? 1 : 0;
     const h = first.feet!;
     const { id: materialId, color } = legColor(first, type);
     const rotation = (run.rotation * Math.PI) / 180;
@@ -177,18 +169,18 @@ function legsOfRows(d: Composition, out: Fitting[]) {
           position: at(a.s + (a.out * splay) / 2, fz + (sz * splay) / 2),
           size: [lay.w + (a.out ? splay : 0), h, (lay.d ?? lay.w) + splay + hairpin],
           ...(splay ? { splay: [a.out * angle, sz * angle] as [number, number] } : {}),
-          bom: { unit: 'un', qty: 1 },
+          bom: { unit: 'un', qty },
         });
       }
   }
 }
 
-/** Base de cada caixa: pé da v3, sapatas do rodapé; os pés escolhidos vão por fileira. */
+/** Base de cada caixa: sapatas do rodapé; os pés vão por fileira. */
 function legsOfBox(m: Module, out: Fitting[]) {
   const h = m.feet ?? 0;
   if (!h || isFlat(m)) return;
   const type = m.look?.legs;
-  if (!type) return legacyFeet(m, out);
+  if (!type) return;
   if (type === 'plinth' || type === 'skirt') {
     // A chapa do rodapé é peça de corte; aqui só as sapatas niveladoras.
     const { id: materialId, color } = legColor(m, type);
@@ -238,8 +230,8 @@ function tableBase(m: Module, out: Fitting[]) {
     for (const sx of [-1, 1])
       out.push({ ...base, id: `${m.id}:trestle-${sx < 0 ? 0 : 1}`, kind: 'leg', type: 'trestle', position: at(sx * (bw / 2 - 40), lh / 2, 0), size: [80, lh, bd], levels: withLevel ? [] : [railY - lh / 2], bom: { unit: 'un', qty: 1 } });
     if (withLevel) return;
-    // Longarina a 1/3 do piso, entrando até o meio do travessão de cada cavalete.
-    out.push({ ...base, id: `${m.id}:beam`, kind: 'leg', type: 'beam', position: at(0, railY, 0), size: [bw - 80, 70, 40], bom: { unit: 'un', qty: 0 } });
+    // Longarina a 1/3 do piso, de um travessão ao outro, encostada neles.
+    out.push({ ...base, id: `${m.id}:beam`, kind: 'leg', type: 'beam', position: at(0, railY, 0), size: [bw - 140, 70, 40], bom: { unit: 'un', qty: 0 } });
     return;
   }
   if (type === 'wall') {
@@ -558,19 +550,23 @@ function drawnBoxes(f: Fitting): { position: Vec; size: Vec; slant?: [number, nu
       ]),
     ];
   }
-  if (f.kind === 'stand' && f.type === 'sled') return [box(0, 0, -d / 2 + 10, [w, h, 20]), box(0, 0, d / 2 - 10, [w, h, 20]), box(0, -h / 2 + 10, 0, [w, 20, d])];
+  // Alça do trenó: as duas colunas em pé no tubo do piso, sem atravessá-lo.
+  if (f.kind === 'stand' && f.type === 'sled') return [box(0, 10, -d / 2 + 10, [w, h - 20, 20]), box(0, 10, d / 2 - 10, [w, h - 20, 20]), box(0, -h / 2 + 10, 0, [w, 20, d])];
   if (f.type === 'casters') {
     const r = Math.min(h * 0.38, 32);
     return [box(0, h / 2 - 3, 0, [w, 6, d]), box(0, h / 2 - 6 - (h - 6 - 2 * r) / 2, 0, [10, h - 6 - 2 * r, 24]), box(0, -h / 2 + r, 0, [24, 2 * r, 2 * r])];
   }
   if (f.type === 'trestle')
     return [
-      box(0, 0, -d / 2 + 60, [60, h, 60]),
-      box(0, 0, d / 2 - 60, [60, h, 60]),
+      // Colunas em pé na sapata e embaixo do chapéu, sem atravessar os dois:
+      // caixa dentro de caixa o desenho não pinta certo (a coluna aparecia na
+      // frente da sapata).
+      box(0, 0, -d / 2 + 60, [60, h - 120, 60]),
+      box(0, 0, d / 2 - 60, [60, h - 120, 60]),
       box(0, -h / 2 + 30, 0, [w, 60, d]),
       box(0, h / 2 - 30, 0, [w, 60, d - 40]),
-      // Travessão entre as colunas, na altura da longarina, entrando nelas (sem nível).
-      ...(f.levels?.length === 0 ? [] : [box(0, f.levels?.[0] ?? h / 3 - h / 2, 0, [60, 70, d - 120])]),
+      // Travessão entre as colunas, na altura da longarina, encostado nelas (sem nível).
+      ...(f.levels?.length === 0 ? [] : [box(0, f.levels?.[0] ?? h / 3 - h / 2, 0, [60, 70, d - 180])]),
     ];
 
   if (f.kind !== 'leg' || (f.type !== 'splayed' && f.type !== 'tapered')) return [{ position: f.position, size: f.size }];

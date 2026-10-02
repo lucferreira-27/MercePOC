@@ -943,11 +943,11 @@ function tableParts(m: Module): TablePart[] {
     // de um pé ao outro; sem pé no canto (parede, trenó, cavalete, estrutura
     // fina), a frente e o fundo correm inteiros e as laterais entram entre eles.
     const sides = s.cornerLegs ? 10 : s.apronSides,
-      ends = s.cornerLegs ? 10 : s.apronEnds;
+      ends = s.apronEnds;
     const fz = s.bd / 2 - sides - r / 2;
     // Pé fino (grampo, cano) é mais estreito que o avental: frente e fundo
     // param nas laterais do avental, senão se cruzam no canto.
-    const long = s.cornerLegs ? s.bw - 2 * Math.max(s.legX, 10 + r) : s.bw - 2 * ends;
+    const long = s.cornerLegs ? s.bw - 2 * Math.max(s.legX, ends + r) : s.bw - 2 * ends;
     if (!m.drawers) out.push({ id: `${m.id}:apron-front`, name: 'Avental da frente', size: [long, s.apron, r], center: [0, y, fz], thickness: r, kind: 'apron', material: m.materialId as MaterialId });
     out.push({ id: `${m.id}:apron-back`, name: 'Avental do fundo', size: [long, s.apron, r], center: [0, y, -fz], thickness: r, kind: 'apron', material: m.materialId as MaterialId });
     const fx = s.bw / 2 - ends - r / 2;
