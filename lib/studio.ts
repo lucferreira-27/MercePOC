@@ -490,7 +490,8 @@ export function describeHighlights(
           .map((p) => p.position[1] + p.size[1] / 2);
         const largura = xs.length ? Math.max(...xs) - Math.min(...xs) : 0;
         const altura = ys.length ? Math.max(...ys) : 0;
-        const nome = assetById(op.asset)?.name ?? 'Móvel';
+        const estilo = op.style ?? (op.placement === 'replace' ? undefined : before.style);
+        const nome = `${assetById(op.asset)?.name ?? 'Móvel'}${estilo ? ` ${STYLES[estilo].label}` : ''}`;
         out.push({
           tool: op.kind,
           title: op.placement === 'replace' ? `${nome} no lugar do projeto` : `${nome} adicionado ${op.placement === 'left' ? 'à esquerda' : 'à direita'}`,
@@ -509,15 +510,19 @@ export function describeHighlights(
         const first = vestidos.find((m) => !m.kind) ?? vestidos[0];
         const g = generateComposition(canonical(after));
         const h = g.bounds.max[1];
+        // O que o módulo ganhou de fato: frente de tela, vidro ou palhinha só
+        // aparece em porta; num módulo só de gavetas a frente fica com moldura.
+        const doors = (m: Design['modules'][number]) => layout(canonical(after)).cells.some((c) => c.moduleId === m.id && c.node.front && c.node.front.type !== 'drawers');
+        const seen = first ? describeLook(doors(first) || !first.look?.front || !['glass', 'mesh', 'cane', 'framed'].includes(first.look.front) ? first : { ...first, look: { ...first.look, front: 'shaker', insertMaterialId: undefined } }) : [];
         out.push({
           tool: op.kind,
           title: op.ids ? `Estilo ${s.label} em ${vestidos.map((m) => m.name).slice(0, 3).join(', ')}${vestidos.length > 3 ? '…' : ''}` : `Estilo ${s.label} no projeto`,
-          summary: `${s.summary}. ${vestidos.length} ${vestidos.length === 1 ? 'módulo vestido' : 'módulos vestidos'}${op.keepMaterials ? ', com os materiais de antes' : ''}; as medidas por fora não mudaram.`,
+          summary: `${vestidos.length} ${vestidos.length === 1 ? 'módulo vestido' : 'módulos vestidos'} no estilo ${s.label}${op.keepMaterials ? ', com os materiais de antes' : ''}${seen.length ? `: ${seen.join(', ')}` : ''}; as medidas por fora não mudaram.`,
           sign: '~',
           measures: [{ label: 'Altura', value: mm(h) }],
           facts: [
             ...(first ? [{ label: 'Corpo', value: materialName(first.materialId) }] : []),
-            ...(first ? describeLook(first).map((v) => ({ label: 'Acabamento', value: v })) : []),
+            ...seen.map((v) => ({ label: 'Acabamento', value: v })),
           ].slice(0, 6),
         });
         break;

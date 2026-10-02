@@ -1,7 +1,8 @@
-import { generateComposition, isFlat, point, PROFILE, runPoint, runsOf, type Composition, type ModularPart, type Module } from './composition';
+import { generateComposition, isFlat, layout, point, PROFILE, runPoint, runsOf, type Composition, type ModularPart, type Module } from './composition';
+import { standOut } from './color';
 import { materialOf, type MaterialId } from './furniture';
 import { LEGS, type HandleType, type LegType } from './look';
-import { CASTER_HEIGHT, tableSpec } from './tables';
+import { CASTER_HEIGHT, LEG_SECTION, SPLAY_DEG, tableSpec } from './tables';
 
 /**
  * Ferragens e estrutura: o que vem pronto ou é soldado, não cortado de chapa.
@@ -74,8 +75,7 @@ const LEG_LAYOUT: Partial<Record<LegType, { x: number; z: number; w: number; d?:
   pipe: { x: 45, z: 45, w: 34 },
   casters: { x: 50, z: 50, w: 45, d: 60 },
 };
-/** Abertura do pé inclinado (anos 60), em graus, para fora nos dois eixos. */
-export const SPLAY_DEG = 9;
+export { SPLAY_DEG } from './tables';
 
 /**
  * Maior vão entre apoios de uma fileira sobre pés. Um aparador de 1,8 m fica
@@ -97,29 +97,21 @@ function supports(from: number, to: number, joints: number[]) {
   });
 }
 
-/** Pé palito da v3 (pés sem tipo escolhido): quatro por caixa, como era, e fora do orçamento. */
-function legacyFeet(m: Module, out: Fitting[]) {
-  const h = m.feet ?? 0;
-  const { id: materialId, color } = legColor(m, 'palito');
-  const lay = LEG_LAYOUT.palito!;
-  const x = m.width / 2 - lay.x,
-    z = m.depth / 2 - lay.z;
-  [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz], i) => {
-    const top = point([sx * x, 0, sz * z], m);
-    out.push({ id: `${m.id}:foot-${i}`, moduleId: m.id, kind: 'leg', type: 'palito', materialId, color, rotation: (m.rotation * Math.PI) / 180, position: [top[0], m.position[1] + h / 2, top[2]], size: [lay.w, h, lay.w], bom: { unit: 'un', qty: 0 } });
-  });
-}
-
 /**
  * Pés escolhidos (estilo, editor, IA): por fileira, não por módulo. Módulos
  * lado a lado com a mesma base dividem os pés das pontas e os apoios do meio;
  * a base trenó e a estrutura de aço correm a fileira inteira.
  */
 function legsOfRows(d: Composition, out: Fitting[]) {
-  const key = (m: Module) => (m.feet && m.look?.legs && m.look.legs !== 'plinth' && m.look.legs !== 'skirt' ? `${m.look.legs}|${m.feet}|${m.look.legMaterialId ?? ''}` : null);
+  // Pé sem tipo escolhido (palito da v3) também vai por fileira: caixa a caixa,
+  // dois pés ficavam lado a lado em cada junta do balcão e do rack.
+  const legType = (m: Module) => m.look?.legs ?? 'palito';
+  const key = (m: Module) => (m.feet && !isFlat(m) && legType(m) !== 'plinth' && legType(m) !== 'skirt' ? `${legType(m)}|${m.feet}|${m.look?.legMaterialId ?? ''}|${m.look?.legs ? '' : 'v3'}` : null);
   for (const run of runsOf(d, key)) {
     const first = d.modules.find((m) => m.id === run.ids[0])!;
-    const type = first.look!.legs!;
+    const type = legType(first);
+    // O palito da v3 fica fora do orçamento, como era.
+    const qty = first.look?.legs ? 1 : 0;
     const h = first.feet!;
     const { id: materialId, color } = legColor(first, type);
     const rotation = (run.rotation * Math.PI) / 180;
@@ -153,14 +145,16 @@ function legsOfRows(d: Composition, out: Fitting[]) {
     }
     // Caixa com contorno de aço: o pé de tubo é a coluna do contorno que
     // desce até o piso, na mesma seção e no mesmo lugar (a aresta da caixa).
-    const lay = type === 'tube' && first.look?.frame ? { x: 0, z: 0, w: 20 } : (LEG_LAYOUT[type] ?? LEG_LAYOUT.palito!);
+    const lay = type === 'tube' && first.look?.frame ? { x: 10, z: 10, w: 20 } : (LEG_LAYOUT[type] ?? LEG_LAYOUT.palito!);
     const angle = (SPLAY_DEG * Math.PI) / 180;
     const splay = type === 'splayed' ? Math.tan(angle) * h : 0;
     // Pé grampo: o V corre na profundidade, mais estreito em móvel raso.
     const hairpin = type === 'hairpin' ? Math.max(60, Math.min(150, depth / 2 - 60)) : 0;
     const s0 = run.s0 + lay.x,
       s1 = run.s1 - lay.x;
-    const along: { s: number; out: number }[] = [{ s: s0, out: -1 }, ...supports(s0, s1, joints).map((v) => ({ s: v, out: 0 })), { s: s1, out: 1 }];
+    // Pé de tubo do contorno de aço: um embaixo de cada coluna, nas juntas também.
+    const middle = type === 'tube' && first.look?.frame ? joints : supports(s0, s1, joints);
+    const along: { s: number; out: number }[] = [{ s: s0, out: -1 }, ...middle.map((v) => ({ s: v, out: 0 })), { s: s1, out: 1 }];
     let i = 0;
     for (const a of along)
       for (const sz of [-1, 1]) {
@@ -175,18 +169,18 @@ function legsOfRows(d: Composition, out: Fitting[]) {
           position: at(a.s + (a.out * splay) / 2, fz + (sz * splay) / 2),
           size: [lay.w + (a.out ? splay : 0), h, (lay.d ?? lay.w) + splay + hairpin],
           ...(splay ? { splay: [a.out * angle, sz * angle] as [number, number] } : {}),
-          bom: { unit: 'un', qty: 1 },
+          bom: { unit: 'un', qty },
         });
       }
   }
 }
 
-/** Base de cada caixa: pé da v3, sapatas do rodapé; os pés escolhidos vão por fileira. */
+/** Base de cada caixa: sapatas do rodapé; os pés vão por fileira. */
 function legsOfBox(m: Module, out: Fitting[]) {
   const h = m.feet ?? 0;
   if (!h || isFlat(m)) return;
   const type = m.look?.legs;
-  if (!type) return legacyFeet(m, out);
+  if (!type) return;
   if (type === 'plinth' || type === 'skirt') {
     // A chapa do rodapé é peça de corte; aqui só as sapatas niveladoras.
     const { id: materialId, color } = legColor(m, type);
@@ -228,20 +222,30 @@ function tableBase(m: Module, out: Fitting[]) {
     return;
   }
   if (type === 'trestle') {
-    // Dois cavaletes nas pontas e a travessa entre eles, a um terço da altura.
+    // Dois cavaletes nas pontas. Sem nível: em H, o travessão a 1/3 do piso
+    // recebe a longarina. Com nível: o nível vai de um cavalete ao outro,
+    // encostado nas colunas, e faz o papel da longarina (sem travessão).
+    const railY = lh / 3;
+    const withLevel = s.levels.length > 0;
     for (const sx of [-1, 1])
-      out.push({ ...base, id: `${m.id}:trestle-${sx < 0 ? 0 : 1}`, kind: 'leg', type: 'trestle', position: at(sx * (bw / 2 - 40), lh / 2, 0), size: [80, lh, bd], bom: { unit: 'un', qty: 1 } });
-    out.push({ ...base, id: `${m.id}:beam`, kind: 'leg', type: 'beam', position: at(0, lh / 3, 0), size: [bw - 160, 70, 40], bom: { unit: 'un', qty: 0 } });
+      out.push({ ...base, id: `${m.id}:trestle-${sx < 0 ? 0 : 1}`, kind: 'leg', type: 'trestle', position: at(sx * (bw / 2 - 40), lh / 2, 0), size: [80, lh, bd], levels: withLevel ? [] : [railY - lh / 2], bom: { unit: 'un', qty: 1 } });
+    if (withLevel) return;
+    // Longarina a 1/3 do piso, de um travessão ao outro, encostada neles.
+    out.push({ ...base, id: `${m.id}:beam`, kind: 'leg', type: 'beam', position: at(0, railY, 0), size: [bw - 140, 70, 40], bom: { unit: 'un', qty: 0 } });
     return;
   }
   if (type === 'wall') {
     // Suportes de parede embaixo do tampo, perto das pontas.
-    for (const sx of [-1, 1])
-      out.push({ ...base, id: `${m.id}:bracket-${sx < 0 ? 0 : 1}`, kind: 'leg', type: 'wall', position: at(sx * (bw / 2 - 100), lh - 90, 0), size: [40, 180, bd - 20], bom: { unit: 'un', qty: 1 } });
+    // Suporte oculto: o trilho preso na parede, embaixo do tampo e atrás do
+    // avental (no vão entre o avental e a parede), que segura a mesa. Não
+    // aparece de frente nem cruza as gavetas. Conta como dois suportes.
+    const h = Math.max(s.apron, 80);
+    out.push({ ...base, id: `${m.id}:bracket`, kind: 'leg', type: 'wall', position: at(0, lh - h / 2, -m.depth / 2 + 10), size: [bw - 40, h, 20], bom: { unit: 'un', qty: 2 } });
     return;
   }
   // Pés nos cantos: o inclinado abre para fora e o grampo corre no fundo.
-  const w = LEG_LAYOUT[type]?.w ?? 40;
+  // A seção do pé de mesa é a que o avental e o nível usam: desenhado mais fino, sobrava fresta.
+  const w = LEG_SECTION[type] ?? LEG_LAYOUT[type]?.w ?? 40;
   const angle = (SPLAY_DEG * Math.PI) / 180;
   const splay = type === 'splayed' ? Math.tan(angle) * lh : 0;
   const hairpin = type === 'hairpin' ? Math.max(60, Math.min(150, bd / 2 - 60)) : 0;
@@ -262,7 +266,8 @@ function tableBase(m: Module, out: Fitting[]) {
 /** Ganchos de cabideiro no painel: uma linha a 3/4 da altura, por igual na largura. */
 function hooksOf(m: Module, out: Fitting[]) {
   const n = m.hooks ?? 0;
-  const id = m.look?.handleMaterialId ?? 'steel-black';
+  // Gancho da cor do painel some (preto em preto): troca pelo metal que aparece.
+  const id = standOut(m.look?.handleMaterialId ?? 'steel-black', materialOf(m.materialId).color);
   const color = materialOf(id).color;
   for (let i = 0; i < n; i++) {
     const x = -m.width / 2 + (m.width / n) * (i + 0.5);
@@ -284,30 +289,44 @@ function frameOf(d: Composition, m: Module, out: Fitting[]) {
   // só a coluna da frente (entre os vãos), sem cruzar o tampo nem o fundo.
   const shared = (side: 'left' | 'right') =>
     d.connections.some((c) => c.shared && c.side !== 'top' && ((c.parent === m.id && c.side === side) || (c.child === m.id && c.side !== side)));
+  // O tubo fica rente às faces da caixa, dentro do contorno dela: não sobe no
+  // tampo, não desce nos pés e não avança sobre as frentes (que ficam dentro
+  // do quadro, como na serralheria). Na junta, a coluna fica no meio do
+  // painel dividido, entre as frentes dos dois vãos.
+  const i = t / 2;
   const edges: { key: string; at: Vec; size: Vec }[] = [];
-  for (const y of [0, h])
-    for (const z of [-dep / 2, dep / 2]) edges.push({ key: `x${y ? 't' : 'b'}${z > 0 ? 'f' : 'r'}`, at: [0, y, z], size: [w, t, t] });
-  for (const x of [-w / 2, w / 2]) {
+  for (const y of [i, h - i])
+    for (const z of [-dep / 2 + i, dep / 2 - i]) edges.push({ key: `x${y > h / 2 ? 't' : 'b'}${z > 0 ? 'f' : 'r'}`, at: [0, y, z], size: [w, t, t] });
+  for (const x of [-w / 2 + i, w / 2 - i]) {
     const joint = shared(x < 0 ? 'left' : 'right');
     // A coluna da junta vem do módulo da esquerda.
     if (joint && x < 0) continue;
-    for (const z of [-dep / 2, dep / 2]) if (!joint || z > 0) edges.push({ key: `y${x > 0 ? 'r' : 'l'}${z > 0 ? 'f' : 'r'}`, at: [x, h / 2, z], size: [t, h, t] });
-    if (!joint) for (const y of [0, h]) edges.push({ key: `z${x > 0 ? 'r' : 'l'}${y ? 't' : 'b'}`, at: [x, y, 0], size: [t, t, dep] });
+    const px = joint ? w / 2 - PROFILE.panel / 2 : x;
+    for (const z of [-dep / 2 + i, dep / 2 - i]) if (!joint || z > 0) edges.push({ key: `y${x > 0 ? 'r' : 'l'}${z > 0 ? 'f' : 'r'}`, at: [px, h / 2, z], size: [t, h, t] });
+    if (!joint) for (const y of [i, h - i]) edges.push({ key: `z${x > 0 ? 'r' : 'l'}${y > h / 2 ? 't' : 'b'}`, at: [x, y, 0], size: [t, t, dep - 2 * t] });
   }
   for (const e of edges)
     out.push({ id: `${m.id}:frame-${e.key}`, moduleId: m.id, kind: 'frame', type: 'tube', materialId: id, color, position: point(e.at, m), size: e.size, rotation, bom: { unit: 'm', qty: Math.max(...e.size) / 1000 } });
 }
 
 /** Fita de LED: sob o tampo de dentro da caixa, sob a prateleira de parede, no alto do painel. */
-function ledOf(m: Module, out: Fitting[]) {
+function ledOf(d: Composition, m: Module, out: Fitting[]) {
   if (!m.look?.led) return;
   const rotation = (m.rotation * Math.PI) / 180;
   const P = PROFILE.panel;
   const strip = (len: number, at: Vec) =>
     out.push({ id: `${m.id}:led`, moduleId: m.id, kind: 'led', type: 'strip', materialId: null, color: '#fff3d6', position: point(at, m), size: [len, 6, 12], rotation, bom: { unit: 'm', qty: len / 1000 } });
-  if (m.kind === 'ledge') strip(m.width - 40, [0, -3, m.depth / 2 - 30]);
-  else if (m.kind === 'panel') strip(m.width - 120, [0, m.height - 40, m.depth / 2 + 3]);
-  else strip(m.width - 2 * P - 20, [0, m.height - P - 3, m.depth / 2 - PROFILE.front - 30]);
+  if (m.kind === 'ledge') return strip(m.width - 40, [0, -3, m.depth / 2 - 30]);
+  if (m.kind === 'panel') return strip(m.width - 120, [0, m.height - 40, m.depth / 2 + 3]);
+  // Caixa: um trecho em cada vão que encosta no tampo, entre as divisórias.
+  const top = m.height - P;
+  const cols = layout(d).cells.filter((c) => c.moduleId === m.id && !c.node.split && Math.abs(c.origin[1] + c.size[1] - top) < 1);
+  const spans = cols.length ? cols.map((c) => [c.origin[0], c.size[0]] as const) : [[-m.width / 2 + P, m.width - 2 * P] as const];
+  spans.forEach(([x0, w], k) => {
+    const len = w - 20;
+    if (len < 60) return;
+    out.push({ id: spans.length === 1 ? `${m.id}:led` : `${m.id}:led-${k}`, moduleId: m.id, kind: 'led', type: 'strip', materialId: null, color: '#fff3d6', position: point([x0 + w / 2, top - 3, m.depth / 2 - PROFILE.front - 30], m), size: [len, 6, 12], rotation, bom: { unit: 'm', qty: len / 1000 } });
+  });
 }
 
 /**
@@ -323,7 +342,7 @@ export function handlePlacement(part: Pick<ModularPart, 'id' | 'size' | 'positio
     if (!part.id.endsWith(':front')) return null;
     if (type === 'groove' || type === 'edge') {
       const len = type === 'groove' ? w : Math.max(120, Math.min(w * 0.4, 400));
-      return { vertical: false, len, x: 0, y: h / 2 - (type === 'groove' ? 10 : 0), z: t / 2 };
+      return { vertical: false, len, x: 0, y: h / 2 - 10, z: t / 2 };
     }
     const len = Math.min(Math.max(w * 0.35, 96), 224);
     return { vertical: false, len, x: 0, y: h > 260 ? h / 2 - 90 : 0, z: t / 2 };
@@ -332,7 +351,7 @@ export function handlePlacement(part: Pick<ModularPart, 'id' | 'size' | 'positio
     // Basculante: pega-se embaixo, no meio, para levantar.
     if (type === 'groove' || type === 'edge') {
       const len = type === 'groove' ? w : Math.max(120, Math.min(w * 0.4, 400));
-      return { vertical: false, len, x: 0, y: -h / 2 + (type === 'groove' ? 10 : 0), z: t / 2 };
+      return { vertical: false, len, x: 0, y: -h / 2 + 10, z: t / 2 };
     }
     const len = Math.min(Math.max(w * 0.35, 96), 224);
     return { vertical: false, len, x: 0, y: -h / 2 + 45, z: t / 2 };
@@ -346,7 +365,7 @@ export function handlePlacement(part: Pick<ModularPart, 'id' | 'size' | 'positio
   const side = m.type === 'slide' ? -m.direction : localX > 0 ? -1 : 1;
   if (type === 'groove' || type === 'edge') {
     const len = type === 'groove' ? h : Math.max(150, Math.min(h * 0.3, 500));
-    return { vertical: true, len, x: side * (w / 2 - (type === 'groove' ? 10 : 0)), y: 0, z: t / 2 };
+    return { vertical: true, len, x: side * (w / 2 - 10), y: 0, z: t / 2 };
   }
   const len = Math.min(Math.max(h * 0.22, 96), 192);
   const bottom = part.position[1] - h / 2;
@@ -393,16 +412,19 @@ function handlesOf(parts: readonly ModularPart[], out: Fitting[]) {
     // Cava e recorte são usinados na frente: cor escura da sombra, sem metal.
     const machined = type === 'groove' || type === 'cutout';
     const size = handleSize(type, spec.vertical, spec.len);
-    const lz = spec.z + size[2] / 2 - (machined ? 1.5 : 0);
+    // Usinado: 0,6 mm à frente da face, para o desenho pintar o recorte por cima da frente.
+    const lz = spec.z + size[2] / 2 + (machined ? 0.6 : 0);
     const c = Math.cos(p.rotation),
       s = Math.sin(p.rotation);
-    const color = type === 'strap' ? '#6b4a32' : machined ? '#2a2724' : materialOf(p.handle.materialId).color;
+    // Puxador de metal da cor da frente some (barra preta em frente preta): troca pelo metal que aparece.
+    const metal = machined || type === 'strap' ? null : standOut(p.handle.materialId, p.color);
+    const color = type === 'strap' ? '#6b4a32' : machined ? '#2a2724' : materialOf(metal!).color;
     out.push({
       id: `${p.id}:handle`,
       moduleId: owner,
       kind: 'handle',
       type,
-      materialId: machined || type === 'strap' ? null : p.handle.materialId,
+      materialId: metal,
       color,
       position: [p.position[0] + spec.x * c + lz * s, p.position[1] + spec.y, p.position[2] - spec.x * s + lz * c],
       size,
@@ -423,7 +445,7 @@ export function fittingsOf(d: Composition, parts: readonly ModularPart[] = gener
   legsOfRows(d, out);
   for (const m of d.modules) {
     frameOf(d, m, out);
-    ledOf(m, out);
+    ledOf(d, m, out);
   }
   handlesOf(parts, out);
   return out;
@@ -494,6 +516,7 @@ export function drawingParts(d: Composition): ModularPart[] {
       c: s.size[1],
       l: s.size[0],
       thickness: s.size[2],
+      ...(s.slant ? { slant: s.slant, taper: s.taper } : {}),
       material: f.materialId ? materialOf(f.materialId).name : f.kind,
       color: f.color,
       owners: [f.moduleId],
@@ -509,7 +532,7 @@ export function drawingParts(d: Composition): ModularPart[] {
  * mesa); o pé inclinado e o cônico viram trechos curtos que afinam ao longo do
  * eixo de verdade, senão o anos 60 virava rústico.
  */
-function drawnBoxes(f: Fitting): { position: Vec; size: Vec }[] {
+function drawnBoxes(f: Fitting): { position: Vec; size: Vec; slant?: [number, number]; taper?: number }[] {
   const [w, h, d] = f.size;
   const cos = Math.cos(f.rotation),
     sin = Math.sin(f.rotation);
@@ -527,19 +550,30 @@ function drawnBoxes(f: Fitting): { position: Vec; size: Vec }[] {
       ]),
     ];
   }
-  if (f.kind === 'stand' && f.type === 'sled') return [box(0, 0, -d / 2 + 10, [w, h, 20]), box(0, 0, d / 2 - 10, [w, h, 20]), box(0, -h / 2 + 10, 0, [w, 20, d])];
+  // Alça do trenó: as duas colunas em pé no tubo do piso, sem atravessá-lo.
+  if (f.kind === 'stand' && f.type === 'sled') return [box(0, 10, -d / 2 + 10, [w, h - 20, 20]), box(0, 10, d / 2 - 10, [w, h - 20, 20]), box(0, -h / 2 + 10, 0, [w, 20, d])];
+  if (f.type === 'casters') {
+    const r = Math.min(h * 0.38, 32);
+    return [box(0, h / 2 - 3, 0, [w, 6, d]), box(0, h / 2 - 6 - (h - 6 - 2 * r) / 2, 0, [10, h - 6 - 2 * r, 24]), box(0, -h / 2 + r, 0, [24, 2 * r, 2 * r])];
+  }
   if (f.type === 'trestle')
-    return [box(0, 0, -d / 2 + 60, [60, h, 60]), box(0, 0, d / 2 - 60, [60, h, 60]), box(0, -h / 2 + 30, 0, [w, 60, d]), box(0, h / 2 - 30, 0, [w, 60, d - 40])];
-  if (f.type === 'wall') return [box(0, 0, -d / 2 + 4, [w, h, 8]), box(0, h / 2 - 4, 0, [w, 8, d])];
+    return [
+      // Colunas em pé na sapata e embaixo do chapéu, sem atravessar os dois:
+      // caixa dentro de caixa o desenho não pinta certo (a coluna aparecia na
+      // frente da sapata).
+      box(0, 0, -d / 2 + 60, [60, h - 120, 60]),
+      box(0, 0, d / 2 - 60, [60, h - 120, 60]),
+      box(0, -h / 2 + 30, 0, [w, 60, d]),
+      box(0, h / 2 - 30, 0, [w, 60, d - 40]),
+      // Travessão entre as colunas, na altura da longarina, encostado nelas (sem nível).
+      ...(f.levels?.length === 0 ? [] : [box(0, f.levels?.[0] ?? h / 3 - h / 2, 0, [60, 70, d - 180])]),
+    ];
+
   if (f.kind !== 'leg' || (f.type !== 'splayed' && f.type !== 'tapered')) return [{ position: f.position, size: f.size }];
+  // Uma peça só, inclinada e afinando: em trechos o pé virava uma escada.
   const [ax, az] = f.splay ?? [0, 0];
-  const ox = Math.tan(ax) * h,
-    oz = Math.tan(az) * h;
-  const [top, tip] = f.type === 'splayed' ? [38, 20] : [40, 26];
-  const n = f.type === 'splayed' ? 8 : 4;
-  return Array.from({ length: n }, (_, k) => {
-    const t = (k + 0.5) / n;
-    const side = top + (tip - top) * t;
-    return box(-ox / 2 + ox * t, h / 2 - h * t, -oz / 2 + oz * t, [side, h / n + 0.5, side]);
-  });
+  // O topo do pé é a seção que o avental e o nível usam (a caixa sem a abertura); com seção fixa sobrava fresta.
+  const slant: [number, number] = [Math.tan(ax) * h, Math.tan(az) * h];
+  const top = f.size[0] - Math.abs(slant[0]);
+  return [{ position: f.position, size: [top, h, top] as Vec, slant, taper: f.type === 'splayed' ? 20 / 38 : 26 / 40 }];
 }

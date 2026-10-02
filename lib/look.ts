@@ -67,9 +67,9 @@ export const LEGS: Record<LegType, LegSpec> = {
   palito: { name: 'pé palito', box: [50, 300], table: false, materials: ['sheet', 'solid'], defaultMaterial: null },
   tapered: { name: 'pé cônico de madeira', box: [80, 300], table: true, materials: ['sheet', 'solid'], defaultMaterial: 'oak-solid' },
   splayed: { name: 'pé inclinado', box: [100, 300], table: true, materials: ['sheet', 'solid'], defaultMaterial: 'walnut-solid' },
-  block: { name: 'pé quadrado de madeira', box: [40, 200], table: true, materials: ['sheet', 'solid'], defaultMaterial: 'oak-solid' },
+  block: { name: 'pé quadrado de madeira', box: [50, 200], table: true, materials: ['sheet', 'solid'], defaultMaterial: 'oak-solid' },
   turned: { name: 'pé torneado', box: [100, 300], table: true, materials: ['sheet', 'solid'], defaultMaterial: 'walnut-solid' },
-  bun: { name: 'pé bola', box: [40, 120], materials: ['sheet', 'solid'], defaultMaterial: 'walnut-solid' },
+  bun: { name: 'pé bola', box: [50, 120], materials: ['sheet', 'solid'], defaultMaterial: 'walnut-solid' },
   hairpin: { name: 'pé grampo', box: [100, 300], table: true, materials: ['metal'], defaultMaterial: 'steel-black', metal: true },
   tube: { name: 'pé de tubo quadrado', box: [50, 300], table: true, materials: ['metal'], defaultMaterial: 'steel-black', metal: true },
   pipe: { name: 'pé de cano', box: [80, 300], table: true, materials: ['metal'], defaultMaterial: 'steel-black', metal: true },
@@ -134,7 +134,8 @@ export const TOP_OVERHANG_MAX = 60;
  * Moldura do topo (cimalha): faixa em pé na frente, avançando `fasciaReach`,
  * e capa por cima avançando `capReach`; alturas em mm.
  */
-export const CORNICE = { fascia: 40, cap: 18, fasciaReach: 20, capReach: 40 } as const;
+// A faixa avança a espessura dela (18): encosta na frente e nas laterais da caixa, sem fresta.
+export const CORNICE = { fascia: 40, cap: 18, fasciaReach: 18, capReach: 40 } as const;
 /** Recuo do rodapé em relação à frente da caixa (mm). */
 export const PLINTH_RECESS = 40;
 

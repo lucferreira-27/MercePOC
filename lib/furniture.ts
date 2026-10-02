@@ -146,6 +146,13 @@ export type Part = {
   tilt?: number;
   /** Só desenho (o miolo do shaker, a junta do ripado): a cena 3D tem a forma de verdade. */
   decal?: boolean;
+  /**
+   * Só desenho: peça inclinada e afinando (pé inclinado e cônico). `slant` é
+   * quanto a base anda em relação ao topo (x e z locais, mm) e `taper` a
+   * largura da base sobre a do topo. A caixa de `size` é a do topo.
+   */
+  slant?: [number, number];
+  taper?: number;
   id: string;
   kind: PartKind;
   name: string;
@@ -270,4 +277,12 @@ export function generate(input: Params) {
     elevations,
     openings,
   });
+}
+
+/** Materiais por categoria em uma linha, para o prompt da IA (ids, como o contrato usa). */
+export function materialsForPrompt() {
+  const label: Record<MaterialCategory, string> = { sheet: 'chapa (corpo, frentes, painel)', solid: 'madeira maciça (tampo, pé, prateleira de mesa)', metal: 'metal (pé, estrutura, puxador, tela, tampo fino)', glass: 'vidro (miolo de porta, tampo)', stone: 'pedra (tampo)', fiber: 'palhinha (miolo de porta)' };
+  return (Object.keys(label) as MaterialCategory[])
+    .map((c) => `${label[c]}: ${idsOf(c).join(', ')}`)
+    .join('; ');
 }

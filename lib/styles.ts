@@ -210,7 +210,8 @@ export const STYLES: Record<StyleId, StyleDef> = {
       tall: { legs: { type: 'tapered', height: 100, materialId: 'oak-solid' }, back: 'terracotta' },
       counter: { legs: { type: 'plinth', height: 100 }, top: { materialId: 'oak-solid', thickness: 30, overhang: 20, edge: 'rounded' } },
       wall: {},
-      table: { legs: { type: 'block', height: 0, materialId: 'oak-solid' }, top: { materialId: 'oak-solid', thickness: 40, overhang: 30, edge: 'rounded' } },
+      // Madeira robusta e natural: tampo grosso e largo sobre pé cônico (o escandinavo é fino e justo).
+      table: { legs: { type: 'tapered', height: 0, materialId: 'oak-solid' }, top: { materialId: 'oak-solid', thickness: 50, overhang: 50, edge: 'rounded' } },
     },
     panel: { front: 'flat' },
     airy: true,
@@ -242,7 +243,8 @@ export const STYLES: Record<StyleId, StyleDef> = {
       tall: { legs: { type: 'palito', height: 150, materialId: 'freijo-solid' } },
       counter: { legs: { type: 'plinth', height: 100 }, top: { materialId: 'freijo-solid', thickness: 30, overhang: 20, edge: 'square' } },
       wall: {},
-      table: { legs: { type: 'splayed', height: 0, materialId: 'freijo-solid' }, top: { materialId: 'freijo-solid', thickness: 30, overhang: 30, edge: 'rounded' } },
+      // Mesa de madeira maciça robusta (Zanine, Sergio Rodrigues): pé quadrado, tampo grosso boleado; não confunde com o anos 60.
+      table: { legs: { type: 'block', height: 0, materialId: 'freijo-solid' }, top: { materialId: 'freijo-solid', thickness: 40, overhang: 40, edge: 'rounded' } },
     },
     panel: { front: 'slatted' },
     proportions: { low: { height: 0.9, width: 1.1 } },
@@ -299,6 +301,23 @@ export const STYLES: Record<StyleId, StyleDef> = {
     },
     panel: { front: 'slatted' },
   },
+};
+
+/** O aço de cada estilo, para a base de metal que a mesa mantém (estrutura, rodízios). */
+const STYLE_METAL: Record<string, MaterialId> = {
+  industrial: 'steel-black',
+  midcentury: 'brass',
+  scandinavian: 'steel-brushed',
+  minimalist: 'steel-black',
+  rustic: 'steel-black',
+  classic: 'brass',
+  japandi: 'steel-black',
+  boho: 'bronze',
+  brazilian: 'bronze',
+  artdeco: 'brass',
+  provencal: 'bronze',
+  // Latão náutico: com aço escovado o praiano saía igual ao escandinavo.
+  coastal: 'brass',
 };
 
 /** O acabamento de um papel no estilo: o comum com o do papel por cima. */
@@ -422,9 +441,20 @@ function restyleRow(d: Composition, s: StyleDef, ids: string[], opts: StyleOptio
     return;
   }
   if (role === 'table') {
-    for (const m of mods) dressTable(m, s, opts);
-    generateComposition(d);
-    return;
+    // Base do estilo; se a mesa não comporta (cavalete num console raso, gavetas
+    // que não cabem entre os cavaletes), fica a base que ela tinha e o estilo
+    // muda o resto (tampo, cores, puxador).
+    const before = structuredClone(mods);
+    for (const keepBase of [false, true]) {
+      mods.forEach((m, i) => Object.assign(m, structuredClone(before[i])));
+      for (const m of mods) dressTable(m, s, opts, keepBase);
+      try {
+        generateComposition(d);
+        return;
+      } catch (e) {
+        if (keepBase) throw e;
+      }
+    }
   }
   const plan = roleLook(s.id, role);
   const onTop = mods.some((m) => d.connections.some((c) => c.side === 'top' && c.child === m.id));
@@ -443,8 +473,12 @@ function restyleRow(d: Composition, s: StyleDef, ids: string[], opts: StyleOptio
         ? [plan.legs, { ...plan.legs, height: LEGS[plan.legs.type].box![0] }, current]
         : [null, current];
   const topChoices: (TopSpec | null)[] = plan.top && !carries ? [plan.top, null] : [null];
+  // Recua um passo de cada vez: a frente que não coube (palhinha numa folha
+  // estreita) vira lisa antes de o pé e o tampo do estilo caírem; antes, a
+  // fileira do meio ficava no piso sem pé entre torres de pé.
   const attempts: Attempt[] = [];
-  for (const top of topChoices) for (const legs of legChoices) attempts.push({ legs, top, front: plan.front });
+  for (const front of plan.front && plan.front !== 'flat' ? [plan.front, 'flat' as const] : [plan.front])
+    for (const top of topChoices) for (const legs of legChoices) attempts.push({ legs, top, front });
   attempts.push({ legs: legChoices.at(-1) ?? null, top: null, front: 'flat' });
   let failure: Error | null = null;
   for (const attempt of attempts) {
@@ -469,13 +503,15 @@ function restyleRow(d: Composition, s: StyleDef, ids: string[], opts: StyleOptio
  * suporte de parede, estrutura de aço com níveis (estante aberta) e tampo de
  * vidro (penteadeira); nesses o estilo troca só o acabamento.
  */
-function dressTable(m: Module, s: StyleDef, opts: StyleOptions) {
+function dressTable(m: Module, s: StyleDef, opts: StyleOptions, keepBase = false) {
   const plan = roleLook(s.id, 'table');
   const current = m.look?.legs ?? DEFAULT_TABLE_BASE;
-  const keep = current === 'casters' || current === 'wall' || (current === 'frame' && (m.shelves ?? 0) >= 2);
+  const keep = keepBase || current === 'casters' || current === 'wall' || (current === 'frame' && (m.shelves ?? 0) >= 1);
   const legs = keep ? current : (plan.legs?.type ?? current);
-  const legMaterial = plan.legs?.materialId;
   const accepts = LEGS[legs].materials;
+  // Base de aço que fica (estante aberta, carrinho): o aço é o do estilo, não
+  // o preto de sempre; senão escandinavo, praiano e clássico saíam iguais.
+  const legMaterial = keep && accepts?.includes('metal') && !accepts.includes(categoryOf(plan.legs?.materialId ?? 'oak')) ? STYLE_METAL[s.id] : plan.legs?.materialId;
   const glass = m.look?.top && categoryOf(m.look.top.materialId) === 'glass';
   const front = plan.front && !framedFront(plan.front) && !FRONTS[plan.front].panelOnly ? plan.front : 'flat';
   if (!opts.keepMaterials) m.materialId = opts.body && ['sheet', 'solid'].includes(categoryOf(opts.body)) ? opts.body : s.palette.body;
@@ -498,7 +534,14 @@ function dress(m: Module, s: StyleDef, plan: RoleLook, attempt: Attempt, envelop
   const height = envelope - (legs?.height ?? 0) - (top?.thickness ?? 0) - (cornice ? corniceHeight : 0);
   if (height < 150) throw new Error('a caixa ficaria baixa demais para esse acabamento.');
   m.materialId = bodyMaterial;
-  const front = attempt.front ?? 'flat';
+  // Tela, vidro, palhinha e almofada só aparecem em porta: módulo só de
+  // gavetas (ou aberto) grava a moldura que ele mostra, e o estado diz a verdade.
+  let doors = false;
+  cells(m.root, (c) => {
+    if (c.front && c.front.type !== 'drawers') doors = true;
+  });
+  const wanted = attempt.front ?? 'flat';
+  const front = framedFront(wanted) && !doors ? 'shaker' : wanted;
   const insert = FRONTS[front].inserts ? (plan.insert ?? FRONTS[front].insertDefault) : undefined;
   const look: Look = {
     ...(legs ? { legs: legs.type, ...(legs.materialId && LEGS[legs.type].materials ? { legMaterialId: legs.materialId } : {}) } : {}),
@@ -596,4 +639,14 @@ export function styleFrom(text: string): StyleId | null {
   for (const s of Object.values(STYLES))
     for (const k of [s.name, ...s.keywords].map(norm)) if (t.includes(k) && (!best || k.length > best.length)) best = { id: s.id, length: k.length };
   return best?.id ?? null;
+}
+
+/**
+ * Os estilos para o prompt da IA, uma linha cada: id, nome e as palavras que
+ * a pessoa usa. Sai da tabela, então estilo novo chega à IA sem mexer no prompt.
+ */
+export function styleCatalogForPrompt() {
+  return Object.values(STYLES)
+    .map((s) => `- ${s.id}: ${s.name}; pedidos como ${s.keywords.slice(0, 4).join(', ')}`)
+    .join('\n');
 }

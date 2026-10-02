@@ -601,7 +601,7 @@ export const assets: Asset[] = [
     name: 'Balcão de cozinha',
     category: 'cozinha',
     role: 'counter',
-    summary: 'Gabinete de pia ou balcão com gaveteiro',
+    summary: 'Gabinete de pia ou balcão com gaveteiro; o tampo vem com o estilo',
     keywords: ['balcão', 'gabinete de pia', 'pia', 'cozinha', 'bancada'],
     size: { default: { width: 1800, height: 850, depth: 580 }, min: { width: 800, height: 750, depth: 450 }, max: { width: 3600, height: 950, depth: 650 } },
     body: 'white',
@@ -789,8 +789,8 @@ export const assets: Asset[] = [
       `Montei um console de ${cm(p.width)} × ${cm(p.height)} × ${cm(p.depth)} cm em freijó sobre pés quadrados, com gaveta no avental e um nível embaixo para cestos ou livros. Peça outra base, mais gavetas ou tampo de pedra.`,
     room: (_, width) => plainRoom(width),
     build(b, p) {
-      // Console raso (menos de 30 cm) fica sem gaveta: a caixa não teria fundo.
-      b.table('m', 'Console', [p.width, p.height, p.depth], p.body, { drawers: p.depth < 300 ? 0 : p.width >= 1300 ? 2 : 1, shelves: 1, look: { legs: 'block', legMaterialId: 'freijo-solid' } });
+      // Console raso (menos de 30 cm) fica sem gaveta e sem nível: não sobra fundo entre os pés.
+      b.table('m', 'Console', [p.width, p.height, p.depth], p.body, { drawers: p.depth < 300 ? 0 : p.width >= 1300 ? 2 : 1, shelves: p.depth < 300 ? 0 : 1, look: { legs: 'block', legMaterialId: 'freijo-solid' } });
     },
   },
   {

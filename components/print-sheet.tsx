@@ -119,7 +119,7 @@ function PrintSheetView({
           <h1>{name}</h1>
           <p>
             {cm(size[0])} × {cm(size[1])} × {cm(size[2])} cm <small>(L × A × P)</small> · {moduleCount}{' '}
-            {moduleCount === 1 ? 'módulo' : 'módulos'} · {parts.length} peças
+            {moduleCount === 1 ? 'módulo' : 'módulos'} · {parts.length} {parts.length === 1 ? 'peça' : 'peças'}
           </p>
         </div>
         <figure className="pr-hero">

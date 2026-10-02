@@ -146,10 +146,11 @@ export function estanteDesencontrada(): Composition {
  */
 export function torresAco(): Composition {
   const b = new Builder('');
+  // 30 mm entre a torre e o console: a porta da ponta abre inteira (a folha gira para fora da caixa).
   const tower = (key: string, name: string, x: number) =>
     b.table(key, name, [395, 1570, 410], 'oak-solid', { position: [x, 0, 0], shelves: 4, look: { legs: 'frame', legMaterialId: 'steel-black', top: { materialId: 'oak-solid', thickness: 30, overhang: 0, edge: 'square' } } });
-  tower('t1', 'Torre esquerda', -(1460 / 2 + 395 / 2 + 10));
-  tower('t2', 'Torre direita', 1460 / 2 + 395 / 2 + 10);
+  tower('t1', 'Torre esquerda', -(1460 / 2 + 395 / 2 + 30));
+  tower('t2', 'Torre direita', 1460 / 2 + 395 / 2 + 30);
   const ids = b.row('c', ['Porta', 'Nicho', 'Porta 2'], [470, 538, 470], 450, 400, 'oak', { feet: 100, position: [-1460 / 2 + 235, 0, -5] });
   look(b, ids, { ...steel, legs: 'tube', legMaterialId: 'steel-black' });
   b.front(b.root(ids[0]), 'single', { hinge: 'left' });

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { floatingParts } from '../structure';
 import { generateComposition, layout, openAllGroups, openingLimit, type ModularPart } from '../composition';
 import { planDataUrl } from '../plan-render';
 import { sceneDrawingParts } from '../scene-parts';
@@ -166,7 +167,7 @@ const designApply = tool({
     if (JSON.stringify(r.design) === JSON.stringify(before)) return ok('Sem efeito: o projeto já estava assim.', 'Nada a mudar');
     ctx.setDesign(r.design, a.ops as ShelfOp[]);
     const changes = describeDesignChanges(before, r.design);
-    const fit = fitNote(ctx, before, r.design, roomBefore) + sheetNote(ctx, before, r.design);
+    const fit = fitNote(ctx, before, r.design, roomBefore) + sheetNote(ctx, before, r.design) + floatNote(r.design);
     const had = namedIds(before);
     const fresh = [...namedIds(r.design)].filter((id) => !had.has(id));
     const titles = describeHighlights(before, r.design, a.ops as ShelfOp[]).map((h) => h.title);
@@ -236,12 +237,13 @@ const rowBuild = tool({
     // móvel não podem arrastar a parede junto.
     const room = plan.anchor && ctx.room ? { ...ctx.room, anchor: plan.anchor } : ctx.room;
     const before = ctx.design;
-    const r = executeRequest(before, plan.ops);
+    const ops = withProjectStyle(before, plan.ops, !!(a.material || a.material_frente));
+    const r = executeRequest(before, ops);
     if (!r.ok) {
-      ctx.attempted.push({ ops: plan.ops, error: r.error });
+      ctx.attempted.push({ ops, error: r.error });
       return fail(`Recusado pela validação, nada mudou: ${r.error}`, 'Fileira recusada; ajustando');
     }
-    ctx.setDesign(r.design, plan.ops, room);
+    ctx.setDesign(r.design, ops, room);
     const parts = plan.segments.map((v) => `${v.from}–${v.to} mm: ${v.ids.join(', ')} (compartimentos ${v.ids.map((id) => `${id}:root`).join(', ')})`);
     const count = plan.segments.reduce((n, v) => n + v.ids.length, 0);
     // A IA repetia a largura pedida na resposta ("bancada de 2 m") quando só
@@ -250,7 +252,7 @@ const rowBuild = tool({
     const short = built < a.largura - 1 ? ` Montado: ${built} mm dos ${a.largura} mm pedidos (o resto não coube). Na resposta, diga ${built} mm, não ${a.largura} mm.` : '';
     const fronts = a.frente && a.frente !== 'none' ? `Frentes: ${a.frente === 'drawers' ? `${a.gavetas ?? 3} gavetas` : a.frente === 'double' ? 'porta dupla' : 'porta simples'} em cada módulo.` : 'Sem frentes: para pôr, front.set em cada "<id>:root".';
     return ok(
-      `Fileira "${a.nome}" montada no lugar certo (encostada na parede, fora dos obstáculos): não mova nem refaça. ${parts.join('; ')}. ${fronts}${gone.length ? ` Pulado: ${gone.join('; ')}.` : ''}${short} Medidas gerais: ${mm(r.design)}.${room ? ` ${fitSummary(r.design, room)}.` : ''}`,
+      `Fileira "${a.nome}" montada no lugar certo (encostada na parede, fora dos obstáculos): não mova nem refaça. ${parts.join('; ')}. ${fronts}${gone.length ? ` Pulado: ${gone.join('; ')}.` : ''}${short} Medidas gerais: ${mm(r.design)}.${room ? ` ${fitSummary(r.design, room)}.` : ''}${floatNote(r.design)}`,
       `${a.nome}: ${count} ${count === 1 ? 'módulo' : 'módulos'}${gone.length ? `, desviando de ${plan.skipped.map((v) => v.why).join(', ')}` : ''}`,
     );
   },
@@ -274,9 +276,41 @@ function applyPlanned(ctx: AgentContext, ops: ShelfOp[], room: Room | undefined,
   const had = namedIds(before);
   const fresh = [...namedIds(r.design)].filter((id) => !had.has(id));
   return ok(
-    `${head} ${changes.length ? `${changes.join('. ')}. ` : ''}Medidas gerais: ${mm(r.design)}.${fresh.length ? ` Ids novos: ${fresh.slice(0, 40).join(', ')}.` : ''}${fitNote(ctx, before, r.design, roomBefore)}${sheetNote(ctx, before, r.design)}`,
+    `${head} ${changes.length ? `${changes.join('. ')}. ` : ''}Medidas gerais: ${mm(r.design)}.${fresh.length ? ` Ids novos: ${fresh.slice(0, 40).join(', ')}.` : ''}${fitNote(ctx, before, r.design, roomBefore)}${sheetNote(ctx, before, r.design)}${floatNote(r.design)}`,
     label,
   );
+}
+
+/**
+ * Projeto com estilo: as peças novas (place, row_build) saem vestidas nele,
+ * sem a IA repetir o estilo a cada chamada. Quando ela escolheu o material,
+ * fica o material dela e o estilo dá a forma. Se vestir não couber, a peça
+ * entra como veio.
+ */
+function withProjectStyle(before: Design, ops: ShelfOp[], keepMaterials: boolean): ShelfOp[] {
+  if (!before.style) return ops;
+  const r = executeRequest(before, ops);
+  if (!r.ok) return ops;
+  const had = new Set(before.modules.map((m) => m.id));
+  const fresh = r.design.modules.filter((m) => !had.has(m.id)).map((m) => m.id);
+  if (!fresh.length) return ops;
+  const styled: ShelfOp[] = [...ops, { kind: 'style.apply', style: before.style, ids: fresh, ...(keepMaterials ? { keepMaterials: true } : {}) }];
+  return executeRequest(before, styled).ok ? styled : ops;
+}
+
+/**
+ * Peça solta no ar depois da mudança (nada a liga ao piso, à parede ou à
+ * estrutura): a IA fica sabendo e corrige antes de responder.
+ */
+function floatNote(d: Design) {
+  try {
+    const loose = floatingParts(canonical(d));
+    if (!loose.length) return '';
+    const names = [...new Set(loose.map((f) => f.name))].slice(0, 4);
+    return ` Atenção: peça solta no ar, sem apoio no piso, na parede nem em outra peça: ${names.join(', ')}. Encoste, apoie ou prenda na parede (wall) antes de terminar.`;
+  } catch {
+    return '';
+  }
 }
 
 /** Parede presa antes de mexer: sem âncora ela acompanharia o lado esquerdo do móvel. */
@@ -320,7 +354,7 @@ const placeTool = tool({
     const count = plan.placed.filter((p) => p.cells.length || p.surface !== 'piso').length;
     return applyPlanned(
       ctx,
-      plan.ops,
+      withProjectStyle(ctx.design, plan.ops, a.pecas.some((p) => !!p.material)),
       room,
       `Montado no rascunho (não mova nem refaça o que coube): ${plan.placed.map(placedLine).join('; ')}.`,
       a.rotulo ?? (count === 1 ? `Pus ${plan.placed[0].name.toLowerCase()}` : `Pus ${plan.placed.length} peças`),
@@ -842,7 +876,30 @@ export type ClaimEvidence = {
   view: string | null;
   /** Designs no fim do pedido (o rascunho e as opções montadas), para conferir o que o pedido quer ver neles. */
   designs?: Design[];
+  /** O design no começo do pedido. */
+  before?: Design;
 };
+
+/**
+ * Cores do projeto por módulo: corpo, frentes e o que o acabamento pinta
+ * (pé, puxador, miolo, tampo, contorno, fundo). Peça nova (biblioteca no
+ * lugar do móvel) ou estilo aplicado também trocam cor, sem linha de
+ * "material" nas mudanças.
+ */
+function colorsOf(d: Design) {
+  const out: string[] = [];
+  const walk = (m: Design['modules'][number], c: Design['modules'][number]['root']) => {
+    if (c.front?.materialId) out.push(`${m.id}:${c.id}:${c.front.materialId}`);
+    c.split?.children.forEach((v) => walk(m, v));
+  };
+  for (const m of d.modules) {
+    out.push(`${m.id}:${m.materialId}`);
+    const l = m.look ?? {};
+    for (const v of [l.legMaterialId, l.handleMaterialId, l.insertMaterialId, l.top?.materialId, l.frameMaterialId, l.backMaterialId]) if (v) out.push(`${m.id}:${v}`);
+    walk(m, m.root);
+  }
+  return out.sort().join('|');
+}
 
 const VIEW_TOOLS = ['view_camera', 'view_frame', 'view_toggle', 'ui_tab'];
 const NAV_TOOLS = ['history_goto', 'history_undo', 'history_redo', 'project_fork', 'project_new', 'project_open'];
@@ -896,7 +953,10 @@ export const CLAIMS = {
   material: {
     q: 'afirma que trocou o material ou a cor de um móvel que já existia?',
     min: 0.6,
-    done: (e: ClaimEvidence) => e.changes.some((c) => /: material |compartimentos e frentes/.test(c)) || NAV_TOOLS.some((t) => e.tools.has(t)),
+    done: (e: ClaimEvidence) =>
+      e.changes.some((c) => /: material |compartimentos e frentes/.test(c)) ||
+      (!!e.before && !!e.designs?.[0] && colorsOf(e.before) !== colorsOf(e.designs[0])) ||
+      NAV_TOOLS.some((t) => e.tools.has(t)),
     fix: 'diz que trocou material ou cor, mas nenhum material mudou',
   },
 } as const;
@@ -983,6 +1043,7 @@ function evidenceOf(ctx: AgentContext): ClaimEvidence {
     changes: describeDesignChanges(ctx.turnStart.design, ctx.design),
     view: ctx.ui?.view ?? null,
     designs: [ctx.design, ...(ctx.options ?? []).map((o) => o.params as Design)],
+    before: ctx.turnStart.design,
   };
 }
 

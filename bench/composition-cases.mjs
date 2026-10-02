@@ -89,7 +89,7 @@ export const compositionCases = [
     agentOnly: true,
     prompt: 'adicione outros moveis junto que fazem snetidom em uma cozinha, uma mesa, cadeiras, etc',
     setup: { scene: 'bench/scenes/cozinha-apoio.json' },
-    learned: 'Pedido real: a IA montou um apoio, descartou com history_undo, montou outro; o registro guardou a operação descartada. Mesa e cadeira não existem no estúdio.',
+    learned: 'Pedido real: a IA montou um apoio, descartou com history_undo, montou outro; o registro guardou a operação descartada. Desde a fase 4 dos estilos a mesa existe (biblioteca ou preset table); cadeira continua de fora (banco é o assento que existe).',
     expect: {
       action: 'update',
       applied: true,
@@ -97,7 +97,9 @@ export const compositionCases = [
       agent: (got) => {
         const r = hard(got, { requireAddition: true });
         if (!r.ok) return r.failures.join('; ');
-        if (claimsUnsupported(got.content, 'mesa|cadeira')) return 'diz que pôs mesa ou cadeira';
+        if (claimsUnsupported(got.content, 'cadeira')) return 'diz que pôs cadeira';
+        const mesa = /mesa/i.test(got.content) && !/não|sem mesa/i.test(got.content);
+        if (mesa && !got.designAfter.modules.some((m) => m.kind === 'table')) return 'diz que pôs mesa e não há mesa';
         const off = offWall(got.designAfter, got.room);
         return off.length ? `fora da parede: ${off.join(', ')}` : true;
       },

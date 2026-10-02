@@ -935,37 +935,46 @@ function tableParts(m: Module): TablePart[] {
   const t = s.top.thickness;
   const face: Face | undefined = s.top.edge === 'square' ? undefined : { kind: 'edge', profile: s.top.edge, radius: Math.min(t / 2, 10) };
   out.push({ id: `${m.id}:slab`, name: 'Tampo', size: [m.width, t, m.depth], center: [0, s.lh + t / 2, 0], thickness: t, kind: 'slab', material: s.top.materialId, ...(face ? { extra: { face } } : {}), around: true });
-  const innerW = s.bw - 2 * s.legX,
-    innerD = s.bd - 2 * s.legZ;
+  const innerD = s.bd - 2 * s.legZ;
   const r = s.rail;
   if (s.apron) {
     const y = s.lh - s.apron / 2;
     // Avental 10 mm para dentro da base. Entre pés (de canto), cada lado vai
     // de um pé ao outro; sem pé no canto (parede, trenó, cavalete, estrutura
     // fina), a frente e o fundo correm inteiros e as laterais entram entre eles.
-    const fz = s.bd / 2 - 10 - r / 2;
-    const long = s.cornerLegs ? innerW : s.bw - 20;
+    const sides = s.cornerLegs ? 10 : s.apronSides,
+      ends = s.apronEnds;
+    const fz = s.bd / 2 - sides - r / 2;
+    // Pé fino (grampo, cano) é mais estreito que o avental: frente e fundo
+    // param nas laterais do avental, senão se cruzam no canto.
+    const long = s.cornerLegs ? s.bw - 2 * Math.max(s.legX, ends + r) : s.bw - 2 * ends;
     if (!m.drawers) out.push({ id: `${m.id}:apron-front`, name: 'Avental da frente', size: [long, s.apron, r], center: [0, y, fz], thickness: r, kind: 'apron', material: m.materialId as MaterialId });
     out.push({ id: `${m.id}:apron-back`, name: 'Avental do fundo', size: [long, s.apron, r], center: [0, y, -fz], thickness: r, kind: 'apron', material: m.materialId as MaterialId });
-    const fx = s.bw / 2 - 10 - r / 2;
-    const side = s.cornerLegs ? innerD : s.bd - 20 - 2 * r;
-    for (const [name, sx] of [['left', -1], ['right', 1]] as const)
-      out.push({ id: `${m.id}:apron-${name}`, name: name === 'left' ? 'Avental esquerdo' : 'Avental direito', size: [r, s.apron, side], center: [sx * fx, y, 0], thickness: r, kind: 'apron', material: m.materialId as MaterialId });
+    const fx = s.bw / 2 - ends - r / 2;
+    // Com gavetas não há avental da frente: a lateral vai até a frente, senão a ponta dela fica no ar.
+    const open = m.drawers && !s.cornerLegs ? r : 0;
+    const side = (s.cornerLegs ? innerD : s.bd - 2 * sides - 2 * r) + open;
+    if (s.sideAprons)
+      for (const [name, sx] of [['left', -1], ['right', 1]] as const)
+        out.push({ id: `${m.id}:apron-${name}`, name: name === 'left' ? 'Avental esquerdo' : 'Avental direito', size: [r, s.apron, side], center: [sx * fx, y, open / 2], thickness: r, kind: 'apron', material: m.materialId as MaterialId });
   }
   // Níveis: entre os pés (ou dentro da estrutura), na largura e no fundo da base.
-  s.levels.forEach((y, i) =>
-    out.push({ id: `${m.id}:level-${i}`, name: `Nível ${i + 1}`, size: [innerW - 4, s.shelfT, innerD - 4], center: [0, y + s.shelfT / 2, 0], thickness: s.shelfT, kind: 'shelf', material: m.materialId as MaterialId, around: true }),
-  );
+  s.levels.forEach((y, i) => {
+    // Pé inclinado: o nível vai até o meio do pé na altura dele, senão fica solto entre os pés.
+    const reach = 2 * s.levelReach(y);
+    out.push({ id: `${m.id}:level-${i}`, name: `Nível ${i + 1}`, size: [s.levelW + reach, s.shelfT, s.levelD + reach], center: [0, y + s.shelfT / 2, 0], thickness: s.shelfT, kind: 'shelf', material: m.materialId as MaterialId, around: true });
+  });
   // Gavetas no avental: frente no plano do avental, caixa atrás, corrediça.
   const n = m.drawers ?? 0;
   if (n) {
     const style = frontStyleOf(m, { id: '', type: 'drawers', hinge: 'left', heights: [1] }, true);
     const handle: NonNullable<ModularPart['handle']> = { type: m.look?.handle ?? 'bar', materialId: m.look?.handleMaterialId ?? DEFAULT_HANDLE_MATERIAL };
+    const inset = s.cornerLegs ? 10 : s.apronSides;
     const fh = s.apron - 2 * PROFILE.reveal,
-      fz = s.bd / 2 - 10 - PROFILE.front / 2;
+      fz = s.bd / 2 - inset - PROFILE.front / 2;
     // Da face de trás da frente até o avental do fundo, com a folga da
     // corrediça: os pés ficam nos cantos e não encurtam a caixa.
-    const boxD = s.bd - 2 * 10 - PROFILE.front - r - PROFILE.rearSpace;
+    const boxD = s.bd - 2 * inset - PROFILE.front - r - PROFILE.rearSpace;
     const bw = s.drawerW - 2 * PROFILE.slideSpace,
       bh = fh - PROFILE.drawerBottom - 24;
     if (boxD < 150 || bh < 40) throw new Error(`${m.name}: avental raso demais para a caixa da gaveta.`);
@@ -986,6 +995,8 @@ function tableParts(m: Module): TablePart[] {
   }
   return out;
 }
+/** Maior peça de fileira numa chapa (2750 de chapa menos o refilo). */
+const SHEET_RUN = 2700;
 /** Espessura do miolo da porta de quadro: vidro 4, tela 2, palhinha 3, almofada de madeira 15 mm. */
 const INSERT_THICKNESS: Partial<Record<MaterialCategory, number>> = { glass: 4, metal: 2, fiber: 3, sheet: 15, solid: 15 };
 export function generateComposition(input: Composition, validate = true) {
@@ -1083,6 +1094,17 @@ export function generateComposition(input: Composition, validate = true) {
       ...(extra.face ? { face: extra.face } : {}),
       ...(extra.handle ? { handle: extra.handle } : {}),
     });
+  }
+  /**
+   * Peça de fileira que pode passar do comprimento de uma chapa (2750 mm):
+   * em chapa, sai em pedaços iguais emendados, como a marcenaria faz numa
+   * moldura de 3,6 m. Maciço, pedra e o resto seguem inteiros (vêm por medida).
+   */
+  function addLongRun(run: Run, id: string, name: string, s0: number, s1: number, y0: number, y1: number, f0: number, f1: number, kind: Part['kind'], mat: MaterialId, edges: (keyof ModularPart['edges'])[], face?: Face) {
+    const n = materialOf(mat).category === 'sheet' ? Math.ceil((s1 - s0) / SHEET_RUN) : 1;
+    if (n <= 1) return addRun(run, id, name, s0, s1, y0, y1, f0, f1, kind, mat, edges, face);
+    const step = (s1 - s0) / n;
+    for (let k = 0; k < n; k++) addRun(run, `${id}-${k}`, `${name} ${k + 1}/${n}`, s0 + k * step, s0 + (k + 1) * step, y0, y1, f0, f1, kind, mat, edges, face);
   }
   /** Peça de uma fileira inteira, no referencial dela (tampo, moldura). */
   function addRun(run: Run, id: string, name: string, s0: number, s1: number, y0: number, y1: number, f0: number, f1: number, kind: Part['kind'], mat: MaterialId, edges: (keyof ModularPart['edges'])[], face?: Face) {
@@ -1459,7 +1481,7 @@ export function generateComposition(input: Composition, validate = true) {
     const left = freeReach(d, run, 's0', spec.overhang, y0, y1),
       right = freeReach(d, run, 's1', spec.overhang, y0, y1);
     const face: Face | undefined = spec.edge === 'square' ? undefined : { kind: 'edge', profile: spec.edge, radius: Math.min(spec.thickness / 2, 10) };
-    addRun(run, `${run.ids[0]}:slab`, 'Tampo sobreposto', run.s0 - left, run.s1 + right, y0, y1, run.back, run.front + spec.overhang, 'slab', spec.materialId, ['c1', 'l1', 'l2'], face);
+    addLongRun(run, `${run.ids[0]}:slab`, 'Tampo sobreposto', run.s0 - left, run.s1 + right, y0, y1, run.back, run.front + spec.overhang, 'slab', spec.materialId, ['c1', 'l1', 'l2'], face);
   }
   // Moldura do topo: faixa em pé na frente (e nas pontas livres) e capa por
   // cima avançando mais, como uma cimalha. Uma por fileira.
@@ -1473,10 +1495,10 @@ export function generateComposition(input: Composition, validate = true) {
     const fL = reachL ? CORNICE.fasciaReach : 0,
       fR = reachR ? CORNICE.fasciaReach : 0;
     const P = PROFILE.panel;
-    addRun(run, `${run.ids[0]}:cornice`, 'Moldura frontal', run.s0 - fL, run.s1 + fR, y0, y1, run.front + CORNICE.fasciaReach - P, run.front + CORNICE.fasciaReach, 'cornice', mat, ['c1']);
+    addLongRun(run, `${run.ids[0]}:cornice`, 'Moldura frontal', run.s0 - fL, run.s1 + fR, y0, y1, run.front + CORNICE.fasciaReach - P, run.front + CORNICE.fasciaReach, 'cornice', mat, ['c1']);
     if (fL) addRun(run, `${run.ids[0]}:cornice-left`, 'Moldura lateral esquerda', run.s0 - fL, run.s0 - fL + P, y0, y1, run.back, run.front + CORNICE.fasciaReach - P, 'cornice', mat, ['c1']);
     if (fR) addRun(run, `${run.ids[0]}:cornice-right`, 'Moldura lateral direita', run.s1 + fR - P, run.s1 + fR, y0, y1, run.back, run.front + CORNICE.fasciaReach - P, 'cornice', mat, ['c1']);
-    addRun(run, `${run.ids[0]}:cornice-cap`, 'Capa da moldura', run.s0 - reachL, run.s1 + reachR, y1, y2, run.back, run.front + CORNICE.capReach, 'cornice', mat, ['c1', 'l1', 'l2']);
+    addLongRun(run, `${run.ids[0]}:cornice-cap`, 'Capa da moldura', run.s0 - reachL, run.s1 + reachR, y1, y2, run.back, run.front + CORNICE.capReach, 'cornice', mat, ['c1', 'l1', 'l2']);
   }
   for (const c of d.connections.filter((c) => c.shared)) {
     const parent = moduleBy(d, c.parent),
