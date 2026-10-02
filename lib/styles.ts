@@ -473,8 +473,12 @@ function restyleRow(d: Composition, s: StyleDef, ids: string[], opts: StyleOptio
         ? [plan.legs, { ...plan.legs, height: LEGS[plan.legs.type].box![0] }, current]
         : [null, current];
   const topChoices: (TopSpec | null)[] = plan.top && !carries ? [plan.top, null] : [null];
+  // Recua um passo de cada vez: a frente que não coube (palhinha numa folha
+  // estreita) vira lisa antes de o pé e o tampo do estilo caírem; antes, a
+  // fileira do meio ficava no piso sem pé entre torres de pé.
   const attempts: Attempt[] = [];
-  for (const top of topChoices) for (const legs of legChoices) attempts.push({ legs, top, front: plan.front });
+  for (const front of plan.front && plan.front !== 'flat' ? [plan.front, 'flat' as const] : [plan.front])
+    for (const top of topChoices) for (const legs of legChoices) attempts.push({ legs, top, front });
   attempts.push({ legs: legChoices.at(-1) ?? null, top: null, front: 'flat' });
   let failure: Error | null = null;
   for (const attempt of attempts) {

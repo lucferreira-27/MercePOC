@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { assets, buildAsset } from '../lib/assets';
-import { preset, PROFILE, SCHEMA_VERSION, type Composition, type Module } from '../lib/composition';
+import { preset, PROFILE, SCHEMA_VERSION, type Composition, type ModularPart, type Module } from '../lib/composition';
+import { drawingFaults, paintConflicts } from '../lib/plan-geometry';
 import { drawingParts } from '../lib/fittings';
 import { materialOf } from '../lib/furniture';
 import { LEG_TYPES, LEGS, STYLE_IDS } from '../lib/look';
@@ -94,4 +95,32 @@ void test('a conferência acha o puxador afundado na frente (some do desenho)', 
   const sunk = drawn.map((p) => (p === h ? { ...p, position: front.position } : p));
   assert.deepEqual(structureIssues(d, drawn), []);
   assert.ok(structureIssues(d, sunk).some((v) => v.kind === 'escondida'), said(structureIssues(d, sunk)));
+});
+
+void test('a conferência do desenho acha peça de trás pintada por cima, contra o raio do olho', () => {
+  const d = buildAsset(assets.find((a) => a.id === 'rack')!, { style: 'industrial' });
+  const parts = drawingParts(d).filter((p) => !p.decal);
+  assert.deepEqual(drawingFaults(parts, 'iso'), []);
+  // Pintando o tampo primeiro, as peças de baixo saem por cima dele.
+  const topFirst = (v: ModularPart[]) => [...v].sort((a, b) => Number(b.id.endsWith(':top')) - Number(a.id.endsWith(':top')));
+  assert.ok(drawingFaults(parts, 'iso', 12, topFirst).some((f) => f.hidden.id.endsWith(':top')));
+});
+
+void test('o tampo do rack industrial sai pintado depois de tudo o que está embaixo dele', () => {
+  // A saída do ciclo pegava o tampo, fora do ciclo, antes das laterais e da divisória da gaveta.
+  const d = buildAsset(assets.find((a) => a.id === 'rack')!, { style: 'industrial' });
+  const parts = drawingParts(d).filter((p) => !p.decal);
+  assert.deepEqual(paintConflicts(parts, 'iso').filter(([back]) => back.id.endsWith(':top')).map(([b, f]) => `${b.id} > ${f.id}`), []);
+  assert.deepEqual(paintConflicts(parts, 'iso').filter(([, fore]) => fore.id.endsWith(':top')).map(([b, f]) => `${b.id} > ${f.id}`), []);
+});
+
+void test('toda faixa de pé anunciada monta nas duas pontas (o pé quadrado dizia 40 mm, o motor só aceitava 50)', () => {
+  for (const legs of LEG_TYPES) {
+    const range = LEGS[legs].box;
+    if (!range) continue;
+    for (const feet of range) {
+      const m: Module = { ...preset('drawers', 'b'), feet, look: { legs } };
+      assert.doesNotThrow(() => structureIssues(one(m)), `${legs} ${feet} mm`);
+    }
+  }
 });

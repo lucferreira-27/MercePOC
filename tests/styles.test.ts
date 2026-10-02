@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { applyAssetOp, assetById, assets, buildAsset, resolveInput } from '../lib/assets';
-import { generateComposition, preset, PROFILE, SCHEMA_VERSION, type Composition, type Module } from '../lib/composition';
+import { generateComposition, isBox, preset, PROFILE, SCHEMA_VERSION, type Composition, type Module } from '../lib/composition';
 import { STYLE_IDS, TOP_OVERHANG_MAX, type StyleId } from '../lib/look';
 import { drawingParts } from '../lib/fittings';
 import { fitReport } from '../lib/room';
 import { canonical, describeHighlights, executeRequest, normalize } from '../lib/studio';
-import { applyStyle, roleOf, STYLES, styleFrom } from '../lib/styles';
+import { applyStyle, roleLook, roleOf, STYLES, styleFrom } from '../lib/styles';
 import { tableSpec } from '../lib/tables';
 
 /**
@@ -124,6 +124,25 @@ void test('cada estilo tem a sua mesa: a forma (pé, tampo, borda) não se repet
       seen.set(k, style);
     }
   }
+});
+
+void test('a caixa no piso leva o pé do estilo: a frente que não cabe vira lisa, o pé fica', () => {
+  // No rack boho, a palhinha não cabia numa folha de 97 mm e a fileira do meio
+  // perdia o pé junto, no piso entre torres de pé. No rústico, a altura mínima
+  // do pé quadrado (40) ficava abaixo da do motor (50) e o recuo nunca valia.
+  // Na medida mínima a caixa pode não comportar o pé (adega de 60 cm).
+  for (const a of assets)
+    for (const style of STYLE_IDS)
+      for (const s of [a.size.default, a.size.max]) {
+        const d = buildAsset(a, { ...s, style });
+        for (const m of d.modules) {
+          if (!isBox(m) || m.wall || m.position[1] > 0) continue;
+          const role = roleOf(d, m);
+          if (role !== 'low' && role !== 'tall' && role !== 'counter') continue;
+          const want = roleLook(style, role).legs;
+          if (want) assert.equal(m.look?.legs, want.type, `${a.id} ${style} ${m.id} (${role})`);
+        }
+      }
 });
 
 void test('papel de cada módulo: baixo, balcão, alto, aéreo, painel', () => {

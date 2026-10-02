@@ -2,6 +2,7 @@ import { generateComposition, isFlat, openingPose, type Composition, type Modula
 import { deltaE, MIN_DELTA_E } from './color';
 import { cutPlan } from './cutplan';
 import { drawingParts, fittingsOf } from './fittings';
+import { drawingFaults } from './plan-geometry';
 
 /**
  * Nada pode flutuar: toda peça desenhada (peça de corte ou ferragem: pé,
@@ -70,7 +71,7 @@ const boxOfPart = (p: Pick<ModularPart, 'position' | 'size' | 'rotation'>) => wo
 /** Quanto duas caixas se cruzam (o menor dos três eixos); negativo, não se tocam. */
 const overlap = (a: Box, b: Box) => Math.min(...[0, 1, 2].map((i) => Math.min(a.max[i], b.max[i]) - Math.max(a.min[i], b.min[i])));
 
-export type StructureIssue = { kind: 'solta' | 'atravessa' | 'cruza' | 'escondida' | 'contraste' | 'apoio' | 'nao-abre' | 'puxador' | 'corte'; message: string };
+export type StructureIssue = { kind: 'solta' | 'atravessa' | 'cruza' | 'escondida' | 'contraste' | 'apoio' | 'desenho' | 'nao-abre' | 'puxador' | 'corte'; message: string };
 
 /**
  * Junta de verdade (canto soldado, travessa entrando no pé): a parte comum
@@ -94,7 +95,8 @@ const inside = (a: Box, b: Box) => [0, 1, 2].every((i) => a.min[i] >= b.min[i] -
  * ferragem (pé, estrutura, cavalete, suporte, LED) atravessando peça de
  * corte, frente que não abre inteira porque bate numa peça ou ferragem,
  * puxador saindo da frente ou cruzando outro e peça de chapa maior que a
- * chapa. Fica de fora, de propósito: o contorno de aço rente às faces, que
+ * chapa, e o desenho com peça de trás pintada por cima da da frente
+ * (conferido pelo raio do olho). Fica de fora, de propósito: o contorno de aço rente às faces, que
  * toma o canto da caixa, e o pé inclinado entrando no nível que ele segura.
  */
 export function structureIssues(d: Composition, all: readonly ModularPart[] = drawingParts(d)): StructureIssue[] {
@@ -184,6 +186,9 @@ export function structureIssues(d: Composition, all: readonly ModularPart[] = dr
     if (Math.abs(along) + h.local.len / 2 > half + 1 || across < -1) out.push({ kind: 'puxador', message: `puxador ${h.type} sai de ${front.name}` });
   }
   for (let i = 0; i < hs.length; i++) for (let j = i + 1; j < hs.length; j++) if (overlap(boxOfPart(hs[i]), boxOfPart(hs[j])) > 0) out.push({ kind: 'puxador', message: `puxadores ${hs[i].type} se cruzam` });
+  // O desenho conferido contra o raio do olho: peça de trás pintada por cima da da frente.
+  for (const view of ['front', 'iso'] as const)
+    for (const f of drawingFaults(drawn, view)) if (f.samples >= 2) out.push({ kind: 'desenho', message: `no desenho ${view === 'iso' ? 'isométrico' : 'frontal'}, ${f.over.name} aparece por cima de ${f.hidden.name}` });
   for (const o of cutPlan(g.parts).oversize) out.push({ kind: 'corte', message: `${o.name} (${o.c} × ${o.l}) não cabe numa chapa` });
   return out;
 }
