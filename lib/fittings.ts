@@ -229,13 +229,14 @@ function tableBase(m: Module, out: Fitting[]) {
     return;
   }
   if (type === 'trestle') {
-    // Dois cavaletes em H nas pontas. O travessão de cada um fica a 1/3 do
-    // piso e recebe a longarina; com nível, fica embaixo do nível, que segura
-    // os cavaletes no lugar da longarina.
-    const railY = s.levels.length ? s.levels[0] - 35 : lh / 3;
+    // Dois cavaletes nas pontas. Sem nível: em H, o travessão a 1/3 do piso
+    // recebe a longarina. Com nível: o nível vai de um cavalete ao outro,
+    // encostado nas colunas, e faz o papel da longarina (sem travessão).
+    const railY = lh / 3;
+    const withLevel = s.levels.length > 0;
     for (const sx of [-1, 1])
-      out.push({ ...base, id: `${m.id}:trestle-${sx < 0 ? 0 : 1}`, kind: 'leg', type: 'trestle', position: at(sx * (bw / 2 - 40), lh / 2, 0), size: [80, lh, bd], levels: [railY - lh / 2], bom: { unit: 'un', qty: 1 } });
-    if (s.levels.length) return;
+      out.push({ ...base, id: `${m.id}:trestle-${sx < 0 ? 0 : 1}`, kind: 'leg', type: 'trestle', position: at(sx * (bw / 2 - 40), lh / 2, 0), size: [80, lh, bd], levels: withLevel ? [] : [railY - lh / 2], bom: { unit: 'un', qty: 1 } });
+    if (withLevel) return;
     // Longarina a 1/3 do piso, entrando até o meio do travessão de cada cavalete.
     out.push({ ...base, id: `${m.id}:beam`, kind: 'leg', type: 'beam', position: at(0, railY, 0), size: [bw - 80, 70, 40], bom: { unit: 'un', qty: 0 } });
     return;
@@ -559,8 +560,8 @@ function drawnBoxes(f: Fitting): { position: Vec; size: Vec; slant?: [number, nu
       box(0, 0, d / 2 - 60, [60, h, 60]),
       box(0, -h / 2 + 30, 0, [w, 60, d]),
       box(0, h / 2 - 30, 0, [w, 60, d - 40]),
-      // Travessão entre as colunas, na altura da longarina ou do nível, entrando nelas.
-      box(0, f.levels?.[0] ?? h / 3 - h / 2, 0, [60, 70, d - 120]),
+      // Travessão entre as colunas, na altura da longarina, entrando nelas (sem nível).
+      ...(f.levels?.length === 0 ? [] : [box(0, f.levels?.[0] ?? h / 3 - h / 2, 0, [60, 70, d - 120])]),
     ];
 
   if (f.kind !== 'leg' || (f.type !== 'splayed' && f.type !== 'tapered')) return [{ position: f.position, size: f.size }];

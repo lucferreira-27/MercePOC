@@ -134,7 +134,8 @@ export const TOP_OVERHANG_MAX = 60;
  * Moldura do topo (cimalha): faixa em pé na frente, avançando `fasciaReach`,
  * e capa por cima avançando `capReach`; alturas em mm.
  */
-export const CORNICE = { fascia: 40, cap: 18, fasciaReach: 20, capReach: 40 } as const;
+// A faixa avança a espessura dela (18): encosta na frente e nas laterais da caixa, sem fresta.
+export const CORNICE = { fascia: 40, cap: 18, fasciaReach: 18, capReach: 40 } as const;
 /** Recuo do rodapé em relação à frente da caixa (mm). */
 export const PLINTH_RECESS = 40;
 

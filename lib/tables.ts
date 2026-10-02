@@ -116,8 +116,7 @@ export function tableSpec(m: TableModule): TableSpec {
     shelfT = Math.min(Math.max(thickness, 18), 30);
   // Níveis por igual entre o piso (com folga para limpar) e o avental.
   const n = m.shelves ?? 0;
-  // Cavalete: o nível apoia no travessão, que fica acima da sapata (60 mm) com folga.
-  const floor = base === 'casters' ? CASTER_HEIGHT + 40 : base === 'frame' ? 100 : base === 'trestle' ? 190 : 150;
+  const floor = base === 'casters' ? CASTER_HEIGHT + 40 : base === 'frame' ? 100 : 150;
   const ceiling = lh - apron;
   const step = n ? (ceiling - floor) / n : 0;
   const levels = Array.from({ length: n }, (_, i) => Math.round(floor + i * step));
@@ -131,10 +130,22 @@ export function tableSpec(m: TableModule): TableSpec {
   const drawerInset = cornerLegs ? Math.max(legX, 10 + rail) : apronEnds + (sideAprons ? rail : 0);
   const drawerW = drawers ? (bw - 2 * drawerInset - (drawers - 1) * 4) / drawers : 0;
   const splay = base === 'splayed' ? Math.tan((SPLAY_DEG * Math.PI) / 180) : 0;
-  const levelReach = (y: number) => (splay ? Math.round(splay * (lh - y) + legX / 2) : 0);
-  // Cavalete: o nível apoia nos travessões (até o meio de cada cavalete), entre as colunas da frente e do fundo.
-  const levelW = base === 'trestle' ? bw - 84 : bw - 2 * legX - 4;
-  const levelD = base === 'trestle' ? bd - 184 : bd - 2 * legZ - 4;
+  const levelReach = (y: number) => (splay ? Math.round(splay * (lh - y)) : 0);
+  // Cavalete: o nível vai de um cavalete ao outro, encostado nas colunas, e
+  // faz o papel da longarina; não entra no cavalete (virava uma escada de tábuas).
+  // O nível entra no que o segura, como na marcenaria: até o meio dos pés
+  // (entalhado em volta deles), até o meio do tubo da estrutura e do trenó
+  // (apoiado no quadro), 1 mm dentro das colunas do cavalete (60 mm no meio dos 80 dele). Parando antes,
+  // ficava solto no ar a 2 mm dos pés.
+  const [levelW, levelD] = cornerLegs
+    ? [bw - legX, bd - legZ]
+    : base === 'frame' || base === 'casters'
+      ? [bw - 20, bd - 20]
+      : base === 'sled'
+        ? [bw - 20, bd - 4]
+        : base === 'trestle'
+          ? [bw - 2 * (legX - 10) + 2, bd - 4]
+          : [bw - 2 * legX - 4, bd - 2 * legZ - 4];
   return { base, top, bw, bd, lh, legX, legZ, apron, rail, shelfT, levels, levelReach, drawerW, cornerLegs, drawerInset, apronEnds, apronSides, sideAprons, levelW, levelD };
 }
 

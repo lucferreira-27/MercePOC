@@ -9,11 +9,14 @@ import { drawingParts, fittingsOf } from './fittings';
  * prateleira de parede) ou a outra peça. A colisão de peças só confere
  * sobreposição; isto confere o contrário, a peça solta no ar.
  *
- * Corrediça, dobradiça, trilho e a fresta das frentes (2 mm) seguram a frente
- * e a caixa da gaveta sem encostar: até `GAP` mm conta como preso. Vão maior
- * que isso pede uma peça de verdade.
+ * Peça parada tem de encostar (`TOUCH`, 1 mm): com 15 mm de folga para
+ * tudo, um nível a 2 mm dos pés e uma moldura a 2 mm da caixa passavam como
+ * presos e apareciam soltos no desenho. Só frente e gaveta, que corrediça,
+ * dobradiça e trilho seguram sem encostar, têm a folga de `GAP` mm.
  */
 export const GAP = 15;
+/** Peça parada (chapa, tampo, nível, pé, estrutura) tem de encostar: até 1 mm. */
+export const TOUCH = 1;
 
 type Box = { min: number[]; max: number[] };
 
@@ -52,7 +55,8 @@ export function floatingParts(d: Composition, drawn: readonly ModularPart[] = dr
   while (queue.length) {
     const i = queue.pop()!;
     for (let j = 0; j < parts.length; j++)
-      if (!held[j] && gap(boxes[i], boxes[j]) <= GAP) {
+      // A folga de ferragem (corrediça, dobradiça, fresta) vale só para frente e gaveta, que se movem.
+      if (!held[j] && gap(boxes[i], boxes[j]) <= (parts[i].motion || parts[j].motion ? GAP : TOUCH)) {
         held[j] = true;
         queue.push(j);
       }
@@ -92,7 +96,8 @@ export function structureIssues(d: Composition): StructureIssue[] {
       if (src?.attach === p.id) continue;
       // O contorno toma o canto das caixas com contorno (a dele e a vizinha na junta).
       if (src?.kind === 'frame' && framed.has(p.owners[0]) && ['side', 'top', 'base', 'back', 'divider', 'shelf', 'slab', 'panel'].includes(p.kind)) continue;
-      if (src?.type === 'splayed' && p.kind === 'shelf') continue;
+      // O nível da mesa entra nos pés e no quadro que o seguram (entalhado, apoiado).
+      if ((src?.kind === 'leg' || src?.kind === 'stand') && p.kind === 'shelf' && p.id.includes(':level-') && p.owners.includes(src.moduleId)) continue;
       const k = overlap(fb, boxOfPart(p));
       if (k > 3) out.push({ kind: 'atravessa', message: `${f.name} (${src?.type ?? ''}) atravessa ${p.name} em ${Math.round(k)} mm` });
     }
