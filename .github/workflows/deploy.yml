@@ -33,11 +33,15 @@ jobs:
     needs: check
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     environment:
       name: production
       url: https://merce.lucferreira14.workers.dev
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v5
         with:
           node-version: 24
@@ -52,3 +56,25 @@ jobs:
           code=$(curl -s -o /dev/null -w '%{http_code}' https://merce.lucferreira14.workers.dev/login)
           echo "/login respondeu $code"
           test "$code" = 200
+      # A release sai quando a versão do package.json ainda não tem release.
+      # Notas em docs/releases/vX.Y.Z.md (a primeira linha "# ..." é o título);
+      # sem o arquivo, as notas são as mensagens dos commits desde a última.
+      - name: Criar a release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v="v$(node -p "require('./package.json').version")"
+          if gh release view "$v" > /dev/null 2>&1; then
+            echo "A release $v já existe. Suba a versão no package.json para criar outra."
+            exit 0
+          fi
+          file="docs/releases/$v.md"
+          if [ -f "$file" ]; then
+            title="$(head -n 1 "$file" | sed 's/^# *//')"
+            tail -n +2 "$file" > notas.md
+          else
+            prev="$(gh release list --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName // empty')"
+            title="$v"
+            { echo "## Mudanças"; echo; git log --no-merges --format='- %s' ${prev:+$prev..}HEAD | grep -v '^- Capturas' || true; } > notas.md
+          fi
+          gh release create "$v" --target "$GITHUB_SHA" --title "$title" --notes-file notas.md --latest

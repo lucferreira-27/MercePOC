@@ -43,6 +43,16 @@ Checklist per change:
   itself), then in `G:\MercePOC-prod` run
   `git pull`, `npm install` (if dependencies changed) and `npm run build`,
   and restart the server there with `Start-Merce.ps1`.
+- GitHub releases: a release that changes what users see gets a new version.
+  On `dev`, before the merge, run `npm version <x.y.z> --no-git-tag-version`
+  (minor for features, patch for fixes) and write
+  `docs/releases/v<x.y.z>.md` in Portuguese: first line `# vX.Y.Z · título`,
+  then the notes, with images linked as
+  `https://github.com/lucferreira-27/MercePOC/blob/vX.Y.Z/<path>?raw=true`.
+  The deploy creates the release and tag. Without a version bump the deploy
+  runs and no release is made.
+- Keep `README.md` current when a feature changes what it describes
+  (counts, screenshots in `docs/readme/`, limits).
 - Both folders serve on port 4310, so stop one server before starting the
   other. `Start-Merce.ps1` reuses whatever server already answers on 4310.
 
