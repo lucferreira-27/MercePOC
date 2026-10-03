@@ -296,7 +296,12 @@ export async function imageClassification(id: string): Promise<PhotoClassificati
   return run;
 }
 
-/** Campo acima do limiar. A cor só vale se não contradiz o acabamento seguro (madeira contra liso). */
+/**
+ * Campo acima do limiar. A cor só vale se não contradiz o acabamento seguro
+ * (madeira contra liso). O acabamento serve só para isso: nas fotos reais ele
+ * foi o campo menos confiável (29 a 65%, e "liso" com 52% numa cômoda de
+ * nogueira), então não vai para a IA nem para os chips.
+ */
 export function isSure(c: PhotoClassification, key: keyof PhotoClassification) {
   const g = c[key];
   if (!g || g.confidence < PHOTO_CONFIDENT) return false;
@@ -324,7 +329,6 @@ export function classificationLine(c: PhotoClassification | null) {
   if (c.asset) field('asset', 'ativo', c.asset.value === 'other' ? 'nenhum da biblioteca' : c.asset.value);
   if (c.room) field('room', 'ambiente', c.room.value);
   if (c.style) field('style', 'estilo', c.style.value);
-  if (c.bodyFinish) field('bodyFinish', 'corpo', c.bodyFinish.value === 'wood' ? 'madeira' : 'cor lisa');
   if (c.bodyColor) field('bodyColor', 'cor do corpo', c.bodyColor.value);
   if (c.width) field('width', 'largura', mm(c.width.value));
   if (c.height) field('height', 'altura', mm(c.height.value));

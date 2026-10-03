@@ -108,6 +108,7 @@ void test('classificação: o bloco da IA e os chips marcam o incerto', () => {
   assert.match(line, /ativo guarda-roupa \(93%\)/);
   assert.match(line, /estilo classic \(47%, incerto\)/);
   assert.match(line, /cor do corpo freijo \(74%\)/);
+  assert.doesNotMatch(line, /corpo madeira/, 'madeira ou liso só confere a cor');
   assert.match(line, /largura 1800–2400 mm \(61%\)/);
   assert.match(line, /profundidade 500–650 mm \(40%, incerto\)/);
   assert.equal(classificationLine(null), '');
@@ -273,6 +274,7 @@ void test('turno com foto: a IA recebe a classificação e como usá-la', async 
     assert.match(text, /Foto de referência \(Imagem 1\)/);
     assert.match(text, /Classificação rápida da foto .*ativo guarda-roupa \(93%\).*estilo classic \(47%, incerto\)/);
     assert.match(text, /Ativo seguro: é o tipo do móvel/);
+    assert.match(text, /Pedido da parede ou do ambiente \(passo 3\).*monte com place/, 'parede não começa por ativo');
     const event = traced.find((v) => v.kind === 'photo.classification');
     assert.ok(event, 'o registro do pedido guarda a classificação');
   } finally {
