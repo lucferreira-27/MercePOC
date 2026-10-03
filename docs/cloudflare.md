@@ -53,6 +53,10 @@ O GitHub Actions (`.github/workflows/deploy.yml`) publica sozinho:
 - **Push no `main`:** roda o mesmo e, se passar, `npm run cf:deploy`, depois
   confere que `/login` responde 200. O selo no README e o ambiente
   `production` na lateral do repositório mostram o último resultado.
+- **Release:** depois do deploy, se a versão do `package.json` ainda não tem
+  release, o workflow cria a tag e a release `vX.Y.Z`, com as notas de
+  `docs/releases/vX.Y.Z.md` (a primeira linha `# ...` é o título). Sem o
+  arquivo, as notas são as mensagens dos commits desde a última release.
 - **Na mão:** aba Actions → Cloudflare → *Run workflow*. Ou, da máquina,
   `npm run cf:deploy` como antes.
 

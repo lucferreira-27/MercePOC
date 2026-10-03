@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 340" width="1280" height="340" role="img" aria-label="Merce: estúdio de móveis planejados com IA">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#18261d"/>
+      <stop offset="1" stop-color="#22382a"/>
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#c8e8aa" stroke-opacity="0.06" stroke-width="1"/>
+    </pattern>
+    <radialGradient id="glow" cx="0.72" cy="0.55" r="0.45">
+      <stop offset="0" stop-color="#5dbb8b" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#5dbb8b" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="340" rx="28" fill="url(#bg)"/>
+  <rect width="1280" height="340" rx="28" fill="url(#grid)"/>
+  <rect width="1280" height="340" rx="28" fill="url(#glow)"/>
+  <g transform="translate(84 92) scale(2.2)">
+    <rect width="40" height="40" rx="10" fill="#2f4a38" stroke="#c8e8aa" stroke-opacity="0.35"/>
+    <path d="M9 29V13h5l6 9 6-9h5v16h-5V21l-6 8-6-8v8z" fill="#c8e8aa"/>
+  </g>
+  <text x="200" y="168" font-family="'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif" font-size="86" font-weight="700" letter-spacing="-2" fill="#f1efe8">merce<tspan fill="#5dbb8b">.</tspan></text>
+  <text x="86" y="236" font-family="'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif" font-size="29" fill="#dfe9df">Estúdio de móveis planejados com IA</text>
+  <text x="86" y="276" font-family="'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif" font-size="20" fill="#9fb5a5">Conversa, desenho 3D, orçamento e plano de corte na mesma composição</text>
+  <g>
+    <ellipse cx="1021.6" cy="223.0" rx="131.8" ry="41.2" fill="#000" opacity="0.25"/>
+    <line x1="1125.7" y1="227.2" x2="1133.1" y2="259.5" stroke="#c8e8aa" stroke-width="3.5" stroke-linecap="round" opacity="1"/>
+    <line x1="1131.6" y1="253.3" x2="1133.1" y2="259.5" stroke="#e9c46a" stroke-width="4.5" stroke-linecap="round" opacity="1"/>
+    <line x1="917.6" y1="147.3" x2="910.2" y2="178.4" stroke="#c8e8aa" stroke-width="3.5" stroke-linecap="round" opacity="1"/>
+    <line x1="911.6" y1="172.4" x2="910.2" y2="178.4" stroke="#e9c46a" stroke-width="4.5" stroke-linecap="round" opacity="1"/>
+    <line x1="1090.8" y1="247.3" x2="1091.9" y2="283.3" stroke="#c8e8aa" stroke-width="3.5" stroke-linecap="round" opacity="1"/>
+    <line x1="1091.7" y1="276.4" x2="1091.9" y2="283.3" stroke="#e9c46a" stroke-width="4.5" stroke-linecap="round" opacity="1"/>
+    <polygon points="950.3,43.0 1140.5,152.8 1092.9,180.2 902.8,70.4" fill="#2f4a38" stroke="#c8e8aa" stroke-width="2" stroke-linejoin="round"/>
+    <polygon points="902.8,146.1 1092.9,255.9 1092.9,180.2 902.8,70.4" fill="#25392c" stroke="#c8e8aa" stroke-width="2" stroke-linejoin="round"/>
+    <polygon points="1140.5,228.4 1092.9,255.9 1092.9,180.2 1140.5,152.8" fill="#1b2b21" stroke="#c8e8aa" stroke-width="2" stroke-linejoin="round"/>
+    <line x1="966.2" y1="180.2" x2="966.2" y2="109.5" stroke="#c8e8aa" stroke-width="1.5" stroke-linecap="round" opacity="0.9"/>
+    <line x1="1029.5" y1="216.8" x2="1029.5" y2="146.1" stroke="#c8e8aa" stroke-width="1.5" stroke-linecap="round" opacity="0.9"/>
+    <line x1="968.3" y1="158.7" x2="1027.4" y2="192.8" stroke="#c8e8aa" stroke-width="1.5" stroke-linecap="round" opacity="0.9"/>
+    <line x1="968.3" y1="133.5" x2="1027.4" y2="167.6" stroke="#c8e8aa" stroke-width="1.5" stroke-linecap="round" opacity="0.9"/>
+    <line x1="988.3" y1="182.9" x2="1007.4" y2="193.9" stroke="#e9c46a" stroke-width="3" stroke-linecap="round" opacity="1"/>
+    <line x1="988.3" y1="157.7" x2="1007.4" y2="168.6" stroke="#e9c46a" stroke-width="3" stroke-linecap="round" opacity="1"/>
+    <line x1="988.3" y1="132.5" x2="1007.4" y2="143.4" stroke="#e9c46a" stroke-width="3" stroke-linecap="round" opacity="1"/>
+    <line x1="958.8" y1="129.2" x2="958.8" y2="149.7" stroke="#e9c46a" stroke-width="3" stroke-linecap="round" opacity="1"/>
+    <line x1="1036.9" y1="174.4" x2="1036.9" y2="194.8" stroke="#e9c46a" stroke-width="3" stroke-linecap="round" opacity="1"/>
+    <line x1="883.7" y1="188.8" x2="1073.9" y2="298.6" stroke="#5dbb8b" stroke-width="1.4" stroke-linecap="round" opacity="1"/>
+    <line x1="890.1" y1="185.1" x2="878.5" y2="191.8" stroke="#5dbb8b" stroke-width="1.4" stroke-linecap="round" opacity="1"/>
+    <line x1="1080.3" y1="294.9" x2="1068.6" y2="301.6" stroke="#5dbb8b" stroke-width="1.4" stroke-linecap="round" opacity="1"/>
+    <g transform="translate(978.8,243.7) rotate(30)"><rect x="-33" y="-12" width="66" height="24" rx="12" fill="#14201a" stroke="#5dbb8b" stroke-width="1.2"/><text x="0" y="5" font-size="13.5" text-anchor="middle" fill="#c8e8aa" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">180 cm</text></g>
+  </g>
+</svg>
