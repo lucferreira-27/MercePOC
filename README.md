@@ -249,6 +249,8 @@ A parede fica parada: no primeiro movimento ela é presa no lugar, e desfazer de
 
 A IA estima a escala por objetos de tamanho conhecido (frente de gaveta ~200 mm, livro ~240 mm, pé-direito ~2600 mm), mantém as proporções, arredonda para 10 mm, respeita os limites do motor e monta a fileira inteira no mesmo turno. Ela diz a régua que usou, o erro esperado (±10 a 20%), o que a foto mostra e o editor não tem (curva, canto com interior contínuo) e qual medida sua fecharia o desenho.
 
+Assim que a foto é anexada, um classificador rápido (Perplexity Decisions, ~1 s) diz o modelo da biblioteca mais parecido, o ambiente, o estilo, a cor do corpo e faixas de medida. Isso aparece como etiquetas na foto, com "?" no que é incerto, e a IA começa o desenho por ali. Sem `PERPLEXITY_API_KEY` no `.env`, ou se o classificador falhar, a foto segue como antes.
+
 Depois de aplicar, ela recebe o desenho do resultado (frontal e isométrica), confere contra a foto e responde "ficou parecido/em parte/diferente", com até 10 operações de correção. Num desenho de linhas não dá para julgar cor nem textura, e a conferência não inventa isso. Aceita JPG, PNG ou WebP até 10 MB.
 
 </details>

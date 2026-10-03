@@ -152,6 +152,18 @@ export async function readImageMeta(id: string) {
   return row.meta;
 }
 
+export async function writeImageMeta(id: string, meta: string) {
+  db().exec('UPDATE images SET meta=? WHERE id=?', meta, id);
+}
+
+/**
+ * Sem `sharp`, a foto vai como chegou: o navegador já a reduziu à área que a
+ * classificação aceita (lib/shrink-image.ts).
+ */
+export async function jpegWithin(image: StoredImage, _maxPixels: number): Promise<StoredImage> {
+  return image;
+}
+
 /**
  * Não há codificador JPEG no Worker. As fotos já chegam em JPEG do navegador e
  * as vistas do projeto são PNG, que o modo rápido também aceita.

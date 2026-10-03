@@ -19,6 +19,7 @@ import { PROVIDER_ERROR } from '../gateway';
 import { askJev } from './jev';
 import type { AgentEvent, UiState } from './types';
 import { NO_TRACE, type Trace } from '../trace';
+import { classificationLine, imageClassification, storedClassification } from '../photo-classify';
 
 export type AgentTurnInput = {
   project: Project;
@@ -118,7 +119,7 @@ async function earlierPhoto(messages: Message[]) {
   const m = recentMessages(messages).findLast((v) => v.role === 'user' && v.image);
   if (!m?.image) return undefined;
   try {
-    return { url: await imageDataUrl(m.image.id), request: m.content.replace(/\s+/g, ' ').slice(0, 120) };
+    return { id: m.image.id, url: await imageDataUrl(m.image.id), request: m.content.replace(/\s+/g, ' ').slice(0, 120) };
   } catch {
     return undefined;
   }
@@ -127,10 +128,22 @@ async function earlierPhoto(messages: Message[]) {
 async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
   const photo = input.image;
   input.progress({ stage: 'connecting', label: 'Consultando a IA', detail: 'Enviando o pedido e o projeto.' });
-  const text = turnMessage(ctx, !!photo, input.request);
   // Pedido sem foto logo depois de um com foto ("esses não estão na ref"):
   // a foto volta, senão a IA responde sem ver o que a pessoa compara.
   const earlier = photo ? undefined : await earlierPhoto(input.project.messages);
+  // Classificação rápida da foto (lib/photo-classify.ts): quase sempre já
+  // gravada pelo pedido que o navegador fez no envio; senão espera até 5 s.
+  // A foto de um pedido anterior só reaproveita a que ficou gravada.
+  const classifyStart = Date.now();
+  const classification = photo ? await imageClassification(photo.id) : earlier ? await storedClassification(earlier.id) : null;
+  if (photo || earlier)
+    (input.trace ?? NO_TRACE).write('photo.classification', {
+      imageId: photo?.id ?? earlier?.id,
+      earlier: !photo,
+      waitedMs: Date.now() - classifyStart,
+      classification,
+    });
+  const text = turnMessage(ctx, !!photo, input.request, classificationLine(classification));
   // Projeto de partida (a estante que ninguém pediu e que a foto vai trocar):
   // o desenho dele não ajuda e voltaria em toda etapa do laço. Fica só a foto.
   const images = photo

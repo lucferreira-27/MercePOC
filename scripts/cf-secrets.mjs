@@ -17,7 +17,7 @@ try {
 
 // Só o que o servidor lê. MERCE_DATA_DIR é caminho do Node e não vale na Cloudflare.
 const wanted = (name) =>
-  (name.startsWith('AI_') || name.startsWith('MERCE_') || name === 'TYPESAFE_API_KEY') &&
+  (name.startsWith('AI_') || name.startsWith('MERCE_') || name === 'TYPESAFE_API_KEY' || name === 'PERPLEXITY_API_KEY') &&
   !['MERCE_DATA_DIR', 'MERCE_PASSWORD'].includes(name) &&
   !(env[name] ?? '').startsWith('your-');
 const secrets = Object.fromEntries(Object.entries(env).filter(([k, v]) => v && wanted(k)));

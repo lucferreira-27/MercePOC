@@ -84,6 +84,7 @@ import { useDelayedTrue } from '@/hooks/use-delayed';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import type { ImageRef } from '@/lib/images';
+import type { PhotoChip } from '@/lib/photo-classify';
 import { renderPartThumb, thumbKey } from '@/lib/part-thumb';
 import FurnitureView, { type ViewMode } from '@/components/furniture-view';
 import {
@@ -343,6 +344,25 @@ const WS_NAV: { id: Workspace; label: string; icon: React.ReactNode }[] = [
   { id: 'numbers', label: 'Números', icon: <Calculator size={21} /> },
 ];
 type PipCorner = 'tl' | 'tr' | 'bl' | 'br';
+/** O que a classificação rápida viu na foto: certo em destaque, incerto com "?". */
+function PhotoChips({ chips }: { chips: PhotoChip[] | null }) {
+  if (chips && !chips.length) return null;
+  return (
+    <div className="photo-chips" aria-label="O que vi na foto">
+      {chips ? (
+        chips.map((c) => (
+          <span key={c.label} className={c.sure ? 'photo-chip' : 'photo-chip unsure'} title={c.title}>
+            {c.label}
+            {!c.sure && '?'}
+          </span>
+        ))
+      ) : (
+        <span className="photo-chip reading">Lendo a foto…</span>
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   const [opened,setOpened] = useState<Record<string,number>>({});
   const [p, setP] = useState<State | null>(null),
@@ -366,6 +386,8 @@ export default function Home() {
     [gapTarget, setGapTarget] = useState(''),
     [gapPick, setGapPick] = useState('0'),
     [attachment, setAttachment] = useState<ImageRef | null>(null),
+    // O que a classificação rápida viu na foto anexada; `chips` null enquanto lê.
+    [photoChips, setPhotoChips] = useState<{ id: string; chips: PhotoChip[] | null } | null>(null),
     [thumbs, setThumbs] = useState<Record<string, string>>({}),
     [pendingImage, setPendingImage] = useState<ImageRef | null>(null),
     [failedTurn, setFailedTurn] = useState<{ text: string; image: ImageRef | null; error: string; requestId: string } | null>(null),
@@ -1794,8 +1816,21 @@ export default function Home() {
       const result = await response.json() as ImageRef & { error?: string };
       if (!response.ok) throw new Error(result.error || 'Não foi possível anexar a imagem.');
       setAttachment(result);
+      classifyPhoto(result.id);
     } catch (e) { setError(friendlyError(e)); }
     finally { setBusy(false); setUploading(false); }
+  }
+  /**
+   * Classifica a foto enquanto a pessoa escreve: o turno encontra o resultado
+   * pronto, e os chips mostram o que foi visto. Falha não aparece.
+   */
+  function classifyPhoto(id: string) {
+    setPhotoChips({ id, chips: null });
+    const done = (chips: PhotoChip[]) => setPhotoChips((v) => (v?.id === id ? { id, chips } : v));
+    fetch('/api/images/classify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+      .then((r) => (r.ok ? r.json() : {}) as Promise<{ chips?: PhotoChip[] }> | { chips?: PhotoChip[] })
+      .then((v) => done(v.chips ?? []))
+      .catch(() => done([]));
   }
   function seekVersion(cursor: number) {
     if (!p || busy) return;
@@ -3716,7 +3751,7 @@ export default function Home() {
             {pending && (
               <>
                 <div className="message user">
-                  <div className="message-body">{pendingImage && <img className="chat-image" src={pendingImage.url} alt={pendingImage.name} />}{pending}</div>
+                  <div className="message-body">{pendingImage && <img className="chat-image" src={pendingImage.url} alt={pendingImage.name} />}{pendingImage && photoChips?.id === pendingImage.id && <PhotoChips chips={photoChips.chips} />}{pending}</div>
                 </div>
                 <TurnProgress
                   events={progress}
@@ -3898,6 +3933,7 @@ export default function Home() {
             >
               <input ref={fileInput} type="file" hidden accept="image/jpeg,image/png,image/webp" onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ''; }} />
               {attachment && <div className="attachment-preview"><img src={attachment.url} alt={attachment.name} /><span>{attachment.name}</span><button type="button" disabled={busyLook} aria-label="Remover imagem" onClick={() => setAttachment(null)}><X size={16} /></button></div>}
+              {attachment && photoChips?.id === attachment.id && <PhotoChips chips={photoChips.chips} />}
               {/* A foto agora serve para copiar layout: sem esta linha, quem
                   anexa uma referência não sabe que pode pedir a cópia. */}
               {attachment && <p className="attachment-hint">Peça “copie o layout desta foto” e eu monto uma versão com medidas estimadas, dizendo o erro e o que ficou de fora.</p>}

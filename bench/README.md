@@ -81,7 +81,7 @@ Rodadas antigas são reavaliadas com a regra de perguntar ou agir de hoje (o `as
 
 "Preço como" recalcula o custo pelos tokens com a tabela de um provedor (Command Code ou OpenCode Zen), para comparar a mesma rodada em outro provedor. Para o painel saber como a rodada foi feita, use `--label "nome"`; provedor, modelo e esforço vão sozinhos para o resultado.
 
-Outras opções úteis: `--ids a,b,c` roda só esses casos; `--photo-legacy` manda foto pelo caminho antigo (a rota manda foto pelo laço); `MERCE_REASONING_EFFORT=none|low|medium|high|xhigh|max` troca o esforço de raciocínio (o Command Code só aceita de `low` para cima).
+Outras opções úteis: `--ids a,b,c` roda só esses casos; `--photo-legacy` manda foto pelo caminho antigo (a rota manda foto pelo laço); `MERCE_PHOTO_CLASSIFY=0` desliga a classificação rápida da foto (`lib/photo-classify.ts`, liga com `PERPLEXITY_API_KEY`), para medir o grupo `foto-real` com e sem ela; `MERCE_REASONING_EFFORT=none|low|medium|high|xhigh|max` troca o esforço de raciocínio (o Command Code só aceita de `low` para cima).
 
 ### Assistente em laço (`--agent`)
 

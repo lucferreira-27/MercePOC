@@ -63,7 +63,10 @@ O GitHub Actions (`.github/workflows/deploy.yml`) publica sozinho:
 O workflow precisa do segredo `CLOUDFLARE_API_TOKEN` no repositório (token
 criado no painel da Cloudflare com o modelo *Edit Cloudflare Workers*). As
 chaves da IA e a senha do app não passam pelo GitHub: continuam nos segredos
-do Worker (`npm run cf:secrets`) e valem para todo deploy.
+do Worker (`npm run cf:secrets`) e valem para todo deploy. A classificação da
+foto anexada usa `PERPLEXITY_API_KEY`: o `cf:secrets` já a envia quando ela
+está no `.env` (ou `npx wrangler secret put PERPLEXITY_API_KEY -c
+cloudflare/wrangler.jsonc`). Sem ela, a foto segue como antes.
 
 ## Limites do plano gratuito
 

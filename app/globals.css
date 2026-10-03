@@ -1571,6 +1571,59 @@ kbd {
   padding: 4px;
   border-radius: 6px;
 }
+.photo-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 2px 6px;
+}
+.message-body .photo-chips {
+  margin: -2px 0 8px;
+}
+/* No balão verde da pessoa, os chips seguem a cor do texto do balão. */
+.message.user .photo-chip {
+  color: inherit;
+  background: color-mix(in srgb, var(--accent-ink) 16%, transparent);
+  border-color: color-mix(in srgb, var(--accent-ink) 40%, transparent);
+}
+.message.user .photo-chip.unsure,
+.message.user .photo-chip.reading {
+  background: none;
+  border-color: color-mix(in srgb, var(--accent-ink) 55%, transparent);
+  color: color-mix(in srgb, var(--accent-ink) 85%, transparent);
+}
+.photo-chip {
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  color: var(--accent);
+  white-space: nowrap;
+}
+.photo-chip.unsure {
+  background: none;
+  border-style: dashed;
+  border-color: var(--line-strong);
+  color: var(--muted);
+}
+.photo-chip.reading {
+  background: none;
+  border-color: var(--line);
+  color: var(--muted);
+  animation: photo-chip-pulse 1.4s ease-in-out infinite;
+}
+@keyframes photo-chip-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .photo-chip.reading {
+    animation: none;
+  }
+}
 .attachment-hint {
   font-size: 11.5px;
   line-height: 1.45;
