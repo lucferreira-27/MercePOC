@@ -11,14 +11,15 @@
  * de modelo e a conta do custo; chaves e URLs ficam em `modelProfile`, que só
  * roda no servidor.
  */
-export type ModelKey = 'deepseek' | 'luna' | 'mimo' | 'qwen-fast';
-export const MODEL_KEYS = ['deepseek', 'luna', 'mimo', 'qwen-fast'] as const;
+export type ModelKey = 'deepseek' | 'luna' | 'mimo' | 'qwen-fast' | 'haiku';
+export const MODEL_KEYS = ['deepseek', 'luna', 'mimo', 'qwen-fast', 'haiku'] as const;
 /**
- * Modelo de sessão nova e de pedido sem modelo: GPT-6 Luna com raciocínio
- * alto, escolha de produto (o DeepSeek ficou lento demais no uso real). A
+ * Modelo de sessão nova e de pedido sem modelo: Claude Haiku 5.5 com esforço
+ * baixo. No bench (07/10/2026) acertou 92/107 contra 96/107 da Luna, com
+ * latência média de 9 s contra 36 s; o serviço da Luna foi encerrado. A
  * escolha explícita da pessoa continua valendo (ver app/page.tsx).
  */
-export const DEFAULT_MODEL: ModelKey = 'luna';
+export const DEFAULT_MODEL: ModelKey = 'haiku';
 
 export type ModelPrice = {
   /** US$ por milhão de tokens de entrada. */
@@ -35,7 +36,7 @@ export type ModelInfo = {
   blurb: string;
   vendor: string;
   /** Esforço de raciocínio pedido ao provedor; ausente quando não se aplica. */
-  reasoning?: 'low' | 'high';
+  reasoning?: 'low' | 'medium' | 'high';
   /**
    * Modelo que assume o resto do turno quando este falha duas vezes seguidas
    * por erro do provedor (fluxo parado, 5xx, limite). Ver `fallbackModel`.
@@ -48,9 +49,22 @@ export type ModelInfo = {
 
 export const MODELS: ModelInfo[] = [
   {
+    key: 'haiku',
+    label: 'Claude Haiku 5.5',
+    blurb: 'Padrão do estúdio: rápido, pela API da Anthropic',
+    vendor: 'Anthropic',
+    // Medido no corpus inteiro: low 97/112 e medium 96/112, low mais rápido
+    // (8,8 s contra 11 s de média) e mais barato.
+    reasoning: 'low',
+    // Tabela de prompts até 100 mil tokens (escrita no cache 0,125). Acima
+    // disso a chamada inteira custa 5× (0,5 / 2,5 / 0,05); o laço fica abaixo
+    // (maior chamada medida: ~83 mil).
+    price: { input: 0.1, output: 0.5, cachedInput: 0.01 },
+  },
+  {
     key: 'luna',
     label: 'GPT-6 Luna',
-    blurb: 'Padrão do estúdio: cuidadoso em composições e pedidos longos',
+    blurb: 'Cuidadoso em composições e pedidos longos',
     vendor: 'Command Code',
     // Medido nos casos difíceis: low acerta 4/10, high 9/10. Pergunta demais
     // sem o portão do perguntar (lib/agent/ask-gate.ts).
@@ -96,7 +110,7 @@ export function reasoningEffort(info: ModelInfo): string | undefined {
 }
 /** Nome do esforço para a interface ("raciocínio alto"). */
 export function reasoningLabel(info: ModelInfo) {
-  return info.reasoning ? `raciocínio ${info.reasoning === 'high' ? 'alto' : 'baixo'}` : null;
+  return info.reasoning ? `raciocínio ${info.reasoning === 'high' ? 'alto' : info.reasoning === 'medium' ? 'médio' : 'baixo'}` : null;
 }
 /**
  * Reserva do modelo quando o provedor falha. MERCE_FALLBACK_MODEL troca a da
@@ -131,6 +145,8 @@ export type ProviderUsage = {
   prompt_tokens?: number;
   completion_tokens?: number;
   prompt_tokens_details?: { cached_tokens?: number } | null;
+  /** Escrita no cache (Claude): já contada em prompt_tokens, paga 1,25× a entrada. */
+  cache_creation_tokens?: number;
   completion_tokens_details?: { reasoning_tokens?: number } | null;
 };
 
@@ -156,7 +172,7 @@ export function addUsage(total: TurnUsage, usage: ProviderUsage, price: ModelPri
   const output = usage.completion_tokens ?? 0;
   const reasoning = usage.completion_tokens_details?.reasoning_tokens ?? 0;
   const cost =
-    ((input - cached) * price.input + cached * price.cachedInput + output * price.output) / 1_000_000;
+    ((input - cached) * price.input + (usage.cache_creation_tokens ?? 0) * price.input * 0.25 + cached * price.cachedInput + output * price.output) / 1_000_000;
   return {
     ...total,
     calls: total.calls + 1,

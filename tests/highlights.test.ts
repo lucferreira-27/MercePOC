@@ -25,6 +25,7 @@ import { POST } from '../app/api/chat/route';
 process.env.MERCE_AGENT = '0';
 
 process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-highlights-'));
+process.env.MERCE_DEFAULT_MODEL ??= 'luna';
 process.env.AI_API_KEY = 'test-key';
 
 const legacy = () => normalize(migrateParams(defaults));

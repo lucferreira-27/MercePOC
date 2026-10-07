@@ -54,7 +54,7 @@ Cada resposta que mexe no projeto traz um bloco de **Edição**, como o diff de 
 - **Enquanto trabalha**, o robô da Merce martela, serra ou fura na bancada e o cartão mostra o passo real, o relógio, os tokens e o custo. **Parar** interrompe sem mexer no projeto.
 - **Sugestões, dúvidas e opções.** Os chips acima do campo são os próximos passos para este projeto. Quando falta uma decisão de verdade, a IA pergunta. Peça "me dê opções" e ela monta 2 ou 3 variantes lado a lado.
 - **Copiar de uma foto.** Anexe ou cole uma imagem e peça para copiar o móvel ou o ambiente. A IA estima a escala, diz o erro esperado, monta e confere o próprio desenho contra a foto.
-- **Quatro modelos.** GPT-6 Luna com raciocínio alto (padrão), DeepSeek V4.1 Flash, MiMo V2.6 Flash e Qwen 3.8 27B, com o preço à vista e o custo somado no topo.
+- **Cinco modelos.** Claude Haiku 5.5 com esforço baixo (padrão), GPT-6 Luna, DeepSeek V4.1 Flash, MiMo V2.6 Flash e Qwen 3.8 27B, com o preço à vista e o custo somado no topo.
 
 <br clear="right">
 
@@ -167,7 +167,7 @@ AI_BASE_URL=https://api.commandcode.ai/provider/v1
 AI_MODEL=deepseek/deepseek-v4.1-flash
 ```
 
-A chave fica somente no servidor. O modelo padrão é o GPT-6 Luna (`AI_LUNA_MODEL`, padrão `gpt-6-luna`) no mesmo gateway, com `reasoning_effort: high`; o DeepSeek V4.1 Flash (`AI_MODEL`) segue selecionável com `low`, o piso do gateway. `MERCE_REASONING_EFFORT` troca o esforço de todos, e `/api/health` diz o padrão e o esforço que vai de fato. A escolha de modelo fica salva no navegador.
+A chave fica somente no servidor. O modelo padrão é o Claude Haiku 5.5 (`CLAUDE_API_KEY`, modelo `AI_HAIKU_MODEL`, padrão `claude-haiku-5-5`) pela API da Anthropic, com esforço `low`. O GPT-6 Luna (`AI_LUNA_MODEL`, padrão `gpt-6-luna`) segue no gateway com `reasoning_effort: high`; o DeepSeek V4.1 Flash (`AI_MODEL`) segue selecionável com `low`, o piso do gateway. `MERCE_REASONING_EFFORT` troca o esforço de todos, e `/api/health` diz o padrão e o esforço que vai de fato. A escolha de modelo fica salva no navegador.
 
 A janela de inatividade é de 120 segundos, reiniciada a cada trecho recebido. Formato inválido ou lote recusado pela geometria gera até duas novas tentativas, com o motivo devolvido ao modelo. O teto é de 16000 tokens. Ajuste com `MERCE_AI_TIMEOUT_MS` e `MERCE_AI_MAX_TOKENS`.
 
@@ -298,7 +298,7 @@ npm run build
 npm run test:live   # turno real com o modelo configurado
 ```
 
-`npm run bench` mede o par prompt + modelo + validação, soma o custo e compara execuções (`--compare`); `--model deepseek|luna|mimo|qwen-fast` escolhe o modelo. `bench:router`, `bench:claims` e `bench:askact` medem o roteador, a conferência do que a resposta afirma e o portão de perguntar ou fazer; `bench:dash` abre o painel. O catálogo fica em [bench/README.md](bench/README.md).
+`npm run bench` mede o par prompt + modelo + validação, soma o custo e compara execuções (`--compare`); `--model haiku|deepseek|luna|mimo|qwen-fast` escolhe o modelo. `bench:router`, `bench:claims` e `bench:askact` medem o roteador, a conferência do que a resposta afirma e o portão de perguntar ou fazer; `bench:dash` abre o painel. O catálogo fica em [bench/README.md](bench/README.md).
 
 <details>
 <summary><strong>Verificações em navegador real</strong></summary>

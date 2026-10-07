@@ -1,7 +1,7 @@
 import { applyObstacleEdits } from '@/lib/room';
 import { applyRequest, get, moveCursor, rewindChat, save, settleRoom, view, revise, type Clarification, type Message } from '@/lib/store';
 import { sameOrigin } from '@/lib/utils';
-import { interpretStream, reviewAndCorrect, withFallback, type CheckedReview } from '@/lib/gateway';
+import { interpretStream, reviewAndCorrect, serverDefaultModel, withFallback, type CheckedReview } from '@/lib/gateway';
 import { materials } from '@/lib/furniture';
 import {
   describeDesignChanges,
@@ -29,7 +29,6 @@ import { openTrace } from '@/lib/trace';
 import { UI_TABS, VIEW_MODES, type AgentEvent } from '@/lib/agent/types';
 import {
   addUsage,
-  DEFAULT_MODEL,
   emptyUsage,
   modelInfo,
   MODEL_KEYS,
@@ -175,8 +174,8 @@ export async function POST(req: Request) {
         : undefined;
     const before = baseRev.params;
     const quoteNote = quoteSummary(before, b.prices);
-    // Sem modelo no pedido vale o padrão do estúdio (Luna, raciocínio alto).
-    const modelChoice: ModelKey = b.model ?? (b.fast ? 'qwen-fast' : DEFAULT_MODEL);
+    // Sem modelo no pedido vale o padrão do estúdio (Haiku 5.5, esforço baixo).
+    const modelChoice: ModelKey = b.model ?? (b.fast ? 'qwen-fast' : serverDefaultModel());
     const jpeg = Boolean(modelInfo(modelChoice).fastProfile);
     // Custo do turno: cada chamada ao provedor soma aqui, sai ao vivo para quem
     // espera e fica gravada na resposta, para o total da sessão sobreviver ao

@@ -236,7 +236,8 @@ void test('parede presa: nicho novo à esquerda do painel não leva a TV junto',
 });
 
 void test('rota: pedido interrompido no meio grava a falha com pedido, etapas, causa e nada gravado', async () => {
-  process.env.AI_API_KEY ||= 'test-key';
+  process.env.MERCE_DEFAULT_MODEL ??= 'luna';
+process.env.AI_API_KEY ||= 'test-key';
   const { POST } = await import('../app/api/chat/route');
   const p = get(create().id);
   const moduleId = p.revisions[0].params.modules[0].id;

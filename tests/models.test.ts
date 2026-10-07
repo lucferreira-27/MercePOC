@@ -58,7 +58,8 @@ void test('formatos para gente: dólar com casas úteis e tokens em mil', () => 
 });
 
 void test('modelo desconhecido cai no padrão do estúdio', () => {
-  assert.equal(modelInfo('nada').key, 'luna', 'o padrão do estúdio é a Luna com raciocínio alto');
+  assert.equal(modelInfo('nada').key, 'haiku', 'o padrão do estúdio é o Haiku 5.5 com esforço baixo');
+  assert.equal(modelInfo('haiku').reasoning, 'low', 'low acertou como medium no corpus, mais rápido e mais barato');
   assert.equal(modelInfo('luna').reasoning, 'high', 'Luna em low acertou 4/10 nos casos difíceis; em high, 9/10');
   assert.equal(modelInfo('deepseek').fallback, 'luna');
 });

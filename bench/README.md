@@ -15,7 +15,7 @@ npm run bench                                  # corpus inteiro, uma vez cada ca
 npm run bench -- --list                        # lista os casos e os grupos
 npm run bench -- --group divisao               # um grupo
 npm run bench -- --id amb-01 --repeat 3        # um caso, três vezes (mede a variância)
-npm run bench -- --model luna                  # outro modelo: deepseek, luna, mimo ou qwen-fast
+npm run bench -- --model luna                  # outro modelo: haiku (padrão), deepseek, luna, mimo ou qwen-fast
 npm run bench -- --fast                        # atalho antigo de --model qwen-fast (Cerebras)
 npm run bench -- --budget 600 --max-calls 40   # teto de tempo e de chamadas
 npm run bench -- --record                      # grava as decisões em bench/fixtures

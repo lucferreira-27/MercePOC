@@ -34,6 +34,7 @@ const sharp = sharpModule as unknown as (input: Buffer | { create: { width: numb
 
 process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-classify-'));
 process.env.MERCE_JEV = '0';
+process.env.MERCE_DEFAULT_MODEL ??= 'luna';
 process.env.AI_API_KEY ??= 'teste';
 
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');

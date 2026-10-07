@@ -31,7 +31,8 @@ const user = (content: string): Message => ({ id: content, role: 'user', content
 const ctx = { requestId: 'r', baseRevisionId: 'b', selectedPartIds: [], referencedPartIds: [] };
 
 void test('regras fixas vêm primeiro e são idênticas entre turnos: o provedor reaproveita o cache', async () => {
-  process.env.AI_API_KEY ??= 'teste';
+  process.env.MERCE_DEFAULT_MODEL ??= 'luna';
+process.env.AI_API_KEY ??= 'teste';
   const wardrobe = normalize(buildTemplate(templates.find((t) => t.id === 'guarda-roupa')!));
   const rack = normalize(buildTemplate(templates.find((t) => t.id === 'rack')!));
   const room = templates.find((t) => t.id === 'guarda-roupa')!.room;

@@ -29,7 +29,8 @@ void test('partial JSON extracts only requested public top-level strings', () =>
 });
 void test('text previews arrive before structured response completes and contain only public fields', async () => {
   const original = globalThis.fetch;
-  process.env.AI_API_KEY = 'test-key';
+  process.env.MERCE_DEFAULT_MODEL ??= 'luna';
+process.env.AI_API_KEY = 'test-key';
   let controller!: ReadableStreamDefaultController<Uint8Array>;
   const enc = new TextEncoder();
   globalThis.fetch = async () =>

@@ -1,6 +1,7 @@
 import { AI_FIRST_BYTE_MS, aiCallMs, aiMaxTokens, aiStallMs, aiTimeoutMs, modelKey, profile, type ModelChoice } from '../gateway';
 import { modelInfo, reasoningEffort, type ProviderUsage } from '../models';
 import { readEvents } from '../sse';
+import { callClaude } from './claude';
 
 /** Mensagem no formato de chat do provedor (compatível com OpenAI). */
 export type ChatMessage =
@@ -53,6 +54,23 @@ export async function callModel(options: {
   // Fluxo vivo que não termina também é queda: o laço tenta de novo ou troca de modelo.
   const cap = setTimeout(() => idle.abort(), aiCallMs());
   try {
+    if (info.vendor === 'Anthropic')
+      return await callClaude({
+        key: prof.key,
+        model: prof.model,
+        effort: reasoningEffort(info),
+        maxTokens: aiMaxTokens(),
+        messages: options.messages,
+        tools: options.tools,
+        signal: AbortSignal.any([idle.signal, ...(options.signal ? [options.signal] : [])]),
+        onEvent: () => {
+          started = true;
+          reset();
+        },
+        onUsage: options.onUsage,
+        onText: options.onText,
+        onPulse: options.onPulse,
+      });
     const response = await fetch(`${prof.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${prof.key}`, 'Content-Type': 'application/json' },
