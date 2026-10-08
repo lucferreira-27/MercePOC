@@ -52,9 +52,9 @@ Cada resposta que mexe no projeto traz um bloco de **Edição**, como o diff de 
 <img src="docs/readme/robo.png" alt="Cartão de progresso com o robô na bancada, as etapas do turno, tokens e custo" width="280" align="right">
 
 - **Enquanto trabalha**, o robô da Merce martela, serra ou fura na bancada e o cartão mostra o passo real, o relógio, os tokens e o custo. **Parar** interrompe sem mexer no projeto.
-- **Sugestões, dúvidas e opções.** Os chips acima do campo são os próximos passos para este projeto. Quando falta uma decisão de verdade, a IA pergunta. Peça "me dê opções" e ela monta 2 ou 3 variantes lado a lado.
+- **Sugestões, dúvidas e opções.** Os chips acima do campo são até seis próximos passos para este projeto: os que a IA propõe e os que saem do estado dele (a chapa quase vazia, o orçamento que ainda não virou PDF, a parede que falta). Quando falta uma decisão de verdade, a IA pergunta. Peça "me dê opções" e ela monta 2 ou 3 variantes lado a lado.
 - **Copiar de uma foto.** Anexe ou cole uma imagem e peça para copiar o móvel ou o ambiente. A IA estima a escala, diz o erro esperado, monta e confere o próprio desenho contra a foto.
-- **Cinco modelos.** Claude Haiku 5.5 com esforço baixo (padrão), GPT-6 Luna, DeepSeek V4.1 Flash, MiMo V2.6 Flash e Qwen 3.8 27B, com o preço à vista e o custo somado no topo.
+- **Modelo e esforço.** O campo mostra o modelo (Claude Haiku 5.5) e deixa escolher o esforço: baixo, médio ou alto. O custo de cada pedido fica à vista e somado no topo.
 
 <br clear="right">
 
@@ -180,7 +180,7 @@ AI_BASE_URL=https://api.commandcode.ai/provider/v1
 AI_MODEL=deepseek/deepseek-v4.1-flash
 ```
 
-A chave fica somente no servidor. O modelo padrão é o Claude Haiku 5.5 (`CLAUDE_API_KEY`, modelo `AI_HAIKU_MODEL`, padrão `claude-haiku-5-5`) pela API da Anthropic, com esforço `low`. O GPT-6 Luna (`AI_LUNA_MODEL`, padrão `gpt-6-luna`) segue no gateway com `reasoning_effort: high`; o DeepSeek V4.1 Flash (`AI_MODEL`) segue selecionável com `low`, o piso do gateway. `MERCE_REASONING_EFFORT` troca o esforço de todos, e `/api/health` diz o padrão e o esforço que vai de fato. A escolha de modelo fica salva no navegador.
+A chave fica somente no servidor. O modelo padrão é o Claude Haiku 5.5 (`CLAUDE_API_KEY`, modelo `AI_HAIKU_MODEL`, padrão `claude-haiku-5-5`) pela API da Anthropic, com esforço `low`. O GPT-6 Luna (`AI_LUNA_MODEL`, padrão `gpt-6-luna`) segue no gateway com `reasoning_effort: high`; o DeepSeek V4.1 Flash (`AI_MODEL`) segue selecionável com `low`, o piso do gateway. `MERCE_REASONING_EFFORT` troca o esforço de todos quando o pedido não traz um, e `/api/health` diz o padrão e o esforço que vai de fato. O campo não troca mais de modelo: usa o padrão (ou o primeiro com credencial no servidor). O esforço escolhido no campo vai em cada pedido e fica salvo no navegador.
 
 A janela de inatividade é de 120 segundos, reiniciada a cada trecho recebido. Formato inválido ou lote recusado pela geometria gera até duas novas tentativas, com o motivo devolvido ao modelo. O teto é de 16000 tokens. Ajuste com `MERCE_AI_TIMEOUT_MS` e `MERCE_AI_MAX_TOKENS`.
 
