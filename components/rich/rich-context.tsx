@@ -59,6 +59,10 @@ export type RichApi = {
   /** O orçamento do rascunho (a versão vigente com os ajustes não gravados). */
   draftQuote: Quote | null;
   setDraft: (adjust: QuoteAdjust | undefined) => void;
+  /** Rascunho guardado de outra versão (o projeto mudou antes de gravar). */
+  staleDraft: { revision: number | null; changes: number } | null;
+  /** Traz o rascunho guardado para a versão vigente, para revisar e salvar. */
+  adoptDraft: () => void;
   discardDraft: () => void;
   saveDraft: () => Promise<void>;
   /** Abre a aba (modo dividido) ou a janela grande (só conversa, app). */

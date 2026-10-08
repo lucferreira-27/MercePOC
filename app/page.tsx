@@ -2320,6 +2320,19 @@ export default function Home() {
     else removeLocal(`merce-quote-draft:${p.id}`);
   };
   const savedAdjust = p?.revisions[p.cursor].quote;
+  /**
+   * Rascunho feito sobre outra versão (a IA ou um Ctrl+Z mudou o projeto
+   * antes de gravar): não some calado, fica à espera de retomar ou descartar.
+   */
+  const staleDraft =
+    p && quoteDraft && quoteDraft.revisionId !== p.revisions[p.cursor].id
+      ? { revision: p.revisions.find((r) => r.id === quoteDraft.revisionId)?.number ?? null, changes: quoteDraft.changes }
+      : null;
+  const adoptDraft = () => {
+    if (!p || !quoteDraft) return;
+    const changes = draftChanges(savedAdjust, quoteDraft.adjust);
+    storeDraft(changes ? { revisionId: p.revisions[p.cursor].id, adjust: quoteDraft.adjust, changes } : null);
+  };
   const setDraftAdjust = (adjust: QuoteAdjust | undefined) => {
     if (!p) return;
     const changes = draftChanges(savedAdjust, adjust);
@@ -2509,6 +2522,8 @@ export default function Home() {
         savedAdjust,
         draft: liveDraft,
         draftQuote: liveDraft ? panelQuote : null,
+        staleDraft,
+        adoptDraft,
         setDraft: setDraftAdjust,
         discardDraft: () => storeDraft(null),
         saveDraft: saveQuoteDraft,
@@ -3375,6 +3390,7 @@ export default function Home() {
                           onDraft: setDraftAdjust,
                           onSave: () => void saveQuoteDraft(),
                           onDiscard: () => storeDraft(null),
+                          ...(staleDraft ? { stale: { ...staleDraft, onAdopt: adoptDraft } } : {}),
                         }
                       : undefined
                   }
@@ -3796,6 +3812,27 @@ export default function Home() {
                 </small>
               </span>
               <span className="chat-tools-list">
+                <button
+                  type="button"
+                  className="chat-tool"
+                  aria-label="Desfazer"
+                  title={undoIsStep(p) ? 'Desfazer o último movimento (Ctrl+Z)' : 'Desfazer (Ctrl+Z)'}
+                  disabled={busyLook || !canUndo(p)}
+                  onClick={() => void action('undo')}
+                >
+                  <Undo2 size={15} />
+                </button>
+                <button
+                  type="button"
+                  className="chat-tool"
+                  aria-label="Refazer"
+                  title={redoIsStep(p) ? 'Refazer o movimento (Ctrl+Y)' : 'Refazer (Ctrl+Y)'}
+                  disabled={busyLook || !canRedo(p)}
+                  onClick={() => void action('redo')}
+                >
+                  <Redo2 size={15} />
+                </button>
+                <span className="chat-tools-sep" aria-hidden="true" />
                 {chatTools.map((t) => (
                   <button
                     key={t.id}

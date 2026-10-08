@@ -219,7 +219,7 @@ function sheetBlock(f: Flow, plan: CutPlan, s: CutSheet) {
   f.need(h);
   const ofMaterial = plan.groups.find((g) => g.key === s.key)?.sheets ?? 1;
   f.page.text(MARGIN, f.y + 10, `${s.material} · ${s.thickness} mm`, { size: 9.5, bold: true });
-  f.page.text(RIGHT, f.y + 10, `chapa ${s.index} de ${ofMaterial} · ${s.placements.length} peças · ${pct(s.efficiency)} usada`, {
+  f.page.text(RIGHT, f.y + 10, `chapa ${s.index} de ${ofMaterial} · ${s.placements.length} ${s.placements.length === 1 ? 'peça' : 'peças'} · ${pct(s.efficiency)} usada`, {
     size: 8,
     color: MUTED,
     align: 'right',
@@ -339,7 +339,8 @@ export function projectPdf(input: PdfInput): PdfResult {
     const list = rows.filter((r) => r.material === material);
     if (f.need(34)) phead();
     f.page.text(MARGIN + 6, f.y + 10, material, { size: 9, bold: true, maxWidth: pcols.qty - MARGIN - 60 });
-    f.page.text(pcols.dims, f.y + 10, `${list.reduce((a, r) => a + r.count, 0)} peças`, { size: 8.5, align: 'right', color: MUTED });
+    const count = list.reduce((a, r) => a + r.count, 0);
+    f.page.text(pcols.dims, f.y + 10, `${count} ${count === 1 ? 'peça' : 'peças'}`, { size: 8.5, align: 'right', color: MUTED });
     f.page.text(pcols.area - 6, f.y + 10, m2(list.reduce((a, r) => a + r.area, 0)), { size: 8.5, bold: true, align: 'right' });
     f.y += 16;
     for (const r of list) {
@@ -363,7 +364,7 @@ export function projectPdf(input: PdfInput): PdfResult {
     f.page.rect(MARGIN, f.y + 2, 7, 7, { fill: tone(g.materialId), stroke: '#8d7a5c', width: 0.4 });
     f.page.text(MARGIN + 12, f.y + 9, `${g.material} · ${g.thickness} mm`, { size: 8.5, maxWidth: 220 });
     f.page.text(RIGHT - 190, f.y + 9, `${g.sheets} ${g.sheets === 1 ? 'chapa' : 'chapas'}`, { size: 8.5, align: 'right' });
-    f.page.text(RIGHT - 110, f.y + 9, `${g.parts} peças`, { size: 8.5, align: 'right', color: MUTED });
+    f.page.text(RIGHT - 110, f.y + 9, `${g.parts} ${g.parts === 1 ? 'peça' : 'peças'}`, { size: 8.5, align: 'right', color: MUTED });
     f.page.text(RIGHT, f.y + 9, `${pct(g.efficiency)} aproveitado`, { size: 8.5, align: 'right', color: MUTED });
     f.y += 13;
   }

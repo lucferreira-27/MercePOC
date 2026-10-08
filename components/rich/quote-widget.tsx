@@ -92,6 +92,22 @@ function QuoteLive({ block }: { block: WidgetBlock }) {
           ))}
         </p>
       )}
+      {!draft && rich.staleDraft && (
+        <output className="qw-draft stale">
+          <span>
+            Há um rascunho não salvo {rich.staleDraft.revision ? `da v${rich.staleDraft.revision}` : 'de uma versão descartada'} ({rich.staleDraft.changes}{' '}
+            {rich.staleDraft.changes === 1 ? 'mudança' : 'mudanças'}). O projeto mudou depois dele.
+          </span>
+          <span className="qw-draft-actions">
+            <button type="button" className="rc-action" disabled={rich.busy} onClick={rich.discardDraft}>
+              <RotateCcw size={13} /> Descartar
+            </button>
+            <button type="button" className="rc-action primary" disabled={rich.busy} onClick={rich.adoptDraft}>
+              <Undo2 size={13} /> Retomar na v{rich.current.number}
+            </button>
+          </span>
+        </output>
+      )}
       {draft && (
         <output className="qw-draft">
           <span>

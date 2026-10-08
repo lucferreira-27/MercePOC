@@ -67,6 +67,8 @@ export type QuoteEditing = {
   onDraft: (next: QuoteAdjust | undefined) => void;
   onSave: () => void;
   onDiscard: () => void;
+  /** Rascunho de outra versão, guardado: retomar traz para a vigente. */
+  stale?: { revision: number | null; changes: number; onAdopt: () => void };
 };
 
 export function QuotePanel({
@@ -133,6 +135,21 @@ export function QuotePanel({
   );
   return (
     <div className="quote-panel" ref={root}>
+      {editing?.stale && editing.changes === 0 && (
+        <output className="quote-draft-bar">
+          <span>
+            <b>Rascunho guardado</b> {editing.stale.revision ? `da v${editing.stale.revision}` : 'de uma versão descartada'} · o projeto mudou depois dele
+          </span>
+          <span className="quote-draft-actions">
+            <button type="button" className="ghost-button" disabled={editing.disabled} onClick={editing.onDiscard}>
+              <RotateCcw size={13} /> Descartar
+            </button>
+            <button type="button" className="ghost-button primary" disabled={editing.disabled} onClick={editing.stale.onAdopt}>
+              <Undo2 size={13} /> Retomar
+            </button>
+          </span>
+        </output>
+      )}
       {editing && editing.changes > 0 && (
         <output className="quote-draft-bar">
           <span>

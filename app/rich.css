@@ -1470,3 +1470,14 @@
 .studio.chat-only .dw-body {
   grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
 }
+.chat-tool:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.chat-tools-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  align-self: center;
+  background: var(--line);
+}

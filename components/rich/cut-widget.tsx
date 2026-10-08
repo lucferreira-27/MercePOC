@@ -84,7 +84,7 @@ export function CutWidget({ block }: { block: WidgetBlock }) {
               hovered={hover}
               onPiece={live ? pick : undefined}
               onHover={focusPiece}
-              title={`Chapa ${at + 1} de ${plan.sheets.length}: ${sheet.material} ${sheet.thickness} mm, ${sheet.placements.length} peças, ${pct(sheet.efficiency)} usada`}
+              title={`Chapa ${at + 1} de ${plan.sheets.length}: ${sheet.material} ${sheet.thickness} mm, ${sheet.placements.length} ${sheet.placements.length === 1 ? 'peça' : 'peças'}, ${pct(sheet.efficiency)} usada`}
             />
           </div>
           <div className="cw-nav">
@@ -97,7 +97,7 @@ export function CutWidget({ block }: { block: WidgetBlock }) {
                 Chapa {at + 1} de {plan.sheets.length}
               </strong>
               <span>
-                {sheet.material} {sheet.thickness} mm{ofMaterial > 1 ? ` · ${sheet.index}/${ofMaterial}` : ''} · {sheet.placements.length} peças · {pct(sheet.efficiency)}
+                {sheet.material} {sheet.thickness} mm{ofMaterial > 1 ? ` · ${sheet.index}/${ofMaterial}` : ''} · {sheet.placements.length} {sheet.placements.length === 1 ? 'peça' : 'peças'} · {pct(sheet.efficiency)}
               </span>
             </div>
             <button type="button" className="icon-button" aria-label="Próxima chapa" disabled={at >= plan.sheets.length - 1} onClick={() => go(1)}>
