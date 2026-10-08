@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { drawingParts } from '../fittings';
 import { reviewAndCorrect, type CheckedReview, type ModelChoice } from '../gateway';
 import { imageDataUrl, saveImage, type ImageRef } from '../images';
-import type { ModelKey, ProviderUsage } from '../models';
+import type { Effort, ModelKey, ProviderUsage } from '../models';
 import { planDataUrl, planPng } from '../plan-render';
 import type { Progress, TurnOutcome } from '../progress';
 import type { Prices } from '../quote';
@@ -34,6 +34,8 @@ export type AgentTurnInput = {
   prices: Prices;
   image?: ImageRef;
   model: ModelChoice;
+  /** Esforço escolhido no compositor. */
+  effort?: Effort;
   requestId: string;
   started: number;
   signal: AbortSignal;
@@ -207,6 +209,7 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
   ctx.runner = (sub, brief) =>
     runLoop(sub, {
       model: input.model,
+      effort: input.effort,
       system: AGENT_SYSTEM,
       user: { role: 'user', content: turnMessage(sub, false, brief) },
       tools: OPTION_TOOLS,
@@ -243,6 +246,7 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
   };
   const loop = route.kind !== 'agent' ? { steps: 0, exhausted: false } : await runLoop(ctx, {
     model: input.model,
+    effort: input.effort,
     system: AGENT_SYSTEM,
     user: { role: 'user', content: images.length ? [{ type: 'text', text: text + note }, ...images] : text },
     maxSteps: input.maxSteps ?? route.budget,

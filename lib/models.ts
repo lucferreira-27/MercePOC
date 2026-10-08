@@ -108,6 +108,17 @@ export const MODELS: ModelInfo[] = [
 export function reasoningEffort(info: ModelInfo): string | undefined {
   return process.env.MERCE_REASONING_EFFORT || info.reasoning;
 }
+/** Esforço que a pessoa escolhe no compositor. */
+export const EFFORTS = ['low', 'medium', 'high'] as const;
+export type Effort = (typeof EFFORTS)[number];
+export const EFFORT_LABEL: Record<Effort, string> = { low: 'Baixo', medium: 'Médio', high: 'Alto' };
+/**
+ * Esforço do pedido: o que a pessoa escolheu, para modelo que raciocina;
+ * senão o da tabela (ou MERCE_REASONING_EFFORT).
+ */
+export function effortFor(info: ModelInfo, chosen?: Effort): string | undefined {
+  return chosen && info.reasoning ? chosen : reasoningEffort(info);
+}
 /** Nome do esforço para a interface ("raciocínio alto"). */
 export function reasoningLabel(info: ModelInfo) {
   return info.reasoning ? `raciocínio ${info.reasoning === 'high' ? 'alto' : info.reasoning === 'medium' ? 'médio' : 'baixo'}` : null;

@@ -101,7 +101,7 @@ export function normalizeSuggestions(list: readonly string[]): string[] {
     if (internal.test(text)) continue;
     if (out.some((seen) => seen.toLowerCase() === text.toLowerCase())) continue;
     out.push(text);
-    if (out.length === 4) break;
+    if (out.length === 5) break;
   }
   return out;
 }

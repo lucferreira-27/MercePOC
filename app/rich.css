@@ -1699,3 +1699,231 @@
     padding-top: 0;
   }
 }
+
+/* ── Cena viva ───────────────────────────────────────────────────────────────
+   O contêiner da cena 3D muda de lugar: a área da cena ou o cartão do móvel. */
+.scene-slot {
+  position: absolute;
+  inset: 0;
+}
+.scene-host {
+  position: absolute;
+  inset: 0;
+}
+.dw-live {
+  position: relative;
+  height: clamp(260px, 42vh, 420px);
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: radial-gradient(120% 90% at 50% 30%, var(--stage-top), var(--stage-bottom));
+}
+.dw-live.active {
+  border-color: var(--accent-line);
+}
+.dw-slot {
+  position: absolute;
+  inset: 0;
+}
+.dw-live-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  translate: -50% 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  color: var(--muted);
+  font-size: 11px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+/* Na conversa a cena fica limpa: sem a dica de mover nem o rótulo da peça
+   que acompanha o cursor por cima do cartão. */
+.dw-live .move-pad {
+  display: none;
+}
+.dw-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.dw-seg {
+  display: inline-flex;
+  padding: 2px;
+  gap: 1px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-2);
+}
+.dw-seg button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 26px;
+  border-radius: 7px;
+  color: var(--muted);
+}
+.dw-seg button:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--surface-3);
+}
+.dw-seg button.on {
+  color: var(--accent);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.dw-seg button:disabled {
+  opacity: 0.4;
+}
+.dw-seg button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.dw-tools-end {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.design-widget.live .rc-title small {
+  font-variant-numeric: tabular-nums;
+}
+fieldset.dw-seg {
+  margin: 0;
+  min-width: 0;
+}
+
+/* ── Modelo e esforço no compositor ─────────────────────────────────────── */
+.model-effort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.model-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.model-name > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.effort-seg {
+  display: inline-flex;
+  gap: 1px;
+  margin: 0;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+.effort-seg button {
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.effort-seg button:hover:not(:disabled) {
+  color: var(--ink);
+}
+.effort-seg button.on {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+.effort-seg button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.effort-seg:disabled button {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+@media (max-width: 520px) {
+  .model-name > span {
+    display: none;
+  }
+}
+
+/* ── Sugestões ───────────────────────────────────────────────────────────────
+   Ícone pela família (desenho, acabamento, números, arquivo, explorar). Na
+   conversa estreita viram uma faixa que rola de lado; no só conversa,
+   quebram em linhas. */
+.suggestions .kind-finish svg {
+  color: var(--wood);
+}
+.suggestions .kind-numbers svg {
+  color: var(--chart-3);
+}
+.suggestions .kind-file svg {
+  color: #c2412d;
+}
+.suggestions .kind-explore svg {
+  color: var(--chart-5);
+}
+/* Uma linha só, em todos os modos: as setas e o esmaecido dizem que há mais. */
+.suggest-strip {
+  position: relative;
+  min-width: 0;
+}
+.suggest-strip .suggestions {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+.suggest-strip .suggestions::-webkit-scrollbar {
+  display: none;
+}
+.suggest-strip .suggestions button {
+  flex: none;
+  white-space: nowrap;
+}
+.suggest-strip.more-right .suggestions {
+  mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent);
+}
+.suggest-strip.more-left .suggestions {
+  mask-image: linear-gradient(to left, #000 calc(100% - 56px), transparent);
+}
+.suggest-strip.more-left.more-right .suggestions {
+  mask-image: linear-gradient(to right, transparent, #000 56px, #000 calc(100% - 56px), transparent);
+}
+.ss-arrow {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  box-shadow: var(--shadow-sm);
+}
+.ss-arrow:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+.ss-arrow.left {
+  left: 0;
+}
+.ss-arrow.right {
+  right: 0;
+}
+

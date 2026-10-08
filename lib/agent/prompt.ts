@@ -63,7 +63,7 @@ ${styleCatalogForPrompt()}
 - Ambiente: room_set mede a parede; room_obstacles põe, move ou tira porta, janela, tomada, coluna e TV (mm, x do canto esquerdo, y do piso). Quando houver ambiente, o móvel precisa caber nele: ajuste o móvel ao ambiente, não invente parede. "paredes" no ambiente são as que a pessoa desenhou no piso (lateral, divisória, mureta: x do canto, z da parede do fundo, em mm); você não as muda, mas o móvel não pode atravessá-las.
 - Preços e margem (prices_set) valem para todos os projetos: mude só quando pedirem.
 
-Sugestões do finish: 2 ou 3 próximos passos deste projeto, em português, no imperativo, até 60 caracteres, começando por verbo, sem ids.`;
+Sugestões do finish: 4 próximos passos deste projeto, concretos e variados: um ajuste do desenho citando uma peça e uma medida de verdade deste projeto (nunca um exemplo genérico), um de acabamento ou estilo, um de números (orçamento, chapas, um arquivo) e um para explorar (opções, ambiente, outra peça). Em português, no imperativo, até 60 caracteres, começando por verbo, sem ids, nada do que acabou de ser feito neste pedido.`;
 
 /**
  * Pedido com foto no laço. O bloco antigo (PHOTO_LAYOUT_RULES) ensinava a

@@ -1,5 +1,5 @@
 import { AI_FIRST_BYTE_MS, aiCallMs, aiMaxTokens, aiStallMs, aiTimeoutMs, modelKey, profile, type ModelChoice } from '../gateway';
-import { modelInfo, reasoningEffort, type ProviderUsage } from '../models';
+import { effortFor, modelInfo, type Effort, type ProviderUsage } from '../models';
 import { readEvents } from '../sse';
 import { callClaude } from './claude';
 
@@ -36,9 +36,12 @@ export async function callModel(options: {
   onUsage?: (usage: ProviderUsage) => void;
   onText?: (text: string) => void;
   onPulse?: (bytes: number, reasoning: number) => void;
+  /** Esforço escolhido no compositor (baixo, médio, alto). */
+  effort?: Effort;
 }): Promise<ModelReply> {
   const prof = profile(options.model);
   const info = modelInfo(modelKey(options.model));
+  const effort = effortFor(info, options.effort);
   const fast = Boolean(info.fastProfile);
   const idle = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -58,7 +61,7 @@ export async function callModel(options: {
       return await callClaude({
         key: prof.key,
         model: prof.model,
-        effort: reasoningEffort(info),
+        effort,
         maxTokens: aiMaxTokens(),
         messages: options.messages,
         tools: options.tools,
@@ -77,7 +80,7 @@ export async function callModel(options: {
       signal: AbortSignal.any([idle.signal, ...(options.signal ? [options.signal] : [])]),
       body: JSON.stringify({
         model: prof.model,
-        ...(reasoningEffort(info) ? { reasoning_effort: reasoningEffort(info) } : {}),
+        ...(effort ? { reasoning_effort: effort } : {}),
         ...(fast ? {} : { stream_options: { include_usage: true } }),
         max_tokens: aiMaxTokens(),
         stream: true,

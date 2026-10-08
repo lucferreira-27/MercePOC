@@ -14,7 +14,7 @@
     "cf:deploy": "vinext build --mode cloudflare && wrangler deploy",
     "cf:secrets": "node scripts/cf-secrets.mjs",
     "cf:logs": "wrangler tail -c cloudflare/wrangler.jsonc",
-    "lint": "oxlint app lib components/furniture-view.tsx components/turn-progress.tsx components/turn-activity.tsx components/model-picker.tsx components/usage-meter.tsx components/modular-editor.tsx components/finish-picker.tsx components/plan-thumb.tsx components/quote-panel.tsx components/cut-plan-panel.tsx components/cut-sheet-drawing.tsx components/parts-panel.tsx components/agent-steps.tsx components/room-panel.tsx components/command-palette.tsx components/template-gallery.tsx components/change-set.tsx components/move-pad.tsx components/branch-confirm.tsx components/print-sheet.tsx components/rich hooks/use-project-tools.ts hooks/use-event.ts hooks/use-delayed.ts tests scripts worker vite.config.ts",
+    "lint": "oxlint app lib components/furniture-view.tsx components/turn-progress.tsx components/turn-activity.tsx components/model-effort.tsx components/suggestion-strip.tsx components/usage-meter.tsx components/modular-editor.tsx components/finish-picker.tsx components/plan-thumb.tsx components/quote-panel.tsx components/cut-plan-panel.tsx components/cut-sheet-drawing.tsx components/parts-panel.tsx components/agent-steps.tsx components/room-panel.tsx components/command-palette.tsx components/template-gallery.tsx components/change-set.tsx components/move-pad.tsx components/branch-confirm.tsx components/print-sheet.tsx components/rich hooks/use-project-tools.ts hooks/use-event.ts hooks/use-delayed.ts tests scripts worker vite.config.ts",
     "format": "oxfmt",
     "test": "tsx --test tests/*.test.ts",
     "test:live": "node scripts/modular-live.mjs",

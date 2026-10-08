@@ -39,6 +39,25 @@ export type RichApi = {
    * anteriores do mesmo tipo ficam como histórico da versão em que saíram.
    */
   isLive: (block: { id: string; widget: string }) => boolean;
+  /** Lugar da cena viva no cartão do móvel (ref de callback). */
+  sceneSlot: (el: HTMLElement | null) => void;
+  /** Controles da cena viva, os mesmos da barra da cena. */
+  scene: {
+    view: 'perspective' | 'front' | 'side' | 'top';
+    setView: (v: 'perspective' | 'front' | 'side' | 'top') => void;
+    zoom: (direction: 'in' | 'out') => void;
+    frame: () => void;
+    dims: boolean;
+    toggleDims: () => void;
+    exploded: boolean;
+    toggleExplode: () => void;
+    fronts: boolean;
+    canFronts: boolean;
+    toggleFronts: () => void;
+    /** A pessoa clicou na cena: a roda do mouse aproxima. */
+    active: boolean;
+    setActive: (on: boolean) => void;
+  };
   /** Índice da versão no caminho atual; -1 quando ela foi descartada. */
   revisionIndex: (id: string) => number;
   /** Número exibido de uma versão viva. */

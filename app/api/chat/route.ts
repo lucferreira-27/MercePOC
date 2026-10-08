@@ -29,6 +29,7 @@ import { openTrace } from '@/lib/trace';
 import { UI_TABS, VIEW_MODES, type AgentEvent } from '@/lib/agent/types';
 import {
   addUsage,
+  EFFORTS,
   emptyUsage,
   modelInfo,
   MODEL_KEYS,
@@ -114,6 +115,8 @@ export async function POST(req: Request) {
         fast: z.boolean().optional(),
         /** Modelo escolhido no compositor; `fast` segue valendo para scripts antigos. */
         model: z.enum(MODEL_KEYS).optional(),
+        /** Esforço de raciocínio escolhido no compositor. */
+        effort: z.enum(EFFORTS).optional(),
         // Tabela de preços do navegador: a IA responde "quanto custa" com os
         // mesmos números da aba Orçamento. Formato solto, saneado por mergePrices.
         prices: z.unknown().optional(),
@@ -370,6 +373,7 @@ export async function POST(req: Request) {
           prices: mergePrices(b.prices),
           image,
           model: modelChoice,
+          ...(b.effort ? { effort: b.effort } : {}),
           requestId,
           started,
           signal,

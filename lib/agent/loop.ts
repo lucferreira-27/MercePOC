@@ -4,6 +4,7 @@ import { modelKey, type ModelChoice } from '../gateway';
 import { fallbackModel, modelInfo, type ModelKey, type ProviderUsage } from '../models';
 import type { AgentContext } from './context';
 import { callModel, type ChatMessage, type ModelReply, type ToolSpec } from './model';
+import type { Effort } from '../models';
 import { TERMINAL, TOOLS } from './tools';
 import { NO_TRACE, type Trace } from '../trace';
 
@@ -62,6 +63,8 @@ export function toolSpecs(tools: readonly Tool[] = TOOLS): ToolSpec[] {
 
 export type LoopOptions = {
   model: ModelChoice;
+  /** Esforço de raciocínio escolhido pela pessoa. */
+  effort?: Effort;
   system: string;
   user: ChatMessage;
   tools?: readonly Tool[];
@@ -117,6 +120,7 @@ export async function runLoop(ctx: AgentContext, o: LoopOptions) {
   trace.write('loop.start', {
     loop: tag,
     model: modelKey(model),
+    effort: o.effort ?? null,
     maxSteps,
     maxMs: o.maxMs ?? MAX_MS,
     tools: tools.map((t) => t.name),
@@ -144,7 +148,7 @@ export async function runLoop(ctx: AgentContext, o: LoopOptions) {
       o.signal?.throwIfAborted();
       if (Date.now() >= until) break;
       const ask = () =>
-        call({
+        call({ effort: o.effort,
           model,
           messages,
           tools: specs,
@@ -341,7 +345,7 @@ export async function runLoop(ctx: AgentContext, o: LoopOptions) {
     try {
       const cap = AbortSignal.timeout(FINISH_MS);
       trace.write('model.call', { loop: tag, step: 'finish', model: modelKey(model), messages: messages.length, added: messages.slice(logged) });
-      const reply = await call({ model, messages, tools: toolSpecs([last]), signal: o.signal ? AbortSignal.any([o.signal, cap]) : cap, onUsage: usage });
+      const reply = await call({ effort: o.effort, model, messages, tools: toolSpecs([last]), signal: o.signal ? AbortSignal.any([o.signal, cap]) : cap, onUsage: usage });
       trace.write('model.reply', {
         loop: tag,
         step: 'finish',

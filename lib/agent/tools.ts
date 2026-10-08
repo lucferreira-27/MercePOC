@@ -946,7 +946,7 @@ const finishTool = tool({
       // Resposta longa é onde a IA soma totais de cabeça e erra: as do bench
       // ficam abaixo de 700 caracteres (mediana 267).
       mensagem: z.string().trim().min(1).max(700, 'Mensagem longa demais: 1 a 3 frases (até 700 caracteres), só o que mudou, sem somar totais de cabeça. Chame finish de novo.'),
-      sugestoes: z.array(z.string().max(80)).max(4).default([]),
+      sugestoes: z.array(z.string().max(80)).max(6).default([]),
     })
     .strict(),
   run: async (ctx, a) => {

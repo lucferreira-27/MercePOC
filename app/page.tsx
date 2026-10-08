@@ -6,7 +6,8 @@ import { TurnProgress, turnActivity, type Pulse, type TimedProgress } from '@/co
 import { ActivityGlyph, type RunningTool } from '@/components/turn-activity';
 import { AgentStepsSummary, TurnFacts, type LiveStep } from '@/components/agent-steps';
 import { LIVE_EFFECTS, type AgentEvent, type Effect, type UiState } from '@/lib/agent/types';
-import { ModelPicker } from '@/components/model-picker';
+import { ModelEffort } from '@/components/model-effort';
+import { SuggestionStrip } from '@/components/suggestion-strip';
 import { UsageMeter } from '@/components/usage-meter';
 import { ChangeSet } from '@/components/change-set';
 import { BranchConfirm, type BranchConfirmData } from '@/components/branch-confirm';
@@ -15,7 +16,7 @@ import { designDiff, partDiff, playbackFrames } from '@/lib/diff';
 import { readEvents } from '@/lib/sse';
 import { type Progress, type TextPreview } from '@/lib/progress';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { flushSync } from 'react-dom';
+import { createPortal, flushSync } from 'react-dom';
 import { renderPrintShot } from '@/lib/print-render';
 import { shrinkImage } from '@/lib/shrink-image';
 import {
@@ -80,6 +81,8 @@ import {
   Columns3,
   MessageSquareText,
   ExternalLink,
+  Palette,
+  FileDown,
 } from 'lucide-react';
 import { useProjectTools } from '@/hooks/use-project-tools';
 import { RichContext, type PanelTarget, type QuoteDraft, type RichApi } from '@/components/rich/rich-context';
@@ -90,6 +93,7 @@ import { fileUrl } from '@/components/rich/rich-context';
 import { FILE_FORMATS, sizeLabel, type FileBlock, type FileFormat } from '@/lib/rich';
 import { draftChanges, draftLabel } from '@/lib/quote-draft';
 import { furniturePhoto, recordTurntable } from '@/lib/turntable';
+import { mergeSuggestions, stateSuggestions, type SuggestionKind } from '@/lib/suggest';
 import type { Quote, QuoteAdjust } from '@/lib/quote';
 import { useEvent } from '@/hooks/use-event';
 import { useDelayedTrue } from '@/hooks/use-delayed';
@@ -135,7 +139,7 @@ import { emptyRoom, fitWallsToCeiling, roomChangeLabel, fitReport, fitSummary, f
 import { moduleBoxes } from '@/lib/move';
 import { DEFAULT_PRICES, mergePrices, money, quote as buildQuote, type Prices } from '@/lib/quote';
 import { friendlyError } from '@/lib/errors';
-import { DEFAULT_MODEL, MODEL_KEYS, modelInfo, percent, tokensLabel, usageBreakdown, usd, type ModelKey, type TurnUsage } from '@/lib/models';
+import { DEFAULT_MODEL, EFFORTS, modelInfo, percent, tokensLabel, usageBreakdown, usd, type Effort, type ModelKey, type TurnUsage } from '@/lib/models';
 type State = Project & {
   /** Conversa limpa guardada no servidor: dá para trazer de volta. */
   chatCleared?: { count: number; at: string };
@@ -351,6 +355,14 @@ const WS_NAV: { id: Workspace; label: string; icon: React.ReactNode }[] = [
   { id: 'numbers', label: 'Números', icon: <Calculator size={21} /> },
 ];
 type PipCorner = 'tl' | 'tr' | 'bl' | 'br';
+/** Ícone de cada família de sugestão: desenho, acabamento, números, arquivo, explorar. */
+const SUGGESTION_ICON: Record<SuggestionKind, React.ReactNode> = {
+  design: <Boxes size={12} />,
+  finish: <Palette size={12} />,
+  numbers: <Receipt size={12} />,
+  file: <FileDown size={12} />,
+  explore: <Sparkles size={12} />,
+};
 /** O que a classificação rápida viu na foto: certo em destaque, incerto com "?". */
 function PhotoChips({ chips }: { chips: PhotoChip[] | null }) {
   if (chips && !chips.length) return null;
@@ -433,7 +445,7 @@ export default function Home() {
     [cutFocus, setCutFocus] = useState<{ ids: string[]; mode: 'sheet' | 'piece' } | null>(null),
     [scrubbing, setScrubbing] = useState(false),
     [model, setModel] = useState<ModelKey>(DEFAULT_MODEL),
-    [available, setAvailable] = useState<ModelKey[]>([]),
+    [effort, setEffort] = useState<Effort>('low'),
     [pulse, setPulse] = useState<Pulse | null>(null),
     [liveUsage, setLiveUsage] = useState<TurnUsage | null>(null),
     [sessionUsage, setSessionUsage] = useState<TurnUsage[]>([]),
@@ -518,6 +530,22 @@ export default function Home() {
   const [layout, setLayout] = useState<Layout>('split');
   /** Barra lateral do modo só conversa: aberta (nomes) ou recolhida (ícones). */
   const [sideOpen, setSideOpen] = useState(true);
+  /**
+   * A cena 3D mora num contêiner próprio que muda de lugar sem remontar: na
+   * área da cena (modo dividido, janela grande) ou dentro do cartão do móvel
+   * na conversa (só conversa). A câmera e a seleção continuam as mesmas.
+   */
+  const [sceneHost, setSceneHost] = useState<HTMLDivElement | null>(null);
+  /** Lugar da cena no cartão do móvel mais novo, quando ele está à vista. */
+  const [inlineSlot, setInlineSlot] = useState<HTMLElement | null>(null);
+  /** A pessoa clicou na cena da conversa: a roda do mouse passa a aproximar. */
+  const [inlineActive, setInlineActive] = useState(false);
+  useEffect(() => {
+    const host = document.createElement('div');
+    host.className = 'scene-host';
+    setSceneHost(host);
+  }, []);
+  const viewportSlot = useRef<HTMLDivElement>(null);
   const [panel, setPanel] = useState<OpenPanel | null>(null);
   /** Rascunho do orçamento (ajustes não gravados), um por projeto. */
   const [quoteDraft, setQuoteDraft] = useState<QuoteDraft | null>(null);
@@ -569,18 +597,12 @@ export default function Home() {
   useEffect(() => {
     setLive(readLocal('merce-live') === '1');
     setAgentOn(readLocal('merce-agent') !== '0');
-    // Escolha explícita do modelo mora em merce-model-choice. A chave antiga
-    // (merce-model) guardava "deepseek" quando ele era o padrão: esse valor
-    // é tratado como o padrão antigo e dá lugar ao novo; outro modelo salvo
-    // lá foi escolha da pessoa e passa para a chave nova.
-    const chosen = readLocal('merce-model-choice');
-    const legacy = readLocal('merce-model');
-    if ((MODEL_KEYS as readonly string[]).includes(chosen)) setModel(chosen as ModelKey);
-    else if (legacy && legacy !== 'deepseek' && (MODEL_KEYS as readonly string[]).includes(legacy)) {
-      setModel(legacy as ModelKey);
-      writeLocal('merce-model-choice', legacy);
-    }
-    if (legacy) removeLocal('merce-model');
+    // Um modelo só por enquanto (o padrão do estúdio): escolhas antigas de
+    // modelo saem. O que a pessoa escolhe é o esforço, lembrado aqui.
+    removeLocal('merce-model');
+    removeLocal('merce-model-choice');
+    const savedEffort = readLocal('merce-effort');
+    if ((EFFORTS as readonly string[]).includes(savedEffort)) setEffort(savedEffort as Effort);
     // Custo desta aba: sessionStorage, que some ao fechar a aba e sobrevive ao
     // recarregamento.
     try {
@@ -628,9 +650,9 @@ export default function Home() {
       }
     } catch {}
   }, []);
-  const chooseModel = (key: ModelKey) => {
-    setModel(key);
-    writeLocal('merce-model-choice', key);
+  const chooseEffort = (next: Effort) => {
+    setEffort(next);
+    writeLocal('merce-effort', next);
   };
   /** Soma à conta desta aba o custo de um turno, uma vez por pedido. */
   const recordSessionUsage = (state: State | undefined, requestId: string) => {
@@ -1263,7 +1285,8 @@ export default function Home() {
         await refresh();
         const h = await api<{ configured: boolean; models?: ModelKey[] }>('/api/health');
         setOnline(h.configured);
-        if (h.models) setAvailable(h.models);
+        // Sem credencial do modelo padrão neste servidor: o primeiro que houver.
+        if (h.models?.length && !h.models.includes(DEFAULT_MODEL)) setModel(h.models[0]);
       } catch (e) {
         setError(friendlyError(e));
       }
@@ -1998,6 +2021,7 @@ export default function Home() {
           requestId,
           ...(edit ? { editOf: edit.id } : {}),
           model,
+          effort,
           prices,
           agent: agentOn,
           ui: {
@@ -2493,6 +2517,22 @@ export default function Home() {
         busy: busyLook,
         current: { id: p.revisions[p.cursor].id, number: p.revisions[p.cursor].number, index: p.cursor },
         isLive: (block) => latestWidget.get(block.widget) === block.id,
+        sceneSlot: setInlineSlot,
+        scene: {
+          view,
+          setView,
+          zoom: (direction) => setZoomRequest({ id: Date.now(), direction }),
+          frame: () => setFrameRequest((v) => v + 1),
+          dims: showDims,
+          toggleDims: () => toggleDims(),
+          exploded,
+          toggleExplode: () => setExploded((v) => !v),
+          fronts: Object.values(opened).some((v) => v > 0),
+          canFronts: p.parts.some((v) => (v as ModularPart).motion) && historyPreview === null,
+          toggleFronts: toggleAllFronts,
+          active: inlineActive,
+          setActive: setInlineActive,
+        },
         revisionIndex: (id) => revisionIds.get(id) ?? -1,
         revisionNumber: (index) => p.revisions[index]?.number ?? index + 1,
         quoteAt: (index) => {
@@ -2577,6 +2617,7 @@ export default function Home() {
   // Quem propõe o próximo passo é a IA, com o contexto do último turno. A lista
   // fixa abaixo só aparece quando ela ainda não respondeu nada (primeira
   // interação) ou quando a resposta não trouxe sugestões.
+  const hasTalkNow = !!p?.messages.some((m) => m.role === 'user');
   const aiSuggestions =
     p?.messages.findLast((m) => m.role === 'assistant' && m.suggestions?.length)
       ?.suggestions ?? [];
@@ -2589,7 +2630,31 @@ export default function Home() {
     :targetCell&&!targetCell.node.split?['Divida este compartimento em duas colunas','Coloque duas portas neste compartimento','Coloque três gavetas neste compartimento']
     :selected.length?['Distribua as divisões deste compartimento','Deixe 400 mm livres antes desta divisória']
     :['Adicione um nicho à direita','Crie um gaveteiro de 80 × 90 × 45 cm','Troque o acabamento para nogueira'];
-  const suggestions = aiSuggestions.length ? aiSuggestions : contextualSuggestions;
+  // Chips do próximo passo: a seleção na tela, depois os da IA, depois os
+  // que saem do estado do projeto (lib/suggest.ts), até seis, variados.
+  const allBlocks = useMemo(() => p?.messages.flatMap((m) => m.blocks ?? []) ?? [], [p?.messages]);
+  const askedBefore = useMemo(() => p?.messages.filter((m) => m.role === 'user').slice(-12).map((m) => m.content) ?? [], [p?.messages]);
+  const suggestions = useMemo(
+    () =>
+      p
+        ? mergeSuggestions(
+            selected.length || !hasTalkNow ? contextualSuggestions : [],
+            aiSuggestions,
+            stateSuggestions({
+              design: p.params,
+              quote,
+              hasRoom: !!p.room,
+              fits: roomFit ? roomFit.report.fits : null,
+              blocks: allBlocks,
+              asked: askedBefore,
+            }),
+            6,
+          )
+        : [],
+    // contextualSuggestions e aiSuggestions são derivados destes mesmos dados.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [p, selected, quote, roomFit, allBlocks, askedBefore, aiSuggestions.join('|'), contextualSuggestions.join('|')],
+  );
   // Pergunta em aberto: o cartão traz as respostas, então os chips de sugestão
   // saem de cena para não competir com a pergunta.
   const openClarification = (() => {
@@ -2637,6 +2702,14 @@ export default function Home() {
     { id: 'fronts', group: 'Vista', label: anyOpen ? 'Fechar portas e gavetas' : 'Abrir portas e gavetas', keys: 'O', icon: <DoorOpen size={15} />, disabled: !hasFronts, run: toggleAllFronts },
     { id: 'theme', group: 'Vista', label: theme === 'dark' ? 'Tema claro' : 'Tema escuro', icon: theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />, run: cycleTheme },
     ...TABS.map((t) => ({ id: 'tab-' + t.id, group: 'Painéis', label: `Abrir ${t.label}`, icon: t.icon, run: () => chooseTab(t.id) })),
+    {
+      id: 'live',
+      group: 'Painéis',
+      label: live ? 'Desligar a transmissão ao vivo (depuração)' : 'Ligar a transmissão ao vivo (depuração)',
+      hint: 'texto parcial e raciocínio enquanto chegam',
+      icon: <Sparkles size={15} />,
+      run: toggleLive,
+    },
     { id: 'chat', group: 'Painéis', label: chatOpen ? 'Recolher a conversa' : 'Abrir a conversa', keys: '[', icon: <MessageSquare size={15} />, run: () => toggleChat() },
     { id: 'inspector', group: 'Painéis', label: inspectorOpen ? 'Recolher o painel lateral' : 'Abrir o painel lateral', keys: ']', icon: <PanelRight size={15} />, run: () => toggleInspector() },
     { id: 'ask', group: 'Painéis', label: 'Escrever para a IA', keys: '/', icon: <Sparkles size={15} />, run: () => { if (!chatOpen) toggleChat(true); setTimeout(() => composer.current?.focus(), 30); } },
@@ -3580,6 +3653,21 @@ export default function Home() {
   };
   const chatOnly = !app && layout === 'chat';
   const sceneOpen = panel?.target.kind === 'scene';
+  /** A cena está dentro do cartão do móvel na conversa. */
+  const sceneInline = chatOnly && !sceneOpen && !!inlineSlot;
+  // Leva o contêiner da cena para onde ela aparece agora. React não mexe
+  // nele (os lugares não têm filhos do React), então nada remonta.
+  useLayoutEffect(() => {
+    if (!sceneHost) return;
+    const target = sceneInline ? inlineSlot : viewportSlot.current;
+    if (!target || sceneHost.parentElement === target) return;
+    target.appendChild(sceneHost);
+    // Mudou de tamanho: enquadra o móvel de novo depois que a cena mede o lugar novo.
+    window.setTimeout(() => setFrameRequest((v) => v + 1), 80);
+  });
+  useEffect(() => {
+    if (!sceneInline) setInlineActive(false);
+  }, [sceneInline]);
   /** Atalhos do modo só conversa: as abas do estúdio abrem na janela grande. */
   const chatTools: { id: PanelTarget['kind']; label: string; icon: React.ReactNode }[] = [
     { id: 'scene', label: 'Cena 3D', icon: <Box size={15} /> },
@@ -4498,20 +4586,21 @@ export default function Home() {
           </div>
           <div className="composer-wrap">
             {p && !openClarification && !pending && suggestions.length > 0 && (
-              <div className="suggestions" aria-label={aiSuggestions.length ? 'Próximos passos sugeridos' : 'Para começar'}>
+              <SuggestionStrip label={aiSuggestions.length ? 'Próximos passos sugeridos' : 'Para começar'}>
                 {suggestions.map((v) => (
                   <button
-                    key={v}
+                    key={v.text}
                     type="button"
+                    className={`kind-${v.kind}`}
                     disabled={busyLook}
-                    title="Enviar esta sugestão (o que você digitou continua no campo)"
-                    onClick={() => void send(v)}
+                    title={`${v.why ? `${v.why}. ` : ''}Enviar esta sugestão (o que você digitou continua no campo)`}
+                    onClick={() => void send(v.text)}
                   >
-                    {aiSuggestions.length ? <Sparkles size={12} /> : <ArrowUp size={12} />}
-                    {v}
+                    {SUGGESTION_ICON[v.kind]}
+                    {v.text}
                   </button>
                 ))}
-              </div>
+              </SuggestionStrip>
             )}
             {chatUndo && p?.chatCleared && (
               <output className="notice-banner undo">
@@ -4617,14 +4706,7 @@ export default function Home() {
               />
               <div className="composer-bar">
                 <Button type="button" variant="ghost" size="icon" disabled={busyLook || !p} title="Anexar imagem (JPG, PNG ou WebP, até 10 MB)" aria-label="Anexar imagem" onClick={() => fileInput.current?.click()}><ImagePlus /></Button>
-                <ModelPicker
-                  value={model}
-                  available={available}
-                  onChange={chooseModel}
-                  live={live}
-                  onToggleLive={toggleLive}
-                  disabled={busyLook}
-                />
+                <ModelEffort model={model} effort={effort} onEffort={chooseEffort} disabled={busyLook} />
                 <span
                   className="composer-hint"
                   title="Enter envia · Shift+Enter quebra linha · aceita imagem JPG, PNG ou WebP"
@@ -4819,7 +4901,8 @@ export default function Home() {
               <p>Montando o estúdio…</p>
             </output>
           )}
-          {p && (
+          <div ref={viewportSlot} className="scene-slot" />
+          {p && sceneHost && createPortal(
             <FurnitureView
               params={visualParams!}
               parts={displayParts}
@@ -4868,8 +4951,10 @@ export default function Home() {
               onRemoveWall={busy ? undefined : onRemoveWall}
               onEditWall={onEditWall}
               touch={app}
-              showMovePad={!app || (moveOpen && ws === 'stage' && selected.length > 0 && !timeTravel)}
-            />
+              showMovePad={!sceneInline && (!app || (moveOpen && ws === 'stage' && selected.length > 0 && !timeTravel))}
+              wheelZoom={!sceneInline || inlineActive}
+            />,
+            sceneHost,
           )}
           {stageToast && (
             <output className="stage-toast">

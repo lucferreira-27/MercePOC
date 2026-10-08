@@ -287,3 +287,28 @@ void test('rota de arquivos: gerar pelo cartão cria mensagem com o arquivo; bai
   const after = (await failed.json()) as { messages: Message[] };
   assert.equal((after.messages.at(-1)!.blocks![0] as FileBlock).status, 'failed');
 });
+
+// ------------------------------------------------------------------ sugestões
+void test('sugestões: do estado do projeto, sem repetir, variadas e no máximo seis', async () => {
+  const { stateSuggestions, mergeSuggestions, suggestionKind } = await import('../lib/suggest');
+  const p = get(create().id);
+  const design = p.revisions[p.cursor].params;
+  const q = quoteOf(canonical(design), DEFAULT_PRICES);
+  const state = stateSuggestions({ design, quote: q, hasRoom: false, fits: null, blocks: [], asked: [] });
+  assert.ok(state.some((s) => /orçamento/.test(s.text)), 'sem cartão de orçamento, sugere mostrar');
+  assert.ok(state.some((s) => /parede/.test(s.text)), 'sem ambiente, sugere informar a parede');
+  // Já pediu o orçamento e ele está na conversa: a próxima é o PDF dele.
+  const quoteBlock: WidgetBlock = { kind: 'widget', id: 'w', widget: 'quote', revisionId: 'r', revision: 1, snapshot: { widget: 'quote', total: 1, cost: 1, margin: 0, lines: 1, adjusted: 0, top: [] } };
+  const later = stateSuggestions({ design, quote: q, hasRoom: true, fits: false, blocks: [quoteBlock], asked: ['Mostre o orçamento detalhado'] });
+  assert.equal(later[0].text, 'Ajuste o móvel para caber no ambiente');
+  assert.ok(later.every((s) => s.text.length <= 70), 'chip curto');
+  assert.ok(later.some((s) => /PDF do orçamento/.test(s.text)));
+  assert.ok(!later.some((s) => /parede/.test(s.text)));
+  const merged = mergeSuggestions(['Abra esta frente'], ['Troque os puxadores por cava', 'Gere o PDF do orçamento para o cliente'], later, 6);
+  assert.equal(merged.length, 6);
+  assert.equal(merged[0].text, 'Abra esta frente');
+  assert.equal(merged.filter((s) => /PDF do orçamento/.test(s.text)).length, 1, 'a da IA e a do estado não repetem');
+  assert.equal(suggestionKind('Troque os puxadores por cava'), 'finish');
+  assert.equal(suggestionKind('Gere o CSV das peças'), 'file');
+  assert.equal(suggestionKind('Reduza o número de chapas'), 'numbers');
+});
