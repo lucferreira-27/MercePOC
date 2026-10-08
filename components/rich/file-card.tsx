@@ -58,7 +58,7 @@ export function FileCard({ block, messageId }: { block: FileBlock; messageId: st
   const kind: FileKind = meta?.kind ?? FILE_FORMATS[block.format].kind;
   const opener = useRef<HTMLButtonElement>(null);
   const newer = meta ? rich.supersededBy(meta.id) : null;
-  const outdated = block.revisionId !== rich.current.id;
+  const outdated = block.revisionId !== rich.current.id && FILE_FORMATS[block.format].made !== 'upload';
   const index = rich.revisionIndex(block.revisionId);
   const label = FILE_FORMATS[block.format].label;
   const busyHere = rich.generating.includes(block.format) || rich.fulfilling.includes(block.id);
@@ -152,7 +152,7 @@ export function FileCard({ block, messageId }: { block: FileBlock; messageId: st
             <Download size={14} /> <span>Baixar</span>
           </a>
         )}
-        {!newer && (missing || outdated) && (
+        {!newer && (missing || outdated) && FILE_FORMATS[block.format].made !== 'upload' && (
           <button
             type="button"
             className="file-action"

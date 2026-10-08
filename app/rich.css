@@ -539,7 +539,7 @@
 .dw-art:disabled {
   cursor: default;
 }
-.dw-art svg {
+.dw-art > .plan-thumb {
   display: block;
   width: 100%;
   height: 100%;
@@ -1427,4 +1427,46 @@
 .file-card.missing .file-icon img {
   opacity: 0.45;
   filter: grayscale(1);
+}
+
+/* Casca do app (celular e tablet): no celular a janela grande ocupa a tela
+   inteira, com as áreas seguras; no tablet fica no centro, com a conversa
+   à vista em volta. */
+.studio.app .xv-backdrop {
+  padding: 0;
+  align-items: stretch;
+}
+.studio.app .modal-backdrop .modal.xv {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  border-radius: 0;
+  border: 0;
+  padding: 0;
+}
+.studio.app .xv-head {
+  height: calc(var(--xv-head) + var(--sat, 0px));
+  padding-top: var(--sat, 0px);
+}
+.studio.app .xv-body {
+  padding-bottom: var(--sab, 0px);
+}
+@media (min-width: 760px) and (min-height: 561px) {
+  .studio.app .xv-backdrop {
+    padding: 24px;
+    align-items: center;
+  }
+  .studio.app .modal-backdrop .modal.xv {
+    width: min(1100px, 100%);
+    height: calc(100% - 24px);
+    border-radius: 22px;
+    border: 1px solid var(--line);
+  }
+  .studio.app .xv-head {
+    height: var(--xv-head);
+    padding-top: 0;
+  }
+}
+.studio.chat-only .dw-body {
+  grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
 }

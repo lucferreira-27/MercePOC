@@ -15,7 +15,8 @@ export type WidgetKind = (typeof WIDGET_KINDS)[number];
 /**
  * O que cada formato de arquivo gera. `server`: o servidor monta os bytes a
  * partir da versão gravada (PDF, CSV, JSON). `client`: depende da tela (foto
- * da cena, vídeo girando), o navegador grava e envia.
+ * da cena, vídeo girando), o navegador grava e envia. `upload`: veio pronto
+ * de fora; não se gera de novo.
  */
 export const FILE_FORMATS = {
   pdf: { label: 'PDF do projeto', kind: 'pdf', made: 'server', ext: 'pdf', mime: 'application/pdf' },
@@ -26,9 +27,13 @@ export const FILE_FORMATS = {
   json: { label: 'Projeto completo', kind: 'document', made: 'server', ext: 'json', mime: 'application/json' },
   png: { label: 'Foto do móvel', kind: 'image', made: 'client', ext: 'png', mime: 'image/png' },
   video: { label: 'Vídeo girando o móvel', kind: 'video', made: 'client', ext: 'webm', mime: 'video/webm' },
+  /** Arquivo que chegou de fora (envio, outra ferramenta): o cartão segue o tipo MIME dele. */
+  attachment: { label: 'Arquivo anexado', kind: 'document', made: 'upload', ext: 'bin', mime: 'application/octet-stream' },
 } as const;
 export type FileFormat = keyof typeof FILE_FORMATS;
 export const FILE_FORMAT_IDS = Object.keys(FILE_FORMATS) as FileFormat[];
+/** Formatos que o estúdio sabe gerar (servidor ou navegador). */
+export const MADE_FORMATS = FILE_FORMAT_IDS.filter((f) => FILE_FORMATS[f].made !== 'upload');
 /** Família do arquivo: decide o cartão (ícone, prévia, tocador). */
 export type FileKind = 'pdf' | 'image' | 'spreadsheet' | 'document' | 'audio' | 'video';
 
@@ -154,6 +159,7 @@ export function fileName(project: string, format: FileFormat, revision: number, 
     json: 'projeto',
     png: 'foto',
     video: 'giro',
+    attachment: 'anexo',
   };
   const tail = generation > 1 ? `-${generation}` : '';
   return `${fileSlug(project)}-${what[format]}-v${revision}${tail}.${FILE_FORMATS[format].ext}`;

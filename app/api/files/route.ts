@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { fileBytes, fileMeta, fileNote, makeFileBlock, MAX_FILE_BYTES, saveFile } from '@/lib/files';
 import { mergePrices } from '@/lib/quote';
-import { FILE_FORMAT_IDS, FILE_FORMATS, fileName, type FileBlock, type FileFormat } from '@/lib/rich';
+import { FILE_FORMATS, fileName, MADE_FORMATS, type FileBlock, type FileFormat } from '@/lib/rich';
 import { get, save, view, waitTurn, type Message, type Project } from '@/lib/store';
 import { sameOrigin } from '@/lib/utils';
 
@@ -48,7 +48,7 @@ const generateSchema = z
   .object({
     action: z.literal('generate'),
     id: z.uuid(),
-    format: z.enum(FILE_FORMAT_IDS as [FileFormat, ...FileFormat[]]),
+    format: z.enum(MADE_FORMATS as [FileFormat, ...FileFormat[]]),
     /** Versão de onde sai (padrão: a vigente). Precisa existir. */
     revisionId: z.string().min(1).max(80).optional(),
     prices: z.unknown().optional(),

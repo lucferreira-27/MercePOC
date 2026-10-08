@@ -2428,6 +2428,11 @@ export default function Home() {
       chooseTab(t);
       return;
     }
+    // No app a cena já tem o espaço dela: "ver em 3D" vai para lá, com a volta à conversa.
+    if (app && target.kind === 'scene') {
+      look('chat');
+      return;
+    }
     setPanel({ target, opener, scroll: messages.current?.scrollTop ?? 0, block: opener?.closest('[data-block]')?.getAttribute('data-block') ?? null });
   }
   /** Janela que acabou de fechar: a conversa volta ao ponto e o foco a quem abriu. */
