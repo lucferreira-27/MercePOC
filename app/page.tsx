@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { TurnProgress, turnActivity, type Pulse, type TimedProgress } from '@/components/turn-progress';
 import { ActivityGlyph, type RunningTool } from '@/components/turn-activity';
 import { AgentStepsSummary, TurnFacts, type LiveStep } from '@/components/agent-steps';
-import { LIVE_EFFECTS, type AgentEvent, type Effect, type ExportKind, type UiState } from '@/lib/agent/types';
+import { LIVE_EFFECTS, type AgentEvent, type Effect, type UiState } from '@/lib/agent/types';
 import { ModelPicker } from '@/components/model-picker';
 import { UsageMeter } from '@/components/usage-meter';
 import { ChangeSet } from '@/components/change-set';
@@ -14,7 +14,7 @@ import { canRedo, canUndo, redoIsStep, undoIsStep } from '@/lib/placement';
 import { designDiff, partDiff, playbackFrames } from '@/lib/diff';
 import { readEvents } from '@/lib/sse';
 import { type Progress, type TextPreview } from '@/lib/progress';
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { flushSync } from 'react-dom';
 import { renderPrintShot } from '@/lib/print-render';
 import { shrinkImage } from '@/lib/shrink-image';
@@ -77,8 +77,20 @@ import {
   Move,
   Minus,
   Search,
+  Columns3,
+  MessageSquareText,
+  ExternalLink,
 } from 'lucide-react';
 import { useProjectTools } from '@/hooks/use-project-tools';
+import { RichContext, type PanelTarget, type QuoteDraft, type RichApi } from '@/components/rich/rich-context';
+import { RichBlocks } from '@/components/rich/rich-blocks';
+import { ExpandedView } from '@/components/rich/expanded-view';
+import { FilePreview } from '@/components/rich/file-preview';
+import { fileUrl } from '@/components/rich/rich-context';
+import { FILE_FORMATS, sizeLabel, type FileBlock, type FileFormat } from '@/lib/rich';
+import { draftChanges, draftLabel } from '@/lib/quote-draft';
+import { furniturePhoto, recordTurntable } from '@/lib/turntable';
+import type { Quote, QuoteAdjust } from '@/lib/quote';
 import { useEvent } from '@/hooks/use-event';
 import { useDelayedTrue } from '@/hooks/use-delayed';
 import { Button } from '@/components/ui/button';
@@ -188,15 +200,10 @@ async function api<T = State>(path: string, body?: unknown): Promise<T> {
   if (!r.ok) throw new Error(d.error || 'Não foi possível concluir.');
   return d;
 }
-/** Formato do assistente → item do menu Exportar. */
-const EXPORT_ID: Record<ExportKind, string> = {
-  pdf: 'print',
-  png: 'png',
-  'parts-csv': 'csv',
-  'cut-csv': 'cut',
-  cortecloud: 'cortecloud',
-  json: 'json',
-};
+/** Disposição da tela: conversa, cena e painel lado a lado, ou só a conversa. */
+type Layout = 'split' | 'chat';
+/** Janela grande aberta por um cartão, e de onde ela veio (foco e rolagem voltam). */
+type OpenPanel = { target: PanelTarget; opener: HTMLElement | null; scroll: number; block: string | null };
 /** Leitura de preferência local: '' quando o navegador bloqueia o storage. */
 function readLocal(key: string) {
   try {
@@ -507,6 +514,19 @@ export default function Home() {
   // esperam a versão gravada chegar.
   // Assistente em laço é o padrão; quem desligar volta ao caminho antigo.
   const [agentOn, setAgentOn] = useState(true);
+  // ── Conteúdo rico e modo só conversa ────────────────────────────────────
+  const [layout, setLayout] = useState<Layout>('split');
+  const [panel, setPanel] = useState<OpenPanel | null>(null);
+  /** Rascunho do orçamento (ajustes não gravados), um por projeto. */
+  const [quoteDraft, setQuoteDraft] = useState<QuoteDraft | null>(null);
+  const [generating, setGenerating] = useState<FileFormat[]>([]);
+  const [fulfilling, setFulfilling] = useState<string[]>([]);
+  /** Chapa e linhas que a aba (modo dividido) abre por um cartão. */
+  const [tabFocus, setTabFocus] = useState<{ sheet?: number; quote?: string[]; at: number } | null>(null);
+  const panelRef = useRef<OpenPanel | null>(null);
+  useEffect(() => {
+    panelRef.current = panel;
+  });
   const [agentSteps, setAgentSteps] = useState<LiveStep[]>([]);
   const [agentPlan, setAgentPlan] = useState<string[]>([]);
   const [agentRunning, setAgentRunning] = useState<RunningTool | null>(null);
@@ -571,6 +591,7 @@ export default function Home() {
     if (readLocal('merce-room') === '0') setShowRoom(false);
     if (readLocal('merce-chat') === '0') setChatOpen(false);
     if (readLocal('merce-inspector') === '0') setInspectorOpen(false);
+    if (readLocal('merce-layout') === 'chat') setLayout('chat');
     const savedTab = readLocal('merce-tab');
     if (TABS.some((v) => v.id === savedTab)) setTab(savedTab as Tab);
     if (savedTab === 'project' || savedTab === 'room') wsTab.current.build = savedTab;
@@ -956,9 +977,22 @@ export default function Home() {
   const displaySelected = useMemo(() => (visualParams ? selectedPartIds(visualParams, selected) : []), [visualParams, selected]);
   // Orçamento e plano de corte sempre da versão exibida: arrastar a linha do
   // tempo mostra quanto cada versão custava.
+  // Ajuste à mão do orçamento da versão à vista (a prévia de uma versão
+  // antiga traz o dela); o rascunho só vale sobre a versão vigente, sem prévia.
+  const visualAdjust = p ? p.revisions[historyPreview ?? p.cursor]?.quote : undefined;
   const quote = useMemo(
-    () => (visualParams ? buildQuote(visualParts as ModularPart[], visualParams.modules.length, prices, fittingsOf(canonical(visualParams), visualParts as ModularPart[])) : null),
-    [visualParts, visualParams, prices],
+    () => (visualParams ? buildQuote(visualParts as ModularPart[], visualParams.modules.length, prices, fittingsOf(canonical(visualParams), visualParts as ModularPart[]), visualAdjust) : null),
+    [visualParts, visualParams, prices, visualAdjust],
+  );
+  const currentRevisionId = p?.revisions[p.cursor].id;
+  const liveDraft = quoteDraft && quoteDraft.revisionId === currentRevisionId && historyPreview === null && !agentDraft && !styleShown && !reviewFrame ? quoteDraft : null;
+  /** O orçamento que o painel mostra: o salvo, ou o rascunho por cima dele. */
+  const panelQuote = useMemo(
+    () =>
+      liveDraft && visualParams
+        ? buildQuote(visualParts as ModularPart[], visualParams.modules.length, prices, fittingsOf(canonical(visualParams), visualParts as ModularPart[]), liveDraft.adjust)
+        : quote,
+    [liveDraft, visualParts, visualParams, prices, quote],
   );
   // Quanto custava a versão anterior à exibida: a mudança mais recente em reais.
   const shownIndex = p ? (historyPreview ?? p.cursor) : 0;
@@ -966,7 +1000,7 @@ export default function Home() {
   const previousQuote = useMemo(() => {
     if (!previousRevision) return null;
     const d = designOf(previousRevision.params);
-    return { version: shownIndex, total: buildQuote(d.parts as ModularPart[], previousRevision.params.modules.length, prices, fittingsOf(canonical(previousRevision.params), d.parts as ModularPart[])).total };
+    return { version: shownIndex, total: buildQuote(d.parts as ModularPart[], previousRevision.params.modules.length, prices, fittingsOf(canonical(previousRevision.params), d.parts as ModularPart[]), previousRevision.quote).total };
   }, [previousRevision, shownIndex, prices]);
   // Números do plano de corte do projeto gravado (a lista de peças é dele).
   const savedParts = p?.parts;
@@ -1308,6 +1342,9 @@ export default function Home() {
         return;
       }
       if (e.ctrlKey || e.metaKey || e.altKey || typing(e.target)) return;
+      // Janela grande aberta (orçamento, corte, arquivo): as teclas soltas
+      // não mexem na cena escondida atrás dela.
+      if (panelRef.current && panelRef.current.target.kind !== 'scene') return;
       const viewKey = VIEWS.find((v) => v.key === key);
       if (viewKey) setView(viewKey.id);
       else if (key === 'e') setExploded((v) => !v);
@@ -2054,6 +2091,8 @@ export default function Home() {
           // O assistente em laço já montou ao vivo: não precisa repetir a animação.
           if (last?.role === 'assistant' && last.report?.highlights?.length && last.result?.appliedOperations?.length && !last.report.steps?.length)
             startReview(last.id, false);
+          // Foto e vídeo pedidos na resposta: a página grava e anexa ao cartão.
+          fulfillPending(finalState);
         } else if (event === 'error') {
           const payload = JSON.parse(data) as { error: string; state?: State };
           // O servidor já salvou o pedido: aceitar o estado mantém a versão em dia.
@@ -2230,9 +2269,16 @@ export default function Home() {
       if (e.what === 'explode') setExploded(e.on);
       else if (e.what === 'dims') toggleDims(e.on);
       else toggleRoom(e.on);
-    } else if (e.type === 'tab') chooseTab(e.tab);
-    else if (e.type === 'prices') updatePrices(e.prices);
-    else if (e.type === 'export') exports.find((x) => x.id === EXPORT_ID[e.kind])?.run();
+    } else if (e.type === 'tab') {
+      // Só conversa: a aba fica escolhida para quando a pessoa abrir o painel;
+      // nada abre sozinho (o cartão da resposta é que leva até ela).
+      if (layoutRef.current === 'chat' && !appRef.current) {
+        setTab(e.tab);
+        writeLocal('merce-tab', e.tab);
+      } else chooseTab(e.tab);
+    } else if (e.type === 'prices') updatePrices(e.prices);
+    // 'export' fica no registro do turno: o arquivo chega como cartão na
+    // resposta (lib/rich.ts) e só baixa quando a pessoa clica.
   });
   useEffect(() => {
     const due = pendingEffects.current;
@@ -2243,6 +2289,249 @@ export default function Home() {
       for (const e of due) applyEffect(e);
     }, 0);
   }, [p, applyEffect]);
+  // ── Conteúdo rico: cartões, arquivos, janela grande e modo só conversa ──
+  const layoutRef = useRef<Layout>(layout);
+  useEffect(() => {
+    layoutRef.current = layout;
+  });
+  const chooseLayout = (next: Layout) => {
+    setLayout(next);
+    writeLocal('merce-layout', next);
+    // Trocar de modo fecha a janela grande, mas nada se perde: o rascunho do
+    // orçamento e o texto do campo ficam na página.
+    setPanel(null);
+  };
+  // Rascunho do orçamento guardado neste navegador, por projeto: sobrevive a
+  // trocar de modo, fechar a janela e recarregar a página.
+  const projectId = p?.id;
+  useEffect(() => {
+    if (!projectId) return;
+    try {
+      const raw = readLocal(`merce-quote-draft:${projectId}`);
+      setQuoteDraft(raw ? (JSON.parse(raw) as QuoteDraft) : null);
+    } catch {
+      setQuoteDraft(null);
+    }
+  }, [projectId]);
+  const storeDraft = (next: QuoteDraft | null) => {
+    setQuoteDraft(next);
+    if (!p) return;
+    if (next) writeLocal(`merce-quote-draft:${p.id}`, JSON.stringify(next));
+    else removeLocal(`merce-quote-draft:${p.id}`);
+  };
+  const savedAdjust = p?.revisions[p.cursor].quote;
+  const setDraftAdjust = (adjust: QuoteAdjust | undefined) => {
+    if (!p) return;
+    const changes = draftChanges(savedAdjust, adjust);
+    storeDraft(changes ? { revisionId: p.revisions[p.cursor].id, adjust, changes } : null);
+  };
+  /** Nome de uma linha pela chave (para o rótulo da versão). */
+  const lineLabel = (key: string) => {
+    const all = [...(panelQuote?.lines ?? []), ...(panelQuote?.removed ?? []), ...(quote?.lines ?? []), ...(quote?.removed ?? [])];
+    return all.find((l) => l.key === key)?.label ?? savedAdjust?.extras?.find((e) => `Outros|${e.id}` === key)?.label ?? key.split('|').slice(1).join('|');
+  };
+  async function saveQuoteDraft() {
+    if (!p || !liveDraft) return;
+    const draft = liveDraft;
+    const label = draftLabel(savedAdjust, draft.adjust, lineLabel);
+    await guardTruncation(async () => {
+      const next = await action('quote', { adjust: draft.adjust ?? null, label });
+      if (next) storeDraft(null);
+    }, label);
+  }
+  /** Último arquivo de cada um: um bloco mais novo do mesmo formato o substitui. */
+  const supersede = useMemo(() => {
+    const map = new Map<string, FileBlock>();
+    for (const m of p?.messages ?? []) for (const b of m.blocks ?? []) if (b.kind === 'file' && b.supersedes) map.set(b.supersedes, b);
+    return map;
+  }, [p?.messages]);
+  /** Bloco de arquivo pendente que a página grava (foto, vídeo). */
+  async function fulfillFile(messageId: string, block: FileBlock) {
+    const proj = acceptedState.current.p;
+    if (!proj || fulfillingRef.current.has(block.id)) return;
+    fulfillingRef.current.add(block.id);
+    setFulfilling((v) => [...v, block.id]);
+    const rev = proj.revisions.find((r) => r.id === block.revisionId) ?? proj.revisions[proj.cursor];
+    try {
+      const params = canonical(rev.params);
+      const parts = drawingParts(params);
+      const fittings = fittingsOf(params);
+      const body = new FormData();
+      if (block.format === 'video') {
+        const made = await recordTurntable(parts, rev.params, fittings);
+        body.append('file', made.blob, `giro.${made.blob.type.includes('mp4') ? 'mp4' : 'webm'}`);
+        body.append('durationMs', String(made.durationMs));
+        body.append('width', String(made.width));
+        body.append('height', String(made.height));
+      } else {
+        const made = await furniturePhoto(parts, rev.params, fittings);
+        if (!made) throw new Error('Sem WebGL para desenhar o móvel.');
+        body.append('file', made.blob, 'foto.png');
+        body.append('width', String(made.width));
+        body.append('height', String(made.height));
+      }
+      body.append('id', proj.id);
+      body.append('messageId', messageId);
+      body.append('blockId', block.id);
+      const r = await fetch('/api/files', { method: 'POST', body });
+      const d = (await r.json()) as State & { error?: string };
+      if (!r.ok) throw new Error(d.error || 'Não consegui guardar o arquivo.');
+      accept(d);
+    } catch (e) {
+      try {
+        accept(await api<State>('/api/files', { action: 'fail', id: proj.id, messageId, blockId: block.id, error: friendlyError(e).slice(0, 300) }));
+      } catch {
+        setError(friendlyError(e));
+      }
+    } finally {
+      fulfillingRef.current.delete(block.id);
+      setFulfilling((v) => v.filter((id) => id !== block.id));
+    }
+  }
+  const fulfillingRef = useRef(new Set<string>());
+  /** Arquivos pendentes da última resposta: a página grava logo que ela chega. */
+  const fulfillPending = useEvent((state: State) => {
+    const last = state.messages.at(-1);
+    if (last?.role !== 'assistant') return;
+    for (const b of last.blocks ?? [])
+      if (b.kind === 'file' && b.status === 'pending' && FILE_FORMATS[b.format].made === 'client') void fulfillFile(last.id, b);
+  });
+  /** Gera um arquivo pelo cartão: vira uma mensagem nova com o arquivo. */
+  async function generateFile(format: FileFormat, revisionId?: string) {
+    if (!p || busy || generating.includes(format)) return;
+    setGenerating((v) => [...v, format]);
+    setError('');
+    try {
+      const next = await api<State>('/api/files', { action: 'generate', id: p.id, format, prices, ...(revisionId ? { revisionId } : {}), from: 'card' });
+      accept(next);
+      fulfillPending(next);
+      setPinnedToBottom(true);
+    } catch (e) {
+      setError(friendlyError(e));
+    } finally {
+      setGenerating((v) => v.filter((f) => f !== format));
+    }
+  }
+  /**
+   * Abre o que um cartão aponta. No modo dividido, a aba do painel (o mesmo
+   * editor de sempre) com a chapa ou as linhas em foco; a cena já está ao
+   * lado. No só conversa e no app, a janela grande no centro.
+   */
+  function openTarget(target: PanelTarget, opener: HTMLElement | null) {
+    const tabOf: Partial<Record<PanelTarget['kind'], Tab>> = { quote: 'quote', cut: 'cut', project: 'project', parts: 'parts', room: 'room', history: 'history' };
+    if (!app && layout === 'split' && target.kind !== 'file') {
+      if (target.kind === 'scene') {
+        setFrameRequest((v) => v + 1);
+        return;
+      }
+      const t = tabOf[target.kind]!;
+      setTabFocus({ at: Date.now(), ...(target.kind === 'cut' ? { sheet: target.sheet } : {}), ...(target.kind === 'quote' ? { quote: target.focus } : {}) });
+      chooseTab(t);
+      return;
+    }
+    setPanel({ target, opener, scroll: messages.current?.scrollTop ?? 0, block: opener?.closest('[data-block]')?.getAttribute('data-block') ?? null });
+  }
+  /** Janela que acabou de fechar: a conversa volta ao ponto e o foco a quem abriu. */
+  const closedPanel = useRef<OpenPanel | null>(null);
+  function closePanel() {
+    closedPanel.current = panel;
+    setPanel(null);
+  }
+  // Logo depois de a janela sair do DOM, antes de pintar: sem esperar um
+  // quadro (com a janela do app em segundo plano o quadro não vem).
+  useLayoutEffect(() => {
+    const was = closedPanel.current;
+    if (panel || !was) return;
+    closedPanel.current = null;
+    const box = messages.current;
+    if (box) box.scrollTop = was.scroll;
+    const home = was.block ? `[data-block="${CSS.escape(was.block)}"]` : null;
+    const back = was.opener?.isConnected
+      ? was.opener
+      : // O cartão redesenhou (versão nova): o botão equivalente do mesmo bloco.
+        home
+        ? messages.current?.querySelector<HTMLElement>(`${home} .rc-action.primary, ${home} .file-action`)
+        : null;
+    back?.focus({ preventScroll: true });
+  }, [panel]);
+  useBackLayer(!!panel, closePanel);
+  const revisionIds = useMemo(() => new Map(p?.revisions.map((r, i) => [r.id, i]) ?? []), [p?.revisions]);
+  /** O cartão mais novo de cada tipo: é ele que acompanha o projeto. */
+  const latestWidget = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const m of p?.messages ?? []) for (const b of m.blocks ?? []) if (b.kind === 'widget') map.set(b.widget, b.id);
+    return map;
+  }, [p?.messages]);
+  // Contas por versão para os cartões, lembradas enquanto os preços não mudam.
+  const quoteCache = useMemo(() => (void prices, new Map<string, Quote>()), [prices]);
+  const planCache = useMemo(() => new Map<string, ReturnType<typeof cutPlan>>(), []);
+  const richApi: RichApi | null = p
+    ? {
+        projectId: p.id,
+        projectName: p.name,
+        mode: app ? 'app' : layout === 'chat' ? 'chat' : 'split',
+        busy: busyLook,
+        current: { id: p.revisions[p.cursor].id, number: p.revisions[p.cursor].number, index: p.cursor },
+        isLive: (block) => latestWidget.get(block.widget) === block.id,
+        revisionIndex: (id) => revisionIds.get(id) ?? -1,
+        revisionNumber: (index) => p.revisions[index]?.number ?? index + 1,
+        quoteAt: (index) => {
+          const rev = p.revisions[index];
+          const key = `${rev.id}|${JSON.stringify(rev.quote ?? null)}`;
+          let q = quoteCache.get(key);
+          if (!q) {
+            const parts = designOf(rev.params).parts as ModularPart[];
+            q = buildQuote(parts, rev.params.modules.length, prices, fittingsOf(canonical(rev.params), parts), rev.quote);
+            quoteCache.set(key, q);
+          }
+          return q;
+        },
+        planAt: (index) => {
+          const rev = p.revisions[index];
+          let plan = planCache.get(rev.id);
+          if (!plan) {
+            plan = cutPlan(designOf(rev.params).parts);
+            planCache.set(rev.id, plan);
+          }
+          return plan;
+        },
+        drawingAt: (index) => drawingParts(canonical(p.revisions[index].params)),
+        modulesAt: (index) => p.revisions[index].params.modules.length,
+        partsAt: (index) => designOf(p.revisions[index].params).parts.length,
+        sizeAt: (index) => {
+          const b = designOf(p.revisions[index].params).bounds;
+          return [0, 1, 2].map((i) => b.max[i] - b.min[i]) as [number, number, number];
+        },
+        savedAdjust,
+        draft: liveDraft,
+        draftQuote: liveDraft ? panelQuote : null,
+        setDraft: setDraftAdjust,
+        discardDraft: () => storeDraft(null),
+        saveDraft: saveQuoteDraft,
+        open: openTarget,
+        generate: generateFile,
+        generating,
+        fulfill: (messageId, block) => void fulfillFile(messageId, block),
+        fulfilling,
+        selected,
+        selectParts: (ids, extend) => {
+          if (extend) for (const id of ids) toggleSelected(id, false);
+          else setSelected((s) => (s.length === ids.length && ids.every((id) => s.includes(id)) ? [] : ids));
+        },
+        focusParts: setCutFocus,
+        seek: seekVersion,
+        downloadCutCsv: (index) => {
+          const plan = index >= 0 ? cutPlan(designOf(p.revisions[index].params).parts) : quote?.plan;
+          if (plan) download(`${slug(p.name)}-corte-v${p.revisions[index]?.number ?? p.cursor + 1}.csv`, cutPlanCSV(plan), 'text/csv;charset=utf-8');
+        },
+        supersededBy: (fileId) => supersede.get(fileId) ?? null,
+        scrollToBlock: (blockId) => {
+          const el = messages.current?.querySelector<HTMLElement>(`[data-block="${CSS.escape(blockId)}"]`);
+          el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          el?.focus?.({ preventScroll: true });
+        },
+      }
+    : null;
   const selectedNames = useMemo(
     () =>
       selected.map(
@@ -3063,18 +3352,34 @@ export default function Home() {
               {t === 'quote' && quote && (
                 <QuotePanel
                   name={p.name}
-                  quote={quote}
+                  quote={panelQuote ?? quote}
                   prices={prices}
                   onPrices={updatePrices}
                   previous={previousQuote}
+                  focus={panel?.target.kind === 'quote' ? (panel.target.focus ?? []) : (tabFocus?.quote ?? [])}
                   onShowParts={(ids) => {
                     setSelected(ids);
                     look('numbers');
                   }}
+                  editing={
+                    historyPreview === null && !agentDraft && !styleShown && !reviewFrame
+                      ? {
+                          base: liveDraft ? liveDraft.adjust : savedAdjust,
+                          changes: liveDraft?.changes ?? 0,
+                          nextVersion: p.cursor + 2,
+                          disabled: busyLook,
+                          onDraft: setDraftAdjust,
+                          onSave: () => void saveQuoteDraft(),
+                          onDiscard: () => storeDraft(null),
+                        }
+                      : undefined
+                  }
                 />
               )}
               {t === 'cut' && quote && (
                 <CutPlanPanel
+                  key={panel?.target.kind === 'cut' ? `panel-${panel.target.sheet ?? 0}` : `tab-${tabFocus?.at ?? 0}`}
+                  sheet={panel?.target.kind === 'cut' ? panel.target.sheet : tabFocus?.sheet}
                   plan={quote.plan}
                   selected={displaySelected}
                   onSelect={(id, extend) => toggleSelected(id, extend)}
@@ -3158,16 +3463,121 @@ export default function Home() {
               )}
       </>
     );
+  /**
+   * A janela grande que um cartão abriu: a aba do estúdio inteira (o mesmo
+   * editor do modo dividido), a cena 3D ou a prévia de um arquivo.
+   */
+  const panelView = () => {
+    if (!panel || !p) return null;
+    const t = panel.target;
+    if (t.kind === 'file') {
+      const meta = t.meta;
+      const facts = [meta.pages ? `${meta.pages} ${meta.pages === 1 ? 'página' : 'páginas'}` : '', sizeLabel(meta.size)].filter(Boolean).join(' · ');
+      return (
+        <ExpandedView
+          title={meta.name}
+          subtitle={`${FILE_FORMATS[t.block.format].label} da versão ${t.block.revision}${t.block.generation > 1 ? ` · ${t.block.generation}ª geração` : ''} · ${facts}`}
+          size={meta.kind === 'pdf' || meta.kind === 'document' ? 'doc' : meta.kind === 'spreadsheet' ? 'wide' : 'media'}
+          onClose={closePanel}
+          actions={
+            <>
+              <a className="xv-action" href={fileUrl(meta.id)} target="_blank" rel="noopener">
+                <ExternalLink size={14} /> <span>Abrir</span>
+              </a>
+              <a className="xv-action primary" href={fileUrl(meta.id, true)} download={meta.name}>
+                <Download size={14} /> <span>Baixar</span>
+              </a>
+            </>
+          }
+        >
+          <FilePreview meta={meta} block={t.block} />
+        </ExpandedView>
+      );
+    }
+    if (t.kind === 'scene')
+      return (
+        <ExpandedView
+          title="Cena 3D"
+          subtitle={`${p.name} · versão ${p.cursor + 1}`}
+          size="scene"
+          onClose={closePanel}
+          actions={
+            <button type="button" className="xv-action" onClick={() => setFrameRequest((v) => v + 1)}>
+              <Scan size={14} /> <span>Enquadrar</span>
+            </button>
+          }
+        />
+      );
+    const tab = t.kind as Tab;
+    const title = TABS.find((v) => v.id === tab)?.label ?? 'Projeto';
+    return (
+      <ExpandedView
+        title={tab === 'cut' ? 'Plano de corte' : title}
+        subtitle={`${p.name} · versão ${p.cursor + 1}${liveDraft && tab === 'quote' ? ' · rascunho não salvo' : ''}`}
+        size="wide"
+        bodyClass={`xv-tab xv-tab-${tab}`}
+        onClose={closePanel}
+        actions={
+          <>
+            {tab === 'quote' && (
+              <button
+                type="button"
+                className="xv-action"
+                disabled={busyLook || generating.includes('quote-pdf') || !!liveDraft}
+                title={liveDraft ? 'Salve ou descarte o rascunho antes: o PDF sai da versão salva' : 'Gera o PDF do orçamento como arquivo na conversa'}
+                onClick={() => void generateFile('quote-pdf').then(closePanel)}
+              >
+                <Download size={14} /> <span>Gerar PDF</span>
+              </button>
+            )}
+            {tab === 'cut' && quote && (
+              <button type="button" className="xv-action" onClick={() => download(`${slug(p.name)}-corte.csv`, cutPlanCSV(quote.plan), 'text/csv;charset=utf-8')}>
+                <Download size={14} /> <span>CSV</span>
+              </button>
+            )}
+            {chatOnly && (
+              <button
+                type="button"
+                className="xv-action"
+                title="Volta ao modo dividido com esta aba aberta ao lado da cena"
+                onClick={() => {
+                  chooseLayout('split');
+                  chooseTab(tab);
+                }}
+              >
+                <Columns3 size={14} /> <span>Ao lado da cena</span>
+              </button>
+            )}
+          </>
+        }
+      >
+        {tabBody(tab)}
+      </ExpandedView>
+    );
+  };
+  const chatOnly = !app && layout === 'chat';
+  const sceneOpen = panel?.target.kind === 'scene';
+  /** Atalhos do modo só conversa: as abas do estúdio abrem na janela grande. */
+  const chatTools: { id: PanelTarget['kind']; label: string; icon: React.ReactNode }[] = [
+    { id: 'scene', label: 'Cena 3D', icon: <Box size={15} /> },
+    { id: 'project', label: 'Projeto', icon: <Boxes size={15} /> },
+    { id: 'quote', label: 'Orçamento', icon: <Receipt size={15} /> },
+    { id: 'cut', label: 'Corte', icon: <Scissors size={15} /> },
+    { id: 'parts', label: 'Peças', icon: <ListTree size={15} /> },
+    { id: 'room', label: 'Ambiente', icon: <DoorOpen size={15} /> },
+    { id: 'history', label: 'Versões', icon: <History size={15} /> },
+  ];
   return (
+    <RichContext.Provider value={richApi}>
     <main
       className={
         app
           ? 'studio app' + (keyboard ? ' kb' : '') + (timeTravel ? ' time-travel' : '')
-          : 'studio' + (chatOpen ? '' : ' no-chat') + (inspectorOpen ? '' : ' no-inspector')
+          : 'studio' + (chatOnly ? ' chat-only' : (chatOpen ? '' : ' no-chat') + (inspectorOpen ? '' : ' no-inspector')) + (sceneOpen ? ' scene-open' : '')
       }
       data-ws={app ? ws : undefined}
     >
-      <header className="topbar">
+      <header className="topbar" inert={!!panel}>
         {app ? (
           <>
             <button
@@ -3239,6 +3649,28 @@ export default function Home() {
           </span>
         )}
         <div className="topbar-actions">
+          <fieldset className="layout-switch" aria-label="Disposição da tela">
+            <button
+              type="button"
+              aria-pressed={layout === 'split'}
+              className={layout === 'split' ? 'on' : ''}
+              title="Conversa, cena 3D e painel lado a lado"
+              onClick={() => chooseLayout('split')}
+            >
+              <Columns3 size={15} />
+              <span>Dividido</span>
+            </button>
+            <button
+              type="button"
+              aria-pressed={layout === 'chat'}
+              className={layout === 'chat' ? 'on' : ''}
+              title="Só a conversa, com os resultados em cartões"
+              onClick={() => chooseLayout('chat')}
+            >
+              <MessageSquareText size={15} />
+              <span>Só conversa</span>
+            </button>
+          </fieldset>
           <button type="button" className="palette-trigger" onClick={() => setPaletteOpen(true)}>
             <CommandIcon size={14} />
             <span>Buscar ações</span>
@@ -3314,8 +3746,8 @@ export default function Home() {
             : undefined
         }
       >
-        {(chatOpen || app) && (
-        <aside className="chat-panel" aria-label="Conversa com a IA">
+        {(chatOpen || app || chatOnly) && (
+        <aside className="chat-panel" aria-label="Conversa com a IA" inert={!!panel}>
           <div className="panel-head">
             <span className="assistant-id">
               <span className="assistant-avatar"><Sparkles size={15} /></span>
@@ -3343,10 +3775,39 @@ export default function Home() {
             >
               <Eraser size={16} />
             </button>
-            <button type="button" className="icon-button" aria-label="Recolher a conversa" title="Recolher ( [ )" onClick={() => toggleChat(false)}>
-              <PanelLeftClose size={16} />
-            </button>
+            {!chatOnly && (
+              <button type="button" className="icon-button" aria-label="Recolher a conversa" title="Recolher ( [ )" onClick={() => toggleChat(false)}>
+                <PanelLeftClose size={16} />
+              </button>
+            )}
           </div>
+          {chatOnly && p && (
+            <nav className="chat-tools" aria-label="Abrir parte do estúdio">
+              <span className="chat-tools-project" title={p.name}>
+                <strong>{p.name}</strong>
+                <small>
+                  v{p.cursor + 1}
+                  {visualSize ? ` · ${metres(visualSize[0])} × ${metres(visualSize[1])} × ${metres(visualSize[2])} m` : ''}
+                  {quote ? ` · ${money(quote.total)}` : ''}
+                </small>
+              </span>
+              <span className="chat-tools-list">
+                {chatTools.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className="chat-tool"
+                    aria-label={`Abrir ${t.label}`}
+                    title={t.label}
+                    onClick={(e) => openTarget({ kind: t.id } as PanelTarget, e.currentTarget)}
+                  >
+                    {t.icon}
+                    <span>{t.label}</span>
+                  </button>
+                ))}
+              </span>
+            </nav>
+          )}
           {clearAsk && p && (
             <div
               ref={clearBox}
@@ -3531,6 +3992,7 @@ export default function Home() {
                       onFork={(o) => void forkOption(o)}
                     />
                   ) : null}
+                  {m.blocks?.length ? <RichBlocks blocks={m.blocks} messageId={m.id} /> : null}
                   {m.report?.steps?.length ? <AgentStepsSummary steps={m.report.steps} plan={m.report.plan} /> : null}
                   {m.error && <div className="turn-error" role="alert">{m.error}</div>}
                   {m.error && m.retry && i > lastUserIndex && (
@@ -4011,7 +4473,8 @@ export default function Home() {
         )}
         <section
           ref={viewportEl}
-          className={'viewport' + (pipOn ? ` pip pip-${pipCorner}${pipTucked ? ' tucked' : pipAway ? ' away' : ''}` : '')}
+          className={'viewport' + (pipOn ? ` pip pip-${pipCorner}${pipTucked ? ' tucked' : pipAway ? ' away' : ''}` : '') + (chatOnly ? (sceneOpen ? ' scene-modal' : ' scene-hidden') : '')}
+          aria-hidden={chatOnly && !sceneOpen ? true : undefined}
           aria-label="Modelo 3D"
         >
           {!app && <div className="stage-head">
@@ -4488,8 +4951,8 @@ export default function Home() {
             </>
           )}
         </section>
-        {(inspectorOpen || app) && (
-        <aside className="inspector" aria-label="Painel do projeto">
+        {(inspectorOpen || app) && !chatOnly && (
+        <aside className="inspector" aria-label="Painel do projeto" inert={!!panel}>
           {app ? (
             <div className="ws-seg" role="tablist" aria-label={ws === 'numbers' ? 'Números do projeto' : 'Montar'}>
               {(ws === 'numbers' ? NUMBER_TABS : BUILD_TABS).map((id) => {
@@ -4599,6 +5062,8 @@ export default function Home() {
           snapshot={printShot}
         />
       )}
+      {panel && p && panelView()}
     </main>
+    </RichContext.Provider>
   );
 }

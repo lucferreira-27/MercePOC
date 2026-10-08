@@ -1,5 +1,5 @@
 import { applyObstacleEdits } from '@/lib/room';
-import { applyRequest, get, moveCursor, rewindChat, save, settleRoom, view, revise, type Clarification, type Message } from '@/lib/store';
+import { applyRequest, get, moveCursor, rewindChat, save, settleRoom, turnBusy, view, revise, type Clarification, type Message } from '@/lib/store';
 import { sameOrigin } from '@/lib/utils';
 import { interpretStream, reviewAndCorrect, serverDefaultModel, withFallback, type CheckedReview } from '@/lib/gateway';
 import { materials } from '@/lib/furniture';
@@ -54,7 +54,8 @@ function quoteSummary(design: Design, prices: unknown) {
     return '';
   }
 }
-const busy = new Set<string>();
+/** Projetos com um pedido em andamento (a rota de arquivos espera por eles). */
+const busy = turnBusy;
 /** Correções de geometria pedidas à IA antes de recusar o turno. */
 const GEOMETRY_RETRIES = 2;
 /** Dízimas de milímetro (185.33333) não devem aparecer em texto de resposta. */

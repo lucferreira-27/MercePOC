@@ -1,7 +1,7 @@
 /* oxlint-disable next/no-img-element -- A foto do móvel é um data URL gerado na hora. */
 import { memo } from 'react';
 import type { ModularPart } from '@/lib/composition';
-import type { Part } from '@/lib/furniture';
+import { groupParts } from '@/lib/parts-group';
 import { planView } from '@/lib/plan-geometry';
 import { money, quantity, type Quote } from '@/lib/quote';
 import { CutSheetDrawing, mmText, pieceTone, shortName } from './cut-sheet-drawing';
@@ -18,38 +18,7 @@ function m2(value: number) {
   return value.toFixed(2).replace('.', ',');
 }
 
-/**
- * Agrupa peças idênticas para a folha impressa: quatro prateleiras iguais são
- * uma linha com quantidade 4, não quatro linhas com quantidade 1.
- */
-export function groupParts(parts: readonly Part[]) {
-  const rows = new Map<
-    string,
-    { key: string; name: string; count: number; c: number; l: number; thickness: number; material: string; area: number }
-  >();
-  for (const part of parts) {
-    // O nome do módulo sai do agrupamento: "Coluna 1 / Base" e "Coluna 2 /
-    // Base" de mesma medida são a mesma peça na oficina.
-    const name = part.name.includes(' / ') ? part.name.split(' / ').slice(1).join(' / ') : part.name;
-    const key = [name, part.c, part.l, part.thickness, part.material].join('|');
-    const row = rows.get(key);
-    if (row) {
-      row.count += 1;
-      row.area += (part.c * part.l) / 1_000_000;
-    } else
-      rows.set(key, {
-        key,
-        name,
-        count: 1,
-        c: part.c,
-        l: part.l,
-        thickness: part.thickness,
-        material: part.material,
-        area: (part.c * part.l) / 1_000_000,
-      });
-  }
-  return [...rows.values()].sort((a, b) => a.material.localeCompare(b.material) || b.c * b.l - a.c * a.l);
-}
+export { groupParts } from '@/lib/parts-group';
 
 /** Largura do desenho da chapa no PDF, em px CSS (~112 mm no A4). */
 const SHEET_PX = 424;

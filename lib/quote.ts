@@ -3,6 +3,7 @@ import { generateComposition, type Composition, type ModularPart } from './compo
 import { cutPlan, DEFAULT_SHEET, type CutPlan } from './cutplan';
 import { fittingsOf, type Fitting } from './fittings';
 import { HANDLES, LEGS, type HandleType, type LegType } from './look';
+import { z } from 'zod';
 
 /**
  * Orçamento de marcenaria a partir das peças geradas.
@@ -127,7 +128,8 @@ export function mergePrices(saved: unknown): Prices {
   return out;
 }
 
-export type QuoteSection = 'Chapas' | 'Fita de borda' | 'Materiais' | 'Ferragens' | 'Mão de obra';
+export type QuoteSection = 'Chapas' | 'Fita de borda' | 'Materiais' | 'Ferragens' | 'Mão de obra' | 'Outros';
+export const QUOTE_SECTIONS: QuoteSection[] = ['Chapas', 'Fita de borda', 'Materiais', 'Ferragens', 'Mão de obra', 'Outros'];
 /** Preço da tabela que a linha usa: editar na linha grava na tabela. */
 export type PriceKey = Exclude<keyof Prices, 'sheets' | 'handles' | 'factor15' | 'factor6' | 'margin' | 'hardware'>;
 export type PriceRef = { sheet: MaterialId } | { key: PriceKey } | { hardware: HardwareKey };
@@ -143,6 +145,12 @@ export type QuoteLine = {
   price?: PriceRef;
   /** Peças que a linha conta, para acender no móvel. Vazio: vale o móvel todo. */
   parts: string[];
+  /** Chave estável (seção|rótulo): o ajuste à mão se prende a ela. */
+  key?: string;
+  /** Quantidade que o app calculou, quando a pessoa trocou a quantidade. */
+  computedQty?: number;
+  /** Item à parte, posto à mão (frete, instalação): o id dele no ajuste. */
+  extra?: string;
 };
 export type Quote = {
   lines: QuoteLine[];
@@ -160,7 +168,100 @@ export type Quote = {
     sheets: number;
   };
   plan: CutPlan;
+  /** Linhas calculadas que a pessoa tirou do orçamento (para voltar). */
+  removed: QuoteLine[];
+  /** Quantos ajustes à mão valem nesta conta (removidos, quantidades, extras). */
+  adjusted: number;
 };
+
+/**
+ * Ajustes do orçamento feitos à mão, guardados na versão do projeto: tirar
+ * uma linha calculada, trocar a quantidade dela e pôr itens à parte. O
+ * cálculo segue o móvel; o ajuste vale enquanto a linha existir (a chave é
+ * seção|rótulo). Editar vira versão, como qualquer mudança do projeto.
+ */
+export type QuoteExtra = { id: string; label: string; qty: number; unit: string; unitPrice: number };
+export type QuoteAdjust = {
+  lines?: Record<string, { qty?: number; removed?: boolean }>;
+  extras?: QuoteExtra[];
+};
+export const quoteExtraSchema = z
+  .object({
+    id: z.string().trim().min(1).max(40),
+    label: z.string().trim().min(1).max(80),
+    qty: z.number().min(0).max(100000),
+    unit: z.string().trim().min(1).max(16),
+    unitPrice: z.number().min(0).max(10000000),
+  })
+  .strict();
+export const quoteAdjustSchema = z
+  .object({
+    lines: z
+      .record(
+        z.string().min(3).max(160),
+        z.object({ qty: z.number().min(0).max(100000).optional(), removed: z.boolean().optional() }).strict(),
+      )
+      .optional(),
+    extras: z.array(quoteExtraSchema).max(30).optional(),
+  })
+  .strict();
+
+/** Ajuste vazio vira `undefined`: a versão não guarda objeto sem conteúdo. */
+export function cleanAdjust(adj: QuoteAdjust | undefined): QuoteAdjust | undefined {
+  if (!adj) return undefined;
+  const lines = Object.fromEntries(
+    Object.entries(adj.lines ?? {})
+      .map(([k, v]) => [k, { ...(v.qty !== undefined ? { qty: v.qty } : {}), ...(v.removed ? { removed: true } : {}) }] as const)
+      .filter(([, v]) => v.qty !== undefined || v.removed),
+  );
+  const extras = adj.extras?.filter((e) => e.label.trim()) ?? [];
+  const out: QuoteAdjust = {
+    ...(Object.keys(lines).length ? { lines } : {}),
+    ...(extras.length ? { extras } : {}),
+  };
+  return Object.keys(out).length ? out : undefined;
+}
+
+/** Os ajustes à mão sobre a conta calculada; custo, margem e total refeitos. */
+export function adjustQuote(q: Quote, adj: QuoteAdjust | undefined, margin: number): Quote {
+  const lines: QuoteLine[] = [];
+  const removed: QuoteLine[] = [];
+  let adjusted = 0;
+  for (const line of q.lines) {
+    const key = line.key ?? `${line.section}|${line.label}`;
+    const a = adj?.lines?.[key];
+    if (a?.removed) {
+      removed.push({ ...line, key });
+      adjusted++;
+      continue;
+    }
+    if (a?.qty !== undefined && a.qty !== line.qty) {
+      adjusted++;
+      lines.push({ ...line, key, computedQty: line.qty, qty: a.qty, total: Math.round(a.qty * line.unitPrice * 100) / 100 });
+    } else lines.push({ ...line, key });
+  }
+  for (const e of adj?.extras ?? []) {
+    adjusted++;
+    lines.push({
+      section: 'Outros',
+      label: e.label,
+      qty: e.qty,
+      unit: e.unit,
+      unitPrice: e.unitPrice,
+      total: Math.round(e.qty * e.unitPrice * 100) / 100,
+      parts: [],
+      key: `Outros|${e.id}`,
+      extra: e.id,
+    });
+  }
+  const sections = QUOTE_SECTIONS.map((section) => ({
+    section,
+    total: Math.round(lines.filter((l) => l.section === section).reduce((a, l) => a + l.total, 0) * 100) / 100,
+  })).filter((s) => s.total > 0);
+  const cost = Math.round(lines.reduce((a, l) => a + l.total, 0) * 100) / 100;
+  const marginValue = Math.round(cost * margin) / 100;
+  return { ...q, lines, sections, cost, marginValue, total: Math.round((cost + marginValue) * 100) / 100, removed, adjusted };
+}
 
 /** Dobradiças por folha, pela altura: a regra de bolso das fábricas. */
 export function hingesFor(heightMm: number) {
@@ -197,7 +298,13 @@ const r2 = (v: number) => Math.round(v * 100) / 100;
 /** Sobra de compra por categoria: madeira maciça perde no aplainar, pedra e vidro no corte. */
 const WASTE: Partial<Record<MaterialCategory, number>> = { solid: 1.25, stone: 1.15, glass: 1.1, fiber: 1.15, metal: 1.1 };
 
-export function quote(parts: readonly ModularPart[], moduleCount: number, prices: Prices, fittings: readonly Fitting[] = []): Quote {
+export function quote(
+  parts: readonly ModularPart[],
+  moduleCount: number,
+  prices: Prices,
+  fittings: readonly Fitting[] = [],
+  adjust?: QuoteAdjust,
+): Quote {
   const plan = cutPlan(parts, DEFAULT_SHEET);
   const lines: QuoteLine[] = [];
   const hw = prices.hardware ?? DEFAULT_PRICES.hardware;
@@ -450,9 +557,11 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
     });
   if (welded)
     lines.push({ section: 'Mão de obra', parts: [], price: { hardware: 'weld' }, label: HARDWARE.weld.label, qty: r2(welded), unit: 'm', unitPrice: hw.weld, total: welded * hw.weld });
-  for (const line of lines) line.total = Math.round(line.total * 100) / 100;
-  const order: QuoteSection[] = ['Chapas', 'Fita de borda', 'Materiais', 'Ferragens', 'Mão de obra'];
-  const sections = order
+  for (const line of lines) {
+    line.total = Math.round(line.total * 100) / 100;
+    line.key = `${line.section}|${line.label}`;
+  }
+  const sections = QUOTE_SECTIONS
     .map((section) => ({
       section,
       total: lines.filter((l) => l.section === section).reduce((a, l) => a + l.total, 0),
@@ -460,7 +569,7 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
     .filter((s) => s.total > 0);
   const cost = Math.round(lines.reduce((a, l) => a + l.total, 0) * 100) / 100;
   const marginValue = Math.round(cost * prices.margin) / 100;
-  return {
+  const computed: Quote = {
     lines,
     sections,
     cost,
@@ -476,7 +585,10 @@ export function quote(parts: readonly ModularPart[], moduleCount: number, prices
       sheets: plan.sheets.length,
     },
     plan,
+    removed: [],
+    adjusted: 0,
   };
+  return adjust ? adjustQuote(computed, adjust, prices.margin) : computed;
 }
 
 /** "em latão" quando todos os puxadores da linha têm o mesmo acabamento. */
@@ -486,9 +598,9 @@ function materialNote(fittings: readonly Fitting[], ids: string[]) {
 }
 
 /** Orçamento de um projeto inteiro: peças, ferragens e a tabela de preços. */
-export function quoteOf(d: Composition, prices: Prices) {
+export function quoteOf(d: Composition, prices: Prices, adjust?: QuoteAdjust) {
   const parts = generateComposition(d, false).parts;
-  return quote(parts, d.modules.length, prices, fittingsOf(d, parts));
+  return quote(parts, d.modules.length, prices, fittingsOf(d, parts), adjust);
 }
 
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });

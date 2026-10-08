@@ -1,9 +1,10 @@
 import { createHash } from 'node:crypto';
-import { revise, reviseRoom, save, get, type Project } from '../store';
+import { revise, reviseQuote, reviseRoom, save, get, type Project } from '../store';
 import { canonical, type Design, type ShelfOp } from '../studio';
 import { generateComposition } from '../composition';
 import { wallAt, type Room } from '../room';
-import type { Prices } from '../quote';
+import { cleanAdjust, type Prices, type QuoteAdjust } from '../quote';
+import type { FileFormat, WidgetKind } from '../rich';
 import type { AgentEvent, AgentStep, Effect, OptionCard, UiState } from './types';
 import type { JevAnswer } from './jev';
 
@@ -56,6 +57,15 @@ export class AgentContext {
   /** Opções montadas para comparar; a resposta leva o cartão. */
   options: OptionCard[] | null = null;
   /**
+   * Cartões que a resposta leva (corte, orçamento, móvel), na ordem pedida.
+   * Os números saem da versão gravada no fim do pedido.
+   */
+  cards: { widget: WidgetKind; sheet?: number; focus?: string[] }[] = [];
+  /** Arquivos pedidos (PDF, CSV, foto…): gerados da versão final do pedido. */
+  exports: FileFormat[] = [];
+  /** Ajustes do orçamento no rascunho (tirar linha, quantidade, extras). */
+  quoteAdjust: QuoteAdjust | undefined;
+  /**
    * Roda um sub-laço num rascunho filho (opções): o turno liga, porque só ele
    * sabe o modelo, o sinal e o provedor.
    */
@@ -75,7 +85,7 @@ export class AgentContext {
   /** Rótulo da versão que o turno grava. */
   readonly label: string;
   /** Como o projeto estava no começo do pedido: a conferência compara com ele. */
-  turnStart: { design: Design; room: Room | undefined };
+  turnStart: { design: Design; room: Room | undefined; quote?: QuoteAdjust };
 
   constructor(
     project: Project,
@@ -93,7 +103,9 @@ export class AgentContext {
     this.start = this.design;
     this.room = project.room;
     this.label = request.trim().slice(0, 90) || 'Pedido à IA';
-    this.turnStart = { design: this.design, room: this.room };
+    this.quoteAdjust = project.revisions[project.cursor].quote;
+    this.startRevision = project.revisions[project.cursor].id;
+    this.turnStart = { design: this.design, room: this.room, quote: this.quoteAdjust };
     this.starting = project.revisions.length === 1 && project.messages.filter((m) => m.role === 'user').length <= 1;
   }
   /**
@@ -131,6 +143,14 @@ export class AgentContext {
   }
   get roomChanged() {
     return JSON.stringify(this.room ?? null) !== JSON.stringify(this.project.room ?? null);
+  }
+  /** O orçamento do rascunho tem ajuste diferente do gravado. */
+  get quoteChanged() {
+    return JSON.stringify(cleanAdjust(this.quoteAdjust) ?? null) !== JSON.stringify(cleanAdjust(this.project.revisions[this.project.cursor].quote) ?? null);
+  }
+  /** Pede um cartão na resposta; o mesmo tipo de novo troca o anterior. */
+  card(widget: WidgetKind, extra: { sheet?: number; focus?: string[] } = {}) {
+    this.cards = [...this.cards.filter((c) => c.widget !== widget), { widget, ...extra }];
   }
 
   /**
@@ -186,6 +206,7 @@ export class AgentContext {
   /** Grava o rascunho como versão (quando mudou). Devolve versões descartadas. */
   commit(label = this.label) {
     let discarded = 0;
+    const quote = this.quoteChanged ? cleanAdjust(this.quoteAdjust) : null;
     if (this.designChanged) {
       this.project.room = this.room;
       discarded = revise(this.project, this.design, label);
@@ -195,10 +216,21 @@ export class AgentContext {
       this.reverted.push(...this.ops);
       if (this.roomChanged && this.room) discarded = reviseRoom(this.project, this.room, label).discarded;
     }
+    // Ajuste do orçamento: vai na versão que este pedido abriu; sem versão
+    // nova (só o orçamento mudou), abre uma.
+    if (quote !== null) {
+      const rev = this.project.revisions[this.project.cursor];
+      if (rev.id !== this.startRevision) {
+        if (quote) rev.quote = quote;
+        else delete rev.quote;
+      } else discarded = reviseQuote(this.project, quote, label).discarded;
+    }
     this.ops = [];
     this.rebase();
     return discarded;
   }
+  /** Versão vigente quando o trecho atual do rascunho começou. */
+  private startRevision: string;
 
   /** Descarta o rascunho: volta ao que está gravado e guarda as operações como desfeitas. */
   discard() {
@@ -224,6 +256,8 @@ export class AgentContext {
     this.design = this.base;
     this.start = this.design;
     this.room = this.project.room;
+    this.quoteAdjust = this.project.revisions[this.project.cursor].quote;
+    this.startRevision = this.project.revisions[this.project.cursor].id;
     // O que não foi gravado antes de voltar sai do rascunho: fica como desfeito.
     this.reverted.push(...this.ops);
     this.ops = [];
@@ -242,7 +276,7 @@ export class AgentContext {
     this.project = get(id);
     this.version = this.project.version;
     this.rebase();
-    this.turnStart = { design: this.design, room: this.room };
+    this.turnStart = { design: this.design, room: this.room, quote: this.quoteAdjust };
   }
 
   /**
@@ -254,7 +288,8 @@ export class AgentContext {
     sub.design = this.design;
     sub.start = this.design;
     sub.room = this.room;
-    sub.turnStart = { design: this.design, room: this.room };
+    sub.quoteAdjust = this.quoteAdjust;
+    sub.turnStart = { design: this.design, room: this.room, quote: this.quoteAdjust };
     // Sem rodadas de conferência: o cartão mostra encaixe e números do código,
     // e três opções com reparos triplicariam o tempo.
     sub.repairs = 2;

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import './app-shell.css';
+import './rich.css';
 export const metadata: Metadata = {
   title: 'Merce | Estúdio de móveis',
   description: 'Crie e ajuste sua estante por conversa.',

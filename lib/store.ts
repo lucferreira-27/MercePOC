@@ -23,6 +23,8 @@ import { buildTemplate, templateById, templateStart } from './templates';
 import type { StyleId } from './look';
 import { STYLES } from './styles';
 import { PLACEMENT_MAX_STEPS, PLACEMENT_MERGE_MS, type Placement, type PlacementStep } from './placement';
+import { cleanAdjust, type QuoteAdjust } from './quote';
+import type { RichBlock } from './rich';
 export type TurnContext = {
   requestId: string;
   baseRevisionId: string;
@@ -79,6 +81,13 @@ export type Message = {
   usage?: TurnUsage;
   /** Opções montadas para comparar: o cartão aplica ou salva como alternativa. */
   options?: OptionCard[];
+  /**
+   * Conteúdo rico ao lado do texto: cartões do estúdio (corte, orçamento,
+   * móvel) e arquivos gerados, cada um com a versão que mostra (lib/rich.ts).
+   */
+  blocks?: RichBlock[];
+  /** Mensagem feita por uma ação de cartão (gerar PDF), não por um pedido escrito. */
+  action?: string;
 };
 export type Revision = {
   id: string;
@@ -93,6 +102,8 @@ export type Revision = {
    * refazer e abrir uma versão trazem de volta os obstáculos dela.
    */
   room?: Room | null;
+  /** Ajustes do orçamento feitos à mão nesta versão (lib/quote.ts). */
+  quote?: QuoteAdjust;
 };
 export type Project = {
   id: string;
@@ -119,6 +130,20 @@ export type Project = {
    */
   demo?: { key: string; order: number };
 };
+/**
+ * Projetos com um pedido à IA em andamento. O turno grava no fim com a versão
+ * que leu: quem mais grava no mesmo projeto (o envio de um arquivo feito pela
+ * página) espera o turno acabar, senão a gravação do turno seria recusada.
+ */
+export const turnBusy = new Set<string>();
+
+/** Espera o pedido em andamento no projeto terminar (até `ms`). */
+export async function waitTurn(id: string, ms = 120_000) {
+  const until = Date.now() + ms;
+  while (turnBusy.has(id) && Date.now() < until) await new Promise((done) => setTimeout(done, 250));
+  if (turnBusy.has(id)) throw new Error('O projeto está ocupado com um pedido. Tente de novo em instantes.');
+}
+
 /** SQLite do Node (data/merce.sqlite) ou do Durable Object na Cloudflare. */
 function database() {
   return openDatabase();
@@ -456,6 +481,9 @@ export function revise(p: Project, params: Design, label: string) {
   const taken = new Set(p.revisions.map((r) => r.label));
   let name = base;
   for (let i = 2; taken.has(name); i++) name = `${base} (${i})`;
+  // Os ajustes do orçamento acompanham o móvel: mudar o desenho não apaga
+  // o frete posto à mão nem a linha tirada.
+  const quote = base0?.quote;
   p.revisions.push({
     id: randomUUID(),
     number: p.revisions.length + 1,
@@ -463,9 +491,25 @@ export function revise(p: Project, params: Design, label: string) {
     label: name,
     at: new Date().toISOString(),
     room: p.room ?? null,
+    ...(quote ? { quote } : {}),
   });
   p.cursor = p.revisions.length - 1;
   return discarded;
+}
+/**
+ * Ajuste do orçamento (tirar linha, trocar quantidade, item à parte) vira
+ * versão com o mesmo móvel: entra no Ctrl+Z e no histórico, e o cartão da
+ * conversa, a aba e o PDF leem o mesmo ajuste.
+ */
+export function reviseQuote(p: Project, adjust: QuoteAdjust | undefined, label: string) {
+  const tip = p.revisions[p.cursor];
+  const next = cleanAdjust(adjust);
+  if (JSON.stringify(next ?? null) === JSON.stringify(cleanAdjust(tip.quote) ?? null)) return { noop: true as const, discarded: 0 };
+  const discarded = revise(p, tip.params, label);
+  const rev = p.revisions[p.cursor];
+  if (next) rev.quote = next;
+  else delete rev.quote;
+  return { noop: false as const, discarded };
 }
 /** Lugar atual da raiz: o passo que um movimento ou um desfazer guarda. */
 function stepOf(params: Design, root: string): PlacementStep | null {

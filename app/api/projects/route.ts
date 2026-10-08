@@ -1,4 +1,4 @@
-import { applyShelfOp, applyRequest, applyPlacement, reviseRoom, undo, redo, create, createDemo, createFromTemplate, fork, list, get, view, save, revise, seek, remove, clearChat, restoreChat } from '@/lib/store';
+import { applyShelfOp, applyRequest, applyPlacement, reviseRoom, reviseQuote, undo, redo, create, createDemo, createFromTemplate, fork, list, get, view, save, revise, seek, remove, clearChat, restoreChat } from '@/lib/store';
 import { sameOrigin } from '@/lib/utils';
 import { designSchema, opSchema } from '@/lib/studio';
 import { z } from 'zod';
@@ -6,6 +6,7 @@ import { validationMessage } from '@/lib/composition';
 import { obstacleClash, roomChangeLabel, roomSchema } from '@/lib/room';
 import { placementRoot } from '@/lib/placement';
 import { STYLE_IDS } from '@/lib/look';
+import { quoteAdjustSchema } from '@/lib/quote';
 export async function GET(req: Request) {
   try {
     const id = new URL(req.url).searchParams.get('id');
@@ -30,7 +31,7 @@ export async function POST(req: Request) {
       .object({
         id: z.uuid(),
         version: z.number().int(),
-        action: z.enum(['update', 'undo', 'redo', 'rename', 'seek', 'op', 'ops', 'fork', 'delete', 'room', 'chat-clear', 'chat-restore']),
+        action: z.enum(['update', 'undo', 'redo', 'rename', 'seek', 'op', 'ops', 'fork', 'delete', 'room', 'quote', 'chat-clear', 'chat-restore']),
         cursor: z.number().int().optional(),
         op: opSchema.optional(),
         ops:z.array(opSchema).min(1).max(32).optional(),
@@ -40,6 +41,8 @@ export async function POST(req: Request) {
         room: roomSchema.optional(),
         /** Movimento do móvel: segue a sequência na mesma versão quando dá. */
         placement: z.boolean().optional(),
+        /** Ajustes do orçamento (action quote): o estado inteiro deles, não a diferença. */
+        adjust: quoteAdjustSchema.nullable().optional(),
       })
       .parse(body);
     const p = get(b.id);
@@ -97,6 +100,11 @@ export async function POST(req: Request) {
       // Obstáculo posto, movido ou tirado vira versão: entra no Ctrl+Z e no
       // histórico. Arrastos seguidos do mesmo obstáculo ficam numa só.
       const changed = reviseRoom(p, b.room, b.label ?? roomChangeLabel(p.room, b.room));
+      if (changed.noop) return Response.json({ ...view(p), noop: true, discarded: 0 });
+      discarded = changed.discarded;
+    }
+    if (b.action === 'quote') {
+      const changed = reviseQuote(p, b.adjust ?? undefined, b.label ?? 'Ajuste do orçamento');
       if (changed.noop) return Response.json({ ...view(p), noop: true, discarded: 0 });
       discarded = changed.discarded;
     }

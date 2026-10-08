@@ -11,7 +11,7 @@ export const VIEW_MODES = ['perspective', 'front', 'side', 'top'] as const;
 export type ViewModeName = (typeof VIEW_MODES)[number];
 export const UI_TABS = ['project', 'room', 'quote', 'cut', 'parts', 'history'] as const;
 export type UiTab = (typeof UI_TABS)[number];
-export const EXPORT_KINDS = ['pdf', 'png', 'parts-csv', 'cut-csv', 'cortecloud', 'json'] as const;
+export const EXPORT_KINDS = ['pdf', 'png', 'parts-csv', 'cut-csv', 'cortecloud', 'json', 'quote-pdf', 'video'] as const;
 export type ExportKind = (typeof EXPORT_KINDS)[number];
 
 /**

@@ -20,6 +20,8 @@ import { askJev } from './jev';
 import type { AgentEvent, UiState } from './types';
 import { NO_TRACE, type Trace } from '../trace';
 import { classificationLine, imageClassification, storedClassification } from '../photo-classify';
+import { turnBlocks } from './blocks';
+import type { RichBlock } from '../rich';
 
 export type AgentTurnInput = {
   project: Project;
@@ -304,8 +306,8 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
   // ser pulada. Números da resposta contra o estado final, não a última leitura.
   const finalIssues = ctx.ask ? [] : checkWork(ctx);
   const sameLine = !ctx.navigated && !ctx.origin;
-  const factsBefore = sameLine ? designFacts(startDesign, ctx.prices) : null;
-  const factsAfter = sameLine ? designFacts(ctx.design, ctx.prices) : null;
+  const factsBefore = sameLine ? designFacts(startDesign, ctx.prices, ctx.turnStart.quote) : null;
+  const factsAfter = sameLine ? designFacts(ctx.design, ctx.prices, ctx.quoteAdjust) : null;
   if (ctx.finish && !ctx.checked) {
     const wrong = factsBefore && factsAfter && !ctx.options?.length ? factClaims(ctx.finish.message, factsAfter, factsBefore) : [];
     const notes = [...finalIssues, ...(wrong.length ? [`A resposta ${wrong.join('; ')}. Números do app: ${factsLine(factsAfter!)}.`] : [])];
@@ -324,9 +326,10 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
   const changes = sameLine ? describeDesignChanges(startDesign, after) : [`Versão ${p.cursor + 1}: ${p.revisions[p.cursor].label}`];
   const roomMoved = JSON.stringify(ctx.turnStart.room ?? null) !== JSON.stringify(p.room ?? null);
   const ops: ShelfOp[] = sameLine ? ctx.allOps : [];
+  const quoteMoved = JSON.stringify(ctx.turnStart.quote ?? null) !== JSON.stringify(p.revisions[p.cursor].quote ?? null);
   const outcome: TurnOutcome = ctx.ask
     ? 'clarification'
-    : (sameLine && changes.length) || !sameLine || roomMoved
+    : (sameLine && changes.length) || !sameLine || roomMoved || quoteMoved
       ? 'applied'
       : ctx.select?.length
         ? 'highlighted'
@@ -355,6 +358,23 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
     ? { id: randomUUID(), question: ctx.ask.question, baseRevisionId: p.revisions[p.cursor].id, options: ctx.ask.options, pendingMessage: input.request }
     : undefined;
   const context = { ...input.user.context!, baseRevisionId: input.user.context?.baseRevisionId ?? p.revisions[p.cursor].id };
+  // Cartões e arquivos da resposta, da versão que ficou gravada. Falha ao
+  // montar um cartão não derruba o pedido: a resposta sai sem ele.
+  let blocks: RichBlock[] = [];
+  if (!ctx.ask)
+    try {
+      blocks = await turnBlocks(p, ctx.prices, ctx.cards, ctx.exports, draftChanged || ctx.navigated || !!ctx.origin);
+    } catch (e) {
+      trace.write('turn.blocks.failed', { error: (e as Error).message, stack: (e as Error).stack });
+    }
+  if (blocks.length)
+    trace.write('turn.blocks', {
+      blocks: blocks.map((b) =>
+        b.kind === 'widget'
+          ? { kind: b.kind, widget: b.widget, revision: b.revision, sheet: b.sheet, focus: b.focus }
+          : { kind: b.kind, format: b.format, status: b.status, generation: b.generation, file: b.file?.name, error: b.error },
+      ),
+    });
   const assistant: Message = {
     id: randomUUID(),
     role: 'assistant',
@@ -367,6 +387,7 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
     ...(ctx.finish?.suggestions.length ? { suggestions: ctx.finish.suggestions } : {}),
     ...(clarification ? { clarification } : {}),
     ...(ctx.options?.length ? { options: ctx.options } : {}),
+    ...(blocks.length ? { blocks } : {}),
     result: {
       outcome,
       resultRevisionId: p.revisions[p.cursor].id,

@@ -3,6 +3,7 @@ import { materialsForPrompt } from '../furniture';
 import { FINISHES } from '../gateway';
 import { styleCatalogForPrompt } from '../styles';
 import type { Message } from '../store';
+import { blocksForPrompt } from '../rich';
 import type { AgentContext } from './context';
 import { contextSnapshot, quoteLine, selectionLine } from './snapshot';
 
@@ -30,7 +31,9 @@ Como montar (o app faz a conta; você decide o desenho):
 - Composição livre ("seja criativo", "deixe bonito", "em volta da TV"): decida o desenho (tipos, proporções, ritmo, cheios e vazios, acabamentos), monte com place, chame render_look uma vez para ver a cena como a pessoa vê (parede, TV, janela) e ajuste o que ficou desequilibrado antes do finish.
 - Nome é função: prateleira é tábua horizontal. Solta na parede (ou na frente de um painel) é place com tipo prateleira (altura é a espessura, 15 a 60 mm; profundidade 150 a 600); dentro de estante ou nicho é divisão (interior). Não chame painel vertical de prateleira. Prateleira de parede não é tampo de mesa: mesa, escrivaninha, banco, carrinho e estante aberta de aço são da biblioteca (asset.add) ou module.add preset "table", sempre no piso (ou wall:true com base wall). Cadeira, poltrona e sofá não existem: o assento que existe é o banco. Vão para aparelho (máquina de lavar, geladeira) é place com tipo vao: fica livre e protegido.
 - Chapas: cada acabamento E cada espessura é uma chapa à parte (painel de parede tem espessura própria, depth). Para reduzir chapas, unifique acabamento e espessura; o resultado de cada mudança mostra o plano de corte novo.
-- Arquivo pedido (PDF, CSV, foto, JSON): export_file depois das mudanças. Sem pedido de arquivo, não exporte nada: vira um download na tela da pessoa.
+- Arquivo pedido (PDF, CSV, foto, vídeo, JSON): export_file depois das mudanças; o arquivo vai anexado à resposta como cartão. "PDF do orçamento" ou "orçamento em PDF" é quote-pdf; "PDF do projeto", "imprimir" ou só "PDF" é pdf. "Atualize aquele PDF" ou "gere de novo" é export_file do mesmo formato do cartão citado na conversa recente (cartoes): sai uma geração nova e a anterior fica. Sem pedido de arquivo, não gere nada.
+- Cartões na resposta: pedido para ver, revisar ou montar o orçamento ("faça um orçamento", "quanto fica", "revise o orçamento") leva card_show orcamento; cortes, chapas ou plano de corte ("mostre a chapa 2", "como ficaram os cortes") leva card_show corte (chapa quando citada). "A segunda chapa", "o primeiro corte" e "aquele orçamento" apontam para os cartões da conversa recente.
+- Orçamento à mão: "tire a montagem", "mude a quantidade de puxadores para 3", "ponha frete de R$ 200" é quote_edit (não mude o móvel nem a tabela de preços); "volte a montagem" é quote_edit voltar. O cartão do orçamento já vai junto.
 - Pedido com foto: siga o bloco "Foto de referência" da mensagem (inventário, place com as peças, render_look para conferir).
 - Pedido de opções, alternativas ou ideias para comparar ("me dá 3 opções", "quais caminhos eu tenho"): options_make com 2 ou 3 variantes realmente diferentes (nome curto e o pedido completo de cada, com medidas), sem mudar o móvel. Depois finish comparando preço e o que cada uma tem; a pessoa aplica pelo cartão.
 - Termine sempre com finish, assim que o pedido estiver feito: não volte à parede, à vista nem ao orçamento sem motivo. A mensagem tem 1 a 3 frases e diz só o que as ferramentas fizeram, com as medidas como a pessoa fala (cm ou m), sem ids internos (module-1, a:root, sh-3, connection-2). Se algo não deu, diga o que ficou de fora e por quê.
@@ -107,6 +110,7 @@ function recentTurns(messages: Message[]) {
     ...(m.image && m.role === 'user' ? { foto_de_referencia: true } : {}),
     ...(m.result ? { resultado: m.result.outcome } : {}),
     ...(m.report?.steps?.length ? { etapas: m.report.steps.map((s) => s.label).slice(0, 12) } : {}),
+    ...(m.blocks?.length ? { cartoes: blocksForPrompt(m.blocks) } : {}),
     ...(m.report?.review
       ? {
           conferencia_com_a_foto: {
@@ -129,7 +133,7 @@ export function turnMessage(ctx: AgentContext, photo: boolean, request: string, 
   // A seleção fica colada no pedido: lá no fim do estado ela passava batido.
   const selection = selectionLine(ctx.design, ctx.selected);
   return `Estado deste pedido (JSON): ${JSON.stringify(contextSnapshot(ctx))}
-${quoteLine(ctx.design, ctx.prices)}${old ? `\nA pessoa está editando a versão ${p.cursor + 1} de ${p.revisions.length}: gravar descarta as versões seguintes.` : ''}
+${quoteLine(ctx.design, ctx.prices, ctx.quoteAdjust)}${old ? `\nA pessoa está editando a versão ${p.cursor + 1} de ${p.revisions.length}: gravar descarta as versões seguintes.` : ''}
 Conversa recente: ${JSON.stringify(recentTurns(p.messages))}
 ${photo ? PHOTO_AGENT_RULES : ''}${hints ? `\n${hints}` : ''}${photo && hints ? `\n${PHOTO_HINT_RULES}` : ''}
 ${selection ? `\n${selection}` : ''}

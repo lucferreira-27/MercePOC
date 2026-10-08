@@ -155,6 +155,25 @@ export async function writeImageMeta(id: string, meta: string) {
   await writeFile(join(imagesDir(), id + '.json'), meta);
 }
 
+function filesDir() {
+  return join(dataDir(), 'files');
+}
+
+/** Arquivo gerado (PDF, CSV, foto, vídeo): os bytes e a metadata em JSON, lado a lado. */
+export async function putFile(id: string, bytes: Uint8Array, meta: string) {
+  await mkdir(filesDir(), { recursive: true });
+  await writeFile(join(filesDir(), id + '.bin'), bytes);
+  await writeFile(join(filesDir(), id + '.json'), meta);
+}
+
+export async function readFileBytes(id: string): Promise<Uint8Array> {
+  return readFile(join(filesDir(), id + '.bin'));
+}
+
+export async function readFileMeta(id: string) {
+  return readFile(join(filesDir(), id + '.json'), 'utf8');
+}
+
 /** Alguns provedores (o modo rápido) não aceitam WebP. */
 export async function toJpeg(image: StoredImage): Promise<StoredImage> {
   if (image.type === 'image/jpeg') return image;
