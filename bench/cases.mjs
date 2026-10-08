@@ -1215,7 +1215,7 @@ export const ASK_ACT = ['agir', 'perguntar', 'responder', 'livre'];
  * resultado do assistente. Sempre chega como exceção do turno.
  */
 export const INFRA_ERROR =
-  /exceção: .*(provedor de IA retornou|conexão com a IA|fetch failed|ECONNRESET|ETIMEDOUT|socket hang up|Insufficient|rate.?limit|Endpoint is unavailable|operation was aborted)/i;
+  /exceção: .*(provedor de IA retornou|conexão com a IA|fetch failed|ECONNRESET|ETIMEDOUT|socket hang up|Insufficient|rate.?limit|Endpoint is unavailable|operation was aborted|request was aborted)/i;
 
 /**
  * Impressão do caso (pedido, preparação, rótulo e expectativa): muda quando a

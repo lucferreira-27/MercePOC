@@ -99,8 +99,12 @@ const photoLoop = !flag('photo-legacy');
 // pasta própria, para não misturar com as decisões do caminho antigo.
 // --fixtures <pasta>: gravações do laço noutra pasta (a base fica separada do candidato).
 const fixtureDir = resolve(value('fixtures', agent ? 'bench/fixtures/agent' : 'bench/fixtures'));
-// Offline o Jev responde da gravação; sem chave, askJev nem chamaria o fetch.
-if (agent && offline) process.env.TYPESAFE_API_KEY ||= 'offline';
+// Offline o Jev e a classificação da foto respondem da gravação; sem chave,
+// nem chamariam o fetch.
+if (agent && offline) {
+  process.env.TYPESAFE_API_KEY ||= 'offline';
+  process.env.PERPLEXITY_API_KEY ||= 'offline';
+}
 
 // O app lê o .env pelo servidor; um script solto não. Carrega aqui para o
 // benchmark usar o mesmo provedor, sem imprimir nenhum valor.
@@ -155,7 +159,9 @@ const realFetch = globalThis.fetch;
  * juntos, e o fetch acha o caso certo pelo contexto assíncrono.
  */
 const caseState = new AsyncLocalStorage();
-const isJev = (url) => String(url).includes('typesafe.ai');
+// A classificação da foto (lib/photo-classify.ts) vai na mesma fita: são
+// perguntas tipadas, identificadas do mesmo jeito.
+const isJev = (url) => /typesafe\.ai|perplexity\.ai/.test(String(url));
 globalThis.fetch = async (...callArgs) => {
   const st = caseState.getStore();
   if (agent && isJev(callArgs[0]) && st?.jevTape) {

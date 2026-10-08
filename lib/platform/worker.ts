@@ -21,6 +21,10 @@ export function bindStorage(sqlStorage: SqlStorage) {
   storage.exec(
     'CREATE TABLE IF NOT EXISTS image_chunks (id TEXT NOT NULL, seq INTEGER NOT NULL, bytes BLOB NOT NULL, PRIMARY KEY (id, seq))',
   );
+  storage.exec('CREATE TABLE IF NOT EXISTS files (id TEXT PRIMARY KEY, meta TEXT NOT NULL, chunks INTEGER NOT NULL)');
+  storage.exec(
+    'CREATE TABLE IF NOT EXISTS file_chunks (id TEXT NOT NULL, seq INTEGER NOT NULL, bytes BLOB NOT NULL, PRIMARY KEY (id, seq))',
+  );
   storage.exec('CREATE TABLE IF NOT EXISTS traces (name TEXT PRIMARY KEY, day TEXT NOT NULL)');
   storage.exec(
     'CREATE TABLE IF NOT EXISTS trace_lines (name TEXT NOT NULL, seq INTEGER NOT NULL, line TEXT NOT NULL, PRIMARY KEY (name, seq))',
@@ -150,6 +154,45 @@ export async function readImageMeta(id: string) {
   const row = sql.get<{ meta: string }>('SELECT meta FROM images WHERE id=?', id);
   if (!row) throw new Error('Imagem não encontrada.');
   return row.meta;
+}
+
+export async function writeImageMeta(id: string, meta: string) {
+  db().exec('UPDATE images SET meta=? WHERE id=?', meta, id);
+}
+
+/** Arquivo gerado (PDF, CSV, foto, vídeo), em pedaços como as imagens. */
+export async function putFile(id: string, bytes: Uint8Array, meta: string) {
+  const chunks = Math.max(1, Math.ceil(bytes.length / CHUNK));
+  db().exec('DELETE FROM file_chunks WHERE id=?', id);
+  for (let i = 0; i < chunks; i++)
+    db().exec('INSERT INTO file_chunks VALUES (?, ?, ?)', id, i, exact(bytes.subarray(i * CHUNK, (i + 1) * CHUNK)));
+  db().exec('INSERT OR REPLACE INTO files VALUES (?, ?, ?)', id, meta, chunks);
+}
+
+export async function readFileBytes(id: string): Promise<Uint8Array> {
+  if (!sql.get('SELECT id FROM files WHERE id=?', id)) throw new Error('Arquivo não encontrado.');
+  const parts = sql.all<{ bytes: ArrayBuffer }>('SELECT bytes FROM file_chunks WHERE id=? ORDER BY seq', id);
+  const out = new Uint8Array(parts.reduce((n, p) => n + p.bytes.byteLength, 0));
+  let at = 0;
+  for (const p of parts) {
+    out.set(new Uint8Array(p.bytes), at);
+    at += p.bytes.byteLength;
+  }
+  return out;
+}
+
+export async function readFileMeta(id: string) {
+  const row = sql.get<{ meta: string }>('SELECT meta FROM files WHERE id=?', id);
+  if (!row) throw new Error('Arquivo não encontrado.');
+  return row.meta;
+}
+
+/**
+ * Sem `sharp`, a foto vai como chegou: o navegador já a reduziu à área que a
+ * classificação aceita (lib/shrink-image.ts).
+ */
+export async function jpegWithin(image: StoredImage, _maxPixels: number): Promise<StoredImage> {
+  return image;
 }
 
 /**

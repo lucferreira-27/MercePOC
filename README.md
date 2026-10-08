@@ -52,9 +52,9 @@ Cada resposta que mexe no projeto traz um bloco de **Edição**, como o diff de 
 <img src="docs/readme/robo.png" alt="Cartão de progresso com o robô na bancada, as etapas do turno, tokens e custo" width="280" align="right">
 
 - **Enquanto trabalha**, o robô da Merce martela, serra ou fura na bancada e o cartão mostra o passo real, o relógio, os tokens e o custo. **Parar** interrompe sem mexer no projeto.
-- **Sugestões, dúvidas e opções.** Os chips acima do campo são os próximos passos para este projeto. Quando falta uma decisão de verdade, a IA pergunta. Peça "me dê opções" e ela monta 2 ou 3 variantes lado a lado.
+- **Sugestões, dúvidas e opções.** Os chips acima do campo são até seis próximos passos para este projeto: os que a IA propõe e os que saem do estado dele (a chapa quase vazia, o orçamento que ainda não virou PDF, a parede que falta). Quando falta uma decisão de verdade, a IA pergunta. Peça "me dê opções" e ela monta 2 ou 3 variantes lado a lado.
 - **Copiar de uma foto.** Anexe ou cole uma imagem e peça para copiar o móvel ou o ambiente. A IA estima a escala, diz o erro esperado, monta e confere o próprio desenho contra a foto.
-- **Quatro modelos.** GPT-6 Luna com raciocínio alto (padrão), DeepSeek V4.1 Flash, MiMo V2.6 Flash e Qwen 3.8 27B, com o preço à vista e o custo somado no topo.
+- **Modelo e esforço.** O campo mostra o modelo (Claude Haiku 5.5) e deixa escolher o esforço: baixo, médio ou alto. O custo de cada pedido fica à vista e somado no topo.
 
 <br clear="right">
 
@@ -134,6 +134,19 @@ O **orçamento** conta as chapas pelo plano de corte, a madeira maciça em m³, 
 
 O **plano de corte** encaixa as chapas em guilhotina por material e espessura, com disco, refilo e veio travado. Cada chapa aparece em escala, com réguas, peças numeradas e sobras; passar o mouse numa peça acende ela no móvel com o tracejado de "corte aqui".
 
+### Resultados como cartões na conversa
+
+Pedir o orçamento, os cortes ou um arquivo devolve um **cartão** dentro da resposta, preso à versão do projeto que ele mostra:
+
+- **Plano de corte:** a chapa em foco desenhada em escala ("mostre a chapa 2"), setas para as outras, peças com número e medida de corte. Passar o mouse acende a peça no móvel; clicar escolhe a peça, e o próximo pedido fala dela ("deixe esta mais curta").
+- **Orçamento:** total, custo, margem e os itens que mais pesam. Dá para tirar um item, mudar a quantidade e pôr itens à parte (frete, instalação) no próprio cartão, na aba ou pela conversa ("tire a montagem", "ponha frete de R$ 200"). O que se edita à mão fica em **rascunho** até **Salvar**, que vira uma versão.
+- **Móvel:** desenho, medidas e preço da versão; **Ver em 3D** abre a cena.
+- **Arquivos:** PDF do projeto ou do orçamento (gerado no servidor, com prévia das páginas), CSV, JSON, foto do móvel e vídeo dele girando. O cartão mostra miniatura, nome, páginas, tamanho, duração e a versão de origem, com **Visualizar**, **Abrir** e **Baixar**; nada baixa sozinho.
+
+O cartão mais novo de cada tipo acompanha o projeto; os anteriores ficam como **histórico** da versão em que saíram. Arquivo é fotografia: editar o orçamento depois não muda o PDF já gerado, e "atualize aquele PDF" cria a geração seguinte, com o anterior marcado como substituído. Tudo volta ao reabrir a conversa; arquivo que sumiu do servidor aparece como indisponível.
+
+**Só conversa** (no topo, ao lado de **Dividido**) deixa a conversa no centro, como num chat, com os atalhos das abas no alto. Clicar num cartão abre o editor ou a prévia numa janela grande no centro, com a conversa atrás; `Esc` fecha e volta ao mesmo ponto da conversa. A escolha fica lembrada neste navegador.
+
 ### Exporte para a marcenaria
 
 | Formato | O que leva |
@@ -145,7 +158,7 @@ O **plano de corte** encaixa as chapas em guilhotina por material e espessura, c
 | **Cortecloud** | JSON (experimental) |
 | **Projeto completo** | JSON com o histórico |
 
-`Ctrl+K` abre a paleta de comandos; uma frase que não é comando vira pedido para a IA.
+`Ctrl+K` abre a paleta de comandos; uma frase que não é comando vira pedido para a IA. Pedido de arquivo na conversa ("gere o PDF do orçamento", "mande a lista de peças") chega como cartão de arquivo na resposta.
 
 ## Como rodar
 
@@ -167,7 +180,7 @@ AI_BASE_URL=https://api.commandcode.ai/provider/v1
 AI_MODEL=deepseek/deepseek-v4.1-flash
 ```
 
-A chave fica somente no servidor. O modelo padrão é o GPT-6 Luna (`AI_LUNA_MODEL`, padrão `gpt-6-luna`) no mesmo gateway, com `reasoning_effort: high`; o DeepSeek V4.1 Flash (`AI_MODEL`) segue selecionável com `low`, o piso do gateway. `MERCE_REASONING_EFFORT` troca o esforço de todos, e `/api/health` diz o padrão e o esforço que vai de fato. A escolha de modelo fica salva no navegador.
+A chave fica somente no servidor. O modelo padrão é o Claude Haiku 5.5 (`CLAUDE_API_KEY`, modelo `AI_HAIKU_MODEL`, padrão `claude-haiku-5-5`) pela API da Anthropic, com esforço `low`. O GPT-6 Luna (`AI_LUNA_MODEL`, padrão `gpt-6-luna`) segue no gateway com `reasoning_effort: high`; o DeepSeek V4.1 Flash (`AI_MODEL`) segue selecionável com `low`, o piso do gateway. `MERCE_REASONING_EFFORT` troca o esforço de todos quando o pedido não traz um, e `/api/health` diz o padrão e o esforço que vai de fato. O campo não troca mais de modelo: usa o padrão (ou o primeiro com credencial no servidor). O esforço escolhido no campo vai em cada pedido e fica salvo no navegador.
 
 A janela de inatividade é de 120 segundos, reiniciada a cada trecho recebido. Formato inválido ou lote recusado pela geometria gera até duas novas tentativas, com o motivo devolvido ao modelo. O teto é de 16000 tokens. Ajuste com `MERCE_AI_TIMEOUT_MS` e `MERCE_AI_MAX_TOKENS`.
 
@@ -220,7 +233,8 @@ push no main  ─►  testes  ─►  publica na Cloudflare  ─►  confere o s
 6. Arraste a linha do tempo para consultar ou restaurar versões; orçamento e corte acompanham a versão exibida. **Criar alternativa desta versão**, em **Versões**, preserva os dois caminhos.
 7. Informe o **Ambiente** para ver o quarto no 3D, as folgas nas cotas e o veredito de encaixe.
 8. Veja o custo em **Orçamento** e as chapas em **Corte**. A tabela de preços vale para todos os projetos deste navegador.
-9. Em **Exportar**, escolha foto, PDF, CSVs, Cortecloud ou JSON.
+9. Em **Exportar**, escolha foto, PDF, CSVs, Cortecloud ou JSON, ou peça o arquivo na conversa.
+10. Prefere trabalhar só conversando? Escolha **Só conversa** no topo: os resultados vêm em cartões e cada um abre o editor completo no centro da tela.
 
 Exemplos de pedido: "Faz um rack de TV de 2 m em nogueira"; "Quero um aparador anos 60"; "Mesa de jantar rústica para 6 lugares"; "Deixe tudo no estilo japandi"; "Copie o layout desta foto"; "Coloque três gavetas embaixo e duas portas de correr em cima"; "Troque os puxadores por cava"; "Quanto custa e quantas chapas usa?".
 
@@ -249,6 +263,8 @@ A parede fica parada: no primeiro movimento ela é presa no lugar, e desfazer de
 
 A IA estima a escala por objetos de tamanho conhecido (frente de gaveta ~200 mm, livro ~240 mm, pé-direito ~2600 mm), mantém as proporções, arredonda para 10 mm, respeita os limites do motor e monta a fileira inteira no mesmo turno. Ela diz a régua que usou, o erro esperado (±10 a 20%), o que a foto mostra e o editor não tem (curva, canto com interior contínuo) e qual medida sua fecharia o desenho.
 
+Assim que a foto é anexada, um classificador rápido (Perplexity Decisions, ~1 s) diz o modelo da biblioteca mais parecido, o ambiente, o estilo, a cor do corpo e faixas de medida. Isso aparece como etiquetas na foto, com "?" no que é incerto, e a IA começa o desenho por ali. Sem `PERPLEXITY_API_KEY` no `.env`, ou se o classificador falhar, a foto segue como antes.
+
 Depois de aplicar, ela recebe o desenho do resultado (frontal e isométrica), confere contra a foto e responde "ficou parecido/em parte/diferente", com até 10 operações de correção. Num desenho de linhas não dá para julgar cor nem textura, e a conferência não inventa isso. Aceita JPG, PNG ou WebP até 10 MB.
 
 </details>
@@ -266,7 +282,7 @@ Depois de aplicar, ela recebe o desenho do resultado (frontal e isométrica), co
 | `[` · `]` | Recolher conversa, recolher painel |
 | `Ctrl+Z` · `Ctrl+Y` | Desfazer, refazer |
 | `Delete` | Remover o obstáculo escolhido na parede |
-| `Esc` | Limpar seleção, desistir de pôr um obstáculo, cancelar prévia, fechar a revisão das mudanças |
+| `Esc` | Limpar seleção, desistir de pôr um obstáculo, cancelar prévia, fechar a revisão das mudanças ou a janela grande de um cartão |
 
 ## Limites e dados
 
@@ -280,11 +296,11 @@ Depois de aplicar, ela recebe o desenho do resultado (frontal e isométrica), co
 
 Ainda não inclui curvas, painéis inclinados, recortes livres, canto com interior contínuo, tampos avulsos, furação, ferragens comerciais nem certificação estrutural. Confira ferragens e furação com o marceneiro.
 
-Os projetos ficam em SQLite, em `data/merce.sqlite` ou em `MERCE_DATA_DIR` (na Cloudflare, num Durable Object). Projetos em v1, v2 ou v3 migram na leitura e são gravados em v4 no próximo salvamento.
+Os projetos ficam em SQLite, em `data/merce.sqlite` ou em `MERCE_DATA_DIR` (na Cloudflare, num Durable Object). Os arquivos gerados na conversa (até 40 MB cada) ficam em `data/files` ou, na Cloudflare, no mesmo Durable Object. Projetos em v1, v2 ou v3 migram na leitura e são gravados em v4 no próximo salvamento.
 
 CSV UTF-8 com BOM e `;`, uma linha por peça física; painel compartilhado aparece uma vez, com dois proprietários. O plano de corte é um encaixe em guilhotina honesto, não o ótimo matemático, e o orçamento é estimativa com preços de partida em reais (chapa 2750 × 1840 mm).
 
-Mais em [regras e arquitetura](docs/MODULAR.md), [resultados da validação](docs/MODULAR-VALIDATION.md) e no [guia de estilos](docs/STYLES.md).
+Mais em [regras e arquitetura](docs/MODULAR.md), [resultados da validação](docs/MODULAR-VALIDATION.md), no [guia de estilos](docs/STYLES.md) e em [cartões e arquivos na conversa](docs/RICH.md).
 
 ## Desenvolvimento
 
@@ -296,7 +312,7 @@ npm run build
 npm run test:live   # turno real com o modelo configurado
 ```
 
-`npm run bench` mede o par prompt + modelo + validação, soma o custo e compara execuções (`--compare`); `--model deepseek|luna|mimo|qwen-fast` escolhe o modelo. `bench:router`, `bench:claims` e `bench:askact` medem o roteador, a conferência do que a resposta afirma e o portão de perguntar ou fazer; `bench:dash` abre o painel. O catálogo fica em [bench/README.md](bench/README.md).
+`npm run bench` mede o par prompt + modelo + validação, soma o custo e compara execuções (`--compare`); `--model haiku|deepseek|luna|mimo|qwen-fast` escolhe o modelo. `bench:router`, `bench:claims` e `bench:askact` medem o roteador, a conferência do que a resposta afirma e o portão de perguntar ou fazer; `bench:dash` abre o painel. O catálogo fica em [bench/README.md](bench/README.md).
 
 <details>
 <summary><strong>Verificações em navegador real</strong></summary>

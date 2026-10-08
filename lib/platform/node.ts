@@ -103,7 +103,7 @@ export function readTrace(name: string) {
 }
 
 type SharpSource = {
-  metadata(): Promise<{ format?: string; pages?: number }>;
+  metadata(): Promise<{ format?: string; pages?: number; width?: number; height?: number }>;
   rotate(): SharpSource;
   resize(options: { width: number; height: number; fit: 'inside'; withoutEnlargement: boolean }): SharpSource;
   jpeg(options?: { quality?: number }): SharpSource;
@@ -151,10 +151,46 @@ export async function readImageMeta(id: string) {
   return readFile(join(imagesDir(), id + '.json'), 'utf8');
 }
 
+export async function writeImageMeta(id: string, meta: string) {
+  await writeFile(join(imagesDir(), id + '.json'), meta);
+}
+
+function filesDir() {
+  return join(dataDir(), 'files');
+}
+
+/** Arquivo gerado (PDF, CSV, foto, vídeo): os bytes e a metadata em JSON, lado a lado. */
+export async function putFile(id: string, bytes: Uint8Array, meta: string) {
+  await mkdir(filesDir(), { recursive: true });
+  await writeFile(join(filesDir(), id + '.bin'), bytes);
+  await writeFile(join(filesDir(), id + '.json'), meta);
+}
+
+export async function readFileBytes(id: string): Promise<Uint8Array> {
+  return readFile(join(filesDir(), id + '.bin'));
+}
+
+export async function readFileMeta(id: string) {
+  return readFile(join(filesDir(), id + '.json'), 'utf8');
+}
+
 /** Alguns provedores (o modo rápido) não aceitam WebP. */
 export async function toJpeg(image: StoredImage): Promise<StoredImage> {
   if (image.type === 'image/jpeg') return image;
   return { bytes: await sharp(Buffer.from(image.bytes)).jpeg({ quality: 85 }).toBuffer(), type: 'image/jpeg' };
+}
+
+/** JPEG com no máximo `maxPixels` de área (a classificação da foto lê a imagem em ladrilhos). */
+export async function jpegWithin(image: StoredImage, maxPixels: number): Promise<StoredImage> {
+  const meta = await sharp(Buffer.from(image.bytes)).metadata();
+  const w = meta.width ?? 0;
+  const h = meta.height ?? 0;
+  const scale = w && h ? Math.min(1, Math.sqrt(maxPixels / (w * h))) : 1;
+  if (scale === 1) return toJpeg(image);
+  const width = Math.max(1, Math.floor(w * scale));
+  const height = Math.max(1, Math.floor(h * scale));
+  const bytes = await sharp(Buffer.from(image.bytes)).resize({ width, height, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 85 }).toBuffer();
+  return { bytes, type: 'image/jpeg' };
 }
 
 export async function svgToPng(svg: string): Promise<Uint8Array> {

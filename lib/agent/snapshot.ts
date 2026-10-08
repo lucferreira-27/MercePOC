@@ -2,7 +2,7 @@ import { layout } from '../composition';
 import { describeLook } from '../look';
 import { canonical, generateDesign, type Design } from '../studio';
 import { fitSummary, type Room } from '../room';
-import { mergePrices, money, quoteOf, type Prices } from '../quote';
+import { mergePrices, money, quoteOf, type Prices, type QuoteAdjust } from '../quote';
 import type { AgentContext } from './context';
 import { sceneOf, sceneSummary } from './scene';
 
@@ -141,13 +141,16 @@ export function selectionLine(design: Design, ids: readonly string[]) {
 }
 
 /** Orçamento e chapas em uma linha, com a tabela de preços do navegador. */
-export function quoteLine(design: Design, prices: Prices) {
+export function quoteLine(design: Design, prices: Prices, adjust?: QuoteAdjust) {
   try {
-    const q = quoteOf(canonical(design), mergePrices(prices));
+    const q = quoteOf(canonical(design), mergePrices(prices), adjust);
     const sheets = q.plan.groups
       .map((g) => `${g.sheets}× ${g.material} ${g.thickness} mm (${Math.round(g.efficiency * 100)}%)`)
       .join('; ');
-    return `Orçamento estimado: total ${money(q.total)} (custo ${money(q.cost)} + margem ${money(q.marginValue)}, ${mergePrices(prices).margin}%); chapas: ${sheets}; ${q.counts.doors} portas, ${q.counts.drawers} gavetas, ${q.counts.edgeMeters} m de fita.`;
+    const manual = q.adjusted
+      ? ` Ajustes à mão no orçamento: ${[...q.removed.map((l) => `tirado "${l.label}"`), ...q.lines.filter((l) => l.computedQty !== undefined).map((l) => `"${l.label}" com ${l.qty} ${l.unit} (calculado ${l.computedQty})`), ...q.lines.filter((l) => l.extra).map((l) => `item à parte "${l.label}" ${l.qty} ${l.unit} × ${money(l.unitPrice)}`)].join('; ')}.`
+      : '';
+    return `Orçamento estimado: total ${money(q.total)} (custo ${money(q.cost)} + margem ${money(q.marginValue)}, ${mergePrices(prices).margin}%); chapas: ${sheets}; ${q.counts.doors} portas, ${q.counts.drawers} gavetas, ${q.counts.edgeMeters} m de fita.${manual}`;
   } catch {
     return '';
   }

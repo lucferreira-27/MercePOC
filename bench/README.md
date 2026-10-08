@@ -15,7 +15,7 @@ npm run bench                                  # corpus inteiro, uma vez cada ca
 npm run bench -- --list                        # lista os casos e os grupos
 npm run bench -- --group divisao               # um grupo
 npm run bench -- --id amb-01 --repeat 3        # um caso, três vezes (mede a variância)
-npm run bench -- --model luna                  # outro modelo: deepseek, luna, mimo ou qwen-fast
+npm run bench -- --model luna                  # outro modelo: haiku (padrão), deepseek, luna, mimo ou qwen-fast
 npm run bench -- --fast                        # atalho antigo de --model qwen-fast (Cerebras)
 npm run bench -- --budget 600 --max-calls 40   # teto de tempo e de chamadas
 npm run bench -- --record                      # grava as decisões em bench/fixtures
@@ -81,7 +81,7 @@ Rodadas antigas são reavaliadas com a regra de perguntar ou agir de hoje (o `as
 
 "Preço como" recalcula o custo pelos tokens com a tabela de um provedor (Command Code ou OpenCode Zen), para comparar a mesma rodada em outro provedor. Para o painel saber como a rodada foi feita, use `--label "nome"`; provedor, modelo e esforço vão sozinhos para o resultado.
 
-Outras opções úteis: `--ids a,b,c` roda só esses casos; `--photo-legacy` manda foto pelo caminho antigo (a rota manda foto pelo laço); `MERCE_REASONING_EFFORT=none|low|medium|high|xhigh|max` troca o esforço de raciocínio (o Command Code só aceita de `low` para cima).
+Outras opções úteis: `--ids a,b,c` roda só esses casos; `--photo-legacy` manda foto pelo caminho antigo (a rota manda foto pelo laço); `MERCE_PHOTO_CLASSIFY=0` desliga a classificação rápida da foto (`lib/photo-classify.ts`, liga com `PERPLEXITY_API_KEY`), para medir o grupo `foto-real` com e sem ela; `MERCE_REASONING_EFFORT=none|low|medium|high|xhigh|max` troca o esforço de raciocínio (o Command Code só aceita de `low` para cima).
 
 ### Assistente em laço (`--agent`)
 

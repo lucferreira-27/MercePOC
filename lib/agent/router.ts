@@ -45,6 +45,7 @@ export const DIRECT = {
   desfazer: { q: 'O pedido pede para desfazer a última mudança (voltar um passo)?', tool: 'history_undo', args: {} },
   refazer: { q: 'O pedido pede para refazer a mudança desfeita?', tool: 'history_redo', args: {} },
   pdf: { q: 'O pedido pede para gerar, baixar ou imprimir o PDF?', tool: 'export_file', args: { formato: 'pdf' } },
+  pdf_orcamento: { q: 'O pedido pede o orçamento em PDF (só o orçamento, para o cliente)?', tool: 'export_file', args: { formato: 'quote-pdf' } },
   foto: { q: 'O pedido pede uma foto ou imagem PNG da vista?', tool: 'export_file', args: { formato: 'png' } },
   csv_pecas: { q: 'O pedido pede para baixar a lista de peças (CSV)?', tool: 'export_file', args: { formato: 'parts-csv' } },
   csv_corte: { q: 'O pedido pede para baixar o plano de corte (CSV)?', tool: 'export_file', args: { formato: 'cut-csv' } },
@@ -57,6 +58,8 @@ const CONFLICTS: [DirectAction, DirectAction][] = [
   ['explodir', 'juntar'],
   ['cotas_mostrar', 'cotas_esconder'],
   ['desfazer', 'refazer'],
+  // "PDF do orçamento" acende as duas: o laço escolhe o formato pelo prompt.
+  ['pdf', 'pdf_orcamento'],
 ];
 
 export type Route =

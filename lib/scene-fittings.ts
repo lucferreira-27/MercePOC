@@ -172,6 +172,15 @@ export function fittingShape(f: Fitting, mat: THREE.Material, disposables: Dispo
   return g;
 }
 
+/**
+ * Pele das caixas de ferragem, em mm por lado. O contorno de aço fica rente
+ * às faces da caixa: tubo e lateral no mesmo plano empatam na profundidade e
+ * a cena pisca em dente de serra ao girar. Com a pele, a ferragem fica meio
+ * milímetro à frente e sempre ganha; a medida, o corte e o orçamento não
+ * mudam (é só o desenho). `coplanarFaces` confere isso nos testes.
+ */
+export const FITTING_SKIN = 0.5;
+
 /** Grupo com todas as ferragens visíveis, menos os puxadores (que abrem com as frentes). */
 export function buildFittings(fittings: readonly Fitting[]) {
   const group = new THREE.Group();
@@ -184,9 +193,14 @@ export function buildFittings(fittings: readonly Fitting[]) {
     obj.position.set(...f.position);
     obj.rotation.y = f.rotation;
     obj.traverse((o) => {
-      if ((o as THREE.Mesh).isMesh) {
-        o.castShadow = f.kind !== 'led';
-        o.receiveShadow = true;
+      const mesh = o as THREE.Mesh;
+      if (mesh.isMesh) {
+        mesh.castShadow = f.kind !== 'led';
+        mesh.receiveShadow = true;
+        if (mesh.geometry instanceof THREE.BoxGeometry) {
+          const { width, height, depth } = mesh.geometry.parameters;
+          mesh.scale.multiply(new THREE.Vector3(1 + (2 * FITTING_SKIN) / width, 1 + (2 * FITTING_SKIN) / height, 1 + (2 * FITTING_SKIN) / depth));
+        }
       }
     });
     // O arrasto de um móvel leva as ferragens dele junto, a partir daqui.

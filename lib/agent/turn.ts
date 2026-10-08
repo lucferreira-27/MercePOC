@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { drawingParts } from '../fittings';
 import { reviewAndCorrect, type CheckedReview, type ModelChoice } from '../gateway';
 import { imageDataUrl, saveImage, type ImageRef } from '../images';
-import type { ModelKey, ProviderUsage } from '../models';
+import type { Effort, ModelKey, ProviderUsage } from '../models';
 import { planDataUrl, planPng } from '../plan-render';
 import type { Progress, TurnOutcome } from '../progress';
 import type { Prices } from '../quote';
@@ -19,6 +19,9 @@ import { PROVIDER_ERROR } from '../gateway';
 import { askJev } from './jev';
 import type { AgentEvent, UiState } from './types';
 import { NO_TRACE, type Trace } from '../trace';
+import { classificationLine, imageClassification, storedClassification } from '../photo-classify';
+import { turnBlocks } from './blocks';
+import type { RichBlock } from '../rich';
 
 export type AgentTurnInput = {
   project: Project;
@@ -31,6 +34,8 @@ export type AgentTurnInput = {
   prices: Prices;
   image?: ImageRef;
   model: ModelChoice;
+  /** Esforço escolhido no compositor. */
+  effort?: Effort;
   requestId: string;
   started: number;
   signal: AbortSignal;
@@ -118,7 +123,7 @@ async function earlierPhoto(messages: Message[]) {
   const m = recentMessages(messages).findLast((v) => v.role === 'user' && v.image);
   if (!m?.image) return undefined;
   try {
-    return { url: await imageDataUrl(m.image.id), request: m.content.replace(/\s+/g, ' ').slice(0, 120) };
+    return { id: m.image.id, url: await imageDataUrl(m.image.id), request: m.content.replace(/\s+/g, ' ').slice(0, 120) };
   } catch {
     return undefined;
   }
@@ -127,10 +132,22 @@ async function earlierPhoto(messages: Message[]) {
 async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
   const photo = input.image;
   input.progress({ stage: 'connecting', label: 'Consultando a IA', detail: 'Enviando o pedido e o projeto.' });
-  const text = turnMessage(ctx, !!photo, input.request);
   // Pedido sem foto logo depois de um com foto ("esses não estão na ref"):
   // a foto volta, senão a IA responde sem ver o que a pessoa compara.
   const earlier = photo ? undefined : await earlierPhoto(input.project.messages);
+  // Classificação rápida da foto (lib/photo-classify.ts): quase sempre já
+  // gravada pelo pedido que o navegador fez no envio; senão espera até 5 s.
+  // A foto de um pedido anterior só reaproveita a que ficou gravada.
+  const classifyStart = Date.now();
+  const classification = photo ? await imageClassification(photo.id) : earlier ? await storedClassification(earlier.id) : null;
+  if (photo || earlier)
+    (input.trace ?? NO_TRACE).write('photo.classification', {
+      imageId: photo?.id ?? earlier?.id,
+      earlier: !photo,
+      waitedMs: Date.now() - classifyStart,
+      classification,
+    });
+  const text = turnMessage(ctx, !!photo, input.request, classificationLine(classification));
   // Projeto de partida (a estante que ninguém pediu e que a foto vai trocar):
   // o desenho dele não ajuda e voltaria em toda etapa do laço. Fica só a foto.
   const images = photo
@@ -192,6 +209,7 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
   ctx.runner = (sub, brief) =>
     runLoop(sub, {
       model: input.model,
+      effort: input.effort,
       system: AGENT_SYSTEM,
       user: { role: 'user', content: turnMessage(sub, false, brief) },
       tools: OPTION_TOOLS,
@@ -228,6 +246,7 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
   };
   const loop = route.kind !== 'agent' ? { steps: 0, exhausted: false } : await runLoop(ctx, {
     model: input.model,
+    effort: input.effort,
     system: AGENT_SYSTEM,
     user: { role: 'user', content: images.length ? [{ type: 'text', text: text + note }, ...images] : text },
     maxSteps: input.maxSteps ?? route.budget,
@@ -291,8 +310,8 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
   // ser pulada. Números da resposta contra o estado final, não a última leitura.
   const finalIssues = ctx.ask ? [] : checkWork(ctx);
   const sameLine = !ctx.navigated && !ctx.origin;
-  const factsBefore = sameLine ? designFacts(startDesign, ctx.prices) : null;
-  const factsAfter = sameLine ? designFacts(ctx.design, ctx.prices) : null;
+  const factsBefore = sameLine ? designFacts(startDesign, ctx.prices, ctx.turnStart.quote) : null;
+  const factsAfter = sameLine ? designFacts(ctx.design, ctx.prices, ctx.quoteAdjust) : null;
   if (ctx.finish && !ctx.checked) {
     const wrong = factsBefore && factsAfter && !ctx.options?.length ? factClaims(ctx.finish.message, factsAfter, factsBefore) : [];
     const notes = [...finalIssues, ...(wrong.length ? [`A resposta ${wrong.join('; ')}. Números do app: ${factsLine(factsAfter!)}.`] : [])];
@@ -311,9 +330,10 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
   const changes = sameLine ? describeDesignChanges(startDesign, after) : [`Versão ${p.cursor + 1}: ${p.revisions[p.cursor].label}`];
   const roomMoved = JSON.stringify(ctx.turnStart.room ?? null) !== JSON.stringify(p.room ?? null);
   const ops: ShelfOp[] = sameLine ? ctx.allOps : [];
+  const quoteMoved = JSON.stringify(ctx.turnStart.quote ?? null) !== JSON.stringify(p.revisions[p.cursor].quote ?? null);
   const outcome: TurnOutcome = ctx.ask
     ? 'clarification'
-    : (sameLine && changes.length) || !sameLine || roomMoved
+    : (sameLine && changes.length) || !sameLine || roomMoved || quoteMoved
       ? 'applied'
       : ctx.select?.length
         ? 'highlighted'
@@ -342,6 +362,23 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
     ? { id: randomUUID(), question: ctx.ask.question, baseRevisionId: p.revisions[p.cursor].id, options: ctx.ask.options, pendingMessage: input.request }
     : undefined;
   const context = { ...input.user.context!, baseRevisionId: input.user.context?.baseRevisionId ?? p.revisions[p.cursor].id };
+  // Cartões e arquivos da resposta, da versão que ficou gravada. Falha ao
+  // montar um cartão não derruba o pedido: a resposta sai sem ele.
+  let blocks: RichBlock[] = [];
+  if (!ctx.ask)
+    try {
+      blocks = await turnBlocks(p, ctx.prices, ctx.cards, ctx.exports, draftChanged || ctx.navigated || !!ctx.origin);
+    } catch (e) {
+      trace.write('turn.blocks.failed', { error: (e as Error).message, stack: (e as Error).stack });
+    }
+  if (blocks.length)
+    trace.write('turn.blocks', {
+      blocks: blocks.map((b) =>
+        b.kind === 'widget'
+          ? { kind: b.kind, widget: b.widget, revision: b.revision, sheet: b.sheet, focus: b.focus }
+          : { kind: b.kind, format: b.format, status: b.status, generation: b.generation, file: b.file?.name, error: b.error },
+      ),
+    });
   const assistant: Message = {
     id: randomUUID(),
     role: 'assistant',
@@ -354,6 +391,7 @@ async function turnBody(ctx: AgentContext, input: AgentTurnInput) {
     ...(ctx.finish?.suggestions.length ? { suggestions: ctx.finish.suggestions } : {}),
     ...(clarification ? { clarification } : {}),
     ...(ctx.options?.length ? { options: ctx.options } : {}),
+    ...(blocks.length ? { blocks } : {}),
     result: {
       outcome,
       resultRevisionId: p.revisions[p.cursor].id,

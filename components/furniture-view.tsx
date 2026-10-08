@@ -259,7 +259,14 @@ function FurnitureView({
   onRemoveWall,
   onEditWall,
   keyboard = true,
+  wheelZoom = true,
 }: {
+  /**
+   * A roda do mouse aproxima a câmera. Na conversa ela fica desligada até a
+   * pessoa clicar na cena: senão rolar a conversa passando pelo desenho
+   * virava zoom.
+   */
+  wheelZoom?: boolean;
   /** Parede escolhida (a do fundo é `MAIN_WALL`): destaque, alças e barra. */
   selectedWall?: string | null;
   onSelectWall?: (id: string | null) => void;
@@ -1592,6 +1599,10 @@ function FurnitureView({
         scrub ? SCRUB_MS : TRANSITION_MS,
       );
   }, [parts, params, exploded, selected, scrub]);
+  useEffect(() => {
+    const s = runtime.current;
+    if (s) s.controls.enableZoom = wheelZoom;
+  }, [wheelZoom]);
   // Diff: as marcas vão para o controlador de peças; o que saiu vira um
   // fantasma translúcido na pose de antes, para a pessoa ver o que foi embora.
   useEffect(() => {

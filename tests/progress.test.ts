@@ -23,6 +23,7 @@ const request = (id: string, version = 0, stream = true) =>
     },
     body: JSON.stringify({ id, version, message: 'Largura de 1 metro' }),
   });
+process.env.MERCE_DEFAULT_MODEL ??= 'luna';
 process.env.AI_API_KEY = 'test-key';
 function response(text: string) {
   const bytes = new TextEncoder().encode(text);

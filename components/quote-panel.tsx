@@ -1,8 +1,9 @@
 'use client';
-import { useState } from 'react';
-import { Check, ChevronDown, Copy, Crosshair, Minus, Plus, RotateCcw } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Check, ChevronDown, Copy, Crosshair, Minus, Plus, RotateCcw, Undo2, X } from 'lucide-react';
+import { addExtra, removeExtra, setQty, setRemoved, updateExtra } from '@/lib/quote-draft';
 import { CATEGORY_INFO, materials, type MaterialCategory } from '@/lib/furniture';
-import { DEFAULT_PRICES, HARDWARE, HARDWARE_KEYS, money, quantity, type HardwareKey, type PriceRef, type Prices, type Quote, type QuoteLine, type QuoteSection } from '@/lib/quote';
+import { DEFAULT_PRICES, HARDWARE, HARDWARE_KEYS, money, quantity, type HardwareKey, type PriceRef, type Prices, type Quote, type QuoteAdjust, type QuoteLine, type QuoteSection } from '@/lib/quote';
 
 const SECTION_TONE: Record<QuoteSection, string> = {
   Chapas: 'var(--chart-1)',
@@ -10,8 +11,10 @@ const SECTION_TONE: Record<QuoteSection, string> = {
   Materiais: 'var(--chart-5)',
   Ferragens: 'var(--chart-3)',
   'Mão de obra': 'var(--chart-4)',
+  Outros: 'var(--wood)',
 };
-const ORDER: QuoteSection[] = ['Chapas', 'Fita de borda', 'Materiais', 'Ferragens', 'Mão de obra'];
+const ORDER: QuoteSection[] = ['Chapas', 'Fita de borda', 'Materiais', 'Ferragens', 'Mão de obra', 'Outros'];
+const SECTION_NAME = (s: QuoteSection) => (s === 'Outros' ? 'Itens à parte' : s);
 const CATEGORIES: MaterialCategory[] = ['sheet', 'solid', 'stone', 'glass', 'metal', 'fiber'];
 /** Ferragens da tabela, em grupos: pés e bases, puxadores, o resto. */
 const HARDWARE_GROUPS: { label: string; keys: HardwareKey[] }[] = [
@@ -48,6 +51,26 @@ function pct(v: number) {
   return `${Math.round(v * 100)}%`;
 }
 
+/**
+ * Edição à mão do orçamento (tirar linha, quantidade, itens à parte). O
+ * rascunho mora na página: a aba, a janela grande e o cartão da conversa
+ * editam o mesmo, e só "Salvar" grava como versão.
+ */
+export type QuoteEditing = {
+  /** Ajuste de onde o rascunho parte (o rascunho, ou o gravado na versão). */
+  base: QuoteAdjust | undefined;
+  /** Mudanças ainda não gravadas (0: sem rascunho). */
+  changes: number;
+  /** Número que a versão nova vai ganhar. */
+  nextVersion: number;
+  disabled: boolean;
+  onDraft: (next: QuoteAdjust | undefined) => void;
+  onSave: () => void;
+  onDiscard: () => void;
+  /** Rascunho de outra versão, guardado: retomar traz para a vigente. */
+  stale?: { revision: number | null; changes: number; onAdopt: () => void };
+};
+
 export function QuotePanel({
   name,
   quote: q,
@@ -55,6 +78,8 @@ export function QuotePanel({
   onPrices,
   previous = null,
   onShowParts,
+  editing,
+  focus = [],
 }: {
   name: string;
   quote: Quote;
@@ -64,7 +89,19 @@ export function QuotePanel({
   previous?: { version: number; total: number } | null;
   /** Acende no móvel as peças que uma linha conta. */
   onShowParts?: (ids: string[]) => void;
+  /** Sem isto o orçamento só lê (versão antiga em prévia). */
+  editing?: QuoteEditing;
+  /** Linhas citadas pela conversa: ficam em destaque. */
+  focus?: readonly string[];
 }) {
+  const root = useRef<HTMLDivElement>(null);
+  const focusKey = focus.join('|');
+  // Linha citada pelo cartão da conversa: aparece rolada à vista.
+  useEffect(() => {
+    if (!focusKey) return;
+    root.current?.querySelector('.quote-line.focus')?.scrollIntoView({ block: 'center' });
+  }, [focusKey]);
+  const edit = (next: QuoteAdjust | undefined) => editing?.onDraft(next);
   const [copied, setCopied] = useState(false);
   const [closed, setClosed] = useState<QuoteSection[]>([]);
   const set = <K extends keyof Prices>(key: K, value: Prices[K]) => onPrices({ ...prices, [key]: value });
@@ -97,7 +134,37 @@ export function QuotePanel({
     </label>
   );
   return (
-    <div className="quote-panel">
+    <div className="quote-panel" ref={root}>
+      {editing?.stale && editing.changes === 0 && (
+        <output className="quote-draft-bar">
+          <span>
+            <b>Rascunho guardado</b> {editing.stale.revision ? `da v${editing.stale.revision}` : 'de uma versão descartada'} · o projeto mudou depois dele
+          </span>
+          <span className="quote-draft-actions">
+            <button type="button" className="ghost-button" disabled={editing.disabled} onClick={editing.onDiscard}>
+              <RotateCcw size={13} /> Descartar
+            </button>
+            <button type="button" className="ghost-button primary" disabled={editing.disabled} onClick={editing.stale.onAdopt}>
+              <Undo2 size={13} /> Retomar
+            </button>
+          </span>
+        </output>
+      )}
+      {editing && editing.changes > 0 && (
+        <output className="quote-draft-bar">
+          <span>
+            <b>Rascunho</b> · {editing.changes} {editing.changes === 1 ? 'mudança não salva' : 'mudanças não salvas'}
+          </span>
+          <span className="quote-draft-actions">
+            <button type="button" className="ghost-button" disabled={editing.disabled} onClick={editing.onDiscard}>
+              <RotateCcw size={13} /> Descartar
+            </button>
+            <button type="button" className="ghost-button primary" disabled={editing.disabled} onClick={editing.onSave}>
+              <Check size={13} /> Salvar como v{editing.nextVersion}
+            </button>
+          </span>
+        </output>
+      )}
       <div className="quote-hero">
         <div className="quote-hero-top">
           <span className="eyebrow">Orçamento estimado</span>
@@ -200,7 +267,9 @@ export function QuotePanel({
           <b>{q.counts.edgeMeters} m</b> de fita
         </span>
       </div>
-      <p className="hint quote-tip">Os unitários são editáveis na linha e valem para todos os projetos.</p>
+      <p className="hint quote-tip">
+        Os unitários são editáveis na linha e valem para todos os projetos.{editing ? ' Quantidade, tirar item e itens à parte valem só para este projeto e viram versão ao salvar.' : ''}
+      </p>
       {ORDER.map((section) => {
         const lines = q.lines.filter((l) => l.section === section);
         if (!lines.length) return null;
@@ -216,17 +285,50 @@ export function QuotePanel({
             >
               <ChevronDown size={14} className="chev" />
               <i className="dot" style={{ background: SECTION_TONE[section] }} />
-              <span>{section}</span>
+              <span>{SECTION_NAME(section)}</span>
               <small>{pct(total / sectionTotal)}</small>
               <b>{money(total)}</b>
             </button>
             {open &&
               lines.map((l) => (
-                <Line key={l.label} line={l} onPrice={(v) => l.price && setRef(l.price, v)} onShow={onShowParts} />
+                <Line
+                  key={l.key ?? l.label}
+                  line={l}
+                  focused={!!l.key && focus.includes(l.key)}
+                  onPrice={(v) => (l.extra ? edit(updateExtra(editing?.base, l.extra, { unitPrice: v })) : l.price && setRef(l.price, v))}
+                  onShow={onShowParts}
+                  editing={editing}
+                  onQty={(v) => edit(setQty(editing?.base, l, v))}
+                  onRemove={() => edit(l.extra ? removeExtra(editing?.base, l.extra) : setRemoved(editing?.base, l.key!, true))}
+                />
               ))}
           </section>
         );
       })}
+      {q.removed.length > 0 && (
+        <section className="quote-removed" aria-label="Fora do orçamento">
+          <div className="section-label">
+            <span>Fora do orçamento</span>
+            <span>{money(q.removed.reduce((a, l) => a + l.total, 0))}</span>
+          </div>
+          {q.removed.map((l) => (
+            <div className="quote-line removed" key={l.key}>
+              <div className="quote-line-main">
+                <strong>{l.label}</strong>
+                <small>
+                  {quantity(l.qty)} {l.unit} × {money(l.unitPrice)} · tirado à mão
+                </small>
+              </div>
+              {editing && (
+                <button type="button" className="ghost-button" disabled={editing.disabled} onClick={() => edit(setRemoved(editing.base, l.key!, false))}>
+                  <Undo2 size={13} /> Voltar
+                </button>
+              )}
+            </div>
+          ))}
+        </section>
+      )}
+      {editing && <ExtraForm disabled={editing.disabled} onAdd={(e) => edit(addExtra(editing.base, e))} />}
       <details className="price-table">
         <summary>Tabela de preços completa</summary>
         <p className="hint">
@@ -325,22 +427,91 @@ export function QuotePanel({
   );
 }
 
+/** Item à parte (frete, instalação): nome, quantidade, unidade e preço. */
+function ExtraForm({ disabled, onAdd }: { disabled: boolean; onAdd: (e: { label: string; qty: number; unit: string; unitPrice: number }) => void }) {
+  const [label, setLabel] = useState('');
+  const [qty, setQtyText] = useState('1');
+  const [unit, setUnit] = useState('un');
+  const [price, setPrice] = useState('');
+  const ok = label.trim() && num(qty) !== null && num(price) !== null && price !== '';
+  return (
+    <form
+      className="quote-extra-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!ok) return;
+        onAdd({ label: label.trim(), qty: num(qty)!, unit: unit.trim() || 'un', unitPrice: num(price)! });
+        setLabel('');
+        setQtyText('1');
+        setPrice('');
+      }}
+    >
+      <div className="section-label">
+        <span>Item à parte</span>
+        <span>frete, instalação, projeto</span>
+      </div>
+      <div className="quote-extra-fields">
+        <input aria-label="Nome do item" placeholder="Ex.: Frete e entrega" value={label} maxLength={80} disabled={disabled} onChange={(e) => setLabel(e.target.value)} />
+        <input aria-label="Quantidade" inputMode="decimal" value={qty} disabled={disabled} onChange={(e) => setQtyText(e.target.value)} />
+        <input aria-label="Unidade" value={unit} maxLength={16} disabled={disabled} onChange={(e) => setUnit(e.target.value)} />
+        <span className="price-input">
+          <em>R$</em>
+          <input aria-label="Preço unitário" inputMode="decimal" placeholder="0" value={price} disabled={disabled} onChange={(e) => setPrice(e.target.value)} />
+        </span>
+        <button type="submit" className="ghost-button" disabled={disabled || !ok}>
+          <Plus size={13} /> Pôr
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function Line({
   line: l,
   onPrice,
   onShow,
+  editing,
+  focused = false,
+  onQty,
+  onRemove,
 }: {
   line: QuoteLine;
   onPrice: (v: number) => void;
   onShow?: (ids: string[]) => void;
+  editing?: QuoteEditing;
+  focused?: boolean;
+  onQty?: (v: number | undefined) => void;
+  onRemove?: () => void;
 }) {
+  const adjusted = l.computedQty !== undefined;
   return (
-    <div className="quote-line">
+    <div className={'quote-line' + (focused ? ' focus' : '') + (adjusted ? ' adjusted' : '') + (l.extra ? ' extra' : '')}>
       <div className="quote-line-main">
         <strong>{l.label}</strong>
         <span className="quote-calc">
-          {quantity(l.qty)} {l.unit} ×{' '}
-          {l.price ? (
+          {editing && onQty ? (
+            <span className="inline-price qty" title={adjusted ? `Ajustado à mão; o app calcula ${quantity(l.computedQty!)}` : 'Quantidade (vale só para este projeto)'}>
+              <input
+                type="number"
+                min={0}
+                step={Number.isInteger(l.qty) ? 1 : 0.1}
+                aria-label={`Quantidade de ${l.label}`}
+                value={l.qty}
+                disabled={editing.disabled}
+                onChange={(e) => {
+                  const v = num(e.target.value);
+                  if (v !== null) onQty(v);
+                }}
+              />
+              <em>{l.unit}</em>
+            </span>
+          ) : (
+            <>
+              {quantity(l.qty)} {l.unit}
+            </>
+          )}{' '}
+          ×{' '}
+          {l.price || l.extra ? (
             <span className="inline-price">
               <em>R$</em>
               <input
@@ -359,10 +530,26 @@ function Line({
             money(l.unitPrice)
           )}
         </span>
+        {adjusted && (
+          <small className="quote-adjusted">
+            ajustado à mão · o app calcula {quantity(l.computedQty!)}{' '}
+            {editing && onQty && (
+              <button type="button" className="link-button" disabled={editing.disabled} onClick={() => onQty(undefined)}>
+                voltar à conta
+              </button>
+            )}
+          </small>
+        )}
+        {l.extra && <small>item à parte, só deste projeto</small>}
         {l.note && <small>{l.note}</small>}
       </div>
       <div className="quote-line-side">
         <b>{money(l.total)}</b>
+        {editing && onRemove && (
+          <button type="button" className="icon-button quote-show" title="Tirar do orçamento" aria-label={`Tirar ${l.label} do orçamento`} disabled={editing.disabled} onClick={onRemove}>
+            <X size={14} />
+          </button>
+        )}
         {onShow && l.parts.length > 0 && (
           <button
             type="button"

@@ -1,7 +1,7 @@
 import { applyObstacleEdits } from '@/lib/room';
-import { applyRequest, get, moveCursor, rewindChat, save, settleRoom, view, revise, type Clarification, type Message } from '@/lib/store';
+import { applyRequest, get, moveCursor, rewindChat, save, settleRoom, turnBusy, view, revise, type Clarification, type Message } from '@/lib/store';
 import { sameOrigin } from '@/lib/utils';
-import { interpretStream, reviewAndCorrect, withFallback, type CheckedReview } from '@/lib/gateway';
+import { interpretStream, reviewAndCorrect, serverDefaultModel, withFallback, type CheckedReview } from '@/lib/gateway';
 import { materials } from '@/lib/furniture';
 import {
   describeDesignChanges,
@@ -29,7 +29,7 @@ import { openTrace } from '@/lib/trace';
 import { UI_TABS, VIEW_MODES, type AgentEvent } from '@/lib/agent/types';
 import {
   addUsage,
-  DEFAULT_MODEL,
+  EFFORTS,
   emptyUsage,
   modelInfo,
   MODEL_KEYS,
@@ -55,7 +55,8 @@ function quoteSummary(design: Design, prices: unknown) {
     return '';
   }
 }
-const busy = new Set<string>();
+/** Projetos com um pedido em andamento (a rota de arquivos espera por eles). */
+const busy = turnBusy;
 /** Correções de geometria pedidas à IA antes de recusar o turno. */
 const GEOMETRY_RETRIES = 2;
 /** Dízimas de milímetro (185.33333) não devem aparecer em texto de resposta. */
@@ -114,6 +115,8 @@ export async function POST(req: Request) {
         fast: z.boolean().optional(),
         /** Modelo escolhido no compositor; `fast` segue valendo para scripts antigos. */
         model: z.enum(MODEL_KEYS).optional(),
+        /** Esforço de raciocínio escolhido no compositor. */
+        effort: z.enum(EFFORTS).optional(),
         // Tabela de preços do navegador: a IA responde "quanto custa" com os
         // mesmos números da aba Orçamento. Formato solto, saneado por mergePrices.
         prices: z.unknown().optional(),
@@ -175,8 +178,8 @@ export async function POST(req: Request) {
         : undefined;
     const before = baseRev.params;
     const quoteNote = quoteSummary(before, b.prices);
-    // Sem modelo no pedido vale o padrão do estúdio (Luna, raciocínio alto).
-    const modelChoice: ModelKey = b.model ?? (b.fast ? 'qwen-fast' : DEFAULT_MODEL);
+    // Sem modelo no pedido vale o padrão do estúdio (Haiku 5.5, esforço baixo).
+    const modelChoice: ModelKey = b.model ?? (b.fast ? 'qwen-fast' : serverDefaultModel());
     const jpeg = Boolean(modelInfo(modelChoice).fastProfile);
     // Custo do turno: cada chamada ao provedor soma aqui, sai ao vivo para quem
     // espera e fica gravada na resposta, para o total da sessão sobreviver ao
@@ -370,6 +373,7 @@ export async function POST(req: Request) {
           prices: mergePrices(b.prices),
           image,
           model: modelChoice,
+          ...(b.effort ? { effort: b.effort } : {}),
           requestId,
           started,
           signal,

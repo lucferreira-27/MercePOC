@@ -216,3 +216,27 @@ export function cutPlan(parts: readonly Part[], spec: SheetSpec = DEFAULT_SHEET)
   }
   return { spec, sheets, groups: summary, oversize };
 }
+
+/** Posições de cada peça em cada chapa, para a serra ou para outro software. */
+export function cutPlanCSV(plan: CutPlan) {
+  const q = (v: unknown) => `"${String(v).replaceAll('"', '""')}"`;
+  const rows = [
+    ['Nº', 'Chapa', 'Material', 'Espessura (mm)', 'Peça', 'ID', 'X (mm)', 'Y (mm)', 'Comprimento (mm)', 'Largura (mm)', 'Girada'],
+    ...plan.sheets.flatMap((s) =>
+      s.placements.map((p) => [
+        p.n,
+        `${s.material} ${s.thickness} #${s.index}`,
+        s.material,
+        s.thickness,
+        p.name,
+        p.id,
+        Math.round(p.x * 10) / 10,
+        Math.round(p.y * 10) / 10,
+        p.w,
+        p.h,
+        p.rotated ? 'sim' : 'não',
+      ]),
+    ),
+  ];
+  return '﻿' + rows.map((r) => r.map(q).join(';')).join('\r\n');
+}

@@ -13,6 +13,7 @@ import type { ChatMessage, ModelReply } from '../lib/agent/model';
 
 process.env.MERCE_DATA_DIR = mkdtempSync(join(tmpdir(), 'merce-photo-'));
 process.env.MERCE_JEV = '0';
+process.env.MERCE_DEFAULT_MODEL ??= 'luna';
 process.env.AI_API_KEY ??= 'teste';
 
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');

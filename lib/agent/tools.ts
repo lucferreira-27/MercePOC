@@ -5,7 +5,7 @@ import { planDataUrl } from '../plan-render';
 import { sceneDrawingParts } from '../scene-parts';
 import { cutPlan } from '../cutplan';
 import { materialIds, PART_KINDS, type PartKind } from '../furniture';
-import { edgeSides, mergePrices, money, quantity, quoteOf, type Prices } from '../quote';
+import { cleanAdjust, edgeSides, mergePrices, money, quantity, quoteOf, type Prices, type QuoteAdjust, type QuoteLine } from '../quote';
 import {
   applyObstacleEdits,
   furnitureOnWall,
@@ -112,11 +112,15 @@ const quoteRead = tool({
   args: z.object({}).strict(),
   running: () => 'Calculando o orçamento',
   run: (ctx) => {
-    const q = quoteOf(canonical(ctx.design), ctx.prices);
-    const lines = q.lines.map((l) => `${l.section} | ${l.label} | ${quantity(l.qty)} ${l.unit} × ${money(l.unitPrice)} = ${money(l.total)}`);
+    const q = quoteOf(canonical(ctx.design), ctx.prices, ctx.quoteAdjust);
+    const lines = q.lines.map(
+      (l) =>
+        `${l.section} | ${l.label} | ${quantity(l.qty)} ${l.unit} × ${money(l.unitPrice)} = ${money(l.total)}${l.computedQty !== undefined ? ` (ajustado à mão; calculado ${quantity(l.computedQty)})` : ''}${l.extra ? ` (item à parte, id ${l.extra})` : ''}`,
+    );
+    const removed = q.removed.length ? [`Tirados à mão: ${q.removed.map((l) => `${l.section} | ${l.label}`).join('; ')}`] : [];
     ctx.note('quote');
     return ok(
-      [...lines, `Custo ${money(q.cost)} + margem ${ctx.prices.margin}% ${money(q.marginValue)} = total ${money(q.total)}`].join('\n'),
+      [...lines, ...removed, `Custo ${money(q.cost)} + margem ${ctx.prices.margin}% ${money(q.marginValue)} = total ${money(q.total)}`].join('\n'),
       `Calculei o orçamento: ${money(q.total)}`,
     );
   },
@@ -511,20 +515,208 @@ const uiTab = tool({
   args: z.object({ aba: z.enum(UI_TABS) }).strict(),
   run: (ctx, a) => {
     ctx.effect({ type: 'tab', tab: a.aba });
+    // Orçamento e corte também vão como cartão na resposta: no modo só
+    // conversa a aba não está à vista, e o cartão abre o editor inteiro.
+    if (a.aba === 'quote') ctx.card('quote');
+    if (a.aba === 'cut') ctx.card('cut');
     return ok('Aba aberta.', `Abri ${{ project: 'Projeto', room: 'Ambiente', quote: 'Orçamento', cut: 'Corte', parts: 'Peças', history: 'Versões' }[a.aba]}`);
   },
 });
 const exportFile = tool({
   name: 'export_file',
   description:
-    'Gera um arquivo da versão que este pedido grava: pdf (desenho, orçamento, peças e corte), png (foto da vista), parts-csv (lista de peças), cut-csv (plano de corte), cortecloud, json (projeto). Sai no fim do pedido, como download na tela da pessoa: só quando ela pediu o arquivo.',
+    'Gera um arquivo da versão que este pedido grava, anexado à resposta como cartão (a pessoa vê, abre e baixa quando quiser; nada baixa sozinho): pdf (projeto: desenho, orçamento, peças e corte), quote-pdf (só o orçamento, para mandar ao cliente), png (foto da vista), video (o móvel girando), parts-csv (lista de peças), cut-csv (plano de corte), cortecloud, json (projeto). Gerar de novo um formato que já está na conversa cria a geração seguinte do arquivo, e o anterior continua lá. Só quando a pessoa pediu o arquivo.',
   args: z.object({ formato: z.enum(EXPORT_KINDS) }).strict(),
   run: async (ctx, a) => {
     if (!(await fileAsked(ctx)))
-      return fail('A pessoa não pediu arquivo neste pedido: não exporte por conta própria (vira um download na tela dela). Siga sem arquivo.', 'Arquivo não pedido; segui sem');
+      return fail('A pessoa não pediu arquivo neste pedido: não gere por conta própria. Siga sem arquivo.', 'Arquivo não pedido; segui sem');
     ctx.effect({ type: 'export', kind: a.formato });
-    const name = { pdf: 'o PDF', png: 'a foto da vista', 'parts-csv': 'a lista de peças', 'cut-csv': 'o plano de corte', cortecloud: 'o arquivo Cortecloud', json: 'o projeto em JSON' }[a.formato];
-    return ok(`Feito: ${name} é gerado automaticamente quando este pedido terminar, a partir da versão final. Diga à pessoa que foi gerado.`, `Gerei ${name}`);
+    if (!ctx.exports.includes(a.formato)) ctx.exports.push(a.formato);
+    const name = {
+      pdf: 'o PDF do projeto',
+      'quote-pdf': 'o PDF do orçamento',
+      png: 'a foto da vista',
+      video: 'o vídeo do móvel girando',
+      'parts-csv': 'a lista de peças',
+      'cut-csv': 'o plano de corte',
+      cortecloud: 'o arquivo Cortecloud',
+      json: 'o projeto em JSON',
+    }[a.formato];
+    const before = ctx.project.messages.some((m) => m.blocks?.some((b) => b.kind === 'file' && b.format === a.formato));
+    return ok(
+      `Feito: ${name} sai anexado à resposta, gerado da versão final deste pedido${before ? '; é uma geração nova, e o arquivo anterior continua na conversa' : ''}. Diga que o arquivo está anexado, sem dizer que baixou.`,
+      `Gerei ${name}`,
+    );
+  },
+});
+
+const cardShow = tool({
+  name: 'card_show',
+  description:
+    'Mostra na resposta um cartão do estúdio, que a pessoa usa ali mesmo e abre na aba inteira: corte (plano de corte, com a chapa N em foco), orcamento (os itens citados em destaque) ou movel (desenho e medidas). Use quando a pessoa pede para ver, revisar, conferir ou mostrar o orçamento, os cortes e chapas, ou o móvel. Os números do cartão saem da versão final do pedido.',
+  args: z
+    .object({
+      cartao: z.enum(['corte', 'orcamento', 'movel']),
+      chapa: z.number().int().min(1).max(200).optional(),
+      itens: z.array(z.string().max(120)).max(12).optional(),
+    })
+    .strict(),
+  run: (ctx, a) => {
+    if (a.cartao === 'corte') {
+      const sheets = cutPlan(generateDesign(ctx.design).parts).sheets;
+      if (a.chapa && a.chapa > sheets.length)
+        return fail(`O plano tem ${sheets.length} ${sheets.length === 1 ? 'chapa' : 'chapas'}; não existe a chapa ${a.chapa}.`);
+      ctx.card('cut', a.chapa ? { sheet: a.chapa } : {});
+      ctx.note('cut');
+      return ok(
+        `Cartão do plano de corte na resposta (${sheets.length} ${sheets.length === 1 ? 'chapa' : 'chapas'}${a.chapa ? `, chapa ${a.chapa} em foco` : ''}).`,
+        a.chapa ? `Mostrei a chapa ${a.chapa}` : 'Mostrei o plano de corte',
+      );
+    }
+    if (a.cartao === 'orcamento') {
+      const q = quoteOf(canonical(ctx.design), ctx.prices, ctx.quoteAdjust);
+      const focus = (a.itens ?? []).flatMap((item) => {
+        const hit = matchLines([...q.lines, ...q.removed], item);
+        return hit.length === 1 ? [hit[0].key!] : [];
+      });
+      ctx.card('quote', focus.length ? { focus } : {});
+      ctx.note('quote');
+      return ok(`Cartão do orçamento na resposta: total ${money(q.total)}, ${q.lines.length} itens.`, 'Mostrei o orçamento');
+    }
+    ctx.card('design');
+    return ok('Cartão do móvel na resposta.', 'Mostrei o móvel');
+  },
+});
+
+/** Texto sem acento e em minúsculas, para achar a linha pelo nome falado. */
+function plain(text: string) {
+  return text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim();
+}
+/** Linhas do orçamento que o texto aponta: a chave, o rótulo exato ou um trecho único. */
+function matchLines(lines: readonly QuoteLine[], text: string) {
+  const want = plain(text);
+  const exact = lines.filter((l) => plain(l.key ?? '') === want || plain(l.label) === want || (!!l.extra && plain(l.extra) === want));
+  if (exact.length) return exact;
+  return lines.filter((l) => plain(l.label).includes(want) || plain(`${l.section} ${l.label}`).includes(want));
+}
+
+const quoteEdit = tool({
+  name: 'quote_edit',
+  description:
+    'Ajusta o orçamento à mão, sem mudar o móvel (vira versão; PDF já gerado não muda): tirar uma linha calculada (ex.: Montagem, quando o cliente monta), voltar uma tirada, trocar a quantidade de uma linha (calculada:true volta à conta do app), pôr itens à parte (frete, instalação, projeto) e tirá-los com tirar. Itens pelo rótulo do quote_read (basta um trecho que só ele tem). Preço unitário e margem são da tabela (prices_set).',
+  args: z
+    .object({
+      tirar: z.array(z.string().max(120)).max(20).optional(),
+      voltar: z.array(z.string().max(120)).max(20).optional(),
+      quantidades: z
+        .array(z.object({ item: z.string().max(120), qtd: z.number().min(0).max(100000).optional(), calculada: z.boolean().optional() }).strict())
+        .max(20)
+        .optional(),
+      extras: z
+        .array(
+          z
+            .object({
+              rotulo: z.string().trim().min(1).max(80),
+              qtd: z.number().min(0).max(100000).default(1),
+              unidade: z.string().trim().min(1).max(16).default('un'),
+              unitario: z.number().min(0).max(10000000),
+            })
+            .strict(),
+        )
+        .max(10)
+        .optional(),
+      limpar: z.boolean().optional(),
+    })
+    .strict(),
+  running: () => 'Ajustando o orçamento',
+  run: (ctx, a) => {
+    const design = canonical(ctx.design);
+    const adjust: QuoteAdjust = a.limpar ? {} : structuredClone(ctx.quoteAdjust ?? {});
+    const lines: NonNullable<QuoteAdjust['lines']> = { ...adjust.lines };
+    let extras = [...(adjust.extras ?? [])];
+    // A conta sem ajuste: as linhas calculadas que dá para tirar e ajustar.
+    const computed = quoteOf(design, ctx.prices).lines;
+    const asExtras = (): QuoteLine[] =>
+      extras.map((e) => ({
+        section: 'Outros',
+        label: e.label,
+        qty: e.qty,
+        unit: e.unit,
+        unitPrice: e.unitPrice,
+        total: e.qty * e.unitPrice,
+        parts: [],
+        key: `Outros|${e.id}`,
+        extra: e.id,
+      }));
+    const done: string[] = [];
+    const errors: string[] = [];
+    const focus: string[] = [];
+    const pick = (item: string, pool: QuoteLine[]) => {
+      const hit = matchLines(pool, item);
+      if (hit.length === 1) return hit[0];
+      errors.push(
+        hit.length
+          ? `"${item}" aponta para ${hit.length} itens (${hit.map((l) => l.label).join('; ')}): seja mais específico.`
+          : `Não achei "${item}" no orçamento. Itens: ${pool.map((l) => l.label).join('; ') || 'nenhum'}.`,
+      );
+      return null;
+    };
+    for (const item of a.tirar ?? []) {
+      const line = pick(item, [...computed.filter((l) => !lines[l.key!]?.removed), ...asExtras()]);
+      if (!line) continue;
+      if (line.extra) extras = extras.filter((e) => e.id !== line.extra);
+      else lines[line.key!] = { ...lines[line.key!], removed: true };
+      done.push(`tirei ${line.label}`);
+      focus.push(line.key!);
+    }
+    for (const item of a.voltar ?? []) {
+      const line = pick(item, computed.filter((l) => lines[l.key!]?.removed));
+      if (!line) continue;
+      lines[line.key!] = lines[line.key!].qty !== undefined ? { qty: lines[line.key!].qty } : {};
+      done.push(`voltei ${line.label}`);
+      focus.push(line.key!);
+    }
+    for (const q of a.quantidades ?? []) {
+      const line = pick(q.item, [...computed.filter((l) => !lines[l.key!]?.removed), ...asExtras()]);
+      if (!line) continue;
+      if (line.extra) {
+        if (q.qtd === undefined) continue;
+        extras = extras.map((e) => (e.id === line.extra ? { ...e, qty: q.qtd! } : e));
+        done.push(`${line.label} com ${quantity(q.qtd)} ${line.unit}`);
+      } else if (q.calculada || q.qtd === undefined) {
+        lines[line.key!] = lines[line.key!]?.removed ? { removed: true } : {};
+        done.push(`${line.label} volta a ${quantity(line.qty)} ${line.unit} (conta do app)`);
+      } else {
+        lines[line.key!] = { ...lines[line.key!], qty: q.qtd };
+        done.push(`${line.label} com ${quantity(q.qtd)} ${line.unit} (o app calcula ${quantity(line.qty)})`);
+      }
+      focus.push(line.key!);
+    }
+    for (const e of a.extras ?? []) {
+      const base =
+        plain(e.rotulo)
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')
+          .slice(0, 30) || 'item';
+      let id = base;
+      for (let i = 2; extras.some((x) => x.id === id); i++) id = `${base}-${i}`;
+      extras.push({ id, label: e.rotulo, qty: e.qtd, unit: e.unidade, unitPrice: e.unitario });
+      done.push(`pus ${e.rotulo} (${quantity(e.qtd)} ${e.unidade} × ${money(e.unitario)})`);
+      focus.push(`Outros|${id}`);
+    }
+    if (errors.length && !done.length && !a.limpar) return fail(errors.join(' '));
+    ctx.quoteAdjust = cleanAdjust({ lines, extras });
+    const q = quoteOf(design, ctx.prices, ctx.quoteAdjust);
+    ctx.card('quote', focus.length ? { focus } : {});
+    ctx.note('quote');
+    return ok(
+      `${a.limpar ? 'Ajustes à mão apagados. ' : ''}${done.length ? `Feito: ${done.join('; ')}. ` : ''}${errors.join(' ')} Total agora ${money(q.total)} (custo ${money(q.cost)} + margem ${money(q.marginValue)}). Vira versão no fim do pedido; o cartão do orçamento vai na resposta.`,
+      `Ajustei o orçamento: ${money(q.total)}`,
+    );
   },
 });
 
@@ -570,7 +762,7 @@ const pricesSet = tool({
     });
     ctx.prices = next;
     ctx.effect({ type: 'prices', prices: next });
-    const q = quoteOf(canonical(ctx.design), next);
+    const q = quoteOf(canonical(ctx.design), next, ctx.quoteAdjust);
     return ok(`Tabela atualizada. Total agora ${money(q.total)} (custo ${money(q.cost)} + margem ${next.margin}%).`, `Ajustei os preços: total ${money(q.total)}`);
   },
 });
@@ -754,7 +946,7 @@ const finishTool = tool({
       // Resposta longa é onde a IA soma totais de cabeça e erra: as do bench
       // ficam abaixo de 700 caracteres (mediana 267).
       mensagem: z.string().trim().min(1).max(700, 'Mensagem longa demais: 1 a 3 frases (até 700 caracteres), só o que mudou, sem somar totais de cabeça. Chame finish de novo.'),
-      sugestoes: z.array(z.string().max(80)).max(4).default([]),
+      sugestoes: z.array(z.string().max(80)).max(6).default([]),
     })
     .strict(),
   run: async (ctx, a) => {
@@ -763,10 +955,10 @@ const finishTool = tool({
     // Com opções montadas, a resposta compara os cartões (números do app, do
     // options_make) e o projeto não muda: essas duas conferências não valem.
     const options = !!ctx.options?.length;
-    const wrong = options ? [] : factClaims(a.mensagem, designFacts(ctx.design, ctx.prices), designFacts(ctx.turnStart.design, ctx.prices));
+    const wrong = options ? [] : factClaims(a.mensagem, designFacts(ctx.design, ctx.prices, ctx.quoteAdjust), designFacts(ctx.turnStart.design, ctx.prices, ctx.turnStart.quote));
     if (wrong.length)
       issues.push(
-        `A mensagem ${wrong.join('; ')}. Fatos do estado final: ${factsLine(designFacts(ctx.design, ctx.prices))}. Reescreva só com esses números.`,
+        `A mensagem ${wrong.join('; ')}. Fatos do estado final: ${factsLine(designFacts(ctx.design, ctx.prices, ctx.quoteAdjust))}. Reescreva só com esses números.`,
       );
     // Conferência visual só vale para o rascunho que ficou: desenho olhado
     // antes da última mudança é evidência velha. E o desenho do render_look
@@ -787,8 +979,8 @@ const finishTool = tool({
     // final, com as alavancas, em vez de aceitar a ação feita como prova.
     const goal = options ? null : objectiveOf(ctx.request);
     if (goal) {
-      const b = designFacts(ctx.turnStart.design, ctx.prices),
-        n = designFacts(ctx.design, ctx.prices);
+      const b = designFacts(ctx.turnStart.design, ctx.prices, ctx.turnStart.quote),
+        n = designFacts(ctx.design, ctx.prices, ctx.quoteAdjust);
       if (goal === 'sheets' && n.sheets >= b.sheets)
         issues.push(`O pedido quer menos chapas e o plano segue com ${n.sheets} (antes do pedido, ${b.sheets}). ${sheetLevers(ctx.design)} Mude o que for preciso, ou diga na resposta por que não dá.`);
       if (goal === 'cost' && n.total >= b.total - 0.005)
@@ -860,8 +1052,8 @@ const issueKey = (i: { code: string; key?: string }) => i.key ?? i.code;
  * espessura decidem as chapas, e a IA trocava a cor achando que reduzia.
  */
 function sheetNote(ctx: AgentContext, before: Design, after: Design) {
-  const a = designFacts(before, ctx.prices),
-    b = designFacts(after, ctx.prices);
+  const a = designFacts(before, ctx.prices, ctx.quoteAdjust),
+    b = designFacts(after, ctx.prices, ctx.quoteAdjust);
   if (JSON.stringify(a.groups) === JSON.stringify(b.groups)) return '';
   return ` Plano de corte agora: ${factsLine(b)} (antes: ${a.sheets}).`;
 }
@@ -1000,7 +1192,7 @@ export const WANTS = {
 export const WANTS_MIN = 0.7;
 
 /** Palavras de arquivo no pedido: basta uma para o export valer. */
-const FILE_WORDS = /\b(pdf|csv|png|json|cortecloud|arquivo|baix|export|imprim|planilha|download|mand[ae]|envi[ae]|plano de corte|lista de peças)/i;
+const FILE_WORDS = /\b(pdf|csv|png|json|cortecloud|arquivo|baix|export|imprim|planilha|download|mand[ae]|envi[ae]|plano de corte|lista de peças|v[ií]deo|anex[oae])/i;
 /**
  * O pedido pede arquivo? Pelas palavras, ou pelo Jev (WANTS, perguntado no
  * começo do turno). Download que ninguém pediu aparecia no fim de "deixe o
@@ -1115,7 +1307,7 @@ const renderLook = tool({
 const clip = (text: string, max: number) => (text.length <= max ? text : `${text.slice(0, text.lastIndexOf(' ', max)).trimEnd()}…`);
 /** Números de uma opção, todos do código: a IA só dá o nome e a frase. */
 export function optionCard(id: string, name: string, brief: string, design: Design, ctx: AgentContext, note: string): OptionCard {
-  const q = quoteOf(canonical(design), ctx.prices);
+  const q = quoteOf(canonical(design), ctx.prices, ctx.quoteAdjust);
   const b = generateComposition(canonical(design)).bounds;
   return {
     id,
@@ -1200,7 +1392,9 @@ export const TOOLS: Tool[] = [
   frontsOpen,
   selectTool,
   uiTab,
+  cardShow,
   exportFile,
+  quoteEdit,
   pricesSet,
   historyList,
   historyGoto,

@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { TurnProgress, turnActivity, type Pulse, type TimedProgress } from '@/components/turn-progress';
 import { ActivityGlyph, type RunningTool } from '@/components/turn-activity';
 import { AgentStepsSummary, TurnFacts, type LiveStep } from '@/components/agent-steps';
-import { LIVE_EFFECTS, type AgentEvent, type Effect, type ExportKind, type UiState } from '@/lib/agent/types';
-import { ModelPicker } from '@/components/model-picker';
+import { LIVE_EFFECTS, type AgentEvent, type Effect, type UiState } from '@/lib/agent/types';
+import { ModelEffort } from '@/components/model-effort';
+import { SuggestionStrip } from '@/components/suggestion-strip';
 import { UsageMeter } from '@/components/usage-meter';
 import { ChangeSet } from '@/components/change-set';
 import { BranchConfirm, type BranchConfirmData } from '@/components/branch-confirm';
@@ -14,8 +15,8 @@ import { canRedo, canUndo, redoIsStep, undoIsStep } from '@/lib/placement';
 import { designDiff, partDiff, playbackFrames } from '@/lib/diff';
 import { readEvents } from '@/lib/sse';
 import { type Progress, type TextPreview } from '@/lib/progress';
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { flushSync } from 'react-dom';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { createPortal, flushSync } from 'react-dom';
 import { renderPrintShot } from '@/lib/print-render';
 import { shrinkImage } from '@/lib/shrink-image';
 import {
@@ -77,13 +78,29 @@ import {
   Move,
   Minus,
   Search,
+  Columns3,
+  MessageSquareText,
+  ExternalLink,
+  Palette,
+  FileDown,
 } from 'lucide-react';
 import { useProjectTools } from '@/hooks/use-project-tools';
+import { RichContext, type PanelTarget, type QuoteDraft, type RichApi } from '@/components/rich/rich-context';
+import { RichBlocks } from '@/components/rich/rich-blocks';
+import { ExpandedView } from '@/components/rich/expanded-view';
+import { FilePreview } from '@/components/rich/file-preview';
+import { fileUrl } from '@/components/rich/rich-context';
+import { FILE_FORMATS, sizeLabel, type FileBlock, type FileFormat } from '@/lib/rich';
+import { draftChanges, draftLabel } from '@/lib/quote-draft';
+import { furniturePhoto, recordTurntable } from '@/lib/turntable';
+import { mergeSuggestions, stateSuggestions, type SuggestionKind } from '@/lib/suggest';
+import type { Quote, QuoteAdjust } from '@/lib/quote';
 import { useEvent } from '@/hooks/use-event';
 import { useDelayedTrue } from '@/hooks/use-delayed';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import type { ImageRef } from '@/lib/images';
+import type { PhotoChip } from '@/lib/photo-classify';
 import { renderPartThumb, thumbKey } from '@/lib/part-thumb';
 import FurnitureView, { type ViewMode } from '@/components/furniture-view';
 import {
@@ -122,7 +139,7 @@ import { emptyRoom, fitWallsToCeiling, roomChangeLabel, fitReport, fitSummary, f
 import { moduleBoxes } from '@/lib/move';
 import { DEFAULT_PRICES, mergePrices, money, quote as buildQuote, type Prices } from '@/lib/quote';
 import { friendlyError } from '@/lib/errors';
-import { DEFAULT_MODEL, MODEL_KEYS, modelInfo, percent, tokensLabel, usageBreakdown, usd, type ModelKey, type TurnUsage } from '@/lib/models';
+import { DEFAULT_MODEL, EFFORTS, modelInfo, percent, tokensLabel, usageBreakdown, usd, type Effort, type ModelKey, type TurnUsage } from '@/lib/models';
 type State = Project & {
   /** Conversa limpa guardada no servidor: dá para trazer de volta. */
   chatCleared?: { count: number; at: string };
@@ -187,15 +204,10 @@ async function api<T = State>(path: string, body?: unknown): Promise<T> {
   if (!r.ok) throw new Error(d.error || 'Não foi possível concluir.');
   return d;
 }
-/** Formato do assistente → item do menu Exportar. */
-const EXPORT_ID: Record<ExportKind, string> = {
-  pdf: 'print',
-  png: 'png',
-  'parts-csv': 'csv',
-  'cut-csv': 'cut',
-  cortecloud: 'cortecloud',
-  json: 'json',
-};
+/** Disposição da tela: conversa, cena e painel lado a lado, ou só a conversa. */
+type Layout = 'split' | 'chat';
+/** Janela grande aberta por um cartão, e de onde ela veio (foco e rolagem voltam). */
+type OpenPanel = { target: PanelTarget; opener: HTMLElement | null; scroll: number; block: string | null };
 /** Leitura de preferência local: '' quando o navegador bloqueia o storage. */
 function readLocal(key: string) {
   try {
@@ -343,6 +355,33 @@ const WS_NAV: { id: Workspace; label: string; icon: React.ReactNode }[] = [
   { id: 'numbers', label: 'Números', icon: <Calculator size={21} /> },
 ];
 type PipCorner = 'tl' | 'tr' | 'bl' | 'br';
+/** Ícone de cada família de sugestão: desenho, acabamento, números, arquivo, explorar. */
+const SUGGESTION_ICON: Record<SuggestionKind, React.ReactNode> = {
+  design: <Boxes size={12} />,
+  finish: <Palette size={12} />,
+  numbers: <Receipt size={12} />,
+  file: <FileDown size={12} />,
+  explore: <Sparkles size={12} />,
+};
+/** O que a classificação rápida viu na foto: certo em destaque, incerto com "?". */
+function PhotoChips({ chips }: { chips: PhotoChip[] | null }) {
+  if (chips && !chips.length) return null;
+  return (
+    <div className="photo-chips" aria-label="O que vi na foto">
+      {chips ? (
+        chips.map((c) => (
+          <span key={c.label} className={c.sure ? 'photo-chip' : 'photo-chip unsure'} title={c.title}>
+            {c.label}
+            {!c.sure && '?'}
+          </span>
+        ))
+      ) : (
+        <span className="photo-chip reading">Lendo a foto…</span>
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   const [opened,setOpened] = useState<Record<string,number>>({});
   const [p, setP] = useState<State | null>(null),
@@ -366,6 +405,8 @@ export default function Home() {
     [gapTarget, setGapTarget] = useState(''),
     [gapPick, setGapPick] = useState('0'),
     [attachment, setAttachment] = useState<ImageRef | null>(null),
+    // O que a classificação rápida viu na foto anexada; `chips` null enquanto lê.
+    [photoChips, setPhotoChips] = useState<{ id: string; chips: PhotoChip[] | null } | null>(null),
     [thumbs, setThumbs] = useState<Record<string, string>>({}),
     [pendingImage, setPendingImage] = useState<ImageRef | null>(null),
     [failedTurn, setFailedTurn] = useState<{ text: string; image: ImageRef | null; error: string; requestId: string } | null>(null),
@@ -404,7 +445,7 @@ export default function Home() {
     [cutFocus, setCutFocus] = useState<{ ids: string[]; mode: 'sheet' | 'piece' } | null>(null),
     [scrubbing, setScrubbing] = useState(false),
     [model, setModel] = useState<ModelKey>(DEFAULT_MODEL),
-    [available, setAvailable] = useState<ModelKey[]>([]),
+    [effort, setEffort] = useState<Effort>('low'),
     [pulse, setPulse] = useState<Pulse | null>(null),
     [liveUsage, setLiveUsage] = useState<TurnUsage | null>(null),
     [sessionUsage, setSessionUsage] = useState<TurnUsage[]>([]),
@@ -485,6 +526,37 @@ export default function Home() {
   // esperam a versão gravada chegar.
   // Assistente em laço é o padrão; quem desligar volta ao caminho antigo.
   const [agentOn, setAgentOn] = useState(true);
+  // ── Conteúdo rico e modo só conversa ────────────────────────────────────
+  const [layout, setLayout] = useState<Layout>('split');
+  /** Barra lateral do modo só conversa: aberta (nomes) ou recolhida (ícones). */
+  const [sideOpen, setSideOpen] = useState(true);
+  /**
+   * A cena 3D mora num contêiner próprio que muda de lugar sem remontar: na
+   * área da cena (modo dividido, janela grande) ou dentro do cartão do móvel
+   * na conversa (só conversa). A câmera e a seleção continuam as mesmas.
+   */
+  const [sceneHost, setSceneHost] = useState<HTMLDivElement | null>(null);
+  /** Lugar da cena no cartão do móvel mais novo, quando ele está à vista. */
+  const [inlineSlot, setInlineSlot] = useState<HTMLElement | null>(null);
+  /** A pessoa clicou na cena da conversa: a roda do mouse passa a aproximar. */
+  const [inlineActive, setInlineActive] = useState(false);
+  useEffect(() => {
+    const host = document.createElement('div');
+    host.className = 'scene-host';
+    setSceneHost(host);
+  }, []);
+  const viewportSlot = useRef<HTMLDivElement>(null);
+  const [panel, setPanel] = useState<OpenPanel | null>(null);
+  /** Rascunho do orçamento (ajustes não gravados), um por projeto. */
+  const [quoteDraft, setQuoteDraft] = useState<QuoteDraft | null>(null);
+  const [generating, setGenerating] = useState<FileFormat[]>([]);
+  const [fulfilling, setFulfilling] = useState<string[]>([]);
+  /** Chapa e linhas que a aba (modo dividido) abre por um cartão. */
+  const [tabFocus, setTabFocus] = useState<{ sheet?: number; quote?: string[]; at: number } | null>(null);
+  const panelRef = useRef<OpenPanel | null>(null);
+  useEffect(() => {
+    panelRef.current = panel;
+  });
   const [agentSteps, setAgentSteps] = useState<LiveStep[]>([]);
   const [agentPlan, setAgentPlan] = useState<string[]>([]);
   const [agentRunning, setAgentRunning] = useState<RunningTool | null>(null);
@@ -525,18 +597,12 @@ export default function Home() {
   useEffect(() => {
     setLive(readLocal('merce-live') === '1');
     setAgentOn(readLocal('merce-agent') !== '0');
-    // Escolha explícita do modelo mora em merce-model-choice. A chave antiga
-    // (merce-model) guardava "deepseek" quando ele era o padrão: esse valor
-    // é tratado como o padrão antigo e dá lugar ao novo; outro modelo salvo
-    // lá foi escolha da pessoa e passa para a chave nova.
-    const chosen = readLocal('merce-model-choice');
-    const legacy = readLocal('merce-model');
-    if ((MODEL_KEYS as readonly string[]).includes(chosen)) setModel(chosen as ModelKey);
-    else if (legacy && legacy !== 'deepseek' && (MODEL_KEYS as readonly string[]).includes(legacy)) {
-      setModel(legacy as ModelKey);
-      writeLocal('merce-model-choice', legacy);
-    }
-    if (legacy) removeLocal('merce-model');
+    // Um modelo só por enquanto (o padrão do estúdio): escolhas antigas de
+    // modelo saem. O que a pessoa escolhe é o esforço, lembrado aqui.
+    removeLocal('merce-model');
+    removeLocal('merce-model-choice');
+    const savedEffort = readLocal('merce-effort');
+    if ((EFFORTS as readonly string[]).includes(savedEffort)) setEffort(savedEffort as Effort);
     // Custo desta aba: sessionStorage, que some ao fechar a aba e sobrevive ao
     // recarregamento.
     try {
@@ -549,6 +615,8 @@ export default function Home() {
     if (readLocal('merce-room') === '0') setShowRoom(false);
     if (readLocal('merce-chat') === '0') setChatOpen(false);
     if (readLocal('merce-inspector') === '0') setInspectorOpen(false);
+    if (readLocal('merce-layout') === 'chat') setLayout('chat');
+    if (readLocal('merce-side') === '0') setSideOpen(false);
     const savedTab = readLocal('merce-tab');
     if (TABS.some((v) => v.id === savedTab)) setTab(savedTab as Tab);
     if (savedTab === 'project' || savedTab === 'room') wsTab.current.build = savedTab;
@@ -582,9 +650,9 @@ export default function Home() {
       }
     } catch {}
   }, []);
-  const chooseModel = (key: ModelKey) => {
-    setModel(key);
-    writeLocal('merce-model-choice', key);
+  const chooseEffort = (next: Effort) => {
+    setEffort(next);
+    writeLocal('merce-effort', next);
   };
   /** Soma à conta desta aba o custo de um turno, uma vez por pedido. */
   const recordSessionUsage = (state: State | undefined, requestId: string) => {
@@ -934,9 +1002,22 @@ export default function Home() {
   const displaySelected = useMemo(() => (visualParams ? selectedPartIds(visualParams, selected) : []), [visualParams, selected]);
   // Orçamento e plano de corte sempre da versão exibida: arrastar a linha do
   // tempo mostra quanto cada versão custava.
+  // Ajuste à mão do orçamento da versão à vista (a prévia de uma versão
+  // antiga traz o dela); o rascunho só vale sobre a versão vigente, sem prévia.
+  const visualAdjust = p ? p.revisions[historyPreview ?? p.cursor]?.quote : undefined;
   const quote = useMemo(
-    () => (visualParams ? buildQuote(visualParts as ModularPart[], visualParams.modules.length, prices, fittingsOf(canonical(visualParams), visualParts as ModularPart[])) : null),
-    [visualParts, visualParams, prices],
+    () => (visualParams ? buildQuote(visualParts as ModularPart[], visualParams.modules.length, prices, fittingsOf(canonical(visualParams), visualParts as ModularPart[]), visualAdjust) : null),
+    [visualParts, visualParams, prices, visualAdjust],
+  );
+  const currentRevisionId = p?.revisions[p.cursor].id;
+  const liveDraft = quoteDraft && quoteDraft.revisionId === currentRevisionId && historyPreview === null && !agentDraft && !styleShown && !reviewFrame ? quoteDraft : null;
+  /** O orçamento que o painel mostra: o salvo, ou o rascunho por cima dele. */
+  const panelQuote = useMemo(
+    () =>
+      liveDraft && visualParams
+        ? buildQuote(visualParts as ModularPart[], visualParams.modules.length, prices, fittingsOf(canonical(visualParams), visualParts as ModularPart[]), liveDraft.adjust)
+        : quote,
+    [liveDraft, visualParts, visualParams, prices, quote],
   );
   // Quanto custava a versão anterior à exibida: a mudança mais recente em reais.
   const shownIndex = p ? (historyPreview ?? p.cursor) : 0;
@@ -944,7 +1025,7 @@ export default function Home() {
   const previousQuote = useMemo(() => {
     if (!previousRevision) return null;
     const d = designOf(previousRevision.params);
-    return { version: shownIndex, total: buildQuote(d.parts as ModularPart[], previousRevision.params.modules.length, prices, fittingsOf(canonical(previousRevision.params), d.parts as ModularPart[])).total };
+    return { version: shownIndex, total: buildQuote(d.parts as ModularPart[], previousRevision.params.modules.length, prices, fittingsOf(canonical(previousRevision.params), d.parts as ModularPart[]), previousRevision.quote).total };
   }, [previousRevision, shownIndex, prices]);
   // Números do plano de corte do projeto gravado (a lista de peças é dele).
   const savedParts = p?.parts;
@@ -1204,7 +1285,8 @@ export default function Home() {
         await refresh();
         const h = await api<{ configured: boolean; models?: ModelKey[] }>('/api/health');
         setOnline(h.configured);
-        if (h.models) setAvailable(h.models);
+        // Sem credencial do modelo padrão neste servidor: o primeiro que houver.
+        if (h.models?.length && !h.models.includes(DEFAULT_MODEL)) setModel(h.models[0]);
       } catch (e) {
         setError(friendlyError(e));
       }
@@ -1286,6 +1368,9 @@ export default function Home() {
         return;
       }
       if (e.ctrlKey || e.metaKey || e.altKey || typing(e.target)) return;
+      // Janela grande aberta (orçamento, corte, arquivo): as teclas soltas
+      // não mexem na cena escondida atrás dela.
+      if (panelRef.current && panelRef.current.target.kind !== 'scene') return;
       const viewKey = VIEWS.find((v) => v.key === key);
       if (viewKey) setView(viewKey.id);
       else if (key === 'e') setExploded((v) => !v);
@@ -1794,8 +1879,21 @@ export default function Home() {
       const result = await response.json() as ImageRef & { error?: string };
       if (!response.ok) throw new Error(result.error || 'Não foi possível anexar a imagem.');
       setAttachment(result);
+      classifyPhoto(result.id);
     } catch (e) { setError(friendlyError(e)); }
     finally { setBusy(false); setUploading(false); }
+  }
+  /**
+   * Classifica a foto enquanto a pessoa escreve: o turno encontra o resultado
+   * pronto, e os chips mostram o que foi visto. Falha não aparece.
+   */
+  function classifyPhoto(id: string) {
+    setPhotoChips({ id, chips: null });
+    const done = (chips: PhotoChip[]) => setPhotoChips((v) => (v?.id === id ? { id, chips } : v));
+    fetch('/api/images/classify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+      .then((r) => (r.ok ? r.json() : {}) as Promise<{ chips?: PhotoChip[] }> | { chips?: PhotoChip[] })
+      .then((v) => done(v.chips ?? []))
+      .catch(() => done([]));
   }
   function seekVersion(cursor: number) {
     if (!p || busy) return;
@@ -1923,6 +2021,7 @@ export default function Home() {
           requestId,
           ...(edit ? { editOf: edit.id } : {}),
           model,
+          effort,
           prices,
           agent: agentOn,
           ui: {
@@ -2019,6 +2118,8 @@ export default function Home() {
           // O assistente em laço já montou ao vivo: não precisa repetir a animação.
           if (last?.role === 'assistant' && last.report?.highlights?.length && last.result?.appliedOperations?.length && !last.report.steps?.length)
             startReview(last.id, false);
+          // Foto e vídeo pedidos na resposta: a página grava e anexa ao cartão.
+          fulfillPending(finalState);
         } else if (event === 'error') {
           const payload = JSON.parse(data) as { error: string; state?: State };
           // O servidor já salvou o pedido: aceitar o estado mantém a versão em dia.
@@ -2195,9 +2296,16 @@ export default function Home() {
       if (e.what === 'explode') setExploded(e.on);
       else if (e.what === 'dims') toggleDims(e.on);
       else toggleRoom(e.on);
-    } else if (e.type === 'tab') chooseTab(e.tab);
-    else if (e.type === 'prices') updatePrices(e.prices);
-    else if (e.type === 'export') exports.find((x) => x.id === EXPORT_ID[e.kind])?.run();
+    } else if (e.type === 'tab') {
+      // Só conversa: a aba fica escolhida para quando a pessoa abrir o painel;
+      // nada abre sozinho (o cartão da resposta é que leva até ela).
+      if (layoutRef.current === 'chat' && !appRef.current) {
+        setTab(e.tab);
+        writeLocal('merce-tab', e.tab);
+      } else chooseTab(e.tab);
+    } else if (e.type === 'prices') updatePrices(e.prices);
+    // 'export' fica no registro do turno: o arquivo chega como cartão na
+    // resposta (lib/rich.ts) e só baixa quando a pessoa clica.
   });
   useEffect(() => {
     const due = pendingEffects.current;
@@ -2208,6 +2316,284 @@ export default function Home() {
       for (const e of due) applyEffect(e);
     }, 0);
   }, [p, applyEffect]);
+  // ── Conteúdo rico: cartões, arquivos, janela grande e modo só conversa ──
+  const layoutRef = useRef<Layout>(layout);
+  useEffect(() => {
+    layoutRef.current = layout;
+  });
+  const chooseLayout = (next: Layout) => {
+    setLayout(next);
+    writeLocal('merce-layout', next);
+    // Trocar de modo fecha a janela grande, mas nada se perde: o rascunho do
+    // orçamento e o texto do campo ficam na página.
+    setPanel(null);
+  };
+  // Rascunho do orçamento guardado neste navegador, por projeto: sobrevive a
+  // trocar de modo, fechar a janela e recarregar a página.
+  const projectId = p?.id;
+  useEffect(() => {
+    if (!projectId) return;
+    try {
+      const raw = readLocal(`merce-quote-draft:${projectId}`);
+      setQuoteDraft(raw ? (JSON.parse(raw) as QuoteDraft) : null);
+    } catch {
+      setQuoteDraft(null);
+    }
+  }, [projectId]);
+  const storeDraft = (next: QuoteDraft | null) => {
+    setQuoteDraft(next);
+    if (!p) return;
+    if (next) writeLocal(`merce-quote-draft:${p.id}`, JSON.stringify(next));
+    else removeLocal(`merce-quote-draft:${p.id}`);
+  };
+  const savedAdjust = p?.revisions[p.cursor].quote;
+  /**
+   * Rascunho feito sobre outra versão (a IA ou um Ctrl+Z mudou o projeto
+   * antes de gravar): não some calado, fica à espera de retomar ou descartar.
+   */
+  const staleDraft =
+    p && quoteDraft && quoteDraft.revisionId !== p.revisions[p.cursor].id
+      ? { revision: p.revisions.find((r) => r.id === quoteDraft.revisionId)?.number ?? null, changes: quoteDraft.changes }
+      : null;
+  const adoptDraft = () => {
+    if (!p || !quoteDraft) return;
+    const changes = draftChanges(savedAdjust, quoteDraft.adjust);
+    storeDraft(changes ? { revisionId: p.revisions[p.cursor].id, adjust: quoteDraft.adjust, changes } : null);
+  };
+  const setDraftAdjust = (adjust: QuoteAdjust | undefined) => {
+    if (!p) return;
+    const changes = draftChanges(savedAdjust, adjust);
+    storeDraft(changes ? { revisionId: p.revisions[p.cursor].id, adjust, changes } : null);
+  };
+  /** Nome de uma linha pela chave (para o rótulo da versão). */
+  const lineLabel = (key: string) => {
+    const all = [...(panelQuote?.lines ?? []), ...(panelQuote?.removed ?? []), ...(quote?.lines ?? []), ...(quote?.removed ?? [])];
+    return all.find((l) => l.key === key)?.label ?? savedAdjust?.extras?.find((e) => `Outros|${e.id}` === key)?.label ?? key.split('|').slice(1).join('|');
+  };
+  async function saveQuoteDraft() {
+    if (!p || !liveDraft) return;
+    const draft = liveDraft;
+    const label = draftLabel(savedAdjust, draft.adjust, lineLabel);
+    await guardTruncation(async () => {
+      const next = await action('quote', { adjust: draft.adjust ?? null, label });
+      if (next) storeDraft(null);
+    }, label);
+  }
+  /** Último arquivo de cada um: um bloco mais novo do mesmo formato o substitui. */
+  const supersede = useMemo(() => {
+    const map = new Map<string, FileBlock>();
+    for (const m of p?.messages ?? []) for (const b of m.blocks ?? []) if (b.kind === 'file' && b.supersedes) map.set(b.supersedes, b);
+    return map;
+  }, [p?.messages]);
+  /** Bloco de arquivo pendente que a página grava (foto, vídeo). */
+  async function fulfillFile(messageId: string, block: FileBlock) {
+    const proj = acceptedState.current.p;
+    if (!proj || fulfillingRef.current.has(block.id)) return;
+    fulfillingRef.current.add(block.id);
+    setFulfilling((v) => [...v, block.id]);
+    const rev = proj.revisions.find((r) => r.id === block.revisionId) ?? proj.revisions[proj.cursor];
+    try {
+      const params = canonical(rev.params);
+      const parts = drawingParts(params);
+      const fittings = fittingsOf(params);
+      const query = new URLSearchParams({ id: proj.id, messageId, blockId: block.id });
+      let body: Blob;
+      if (block.format === 'video') {
+        const made = await recordTurntable(parts, rev.params, fittings);
+        body = made.blob;
+        query.set('durationMs', String(made.durationMs));
+        query.set('width', String(made.width));
+        query.set('height', String(made.height));
+      } else {
+        const made = await furniturePhoto(parts, rev.params, fittings);
+        if (!made) throw new Error('Sem WebGL para desenhar o móvel.');
+        body = made.blob;
+        query.set('width', String(made.width));
+        query.set('height', String(made.height));
+      }
+      // O arquivo vai cru, com o tipo dele: multipart grande o vinext recusa.
+      const r = await fetch(`/api/files?${query}`, { method: 'POST', headers: { 'Content-Type': body.type || 'application/octet-stream' }, body });
+      const d = (await r.json()) as State & { error?: string };
+      if (!r.ok) throw new Error(d.error || 'Não consegui guardar o arquivo.');
+      accept(d);
+    } catch (e) {
+      try {
+        accept(await api<State>('/api/files', { action: 'fail', id: proj.id, messageId, blockId: block.id, error: friendlyError(e).slice(0, 300) }));
+      } catch {
+        setError(friendlyError(e));
+      }
+    } finally {
+      fulfillingRef.current.delete(block.id);
+      setFulfilling((v) => v.filter((id) => id !== block.id));
+    }
+  }
+  const fulfillingRef = useRef(new Set<string>());
+  /** Arquivos pendentes da última resposta: a página grava logo que ela chega. */
+  const fulfillPending = useEvent((state: State) => {
+    const last = state.messages.at(-1);
+    if (last?.role !== 'assistant') return;
+    for (const b of last.blocks ?? [])
+      if (b.kind === 'file' && b.status === 'pending' && FILE_FORMATS[b.format].made === 'client') void fulfillFile(last.id, b);
+  });
+  /** Gera um arquivo pelo cartão: vira uma mensagem nova com o arquivo. */
+  async function generateFile(format: FileFormat, revisionId?: string) {
+    if (!p || busy || generating.includes(format)) return;
+    setGenerating((v) => [...v, format]);
+    setError('');
+    try {
+      const next = await api<State>('/api/files', { action: 'generate', id: p.id, format, prices, ...(revisionId ? { revisionId } : {}), from: 'card' });
+      accept(next);
+      fulfillPending(next);
+      setPinnedToBottom(true);
+    } catch (e) {
+      setError(friendlyError(e));
+    } finally {
+      setGenerating((v) => v.filter((f) => f !== format));
+    }
+  }
+  /**
+   * Abre o que um cartão aponta. No modo dividido, a aba do painel (o mesmo
+   * editor de sempre) com a chapa ou as linhas em foco; a cena já está ao
+   * lado. No só conversa e no app, a janela grande no centro.
+   */
+  function openTarget(target: PanelTarget, opener: HTMLElement | null) {
+    const tabOf: Partial<Record<PanelTarget['kind'], Tab>> = { quote: 'quote', cut: 'cut', project: 'project', parts: 'parts', room: 'room', history: 'history' };
+    if (!app && layout === 'split' && target.kind !== 'file') {
+      if (target.kind === 'scene') {
+        setFrameRequest((v) => v + 1);
+        return;
+      }
+      const t = tabOf[target.kind]!;
+      setTabFocus({ at: Date.now(), ...(target.kind === 'cut' ? { sheet: target.sheet } : {}), ...(target.kind === 'quote' ? { quote: target.focus } : {}) });
+      chooseTab(t);
+      return;
+    }
+    // No app a cena já tem o espaço dela: "ver em 3D" vai para lá, com a volta à conversa.
+    if (app && target.kind === 'scene') {
+      look('chat');
+      return;
+    }
+    setPanel({ target, opener, scroll: messages.current?.scrollTop ?? 0, block: opener?.closest('[data-block]')?.getAttribute('data-block') ?? null });
+  }
+  /** Janela que acabou de fechar: a conversa volta ao ponto e o foco a quem abriu. */
+  const closedPanel = useRef<OpenPanel | null>(null);
+  function closePanel() {
+    closedPanel.current = panel;
+    setPanel(null);
+  }
+  // Logo depois de a janela sair do DOM, antes de pintar: sem esperar um
+  // quadro (com a janela do app em segundo plano o quadro não vem).
+  useLayoutEffect(() => {
+    const was = closedPanel.current;
+    if (panel || !was) return;
+    closedPanel.current = null;
+    const box = messages.current;
+    if (box) box.scrollTop = was.scroll;
+    const home = was.block ? `[data-block="${CSS.escape(was.block)}"]` : null;
+    const back = was.opener?.isConnected
+      ? was.opener
+      : // O cartão redesenhou (versão nova): o botão equivalente do mesmo bloco.
+        home
+        ? messages.current?.querySelector<HTMLElement>(`${home} .rc-action.primary, ${home} .file-action`)
+        : null;
+    back?.focus({ preventScroll: true });
+  }, [panel]);
+  useBackLayer(!!panel, closePanel);
+  const revisionIds = useMemo(() => new Map(p?.revisions.map((r, i) => [r.id, i]) ?? []), [p?.revisions]);
+  /** O cartão mais novo de cada tipo: é ele que acompanha o projeto. */
+  const latestWidget = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const m of p?.messages ?? []) for (const b of m.blocks ?? []) if (b.kind === 'widget') map.set(b.widget, b.id);
+    return map;
+  }, [p?.messages]);
+  // Contas por versão para os cartões, lembradas enquanto os preços não mudam.
+  const quoteCache = useMemo(() => (void prices, new Map<string, Quote>()), [prices]);
+  const planCache = useMemo(() => new Map<string, ReturnType<typeof cutPlan>>(), []);
+  const richApi: RichApi | null = p
+    ? {
+        projectId: p.id,
+        projectName: p.name,
+        mode: app ? 'app' : layout === 'chat' ? 'chat' : 'split',
+        busy: busyLook,
+        current: { id: p.revisions[p.cursor].id, number: p.revisions[p.cursor].number, index: p.cursor },
+        isLive: (block) => latestWidget.get(block.widget) === block.id,
+        sceneSlot: setInlineSlot,
+        scene: {
+          view,
+          setView,
+          zoom: (direction) => setZoomRequest({ id: Date.now(), direction }),
+          frame: () => setFrameRequest((v) => v + 1),
+          dims: showDims,
+          toggleDims: () => toggleDims(),
+          exploded,
+          toggleExplode: () => setExploded((v) => !v),
+          fronts: Object.values(opened).some((v) => v > 0),
+          canFronts: p.parts.some((v) => (v as ModularPart).motion) && historyPreview === null,
+          toggleFronts: toggleAllFronts,
+          active: inlineActive,
+          setActive: setInlineActive,
+        },
+        revisionIndex: (id) => revisionIds.get(id) ?? -1,
+        revisionNumber: (index) => p.revisions[index]?.number ?? index + 1,
+        quoteAt: (index) => {
+          const rev = p.revisions[index];
+          const key = `${rev.id}|${JSON.stringify(rev.quote ?? null)}`;
+          let q = quoteCache.get(key);
+          if (!q) {
+            const parts = designOf(rev.params).parts as ModularPart[];
+            q = buildQuote(parts, rev.params.modules.length, prices, fittingsOf(canonical(rev.params), parts), rev.quote);
+            quoteCache.set(key, q);
+          }
+          return q;
+        },
+        planAt: (index) => {
+          const rev = p.revisions[index];
+          let plan = planCache.get(rev.id);
+          if (!plan) {
+            plan = cutPlan(designOf(rev.params).parts);
+            planCache.set(rev.id, plan);
+          }
+          return plan;
+        },
+        drawingAt: (index) => drawingParts(canonical(p.revisions[index].params)),
+        modulesAt: (index) => p.revisions[index].params.modules.length,
+        partsAt: (index) => designOf(p.revisions[index].params).parts.length,
+        sizeAt: (index) => {
+          const b = designOf(p.revisions[index].params).bounds;
+          return [0, 1, 2].map((i) => b.max[i] - b.min[i]) as [number, number, number];
+        },
+        savedAdjust,
+        draft: liveDraft,
+        draftQuote: liveDraft ? panelQuote : null,
+        staleDraft,
+        adoptDraft,
+        setDraft: setDraftAdjust,
+        discardDraft: () => storeDraft(null),
+        saveDraft: saveQuoteDraft,
+        open: openTarget,
+        generate: generateFile,
+        generating,
+        fulfill: (messageId, block) => void fulfillFile(messageId, block),
+        fulfilling,
+        selected,
+        selectParts: (ids, extend) => {
+          if (extend) for (const id of ids) toggleSelected(id, false);
+          else setSelected((s) => (s.length === ids.length && ids.every((id) => s.includes(id)) ? [] : ids));
+        },
+        focusParts: setCutFocus,
+        seek: seekVersion,
+        downloadCutCsv: (index) => {
+          const plan = index >= 0 ? cutPlan(designOf(p.revisions[index].params).parts) : quote?.plan;
+          if (plan) download(`${slug(p.name)}-corte-v${p.revisions[index]?.number ?? p.cursor + 1}.csv`, cutPlanCSV(plan), 'text/csv;charset=utf-8');
+        },
+        supersededBy: (fileId) => supersede.get(fileId) ?? null,
+        scrollToBlock: (blockId) => {
+          const el = messages.current?.querySelector<HTMLElement>(`[data-block="${CSS.escape(blockId)}"]`);
+          el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          el?.focus?.({ preventScroll: true });
+        },
+      }
+    : null;
   const selectedNames = useMemo(
     () =>
       selected.map(
@@ -2231,6 +2617,7 @@ export default function Home() {
   // Quem propõe o próximo passo é a IA, com o contexto do último turno. A lista
   // fixa abaixo só aparece quando ela ainda não respondeu nada (primeira
   // interação) ou quando a resposta não trouxe sugestões.
+  const hasTalkNow = !!p?.messages.some((m) => m.role === 'user');
   const aiSuggestions =
     p?.messages.findLast((m) => m.role === 'assistant' && m.suggestions?.length)
       ?.suggestions ?? [];
@@ -2243,7 +2630,31 @@ export default function Home() {
     :targetCell&&!targetCell.node.split?['Divida este compartimento em duas colunas','Coloque duas portas neste compartimento','Coloque três gavetas neste compartimento']
     :selected.length?['Distribua as divisões deste compartimento','Deixe 400 mm livres antes desta divisória']
     :['Adicione um nicho à direita','Crie um gaveteiro de 80 × 90 × 45 cm','Troque o acabamento para nogueira'];
-  const suggestions = aiSuggestions.length ? aiSuggestions : contextualSuggestions;
+  // Chips do próximo passo: a seleção na tela, depois os da IA, depois os
+  // que saem do estado do projeto (lib/suggest.ts), até seis, variados.
+  const allBlocks = useMemo(() => p?.messages.flatMap((m) => m.blocks ?? []) ?? [], [p?.messages]);
+  const askedBefore = useMemo(() => p?.messages.filter((m) => m.role === 'user').slice(-12).map((m) => m.content) ?? [], [p?.messages]);
+  const suggestions = useMemo(
+    () =>
+      p
+        ? mergeSuggestions(
+            selected.length || !hasTalkNow ? contextualSuggestions : [],
+            aiSuggestions,
+            stateSuggestions({
+              design: p.params,
+              quote,
+              hasRoom: !!p.room,
+              fits: roomFit ? roomFit.report.fits : null,
+              blocks: allBlocks,
+              asked: askedBefore,
+            }),
+            6,
+          )
+        : [],
+    // contextualSuggestions e aiSuggestions são derivados destes mesmos dados.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [p, selected, quote, roomFit, allBlocks, askedBefore, aiSuggestions.join('|'), contextualSuggestions.join('|')],
+  );
   // Pergunta em aberto: o cartão traz as respostas, então os chips de sugestão
   // saem de cena para não competir com a pergunta.
   const openClarification = (() => {
@@ -2291,6 +2702,14 @@ export default function Home() {
     { id: 'fronts', group: 'Vista', label: anyOpen ? 'Fechar portas e gavetas' : 'Abrir portas e gavetas', keys: 'O', icon: <DoorOpen size={15} />, disabled: !hasFronts, run: toggleAllFronts },
     { id: 'theme', group: 'Vista', label: theme === 'dark' ? 'Tema claro' : 'Tema escuro', icon: theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />, run: cycleTheme },
     ...TABS.map((t) => ({ id: 'tab-' + t.id, group: 'Painéis', label: `Abrir ${t.label}`, icon: t.icon, run: () => chooseTab(t.id) })),
+    {
+      id: 'live',
+      group: 'Painéis',
+      label: live ? 'Desligar a transmissão ao vivo (depuração)' : 'Ligar a transmissão ao vivo (depuração)',
+      hint: 'texto parcial e raciocínio enquanto chegam',
+      icon: <Sparkles size={15} />,
+      run: toggleLive,
+    },
     { id: 'chat', group: 'Painéis', label: chatOpen ? 'Recolher a conversa' : 'Abrir a conversa', keys: '[', icon: <MessageSquare size={15} />, run: () => toggleChat() },
     { id: 'inspector', group: 'Painéis', label: inspectorOpen ? 'Recolher o painel lateral' : 'Abrir o painel lateral', keys: ']', icon: <PanelRight size={15} />, run: () => toggleInspector() },
     { id: 'ask', group: 'Painéis', label: 'Escrever para a IA', keys: '/', icon: <Sparkles size={15} />, run: () => { if (!chatOpen) toggleChat(true); setTimeout(() => composer.current?.focus(), 30); } },
@@ -3028,18 +3447,35 @@ export default function Home() {
               {t === 'quote' && quote && (
                 <QuotePanel
                   name={p.name}
-                  quote={quote}
+                  quote={panelQuote ?? quote}
                   prices={prices}
                   onPrices={updatePrices}
                   previous={previousQuote}
+                  focus={panel?.target.kind === 'quote' ? (panel.target.focus ?? []) : (tabFocus?.quote ?? [])}
                   onShowParts={(ids) => {
                     setSelected(ids);
                     look('numbers');
                   }}
+                  editing={
+                    historyPreview === null && !agentDraft && !styleShown && !reviewFrame
+                      ? {
+                          base: liveDraft ? liveDraft.adjust : savedAdjust,
+                          changes: liveDraft?.changes ?? 0,
+                          nextVersion: p.cursor + 2,
+                          disabled: busyLook,
+                          onDraft: setDraftAdjust,
+                          onSave: () => void saveQuoteDraft(),
+                          onDiscard: () => storeDraft(null),
+                          ...(staleDraft ? { stale: { ...staleDraft, onAdopt: adoptDraft } } : {}),
+                        }
+                      : undefined
+                  }
                 />
               )}
               {t === 'cut' && quote && (
                 <CutPlanPanel
+                  key={panel?.target.kind === 'cut' ? `panel-${panel.target.sheet ?? 0}` : tabFocus?.sheet ? `tab-${tabFocus.at}` : 'tab'}
+                  sheet={panel?.target.kind === 'cut' ? panel.target.sheet : tabFocus?.sheet}
                   plan={quote.plan}
                   selected={displaySelected}
                   onSelect={(id, extend) => toggleSelected(id, extend)}
@@ -3123,16 +3559,366 @@ export default function Home() {
               )}
       </>
     );
+  /**
+   * A janela grande que um cartão abriu: a aba do estúdio inteira (o mesmo
+   * editor do modo dividido), a cena 3D ou a prévia de um arquivo.
+   */
+  const panelView = () => {
+    if (!panel || !p) return null;
+    const t = panel.target;
+    if (t.kind === 'file') {
+      const meta = t.meta;
+      const facts = [meta.pages ? `${meta.pages} ${meta.pages === 1 ? 'página' : 'páginas'}` : '', sizeLabel(meta.size)].filter(Boolean).join(' · ');
+      return (
+        <ExpandedView
+          title={meta.name}
+          subtitle={`${FILE_FORMATS[t.block.format].label} da versão ${t.block.revision}${t.block.generation > 1 ? ` · ${t.block.generation}ª geração` : ''} · ${facts}`}
+          size={meta.kind === 'pdf' || meta.kind === 'document' ? 'doc' : meta.kind === 'spreadsheet' ? 'wide' : 'media'}
+          onClose={closePanel}
+          actions={
+            <>
+              <a className="xv-action" href={fileUrl(meta.id)} target="_blank" rel="noopener">
+                <ExternalLink size={14} /> <span>Abrir</span>
+              </a>
+              <a className="xv-action primary" href={fileUrl(meta.id, true)} download={meta.name}>
+                <Download size={14} /> <span>Baixar</span>
+              </a>
+            </>
+          }
+        >
+          <FilePreview meta={meta} block={t.block} />
+        </ExpandedView>
+      );
+    }
+    if (t.kind === 'scene')
+      return (
+        <ExpandedView
+          title="Cena 3D"
+          subtitle={`${p.name} · versão ${p.cursor + 1}`}
+          size="scene"
+          onClose={closePanel}
+          actions={
+            <button type="button" className="xv-action" onClick={() => setFrameRequest((v) => v + 1)}>
+              <Scan size={14} /> <span>Enquadrar</span>
+            </button>
+          }
+        />
+      );
+    const tab = t.kind as Tab;
+    const title = TABS.find((v) => v.id === tab)?.label ?? 'Projeto';
+    return (
+      <ExpandedView
+        title={tab === 'cut' ? 'Plano de corte' : title}
+        subtitle={`${p.name} · versão ${p.cursor + 1}${liveDraft && tab === 'quote' ? ' · rascunho não salvo' : ''}`}
+        size={tab === 'cut' ? 'wide' : 'form'}
+        bodyClass={`xv-tab xv-tab-${tab}`}
+        onClose={closePanel}
+        actions={
+          <>
+            {tab === 'quote' && (
+              <button
+                type="button"
+                className="xv-action"
+                disabled={busyLook || generating.includes('quote-pdf') || !!liveDraft}
+                title={liveDraft ? 'Salve ou descarte o rascunho antes: o PDF sai da versão salva' : 'Gera o PDF do orçamento como arquivo na conversa'}
+                onClick={() => void generateFile('quote-pdf').then(closePanel)}
+              >
+                <Download size={14} /> <span>Gerar PDF</span>
+              </button>
+            )}
+            {tab === 'cut' && quote && (
+              <button type="button" className="xv-action" onClick={() => download(`${slug(p.name)}-corte.csv`, cutPlanCSV(quote.plan), 'text/csv;charset=utf-8')}>
+                <Download size={14} /> <span>CSV</span>
+              </button>
+            )}
+            {chatOnly && (
+              <button
+                type="button"
+                className="xv-action"
+                title="Volta ao modo dividido com esta aba aberta ao lado da cena"
+                onClick={() => {
+                  chooseLayout('split');
+                  chooseTab(tab);
+                }}
+              >
+                <Columns3 size={14} /> <span>Ao lado da cena</span>
+              </button>
+            )}
+          </>
+        }
+      >
+        {tabBody(tab)}
+      </ExpandedView>
+    );
+  };
+  const chatOnly = !app && layout === 'chat';
+  const sceneOpen = panel?.target.kind === 'scene';
+  /** A cena está dentro do cartão do móvel na conversa. */
+  const sceneInline = chatOnly && !sceneOpen && !!inlineSlot;
+  // Leva o contêiner da cena para onde ela aparece agora. React não mexe
+  // nele (os lugares não têm filhos do React), então nada remonta.
+  useLayoutEffect(() => {
+    if (!sceneHost) return;
+    const target = sceneInline ? inlineSlot : viewportSlot.current;
+    if (!target || sceneHost.parentElement === target) return;
+    target.appendChild(sceneHost);
+    // Mudou de tamanho: enquadra o móvel de novo depois que a cena mede o lugar novo.
+    window.setTimeout(() => setFrameRequest((v) => v + 1), 80);
+  });
+  useEffect(() => {
+    if (!sceneInline) setInlineActive(false);
+  }, [sceneInline]);
+  /** Atalhos do modo só conversa: as abas do estúdio abrem na janela grande. */
+  const chatTools: { id: PanelTarget['kind']; label: string; icon: React.ReactNode }[] = [
+    { id: 'scene', label: 'Cena 3D', icon: <Box size={15} /> },
+    { id: 'project', label: 'Projeto', icon: <Boxes size={15} /> },
+    { id: 'quote', label: 'Orçamento', icon: <Receipt size={15} /> },
+    { id: 'cut', label: 'Corte', icon: <Scissors size={15} /> },
+    { id: 'parts', label: 'Peças', icon: <ListTree size={15} /> },
+    { id: 'room', label: 'Ambiente', icon: <DoorOpen size={15} /> },
+    { id: 'history', label: 'Versões', icon: <History size={15} /> },
+  ];
+  /** Menu Exportar: no topo no modo dividido, no cabeçalho da conversa no só conversa. */
+  const exportMenu = () => (
+    <div className="export-wrap" ref={exportWrap}>
+      <Button
+        className="export-button"
+        aria-expanded={exportOpen}
+        onClick={() => setExportOpen(!exportOpen)}
+        disabled={!p || busyLook}
+        title={
+          busyLook
+            ? 'Aguarde a resposta atual: exportar agora gravaria a versão anterior'
+            : 'Exportar foto, PDF, peças, corte ou projeto'
+        }
+      >
+        <Download />
+        Exportar
+        <ChevronDown size={14} />
+      </Button>
+      {exportOpen && p && (
+        <div className="export-menu" role="menu">
+          {exports.map((x) => (
+            <button
+              key={x.id}
+              role="menuitem"
+              onClick={() => {
+                setExportOpen(false);
+                x.run();
+              }}
+            >
+              <span className="menu-icon">{x.icon}</span>
+              <span>
+                {x.label}
+                <small>{x.hint}</small>
+              </span>
+            </button>
+          ))}
+          <p>
+            Cortecloud experimental. Nada inclui furação, instruções de montagem ou
+            certificação de estabilidade.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+  /** Nome do projeto em edição: um só campo, onde ele estiver à vista. */
+  const renameInput = (className: string) =>
+    p && (
+      <input
+        className={className}
+        ref={(el) => el?.focus()}
+        defaultValue={p.name}
+        maxLength={80}
+        aria-label="Nome do projeto"
+        onBlur={(e) => {
+          setRenaming(false);
+          const name = e.target.value.trim();
+          if (name && name !== p.name) void action('rename', { name });
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+          if (e.key === 'Escape') {
+            e.currentTarget.value = p.name;
+            e.currentTarget.blur();
+          }
+        }}
+      />
+    );
+  const toggleSide = () =>
+    setSideOpen((v) => {
+      writeLocal('merce-side', v ? '0' : '1');
+      return !v;
+    });
+  /**
+   * Barra lateral do modo só conversa, como a de um chat: projeto novo,
+   * busca, as partes do estúdio (abrem na janela grande) e os projetos.
+   */
+  const chatSidebar = () =>
+    p && (
+      <nav className={'chat-side' + (sideOpen ? '' : ' closed')} aria-label="Estúdio e projetos" inert={!!panel}>
+        <div className="cs-top">
+          <Link className="cs-brand" href="/" aria-label="Merce, início">
+            <span className="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <rect x="4" y="3" width="16" height="18" rx="1.5" />
+                <path d="M4 9.5h16M12 9.5V21M4 15h8" />
+              </svg>
+            </span>
+            <span className="cs-text">
+              merce<span className="brand-dot">.</span>
+            </span>
+          </Link>
+          <button
+            type="button"
+            className="icon-button cs-collapse"
+            aria-label={sideOpen ? 'Recolher a barra lateral' : 'Abrir a barra lateral'}
+            aria-expanded={sideOpen}
+            title={sideOpen ? 'Recolher a barra lateral' : 'Abrir a barra lateral'}
+            onClick={toggleSide}
+          >
+            {sideOpen ? <PanelLeftClose size={16} /> : <PanelLeft size={16} />}
+          </button>
+        </div>
+        <div className="cs-group">
+          <button type="button" className="cs-item" disabled={busyLook} title="Novo projeto" onClick={() => openGallery('new')}>
+            <Plus size={16} />
+            <span className="cs-text">Novo projeto</span>
+          </button>
+          <button type="button" className="cs-item" title="Buscar ações (Ctrl K)" onClick={() => setPaletteOpen(true)}>
+            <Search size={16} />
+            <span className="cs-text">Buscar ações</span>
+            <kbd className="cs-text">Ctrl K</kbd>
+          </button>
+        </div>
+        <div className="cs-group">
+          <span className="cs-label cs-text">Estúdio</span>
+          {chatTools.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className="cs-item"
+              aria-label={`Abrir ${t.label}`}
+              title={t.label}
+              onClick={(e) => openTarget({ kind: t.id } as PanelTarget, e.currentTarget)}
+            >
+              {t.icon}
+              <span className="cs-text">{t.label}</span>
+            </button>
+          ))}
+        </div>
+        <div className="cs-group cs-projects cs-text">
+          <span className="cs-label">Projetos</span>
+          <ProjectList
+            compact
+            projects={projects}
+            current={p.id}
+            onDelete={removeProject}
+            onSelect={(id) => {
+              if (id !== p.id) void openProject(id);
+            }}
+          />
+        </div>
+        <div className="cs-bottom">
+          <button
+            type="button"
+            className="cs-item"
+            title="Voltar ao modo dividido: conversa, cena 3D e painel lado a lado"
+            onClick={() => chooseLayout('split')}
+          >
+            <Columns3 size={16} />
+            <span className="cs-text">Modo dividido</span>
+          </button>
+          <button
+            type="button"
+            className="cs-item"
+            title={`Tema: ${themeChoice === 'system' ? 'do sistema' : theme === 'dark' ? 'escuro' : 'claro'}`}
+            aria-label="Alternar tema claro e escuro"
+            onClick={cycleTheme}
+          >
+            {themeChoice === 'system' ? <Monitor size={16} /> : theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
+            <span className="cs-text">{theme === 'dark' ? 'Tema escuro' : 'Tema claro'}</span>
+          </button>
+        </div>
+      </nav>
+    );
+  /** Cabeçalho único da conversa no modo só conversa: o projeto e as ações. */
+  const chatHead = () =>
+    p && (
+      <header className="chat-head">
+        <div className="ch-title">
+          {renaming ? (
+            renameInput('title-input ch-rename')
+          ) : (
+            <button type="button" className="ch-name" title="Clique para renomear" disabled={busyLook} onClick={() => setRenaming(true)}>
+              <strong>{p.name}</strong>
+              <Pencil size={12} />
+            </button>
+          )}
+          <small>
+            {pending ? (
+              <>
+                <ActivityGlyph activity={activity} size="sm" />
+                <span key={activity.key}>{activity.label}</span>
+              </>
+            ) : (
+              <>
+                v{p.cursor + 1}
+                {visualSize ? ` · ${metres(visualSize[0])} × ${metres(visualSize[1])} × ${metres(visualSize[2])} m` : ''}
+                {quote ? ` · ${money(quote.total)}` : ''}
+              </>
+            )}
+          </small>
+        </div>
+        <div className="ch-actions">
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Desfazer"
+            title={undoIsStep(p) ? 'Desfazer o último movimento (Ctrl+Z)' : 'Desfazer (Ctrl+Z)'}
+            disabled={busyLook || !canUndo(p)}
+            onClick={() => void action('undo')}
+          >
+            <Undo2 size={16} />
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Refazer"
+            title={redoIsStep(p) ? 'Refazer o movimento (Ctrl+Y)' : 'Refazer (Ctrl+Y)'}
+            disabled={busyLook || !canRedo(p)}
+            onClick={() => void action('redo')}
+          >
+            <Redo2 size={16} />
+          </button>
+          <UsageMeter conversation={conversationUsage} session={sessionUsage} live={liveUsage} />
+          <button
+            type="button"
+            className={'icon-button' + (clearAsk ? ' on' : '')}
+            aria-label="Limpar a conversa"
+            aria-expanded={clearAsk}
+            title={hasTalk ? 'Limpar a conversa' : 'Nada para limpar'}
+            disabled={busyLook || !hasTalk}
+            onClick={() => setClearAsk((v) => !v)}
+          >
+            <Eraser size={16} />
+          </button>
+          {exportMenu()}
+        </div>
+      </header>
+    );
   return (
+    <RichContext.Provider value={richApi}>
     <main
       className={
         app
           ? 'studio app' + (keyboard ? ' kb' : '') + (timeTravel ? ' time-travel' : '')
-          : 'studio' + (chatOpen ? '' : ' no-chat') + (inspectorOpen ? '' : ' no-inspector')
+          : 'studio' + (chatOnly ? ' chat-only' + (sideOpen ? '' : ' side-closed') : (chatOpen ? '' : ' no-chat') + (inspectorOpen ? '' : ' no-inspector')) + (sceneOpen ? ' scene-open' : '')
       }
       data-ws={app ? ws : undefined}
     >
-      <header className="topbar">
+      {!chatOnly && (
+      <header className="topbar" inert={!!panel}>
         {app ? (
           <>
             <button
@@ -3204,6 +3990,28 @@ export default function Home() {
           </span>
         )}
         <div className="topbar-actions">
+          <fieldset className="layout-switch" aria-label="Disposição da tela">
+            <button
+              type="button"
+              aria-pressed={layout === 'split'}
+              className={layout === 'split' ? 'on' : ''}
+              title="Conversa, cena 3D e painel lado a lado"
+              onClick={() => chooseLayout('split')}
+            >
+              <Columns3 size={15} />
+              <span>Dividido</span>
+            </button>
+            <button
+              type="button"
+              aria-pressed={layout === 'chat'}
+              className={layout === 'chat' ? 'on' : ''}
+              title="Só a conversa, com os resultados em cartões"
+              onClick={() => chooseLayout('chat')}
+            >
+              <MessageSquareText size={15} />
+              <span>Só conversa</span>
+            </button>
+          </fieldset>
           <button type="button" className="palette-trigger" onClick={() => setPaletteOpen(true)}>
             <CommandIcon size={14} />
             <span>Buscar ações</span>
@@ -3222,50 +4030,11 @@ export default function Home() {
             <Plus />
             Novo
           </Button>
-          <div className="export-wrap" ref={exportWrap}>
-            <Button
-              className="export-button"
-              aria-expanded={exportOpen}
-              onClick={() => setExportOpen(!exportOpen)}
-              disabled={!p || busyLook}
-              title={
-                busyLook
-                  ? 'Aguarde a resposta atual: exportar agora gravaria a versão anterior'
-                  : 'Exportar foto, PDF, peças, corte ou projeto'
-              }
-            >
-              <Download />
-              Exportar
-              <ChevronDown size={14} />
-            </Button>
-            {exportOpen && p && (
-              <div className="export-menu" role="menu">
-                {exports.map((x) => (
-                  <button
-                    key={x.id}
-                    role="menuitem"
-                    onClick={() => {
-                      setExportOpen(false);
-                      x.run();
-                    }}
-                  >
-                    <span className="menu-icon">{x.icon}</span>
-                    <span>
-                      {x.label}
-                      <small>{x.hint}</small>
-                    </span>
-                  </button>
-                ))}
-                <p>
-                  Cortecloud experimental. Nada inclui furação, instruções de montagem ou
-                  certificação de estabilidade.
-                </p>
-              </div>
-            )}
-          </div>
+          {exportMenu()}
         </div>
         </>)}
       </header>
+      )}
       <div
         className="workbench"
         onScrollCapture={
@@ -3279,8 +4048,10 @@ export default function Home() {
             : undefined
         }
       >
-        {(chatOpen || app) && (
-        <aside className="chat-panel" aria-label="Conversa com a IA">
+        {chatOnly && chatSidebar()}
+        {(chatOpen || app || chatOnly) && (
+        <aside className="chat-panel" aria-label="Conversa com a IA" inert={!!panel}>
+          {chatOnly ? chatHead() : (
           <div className="panel-head">
             <span className="assistant-id">
               <span className="assistant-avatar"><Sparkles size={15} /></span>
@@ -3312,6 +4083,7 @@ export default function Home() {
               <PanelLeftClose size={16} />
             </button>
           </div>
+          )}
           {clearAsk && p && (
             <div
               ref={clearBox}
@@ -3496,6 +4268,7 @@ export default function Home() {
                       onFork={(o) => void forkOption(o)}
                     />
                   ) : null}
+                  {m.blocks?.length ? <RichBlocks blocks={m.blocks} messageId={m.id} /> : null}
                   {m.report?.steps?.length ? <AgentStepsSummary steps={m.report.steps} plan={m.report.plan} /> : null}
                   {m.error && <div className="turn-error" role="alert">{m.error}</div>}
                   {m.error && m.retry && i > lastUserIndex && (
@@ -3716,7 +4489,7 @@ export default function Home() {
             {pending && (
               <>
                 <div className="message user">
-                  <div className="message-body">{pendingImage && <img className="chat-image" src={pendingImage.url} alt={pendingImage.name} />}{pending}</div>
+                  <div className="message-body">{pendingImage && <img className="chat-image" src={pendingImage.url} alt={pendingImage.name} />}{pendingImage && photoChips?.id === pendingImage.id && <PhotoChips chips={photoChips.chips} />}{pending}</div>
                 </div>
                 <TurnProgress
                   events={progress}
@@ -3813,20 +4586,21 @@ export default function Home() {
           </div>
           <div className="composer-wrap">
             {p && !openClarification && !pending && suggestions.length > 0 && (
-              <div className="suggestions" aria-label={aiSuggestions.length ? 'Próximos passos sugeridos' : 'Para começar'}>
+              <SuggestionStrip label={aiSuggestions.length ? 'Próximos passos sugeridos' : 'Para começar'}>
                 {suggestions.map((v) => (
                   <button
-                    key={v}
+                    key={v.text}
                     type="button"
+                    className={`kind-${v.kind}`}
                     disabled={busyLook}
-                    title="Enviar esta sugestão (o que você digitou continua no campo)"
-                    onClick={() => void send(v)}
+                    title={`${v.why ? `${v.why}. ` : ''}Enviar esta sugestão (o que você digitou continua no campo)`}
+                    onClick={() => void send(v.text)}
                   >
-                    {aiSuggestions.length ? <Sparkles size={12} /> : <ArrowUp size={12} />}
-                    {v}
+                    {SUGGESTION_ICON[v.kind]}
+                    {v.text}
                   </button>
                 ))}
-              </div>
+              </SuggestionStrip>
             )}
             {chatUndo && p?.chatCleared && (
               <output className="notice-banner undo">
@@ -3898,6 +4672,7 @@ export default function Home() {
             >
               <input ref={fileInput} type="file" hidden accept="image/jpeg,image/png,image/webp" onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ''; }} />
               {attachment && <div className="attachment-preview"><img src={attachment.url} alt={attachment.name} /><span>{attachment.name}</span><button type="button" disabled={busyLook} aria-label="Remover imagem" onClick={() => setAttachment(null)}><X size={16} /></button></div>}
+              {attachment && photoChips?.id === attachment.id && <PhotoChips chips={photoChips.chips} />}
               {/* A foto agora serve para copiar layout: sem esta linha, quem
                   anexa uma referência não sabe que pode pedir a cópia. */}
               {attachment && <p className="attachment-hint">Peça “copie o layout desta foto” e eu monto uma versão com medidas estimadas, dizendo o erro e o que ficou de fora.</p>}
@@ -3931,14 +4706,7 @@ export default function Home() {
               />
               <div className="composer-bar">
                 <Button type="button" variant="ghost" size="icon" disabled={busyLook || !p} title="Anexar imagem (JPG, PNG ou WebP, até 10 MB)" aria-label="Anexar imagem" onClick={() => fileInput.current?.click()}><ImagePlus /></Button>
-                <ModelPicker
-                  value={model}
-                  available={available}
-                  onChange={chooseModel}
-                  live={live}
-                  onToggleLive={toggleLive}
-                  disabled={busyLook}
-                />
+                <ModelEffort model={model} effort={effort} onEffort={chooseEffort} disabled={busyLook} />
                 <span
                   className="composer-hint"
                   title="Enter envia · Shift+Enter quebra linha · aceita imagem JPG, PNG ou WebP"
@@ -3975,7 +4743,8 @@ export default function Home() {
         )}
         <section
           ref={viewportEl}
-          className={'viewport' + (pipOn ? ` pip pip-${pipCorner}${pipTucked ? ' tucked' : pipAway ? ' away' : ''}` : '')}
+          className={'viewport' + (pipOn ? ` pip pip-${pipCorner}${pipTucked ? ' tucked' : pipAway ? ' away' : ''}` : '') + (chatOnly ? (sceneOpen ? ' scene-modal' : ' scene-hidden') : '')}
+          aria-hidden={chatOnly && !sceneOpen ? true : undefined}
           aria-label="Modelo 3D"
         >
           {!app && <div className="stage-head">
@@ -3985,26 +4754,8 @@ export default function Home() {
               </button>
             )}
             <div className="stage-title">
-              {renaming && p ? (
-                <input
-                  className="title-input"
-                  ref={(el) => el?.focus()}
-                  defaultValue={p.name}
-                  maxLength={80}
-                  aria-label="Nome do projeto"
-                  onBlur={(e) => {
-                    setRenaming(false);
-                    const name = e.target.value.trim();
-                    if (name && name !== p.name) void action('rename', { name });
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') e.currentTarget.blur();
-                    if (e.key === 'Escape') {
-                      e.currentTarget.value = p.name;
-                      e.currentTarget.blur();
-                    }
-                  }}
-                />
+              {renaming && p && !chatOnly ? (
+                renameInput('title-input')
               ) : !p ? (
                 <span className="stage-title-skeleton" aria-hidden="true">
                   <i className="sk sk-title" />
@@ -4150,7 +4901,8 @@ export default function Home() {
               <p>Montando o estúdio…</p>
             </output>
           )}
-          {p && (
+          <div ref={viewportSlot} className="scene-slot" />
+          {p && sceneHost && createPortal(
             <FurnitureView
               params={visualParams!}
               parts={displayParts}
@@ -4172,7 +4924,9 @@ export default function Home() {
               onSnapshot={onSnapshot}
               onSpinSuppressed={setReducedMotion}
               diff={sceneDiff}
-              cutFocus={tab === 'cut' ? cutFocus : null}
+              // Peça ou chapa sob o cursor na aba Corte ou num cartão da conversa:
+              // quem acende também apaga ao sair.
+              cutFocus={cutFocus}
               keyboard={!paletteOpen && !galleryOpen}
               movable={!busy && !pending && historyPreview === null && !reviewLocked && !exploded}
               onMove={onMoveFurniture}
@@ -4197,8 +4951,10 @@ export default function Home() {
               onRemoveWall={busy ? undefined : onRemoveWall}
               onEditWall={onEditWall}
               touch={app}
-              showMovePad={!app || (moveOpen && ws === 'stage' && selected.length > 0 && !timeTravel)}
-            />
+              showMovePad={!sceneInline && (!app || (moveOpen && ws === 'stage' && selected.length > 0 && !timeTravel))}
+              wheelZoom={!sceneInline || inlineActive}
+            />,
+            sceneHost,
           )}
           {stageToast && (
             <output className="stage-toast">
@@ -4452,8 +5208,8 @@ export default function Home() {
             </>
           )}
         </section>
-        {(inspectorOpen || app) && (
-        <aside className="inspector" aria-label="Painel do projeto">
+        {(inspectorOpen || app) && !chatOnly && (
+        <aside className="inspector" aria-label="Painel do projeto" inert={!!panel}>
           {app ? (
             <div className="ws-seg" role="tablist" aria-label={ws === 'numbers' ? 'Números do projeto' : 'Montar'}>
               {(ws === 'numbers' ? NUMBER_TABS : BUILD_TABS).map((id) => {
@@ -4563,6 +5319,8 @@ export default function Home() {
           snapshot={printShot}
         />
       )}
+      {panel && p && panelView()}
     </main>
+    </RichContext.Provider>
   );
 }

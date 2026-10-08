@@ -1,11 +1,17 @@
 /**
- * Reduz a foto no navegador antes de enviar: lado maior de até 1600 px, em
- * JPEG. O celular manda fotos de 5 a 10 MB; reduzidas elas sobem rápido e
- * servem para qualquer provedor (o modo rápido não aceita WebP). Na Cloudflare
+ * Reduz a foto no navegador antes de enviar: lado maior de até 1600 px e
+ * área de até ~1,8 MP, em JPEG. O celular manda fotos de 5 a 10 MB;
+ * reduzidas elas sobem rápido e servem para qualquer provedor (o modo rápido não aceita WebP). Na Cloudflare
  * não há `sharp`, então esta é a única redução que a foto recebe. Se o
  * navegador não conseguir decodificar, a original segue e o servidor decide.
  */
 const MAX_SIDE = 1600;
+/**
+ * Área máxima: a classificação da foto (lib/photo-classify.ts) lê a imagem em
+ * ladrilhos de 32 px, até 2048. Com 1800 ladrilhos sobra folga; 4:3 quase não
+ * muda (1566 × 1175) e a quadrada fica com ~1357 px.
+ */
+const MAX_PIXELS = 1800 * 32 * 32;
 
 export async function shrinkImage(file: File): Promise<File> {
   if (typeof createImageBitmap !== 'function') return file;
@@ -16,7 +22,7 @@ export async function shrinkImage(file: File): Promise<File> {
     return file;
   }
   try {
-    const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+    const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height), Math.sqrt(MAX_PIXELS / (bitmap.width * bitmap.height)));
     const width = Math.max(1, Math.round(bitmap.width * scale));
     const height = Math.max(1, Math.round(bitmap.height * scale));
     const canvas = document.createElement('canvas');

@@ -9,15 +9,24 @@ import type { Progress, TextPreview } from './progress';
 import { readStringField } from './partial-json';
 import { imageDataUrl } from './images';
 import { materials } from './furniture';
-import { DEFAULT_MODEL, fallbackModel, modelInfo, reasoningEffort, type ModelKey, type ProviderUsage } from './models';
+import { DEFAULT_MODEL, MODEL_KEYS, fallbackModel, modelInfo, reasoningEffort, type ModelKey, type ProviderUsage } from './models';
 /** `true`/`false` é o contrato antigo do modo rápido (bench, scripts). */
 export type ModelChoice = ModelKey | boolean;
+/**
+ * Padrão do servidor para pedido sem modelo: DEFAULT_MODEL, ou
+ * MERCE_DEFAULT_MODEL quando é um modelo conhecido (os testes que simulam o
+ * gateway compatível com OpenAI fixam a Luna).
+ */
+export function serverDefaultModel(): ModelKey {
+  const env = process.env.MERCE_DEFAULT_MODEL;
+  return env && (MODEL_KEYS as readonly string[]).includes(env) ? (env as ModelKey) : DEFAULT_MODEL;
+}
 export function modelKey(choice: ModelChoice | undefined): ModelKey {
   if (typeof choice === 'string') return choice;
-  return choice ? 'qwen-fast' : DEFAULT_MODEL;
+  return choice ? 'qwen-fast' : serverDefaultModel();
 }
 /** Falha do provedor (fluxo parado, 429, 5xx, rede), não do pedido. */
-export const PROVIDER_ERROR = /interrompida|\b(429|5\d\d)\b|fetch failed|ECONNRESET|ETIMEDOUT|socket|terminated|operation was aborted/i;
+export const PROVIDER_ERROR = /interrompida|\b(429|5\d\d)\b|fetch failed|ECONNRESET|ETIMEDOUT|socket|terminated|operation was aborted|request was aborted/i;
 /**
  * Roda a chamada no modelo pedido e, se o provedor falhar, uma vez no modelo
  * de reserva (`fallbackModel`). `onSwitch` avisa a troca, para as chamadas
@@ -92,7 +101,7 @@ export function normalizeSuggestions(list: readonly string[]): string[] {
     if (internal.test(text)) continue;
     if (out.some((seen) => seen.toLowerCase() === text.toLowerCase())) continue;
     out.push(text);
-    if (out.length === 4) break;
+    if (out.length === 5) break;
   }
   return out;
 }
@@ -190,6 +199,11 @@ export function profile(choice: ModelChoice): GatewayProfile {
       model: process.env.AI_FAST_MODEL || 'qwen-3.8-27b',
     };
   }
+  if (key === 'haiku') {
+    const secret = process.env.CLAUDE_API_KEY;
+    if (!secret) throw new Error('Configure CLAUDE_API_KEY no arquivo .env do servidor para usar o Claude.');
+    return { key: secret, baseUrl: 'https://api.anthropic.com/v1', model: process.env.AI_HAIKU_MODEL || 'claude-haiku-5-5' };
+  }
   const secret = process.env.AI_API_KEY;
   if (!secret)
     throw new Error('Configure AI_API_KEY no arquivo .env do servidor.');
@@ -209,6 +223,7 @@ export function availableModels(): ModelKey[] {
   const out: ModelKey[] = [];
   if (process.env.AI_API_KEY) out.push('deepseek', 'luna', 'mimo');
   if (process.env.AI_FAST_API_KEY) out.push('qwen-fast');
+  if (process.env.CLAUDE_API_KEY) out.push('haiku');
   return out;
 }
 export async function interpretStream(

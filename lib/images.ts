@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { normalizeImage, putImage, readImage, readImageMeta, toJpeg } from '#platform';
+import { normalizeImage, putImage, readImage, readImageMeta, toJpeg, writeImageMeta } from '#platform';
 
 export type ImageRef = { id: string; name: string; url: string };
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -31,10 +31,20 @@ export async function imageBytes(id: string) {
 export async function getImage(id: string): Promise<ImageRef> {
   z.uuid().parse(id);
   try {
-    return JSON.parse(await readImageMeta(id)) as ImageRef;
+    // A metadata guarda também a classificação (lib/photo-classify.ts); a
+    // referência que vai para a conversa fica só com o que identifica a foto.
+    const meta = JSON.parse(await readImageMeta(id)) as ImageRef;
+    return { id: meta.id, name: meta.name, url: meta.url };
   } catch {
     throw new Error('Imagem não encontrada.');
   }
+}
+/** Metadata guardada da imagem, em JSON (ImageRef e o que mais foi anotado nela). */
+export async function readStoredMeta(id: string) {
+  return readImageMeta(z.uuid().parse(id));
+}
+export async function writeStoredMeta(id: string, meta: string) {
+  await writeImageMeta(z.uuid().parse(id), meta);
 }
 export async function imageDataUrl(id: string, format: 'webp' | 'jpeg' = 'webp') {
   const stored = await imageFile(id);

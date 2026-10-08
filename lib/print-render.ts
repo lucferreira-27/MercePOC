@@ -70,18 +70,22 @@ export function framePrint(camera: THREE.PerspectiveCamera, box: THREE.Box3, mar
   return { target, dist };
 }
 
-/**
- * Foto do móvel para o PDF, feita fora da tela: portas fechadas, sem
- * seleção, sem parede nem grade, sempre do mesmo ângulo e enquadrada pela
- * caixa do móvel. Não depende de onde a pessoa deixou a câmera. PNG com fundo
- * transparente (a folha é branca) ou `null` sem WebGL.
- */
-export function renderPrintShot(
+/** Cena da foto (e do vídeo girando): móvel, ferragens, luz, chão de sombra e câmera enquadrada. */
+export type ShotScene = {
+  renderer: THREE.WebGLRenderer;
+  scene: THREE.Scene;
+  camera: THREE.PerspectiveCamera;
+  box: THREE.Box3;
+  center: THREE.Vector3;
+  dispose: () => void;
+};
+
+export function shotScene(
   parts: readonly Part[],
   params: Parameters<FurnitureMotion['update']>[1],
   size: { width: number; height: number } = PRINT_SHOT,
   fittings: readonly Fitting[] = [],
-): string | null {
+): ShotScene | null {
   if (typeof document === 'undefined' || !parts.length) return null;
   let renderer: THREE.WebGLRenderer;
   try {
@@ -91,6 +95,20 @@ export function renderPrintShot(
   }
   const scene = new THREE.Scene();
   const pmrem = new THREE.PMREMGenerator(renderer);
+  const dispose = () => {
+    scene.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (mesh.geometry) mesh.geometry.dispose();
+      const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
+      // Texturas de acabamento ficam no cache compartilhado com a cena.
+      if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+      else mat?.dispose();
+    });
+    scene.environment?.dispose();
+    pmrem.dispose();
+    renderer.dispose();
+    renderer.forceContextLoss();
+  };
   try {
     renderer.setPixelRatio(1);
     renderer.setSize(size.width, size.height, false);
@@ -142,22 +160,33 @@ export function renderPrintShot(
     camera.near = Math.max(dist / 50, 1);
     camera.far = dist * 20;
     camera.updateProjectionMatrix();
-    renderer.render(scene, camera);
-    return renderer.domElement.toDataURL('image/png');
+    return { renderer, scene, camera, box, center, dispose };
+  } catch {
+    dispose();
+    return null;
+  }
+}
+
+/**
+ * Foto do móvel para o PDF, feita fora da tela: portas fechadas, sem
+ * seleção, sem parede nem grade, sempre do mesmo ângulo e enquadrada pela
+ * caixa do móvel. Não depende de onde a pessoa deixou a câmera. PNG com fundo
+ * transparente (a folha é branca) ou `null` sem WebGL.
+ */
+export function renderPrintShot(
+  parts: readonly Part[],
+  params: Parameters<FurnitureMotion['update']>[1],
+  size: { width: number; height: number } = PRINT_SHOT,
+  fittings: readonly Fitting[] = [],
+): string | null {
+  const shot = shotScene(parts, params, size, fittings);
+  if (!shot) return null;
+  try {
+    shot.renderer.render(shot.scene, shot.camera);
+    return shot.renderer.domElement.toDataURL('image/png');
   } catch {
     return null;
   } finally {
-    scene.traverse((o) => {
-      const mesh = o as THREE.Mesh;
-      if (mesh.geometry) mesh.geometry.dispose();
-      const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
-      // Texturas de acabamento ficam no cache compartilhado com a cena.
-      if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
-      else mat?.dispose();
-    });
-    scene.environment?.dispose();
-    pmrem.dispose();
-    renderer.dispose();
-    renderer.forceContextLoss();
+    shot.dispose();
   }
 }
