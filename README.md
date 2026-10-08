@@ -134,6 +134,19 @@ O **orçamento** conta as chapas pelo plano de corte, a madeira maciça em m³, 
 
 O **plano de corte** encaixa as chapas em guilhotina por material e espessura, com disco, refilo e veio travado. Cada chapa aparece em escala, com réguas, peças numeradas e sobras; passar o mouse numa peça acende ela no móvel com o tracejado de "corte aqui".
 
+### Resultados como cartões na conversa
+
+Pedir o orçamento, os cortes ou um arquivo devolve um **cartão** dentro da resposta, preso à versão do projeto que ele mostra:
+
+- **Plano de corte:** a chapa em foco desenhada em escala ("mostre a chapa 2"), setas para as outras, peças com número e medida de corte. Passar o mouse acende a peça no móvel; clicar escolhe a peça, e o próximo pedido fala dela ("deixe esta mais curta").
+- **Orçamento:** total, custo, margem e os itens que mais pesam. Dá para tirar um item, mudar a quantidade e pôr itens à parte (frete, instalação) no próprio cartão, na aba ou pela conversa ("tire a montagem", "ponha frete de R$ 200"). O que se edita à mão fica em **rascunho** até **Salvar**, que vira uma versão.
+- **Móvel:** desenho, medidas e preço da versão; **Ver em 3D** abre a cena.
+- **Arquivos:** PDF do projeto ou do orçamento (gerado no servidor, com prévia das páginas), CSV, JSON, foto do móvel e vídeo dele girando. O cartão mostra miniatura, nome, páginas, tamanho, duração e a versão de origem, com **Visualizar**, **Abrir** e **Baixar**; nada baixa sozinho.
+
+O cartão mais novo de cada tipo acompanha o projeto; os anteriores ficam como **histórico** da versão em que saíram. Arquivo é fotografia: editar o orçamento depois não muda o PDF já gerado, e "atualize aquele PDF" cria a geração seguinte, com o anterior marcado como substituído. Tudo volta ao reabrir a conversa; arquivo que sumiu do servidor aparece como indisponível.
+
+**Só conversa** (no topo, ao lado de **Dividido**) deixa a conversa no centro, como num chat, com os atalhos das abas no alto. Clicar num cartão abre o editor ou a prévia numa janela grande no centro, com a conversa atrás; `Esc` fecha e volta ao mesmo ponto da conversa. A escolha fica lembrada neste navegador.
+
 ### Exporte para a marcenaria
 
 | Formato | O que leva |
@@ -145,7 +158,7 @@ O **plano de corte** encaixa as chapas em guilhotina por material e espessura, c
 | **Cortecloud** | JSON (experimental) |
 | **Projeto completo** | JSON com o histórico |
 
-`Ctrl+K` abre a paleta de comandos; uma frase que não é comando vira pedido para a IA.
+`Ctrl+K` abre a paleta de comandos; uma frase que não é comando vira pedido para a IA. Pedido de arquivo na conversa ("gere o PDF do orçamento", "mande a lista de peças") chega como cartão de arquivo na resposta.
 
 ## Como rodar
 
@@ -220,7 +233,8 @@ push no main  ─►  testes  ─►  publica na Cloudflare  ─►  confere o s
 6. Arraste a linha do tempo para consultar ou restaurar versões; orçamento e corte acompanham a versão exibida. **Criar alternativa desta versão**, em **Versões**, preserva os dois caminhos.
 7. Informe o **Ambiente** para ver o quarto no 3D, as folgas nas cotas e o veredito de encaixe.
 8. Veja o custo em **Orçamento** e as chapas em **Corte**. A tabela de preços vale para todos os projetos deste navegador.
-9. Em **Exportar**, escolha foto, PDF, CSVs, Cortecloud ou JSON.
+9. Em **Exportar**, escolha foto, PDF, CSVs, Cortecloud ou JSON, ou peça o arquivo na conversa.
+10. Prefere trabalhar só conversando? Escolha **Só conversa** no topo: os resultados vêm em cartões e cada um abre o editor completo no centro da tela.
 
 Exemplos de pedido: "Faz um rack de TV de 2 m em nogueira"; "Quero um aparador anos 60"; "Mesa de jantar rústica para 6 lugares"; "Deixe tudo no estilo japandi"; "Copie o layout desta foto"; "Coloque três gavetas embaixo e duas portas de correr em cima"; "Troque os puxadores por cava"; "Quanto custa e quantas chapas usa?".
 
@@ -268,7 +282,7 @@ Depois de aplicar, ela recebe o desenho do resultado (frontal e isométrica), co
 | `[` · `]` | Recolher conversa, recolher painel |
 | `Ctrl+Z` · `Ctrl+Y` | Desfazer, refazer |
 | `Delete` | Remover o obstáculo escolhido na parede |
-| `Esc` | Limpar seleção, desistir de pôr um obstáculo, cancelar prévia, fechar a revisão das mudanças |
+| `Esc` | Limpar seleção, desistir de pôr um obstáculo, cancelar prévia, fechar a revisão das mudanças ou a janela grande de um cartão |
 
 ## Limites e dados
 
@@ -282,11 +296,11 @@ Depois de aplicar, ela recebe o desenho do resultado (frontal e isométrica), co
 
 Ainda não inclui curvas, painéis inclinados, recortes livres, canto com interior contínuo, tampos avulsos, furação, ferragens comerciais nem certificação estrutural. Confira ferragens e furação com o marceneiro.
 
-Os projetos ficam em SQLite, em `data/merce.sqlite` ou em `MERCE_DATA_DIR` (na Cloudflare, num Durable Object). Projetos em v1, v2 ou v3 migram na leitura e são gravados em v4 no próximo salvamento.
+Os projetos ficam em SQLite, em `data/merce.sqlite` ou em `MERCE_DATA_DIR` (na Cloudflare, num Durable Object). Os arquivos gerados na conversa (até 40 MB cada) ficam em `data/files` ou, na Cloudflare, no mesmo Durable Object. Projetos em v1, v2 ou v3 migram na leitura e são gravados em v4 no próximo salvamento.
 
 CSV UTF-8 com BOM e `;`, uma linha por peça física; painel compartilhado aparece uma vez, com dois proprietários. O plano de corte é um encaixe em guilhotina honesto, não o ótimo matemático, e o orçamento é estimativa com preços de partida em reais (chapa 2750 × 1840 mm).
 
-Mais em [regras e arquitetura](docs/MODULAR.md), [resultados da validação](docs/MODULAR-VALIDATION.md) e no [guia de estilos](docs/STYLES.md).
+Mais em [regras e arquitetura](docs/MODULAR.md), [resultados da validação](docs/MODULAR-VALIDATION.md), no [guia de estilos](docs/STYLES.md) e em [cartões e arquivos na conversa](docs/RICH.md).
 
 ## Desenvolvimento
 
