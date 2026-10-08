@@ -1064,7 +1064,7 @@
   border: 0;
   background: #fff;
 }
-.xv-media {
+.media-preview {
   display: grid;
   place-items: center;
   width: 100%;
@@ -1072,17 +1072,17 @@
   padding: 16px;
   background: color-mix(in srgb, var(--ink) 92%, var(--surface));
 }
-.xv-media img,
-.xv-media video {
+.media-preview img,
+.media-preview video {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
   border-radius: 6px;
 }
-.xv-media.audio {
+.media-preview.audio {
   background: var(--surface-2);
 }
-.xv-media.audio audio {
+.media-preview.audio audio {
   width: min(520px, 100%);
 }
 .sheet-preview {
@@ -1421,4 +1421,10 @@
    lista de peças à vista sem rolar tanto. */
 .xv-tab-cut .cut-card-body .cut-drawing {
   max-height: min(54vh, 560px);
+}
+.file-card.missing .file-icon,
+.file-card.missing .file-thumb,
+.file-card.missing .file-icon img {
+  opacity: 0.45;
+  filter: grayscale(1);
 }

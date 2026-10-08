@@ -140,3 +140,24 @@ export function usePreviewPages(previewId: string | undefined) {
   }, [previewId]);
   return previewId ? state : null;
 }
+
+/** Data URL de um SVG: a prévia vai como imagem, sem script nem estilo da página. */
+export function svgUrl(svg: string) {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+/**
+ * WebM gravado pelo navegador (MediaRecorder) não traz a duração no
+ * cabeçalho: a barra do tocador fica sem fim. Pular para o fim força o
+ * navegador a medir; depois volta ao começo.
+ */
+export function fixDuration(e: React.SyntheticEvent<HTMLMediaElement>) {
+  const media = e.currentTarget;
+  if (Number.isFinite(media.duration)) return;
+  const back = () => {
+    media.removeEventListener('timeupdate', back);
+    media.currentTime = 0;
+  };
+  media.addEventListener('timeupdate', back);
+  media.currentTime = 1e101;
+}

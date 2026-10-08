@@ -2356,24 +2356,23 @@ export default function Home() {
       const params = canonical(rev.params);
       const parts = drawingParts(params);
       const fittings = fittingsOf(params);
-      const body = new FormData();
+      const query = new URLSearchParams({ id: proj.id, messageId, blockId: block.id });
+      let body: Blob;
       if (block.format === 'video') {
         const made = await recordTurntable(parts, rev.params, fittings);
-        body.append('file', made.blob, `giro.${made.blob.type.includes('mp4') ? 'mp4' : 'webm'}`);
-        body.append('durationMs', String(made.durationMs));
-        body.append('width', String(made.width));
-        body.append('height', String(made.height));
+        body = made.blob;
+        query.set('durationMs', String(made.durationMs));
+        query.set('width', String(made.width));
+        query.set('height', String(made.height));
       } else {
         const made = await furniturePhoto(parts, rev.params, fittings);
         if (!made) throw new Error('Sem WebGL para desenhar o móvel.');
-        body.append('file', made.blob, 'foto.png');
-        body.append('width', String(made.width));
-        body.append('height', String(made.height));
+        body = made.blob;
+        query.set('width', String(made.width));
+        query.set('height', String(made.height));
       }
-      body.append('id', proj.id);
-      body.append('messageId', messageId);
-      body.append('blockId', block.id);
-      const r = await fetch('/api/files', { method: 'POST', body });
+      // O arquivo vai cru, com o tipo dele: multipart grande o vinext recusa.
+      const r = await fetch(`/api/files?${query}`, { method: 'POST', headers: { 'Content-Type': body.type || 'application/octet-stream' }, body });
       const d = (await r.json()) as State & { error?: string };
       if (!r.ok) throw new Error(d.error || 'Não consegui guardar o arquivo.');
       accept(d);

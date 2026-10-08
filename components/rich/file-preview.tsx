@@ -5,8 +5,7 @@
 import { useEffect, useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
 import type { FileBlock, FileMeta } from '@/lib/rich';
-import { fileUrl, usePreviewPages } from './rich-context';
-import { svgUrl } from './file-card';
+import { fileUrl, fixDuration, svgUrl, usePreviewPages } from './rich-context';
 
 /**
  * Prévia de um arquivo dentro da janela grande. PDF: as páginas desenhadas
@@ -18,20 +17,20 @@ export function FilePreview({ meta, block }: { meta: FileMeta; block: FileBlock 
   if (meta.kind === 'pdf') return <PdfPages meta={meta} />;
   if (meta.kind === 'image')
     return (
-      <div className="xv-media">
+      <div className="media-preview">
         <img src={fileUrl(meta.id)} alt={`${meta.name}, versão ${block.revision}`} data-autofocus tabIndex={0} />
       </div>
     );
   if (meta.kind === 'video')
     return (
-      <div className="xv-media">
-        <video src={fileUrl(meta.id)} controls playsInline data-autofocus aria-label={meta.name} />
+      <div className="media-preview">
+        <video src={fileUrl(meta.id)} controls playsInline data-autofocus aria-label={meta.name} onLoadedMetadata={fixDuration} />
       </div>
     );
   if (meta.kind === 'audio')
     return (
-      <div className="xv-media audio">
-        <audio src={fileUrl(meta.id)} controls data-autofocus aria-label={meta.name} />
+      <div className="media-preview audio">
+        <audio src={fileUrl(meta.id)} controls data-autofocus aria-label={meta.name} onLoadedMetadata={fixDuration} />
       </div>
     );
   return <TextPreview meta={meta} />;

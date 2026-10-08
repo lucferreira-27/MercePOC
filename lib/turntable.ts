@@ -75,14 +75,16 @@ export async function recordTurntable(
     draw(0);
     recorder.start(250);
     const began = performance.now();
+    // Relógio de tempo real, não de quadros: com a aba em segundo plano o
+    // navegador espaça os quadros, mas a volta termina no tempo certo.
     await new Promise<void>((done) => {
       const tick = () => {
         const t = performance.now() - began;
         draw(Math.min(t, total));
         if (t >= total) done();
-        else requestAnimationFrame(tick);
+        else setTimeout(tick, 1000 / VIDEO.fps);
       };
-      requestAnimationFrame(tick);
+      tick();
     });
     recorder.stop();
     await stopped;

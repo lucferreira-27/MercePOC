@@ -20,7 +20,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { durationLabel, FILE_FORMATS, sizeLabel, type FileBlock, type FileKind, type FileMeta } from '@/lib/rich';
-import { fileUrl, useFileAvailable, usePreviewPages, useRich } from './rich-context';
+import { fileUrl, fixDuration, svgUrl, useFileAvailable, usePreviewPages, useRich } from './rich-context';
 
 const KIND_LABEL: Record<FileKind, string> = {
   pdf: 'PDF',
@@ -44,11 +44,6 @@ function KindIcon({ kind, size = 18 }: { kind: FileKind; size?: number }) {
   if (kind === 'video') return <Film size={size} />;
   if (kind === 'audio') return <Music size={size} />;
   return <FileJson size={size} />;
-}
-
-/** Data URL de um SVG: a prévia vai como imagem, sem script nem estilo da página. */
-export function svgUrl(svg: string) {
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
 /**
@@ -139,7 +134,7 @@ export function FileCard({ block, messageId }: { block: FileBlock; messageId: st
             </span>
           ) : null}
         </span>
-        {kind === 'audio' && !missing && <audio className="file-audio" controls preload="metadata" src={fileUrl(meta.id)} aria-label={`Tocar ${meta.name}`} />}
+        {kind === 'audio' && !missing && <audio className="file-audio" controls preload="metadata" src={fileUrl(meta.id)} aria-label={`Tocar ${meta.name}`} onLoadedMetadata={fixDuration} />}
       </div>
       <div className="file-actions">
         {!missing && kind !== 'audio' && (
@@ -157,7 +152,7 @@ export function FileCard({ block, messageId }: { block: FileBlock; messageId: st
             <Download size={14} /> <span>Baixar</span>
           </a>
         )}
-        {(missing || (outdated && !newer)) && (
+        {!newer && (missing || outdated) && (
           <button
             type="button"
             className="file-action"

@@ -14,7 +14,7 @@ import { sameOrigin } from '@/lib/utils';
  * GET ?id=…&meta=1     só a metadata (o cartão confere se o arquivo existe).
  * POST JSON {action:'generate'} gera um arquivo do servidor numa mensagem nova.
  * POST JSON {action:'fail'}     o navegador não conseguiu gerar o pendente.
- * POST multipart                o navegador entrega a foto ou o vídeo pendente.
+ * POST imagem ou vídeo (corpo cru) o navegador entrega a foto ou o vídeo pendente.
  */
 export async function GET(req: Request) {
   const q = new URL(req.url).searchParams;
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
   try {
     if (!sameOrigin(req)) return Response.json({ error: 'Origem inválida' }, { status: 403 });
     const type = req.headers.get('content-type') || '';
-    if (type.startsWith('multipart/form-data')) return await upload(req);
+    if (/^(image|video)\//.test(type)) return await upload(req);
     const body = await req.json();
     const failed = failSchema.safeParse(body);
     if (failed.success) {
@@ -112,10 +112,15 @@ export async function POST(req: Request) {
   }
 }
 
-/** Foto da vista ou vídeo que a página gravou para um cartão pendente. */
+/**
+ * Foto ou vídeo que a página gravou para um cartão pendente. O corpo é o
+ * arquivo cru (Content-Type do arquivo) e os campos vão na URL: um envio
+ * multipart acima de 1 MB é tratado pelo vinext como formulário de server
+ * action e recusado antes de chegar aqui.
+ */
 async function upload(req: Request) {
-  if (Number(req.headers.get('content-length')) > MAX_FILE_BYTES + 65536) throw new Error('O arquivo passa de 40 MB.');
-  const form = await req.formData();
+  if (Number(req.headers.get('content-length')) > MAX_FILE_BYTES) throw new Error('O arquivo passa de 40 MB.');
+  const q = new URL(req.url).searchParams;
   const fields = z
     .object({
       id: z.uuid(),
@@ -126,32 +131,53 @@ async function upload(req: Request) {
       height: z.coerce.number().int().min(1).max(10000).optional(),
     })
     .parse({
-      id: form.get('id'),
-      messageId: form.get('messageId'),
-      blockId: form.get('blockId'),
-      durationMs: form.get('durationMs') ?? undefined,
-      width: form.get('width') ?? undefined,
-      height: form.get('height') ?? undefined,
+      id: q.get('id'),
+      messageId: q.get('messageId'),
+      blockId: q.get('blockId'),
+      durationMs: q.get('durationMs') ?? undefined,
+      width: q.get('width') ?? undefined,
+      height: q.get('height') ?? undefined,
     });
-  const file = form.get('file');
-  if (!(file instanceof File)) throw new Error('Envie o arquivo.');
+  const reader = req.body?.getReader();
+  if (!reader) throw new Error('Envie o arquivo.');
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.length;
+      if (total > MAX_FILE_BYTES) {
+        await reader.cancel();
+        throw new Error('O arquivo passa de 40 MB.');
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(total);
+  let at = 0;
+  for (const c of chunks) {
+    bytes.set(c, at);
+    at += c.length;
+  }
   await waitTurn(fields.id);
   const p = get(fields.id);
   const { m, i, block } = findBlock(p, fields.messageId, fields.blockId);
   if (block.status === 'ready') return Response.json(view(p));
   const spec = FILE_FORMATS[block.format];
   if (spec.made !== 'client') throw new Error('Este arquivo é gerado pelo servidor.');
-  const mime = (file.type || spec.mime).split(';')[0];
+  const mime = (req.headers.get('content-type') || spec.mime).split(';')[0].trim();
   const allowed = spec.kind === 'image' ? /^image\/(png|jpeg|webp)$/ : /^video\/(webm|mp4)$/;
   if (!allowed.test(mime)) throw new Error('Formato de arquivo inesperado.');
-  const bytes = new Uint8Array(await file.arrayBuffer());
   const rev = p.revisions.find((r) => r.id === block.revisionId);
-  const ext = mime === 'video/mp4' ? 'mp4' : mime === 'image/jpeg' ? 'jpg' : spec.ext;
+  const ext = mime === 'video/mp4' ? 'mp4' : mime === 'image/jpeg' ? 'jpg' : mime === 'image/webp' ? 'webp' : spec.ext;
   const meta = await saveFile(bytes, {
     name: fileName(p.name, block.format, block.revision, block.generation).replace(/\.[a-z0-9]+$/, `.${ext}`),
     mime,
     kind: spec.kind,
-    description: block.format === 'video' ? 'O móvel girando em volta, da versão gravada' : 'A cena como estava na tela, com as cotas',
+    description: block.format === 'video' ? 'O móvel dando uma volta inteira, da versão gravada' : 'O móvel em foto, do mesmo ângulo do PDF',
     projectId: p.id,
     ...(rev ? { revisionId: rev.id, revision: rev.number } : {}),
     format: block.format,
