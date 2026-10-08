@@ -3398,7 +3398,7 @@ export default function Home() {
               )}
               {t === 'cut' && quote && (
                 <CutPlanPanel
-                  key={panel?.target.kind === 'cut' ? `panel-${panel.target.sheet ?? 0}` : `tab-${tabFocus?.at ?? 0}`}
+                  key={panel?.target.kind === 'cut' ? `panel-${panel.target.sheet ?? 0}` : tabFocus?.sheet ? `tab-${tabFocus.at}` : 'tab'}
                   sheet={panel?.target.kind === 'cut' ? panel.target.sheet : tabFocus?.sheet}
                   plan={quote.plan}
                   selected={displaySelected}
@@ -4712,7 +4712,9 @@ export default function Home() {
               onSnapshot={onSnapshot}
               onSpinSuppressed={setReducedMotion}
               diff={sceneDiff}
-              cutFocus={tab === 'cut' ? cutFocus : null}
+              // Peça ou chapa sob o cursor na aba Corte ou num cartão da conversa:
+              // quem acende também apaga ao sair.
+              cutFocus={cutFocus}
               keyboard={!paletteOpen && !galleryOpen}
               movable={!busy && !pending && historyPreview === null && !reviewLocked && !exploded}
               onMove={onMoveFurniture}
