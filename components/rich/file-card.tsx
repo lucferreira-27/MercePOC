@@ -92,7 +92,7 @@ export function FileCard({ block, messageId }: { block: FileBlock; messageId: st
         </div>
         {!busyHere && (
           <div className="file-actions">
-            <button type="button" className="file-action" disabled={rich.busy || index < 0} onClick={regenerate} title={index < 0 ? 'A versão deste arquivo foi descartada' : undefined}>
+            <button type="button" className="file-action labeled" disabled={rich.busy || index < 0} onClick={regenerate} title={index < 0 ? 'A versão deste arquivo foi descartada' : undefined}>
               <RefreshCw size={14} /> {pending ? 'Gerar agora' : 'Tentar de novo'}
             </button>
           </div>
@@ -134,28 +134,27 @@ export function FileCard({ block, messageId }: { block: FileBlock; messageId: st
             </span>
           ) : null}
         </span>
-        {kind === 'audio' && !missing && <audio className="file-audio" controls preload="metadata" src={fileUrl(meta.id)} aria-label={`Tocar ${meta.name}`} onLoadedMetadata={fixDuration} />}
       </div>
       <div className="file-actions">
         {!missing && kind !== 'audio' && (
-          <button ref={kind === 'image' || kind === 'video' || kind === 'pdf' ? undefined : opener} type="button" className="file-action" onClick={preview} aria-label={`Visualizar ${meta.name}`}>
+          <button ref={kind === 'image' || kind === 'video' || kind === 'pdf' ? undefined : opener} type="button" className="file-action" title="Visualizar" onClick={preview} aria-label={`Visualizar ${meta.name}`}>
             <Eye size={14} /> <span>Visualizar</span>
           </button>
         )}
         {!missing && (kind === 'pdf' || kind === 'image') && (
-          <a className="file-action" href={fileUrl(meta.id)} target="_blank" rel="noopener" aria-label={`Abrir ${meta.name} em outra aba`}>
+          <a className="file-action" href={fileUrl(meta.id)} target="_blank" rel="noopener" title="Abrir em outra aba" aria-label={`Abrir ${meta.name} em outra aba`}>
             <ExternalLink size={14} /> <span>Abrir</span>
           </a>
         )}
         {!missing && (
-          <a className="file-action" href={fileUrl(meta.id, true)} download={meta.name} aria-label={`Baixar ${meta.name}`}>
+          <a className="file-action" href={fileUrl(meta.id, true)} download={meta.name} title="Baixar" aria-label={`Baixar ${meta.name}`}>
             <Download size={14} /> <span>Baixar</span>
           </a>
         )}
         {!newer && (missing || outdated) && FILE_FORMATS[block.format].made !== 'upload' && (
           <button
             type="button"
-            className="file-action"
+            className="file-action labeled"
             disabled={rich.busy || busyHere}
             onClick={() =>
               FILE_FORMATS[block.format].made === 'client' ? rich.fulfill(messageId, { ...block, status: 'pending', file: null }) : void rich.generate(block.format)
@@ -166,6 +165,7 @@ export function FileCard({ block, messageId }: { block: FileBlock; messageId: st
           </button>
         )}
       </div>
+      {kind === 'audio' && !missing && <audio className="file-audio" controls preload="metadata" src={fileUrl(meta.id)} aria-label={`Tocar ${meta.name}`} onLoadedMetadata={fixDuration} />}
     </article>
   );
 }

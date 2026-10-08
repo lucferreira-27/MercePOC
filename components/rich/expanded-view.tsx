@@ -8,7 +8,8 @@ import { X } from 'lucide-react';
  * fecha, o foco fica preso aqui dentro enquanto ela está aberta e volta para
  * quem abriu ao fechar. Em tela pequena ela ocupa a tela inteira.
  *
- * `size`: `doc` (leitor de documento), `wide` (editor com controles),
+ * `size`: `doc` (leitor de documento), `form` (editor de uma coluna),
+ * `wide` (editor com desenho grande),
  * `media` (imagem e vídeo), `scene` (a cena 3D, que a página põe por cima).
  */
 export function ExpandedView({
@@ -22,7 +23,7 @@ export function ExpandedView({
 }: {
   title: string;
   subtitle?: React.ReactNode;
-  size?: 'doc' | 'wide' | 'media' | 'scene';
+  size?: 'doc' | 'form' | 'wide' | 'media' | 'scene';
   actions?: React.ReactNode;
   onClose: () => void;
   children?: React.ReactNode;

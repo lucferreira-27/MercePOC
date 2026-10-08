@@ -55,12 +55,15 @@ export function ProjectList({
   onSelect,
   onDelete,
   autoFocus = false,
+  compact = false,
 }: {
   projects: ProjectSummary[];
   current?: string;
   onSelect: (id: string) => void;
   onDelete: (id: string) => Promise<void>;
   autoFocus?: boolean;
+  /** Uma linha por projeto (barra lateral): o resumo vai na dica. */
+  compact?: boolean;
 }) {
   const [query, setQuery] = useState('');
   const [confirming, setConfirming] = useState<string | null>(null);
@@ -90,7 +93,7 @@ export function ProjectList({
           {found.length} de {projects.length}
         </small>
       </label>
-      <div className="project-list" role="listbox" aria-label="Projetos">
+      <div className={'project-list' + (compact ? ' compact' : '')} role="listbox" aria-label="Projetos">
         {found.map((v) => (
           <div key={v.id} className={'project-row' + (v.id === current ? ' current' : '')}>
             {confirming === v.id ? (
@@ -123,10 +126,11 @@ export function ProjectList({
                   role="option"
                   aria-selected={v.id === current}
                   className="project-name"
+                  title={compact ? `${v.name}\n${summarize(v)}` : undefined}
                   onClick={() => onSelect(v.id)}
                 >
                   <strong>{v.name}</strong>
-                  <small>{summarize(v)}</small>
+                  {!compact && <small>{summarize(v)}</small>}
                 </button>
                 <button
                   type="button"

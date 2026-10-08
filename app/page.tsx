@@ -516,6 +516,8 @@ export default function Home() {
   const [agentOn, setAgentOn] = useState(true);
   // ── Conteúdo rico e modo só conversa ────────────────────────────────────
   const [layout, setLayout] = useState<Layout>('split');
+  /** Barra lateral do modo só conversa: aberta (nomes) ou recolhida (ícones). */
+  const [sideOpen, setSideOpen] = useState(true);
   const [panel, setPanel] = useState<OpenPanel | null>(null);
   /** Rascunho do orçamento (ajustes não gravados), um por projeto. */
   const [quoteDraft, setQuoteDraft] = useState<QuoteDraft | null>(null);
@@ -592,6 +594,7 @@ export default function Home() {
     if (readLocal('merce-chat') === '0') setChatOpen(false);
     if (readLocal('merce-inspector') === '0') setInspectorOpen(false);
     if (readLocal('merce-layout') === 'chat') setLayout('chat');
+    if (readLocal('merce-side') === '0') setSideOpen(false);
     const savedTab = readLocal('merce-tab');
     if (TABS.some((v) => v.id === savedTab)) setTab(savedTab as Tab);
     if (savedTab === 'project' || savedTab === 'room') wsTab.current.build = savedTab;
@@ -3534,7 +3537,7 @@ export default function Home() {
       <ExpandedView
         title={tab === 'cut' ? 'Plano de corte' : title}
         subtitle={`${p.name} · versão ${p.cursor + 1}${liveDraft && tab === 'quote' ? ' · rascunho não salvo' : ''}`}
-        size="wide"
+        size={tab === 'cut' ? 'wide' : 'form'}
         bodyClass={`xv-tab xv-tab-${tab}`}
         onClose={closePanel}
         actions={
@@ -3587,16 +3590,246 @@ export default function Home() {
     { id: 'room', label: 'Ambiente', icon: <DoorOpen size={15} /> },
     { id: 'history', label: 'Versões', icon: <History size={15} /> },
   ];
+  /** Menu Exportar: no topo no modo dividido, no cabeçalho da conversa no só conversa. */
+  const exportMenu = () => (
+    <div className="export-wrap" ref={exportWrap}>
+      <Button
+        className="export-button"
+        aria-expanded={exportOpen}
+        onClick={() => setExportOpen(!exportOpen)}
+        disabled={!p || busyLook}
+        title={
+          busyLook
+            ? 'Aguarde a resposta atual: exportar agora gravaria a versão anterior'
+            : 'Exportar foto, PDF, peças, corte ou projeto'
+        }
+      >
+        <Download />
+        Exportar
+        <ChevronDown size={14} />
+      </Button>
+      {exportOpen && p && (
+        <div className="export-menu" role="menu">
+          {exports.map((x) => (
+            <button
+              key={x.id}
+              role="menuitem"
+              onClick={() => {
+                setExportOpen(false);
+                x.run();
+              }}
+            >
+              <span className="menu-icon">{x.icon}</span>
+              <span>
+                {x.label}
+                <small>{x.hint}</small>
+              </span>
+            </button>
+          ))}
+          <p>
+            Cortecloud experimental. Nada inclui furação, instruções de montagem ou
+            certificação de estabilidade.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+  /** Nome do projeto em edição: um só campo, onde ele estiver à vista. */
+  const renameInput = (className: string) =>
+    p && (
+      <input
+        className={className}
+        ref={(el) => el?.focus()}
+        defaultValue={p.name}
+        maxLength={80}
+        aria-label="Nome do projeto"
+        onBlur={(e) => {
+          setRenaming(false);
+          const name = e.target.value.trim();
+          if (name && name !== p.name) void action('rename', { name });
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+          if (e.key === 'Escape') {
+            e.currentTarget.value = p.name;
+            e.currentTarget.blur();
+          }
+        }}
+      />
+    );
+  const toggleSide = () =>
+    setSideOpen((v) => {
+      writeLocal('merce-side', v ? '0' : '1');
+      return !v;
+    });
+  /**
+   * Barra lateral do modo só conversa, como a de um chat: projeto novo,
+   * busca, as partes do estúdio (abrem na janela grande) e os projetos.
+   */
+  const chatSidebar = () =>
+    p && (
+      <nav className={'chat-side' + (sideOpen ? '' : ' closed')} aria-label="Estúdio e projetos" inert={!!panel}>
+        <div className="cs-top">
+          <Link className="cs-brand" href="/" aria-label="Merce, início">
+            <span className="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <rect x="4" y="3" width="16" height="18" rx="1.5" />
+                <path d="M4 9.5h16M12 9.5V21M4 15h8" />
+              </svg>
+            </span>
+            <span className="cs-text">
+              merce<span className="brand-dot">.</span>
+            </span>
+          </Link>
+          <button
+            type="button"
+            className="icon-button cs-collapse"
+            aria-label={sideOpen ? 'Recolher a barra lateral' : 'Abrir a barra lateral'}
+            aria-expanded={sideOpen}
+            title={sideOpen ? 'Recolher a barra lateral' : 'Abrir a barra lateral'}
+            onClick={toggleSide}
+          >
+            {sideOpen ? <PanelLeftClose size={16} /> : <PanelLeft size={16} />}
+          </button>
+        </div>
+        <div className="cs-group">
+          <button type="button" className="cs-item" disabled={busyLook} title="Novo projeto" onClick={() => openGallery('new')}>
+            <Plus size={16} />
+            <span className="cs-text">Novo projeto</span>
+          </button>
+          <button type="button" className="cs-item" title="Buscar ações (Ctrl K)" onClick={() => setPaletteOpen(true)}>
+            <Search size={16} />
+            <span className="cs-text">Buscar ações</span>
+            <kbd className="cs-text">Ctrl K</kbd>
+          </button>
+        </div>
+        <div className="cs-group">
+          <span className="cs-label cs-text">Estúdio</span>
+          {chatTools.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className="cs-item"
+              aria-label={`Abrir ${t.label}`}
+              title={t.label}
+              onClick={(e) => openTarget({ kind: t.id } as PanelTarget, e.currentTarget)}
+            >
+              {t.icon}
+              <span className="cs-text">{t.label}</span>
+            </button>
+          ))}
+        </div>
+        <div className="cs-group cs-projects cs-text">
+          <span className="cs-label">Projetos</span>
+          <ProjectList
+            compact
+            projects={projects}
+            current={p.id}
+            onDelete={removeProject}
+            onSelect={(id) => {
+              if (id !== p.id) void openProject(id);
+            }}
+          />
+        </div>
+        <div className="cs-bottom">
+          <button
+            type="button"
+            className="cs-item"
+            title="Voltar ao modo dividido: conversa, cena 3D e painel lado a lado"
+            onClick={() => chooseLayout('split')}
+          >
+            <Columns3 size={16} />
+            <span className="cs-text">Modo dividido</span>
+          </button>
+          <button
+            type="button"
+            className="cs-item"
+            title={`Tema: ${themeChoice === 'system' ? 'do sistema' : theme === 'dark' ? 'escuro' : 'claro'}`}
+            aria-label="Alternar tema claro e escuro"
+            onClick={cycleTheme}
+          >
+            {themeChoice === 'system' ? <Monitor size={16} /> : theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
+            <span className="cs-text">{theme === 'dark' ? 'Tema escuro' : 'Tema claro'}</span>
+          </button>
+        </div>
+      </nav>
+    );
+  /** Cabeçalho único da conversa no modo só conversa: o projeto e as ações. */
+  const chatHead = () =>
+    p && (
+      <header className="chat-head">
+        <div className="ch-title">
+          {renaming ? (
+            renameInput('title-input ch-rename')
+          ) : (
+            <button type="button" className="ch-name" title="Clique para renomear" disabled={busyLook} onClick={() => setRenaming(true)}>
+              <strong>{p.name}</strong>
+              <Pencil size={12} />
+            </button>
+          )}
+          <small>
+            {pending ? (
+              <>
+                <ActivityGlyph activity={activity} size="sm" />
+                <span key={activity.key}>{activity.label}</span>
+              </>
+            ) : (
+              <>
+                v{p.cursor + 1}
+                {visualSize ? ` · ${metres(visualSize[0])} × ${metres(visualSize[1])} × ${metres(visualSize[2])} m` : ''}
+                {quote ? ` · ${money(quote.total)}` : ''}
+              </>
+            )}
+          </small>
+        </div>
+        <div className="ch-actions">
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Desfazer"
+            title={undoIsStep(p) ? 'Desfazer o último movimento (Ctrl+Z)' : 'Desfazer (Ctrl+Z)'}
+            disabled={busyLook || !canUndo(p)}
+            onClick={() => void action('undo')}
+          >
+            <Undo2 size={16} />
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Refazer"
+            title={redoIsStep(p) ? 'Refazer o movimento (Ctrl+Y)' : 'Refazer (Ctrl+Y)'}
+            disabled={busyLook || !canRedo(p)}
+            onClick={() => void action('redo')}
+          >
+            <Redo2 size={16} />
+          </button>
+          <UsageMeter conversation={conversationUsage} session={sessionUsage} live={liveUsage} />
+          <button
+            type="button"
+            className={'icon-button' + (clearAsk ? ' on' : '')}
+            aria-label="Limpar a conversa"
+            aria-expanded={clearAsk}
+            title={hasTalk ? 'Limpar a conversa' : 'Nada para limpar'}
+            disabled={busyLook || !hasTalk}
+            onClick={() => setClearAsk((v) => !v)}
+          >
+            <Eraser size={16} />
+          </button>
+          {exportMenu()}
+        </div>
+      </header>
+    );
   return (
     <RichContext.Provider value={richApi}>
     <main
       className={
         app
           ? 'studio app' + (keyboard ? ' kb' : '') + (timeTravel ? ' time-travel' : '')
-          : 'studio' + (chatOnly ? ' chat-only' : (chatOpen ? '' : ' no-chat') + (inspectorOpen ? '' : ' no-inspector')) + (sceneOpen ? ' scene-open' : '')
+          : 'studio' + (chatOnly ? ' chat-only' + (sideOpen ? '' : ' side-closed') : (chatOpen ? '' : ' no-chat') + (inspectorOpen ? '' : ' no-inspector')) + (sceneOpen ? ' scene-open' : '')
       }
       data-ws={app ? ws : undefined}
     >
+      {!chatOnly && (
       <header className="topbar" inert={!!panel}>
         {app ? (
           <>
@@ -3709,50 +3942,11 @@ export default function Home() {
             <Plus />
             Novo
           </Button>
-          <div className="export-wrap" ref={exportWrap}>
-            <Button
-              className="export-button"
-              aria-expanded={exportOpen}
-              onClick={() => setExportOpen(!exportOpen)}
-              disabled={!p || busyLook}
-              title={
-                busyLook
-                  ? 'Aguarde a resposta atual: exportar agora gravaria a versão anterior'
-                  : 'Exportar foto, PDF, peças, corte ou projeto'
-              }
-            >
-              <Download />
-              Exportar
-              <ChevronDown size={14} />
-            </Button>
-            {exportOpen && p && (
-              <div className="export-menu" role="menu">
-                {exports.map((x) => (
-                  <button
-                    key={x.id}
-                    role="menuitem"
-                    onClick={() => {
-                      setExportOpen(false);
-                      x.run();
-                    }}
-                  >
-                    <span className="menu-icon">{x.icon}</span>
-                    <span>
-                      {x.label}
-                      <small>{x.hint}</small>
-                    </span>
-                  </button>
-                ))}
-                <p>
-                  Cortecloud experimental. Nada inclui furação, instruções de montagem ou
-                  certificação de estabilidade.
-                </p>
-              </div>
-            )}
-          </div>
+          {exportMenu()}
         </div>
         </>)}
       </header>
+      )}
       <div
         className="workbench"
         onScrollCapture={
@@ -3766,8 +3960,10 @@ export default function Home() {
             : undefined
         }
       >
+        {chatOnly && chatSidebar()}
         {(chatOpen || app || chatOnly) && (
         <aside className="chat-panel" aria-label="Conversa com a IA" inert={!!panel}>
+          {chatOnly ? chatHead() : (
           <div className="panel-head">
             <span className="assistant-id">
               <span className="assistant-avatar"><Sparkles size={15} /></span>
@@ -3795,59 +3991,10 @@ export default function Home() {
             >
               <Eraser size={16} />
             </button>
-            {!chatOnly && (
-              <button type="button" className="icon-button" aria-label="Recolher a conversa" title="Recolher ( [ )" onClick={() => toggleChat(false)}>
-                <PanelLeftClose size={16} />
-              </button>
-            )}
+            <button type="button" className="icon-button" aria-label="Recolher a conversa" title="Recolher ( [ )" onClick={() => toggleChat(false)}>
+              <PanelLeftClose size={16} />
+            </button>
           </div>
-          {chatOnly && p && (
-            <nav className="chat-tools" aria-label="Abrir parte do estúdio">
-              <span className="chat-tools-project" title={p.name}>
-                <strong>{p.name}</strong>
-                <small>
-                  v{p.cursor + 1}
-                  {visualSize ? ` · ${metres(visualSize[0])} × ${metres(visualSize[1])} × ${metres(visualSize[2])} m` : ''}
-                  {quote ? ` · ${money(quote.total)}` : ''}
-                </small>
-              </span>
-              <span className="chat-tools-list">
-                <button
-                  type="button"
-                  className="chat-tool"
-                  aria-label="Desfazer"
-                  title={undoIsStep(p) ? 'Desfazer o último movimento (Ctrl+Z)' : 'Desfazer (Ctrl+Z)'}
-                  disabled={busyLook || !canUndo(p)}
-                  onClick={() => void action('undo')}
-                >
-                  <Undo2 size={15} />
-                </button>
-                <button
-                  type="button"
-                  className="chat-tool"
-                  aria-label="Refazer"
-                  title={redoIsStep(p) ? 'Refazer o movimento (Ctrl+Y)' : 'Refazer (Ctrl+Y)'}
-                  disabled={busyLook || !canRedo(p)}
-                  onClick={() => void action('redo')}
-                >
-                  <Redo2 size={15} />
-                </button>
-                <span className="chat-tools-sep" aria-hidden="true" />
-                {chatTools.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    className="chat-tool"
-                    aria-label={`Abrir ${t.label}`}
-                    title={t.label}
-                    onClick={(e) => openTarget({ kind: t.id } as PanelTarget, e.currentTarget)}
-                  >
-                    {t.icon}
-                    <span>{t.label}</span>
-                  </button>
-                ))}
-              </span>
-            </nav>
           )}
           {clearAsk && p && (
             <div
@@ -4525,26 +4672,8 @@ export default function Home() {
               </button>
             )}
             <div className="stage-title">
-              {renaming && p ? (
-                <input
-                  className="title-input"
-                  ref={(el) => el?.focus()}
-                  defaultValue={p.name}
-                  maxLength={80}
-                  aria-label="Nome do projeto"
-                  onBlur={(e) => {
-                    setRenaming(false);
-                    const name = e.target.value.trim();
-                    if (name && name !== p.name) void action('rename', { name });
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') e.currentTarget.blur();
-                    if (e.key === 'Escape') {
-                      e.currentTarget.value = p.name;
-                      e.currentTarget.blur();
-                    }
-                  }}
-                />
+              {renaming && p && !chatOnly ? (
+                renameInput('title-input')
               ) : !p ? (
                 <span className="stage-title-skeleton" aria-hidden="true">
                   <i className="sk sk-title" />
