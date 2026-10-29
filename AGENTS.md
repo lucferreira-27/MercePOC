@@ -29,9 +29,14 @@ Checklist per change:
   `git push origin HEAD:dev`. Then fast-forward the `G:\MercePOC` checkout
   with `git -C G:/MercePOC pull --ff-only`. Never leave committed work only
   on the side branch.
-- `main` is production. It only moves through a `dev` → `main` merge once the
-  changes are tested and ready. Never commit or push directly to `main`
-  (the private repo has no branch protection, so nothing else enforces this).
+- `main` is production. It only moves through a `dev` → `main` pull request
+  once the changes are tested and ready. Never commit or push directly to
+  `main`: branch protection rejects it, admins included. `main` needs a pull
+  request and a green `Testes, lint e tipos` check, and force pushes and
+  deletion are blocked.
+- The repository is public (since 2026-10-29). Never commit secrets, real
+  keys (use placeholders such as `your-key-here`), `.env` or `.dev.vars`
+  files, personal photos, or anything from `data/` (traces and logs).
 - GitHub Actions (`.github/workflows/deploy.yml`) checks every push to `dev`
   and `main`, and deploys `main` to Cloudflare
   (https://merce.lucferreira14.workers.dev). Keep `npm test`, lint and
@@ -39,8 +44,11 @@ Checklist per change:
 - Local production runs from a separate worktree at `G:\MercePOC-prod` that
   always stays on `main`, with its own `node_modules`, `dist/` and a copy of
   `.env`.
-- To release: merge `dev` into `main` and push (the cloud updates by
-  itself), then in `G:\MercePOC-prod` run
+- To release: open the release pull request with
+  `gh pr create --base main --head dev`, with the release notes as its body.
+  It is the one PR that needs no separate request from the user. Once the
+  check passes, merge it with `gh pr merge <n> --merge` (the cloud updates
+  by itself), then in `G:\MercePOC-prod` run
   `git pull`, `npm install` (if dependencies changed) and `npm run build`,
   and restart the server there with `Start-Merce.ps1`.
 - GitHub releases: a release that changes what users see gets a new version.
@@ -66,8 +74,8 @@ Only when the user asks for one (see above). Then:
   something. For a behavior fix, show the screen where the fix is visible.
 - Commit the images to `docs/pr/<PR number>/` on the PR branch, cropped to
   what matters and with descriptive names (`janela-escuro.png`).
-- Embed them in the PR body with a link pinned to the commit, so they render
-  on the private repo:
+- Embed them in the PR body with a link pinned to the commit, so they keep
+  showing the version the PR was about:
   `![descrição](https://github.com/lucferreira-27/MercePOC/blob/<sha>/docs/pr/<n>/arquivo.png?raw=true)`
 
 ## Commands

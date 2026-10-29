@@ -50,8 +50,10 @@ Projetos e fotos ficam a cada deploy: moram no Durable Object, não no pacote.
 O GitHub Actions (`.github/workflows/deploy.yml`) publica sozinho:
 
 - **Push no `dev`:** roda lint, tipos e testes. Nada é publicado.
-- **Push no `main`:** roda o mesmo e, se passar, `npm run cf:deploy`, depois
-  confere que `/login` responde 200. O selo no README e o ambiente
+- **Merge no `main`:** o `main` é protegido e só recebe pull request vindo do
+  `dev`, com a conferência `Testes, lint e tipos` verde (vale também para o
+  dono do repositório). O merge roda o mesmo e, se passar,
+  `npm run cf:deploy`, depois confere que `/login` responde 200. O selo no README e o ambiente
   `production` na lateral do repositório mostram o último resultado.
 - **Release:** depois do deploy, se a versão do `package.json` ainda não tem
   release, o workflow cria a tag e a release `vX.Y.Z`, com as notas de
